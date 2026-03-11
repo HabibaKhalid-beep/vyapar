@@ -1,23 +1,44 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\PartyController;
+use Illuminate\Support\Facades\Route;
 
-// Redirect root to dashboard
-Route::get('/', fn() => redirect()->route('dashboard'));
+// Default landing page (redirects to login or dashboard)
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
+});
 
-// Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+// Authenticated routes
+Route::middleware(['auth'])->group(function () {
 
-// Invoice
-Route::get('/invoice',       [InvoiceController::class, 'index'])->name('invoice');
-Route::get('/invoice/print', [InvoiceController::class, 'print'])->name('invoice.print');
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // Keep old URL working (redirect to new dashboard route)
+    Route::get('/admin/dashboard', function () {
+        return redirect()->route('dashboard');
+    });
 
-// Items
-Route::get('/items', [ItemController::class, 'index'])->name('items');
+    // Invoice
+    Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice');
+    Route::get('/invoice/print', [InvoiceController::class, 'print'])->name('invoice.print');
 
-// Parties
-Route::get('/parties', [PartyController::class, 'index'])->name('parties');
+    // Items
+    Route::get('/items', [ItemController::class, 'index'])->name('items');
+
+    // Parties
+    Route::get('/parties', [PartyController::class, 'index'])->name('parties');
+
+    // Profile routes
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+require __DIR__.'/auth.php';

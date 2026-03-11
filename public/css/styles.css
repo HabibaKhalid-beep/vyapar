@@ -391,6 +391,72 @@ a:hover {
   color: rgba(255,255,255,.45);
 }
 
+  .company-dropdown {
+    position: absolute;
+    bottom: 76px;
+    left: 16px;
+    width: calc(100% - 32px);
+    background: rgba(18, 20, 34, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 8px 0;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px);
+    transition: opacity .18s ease, transform .18s ease, visibility .18s;
+    z-index: 1500;
+  }
+  .company-dropdown.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .company-dropdown-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,.92);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+  }
+  .company-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .company-dropdown-item i {
+    width: 18px;
+    text-align: center;
+  }
+  margin-top: auto;
+}
+.sidebar-logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 8px;
+  color: rgba(255,255,255,.9);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, transform .15s;
+}
+.sidebar-logout-btn:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.3);
+  transform: translateY(-1px);
+}
+.sidebar-logout-btn i {
+  font-size: 14px;
+}
+
 /* ============================================
    MAIN CONTENT AREA
    ============================================ */

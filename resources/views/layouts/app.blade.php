@@ -17,6 +17,15 @@
 </head>
 <body data-page="@yield('page')">
 
+<script>
+  window.App = {
+    isAuthenticated: @json(Auth::check()),
+    user: @json(Auth::user()?->only('name')),
+    logoutUrl: "{{ route('logout') }}",
+    csrfToken: "{{ csrf_token() }}"
+  };
+</script>
+
 <!-- Navbar & Sidebar injected by components.js -->
 
 <main class="main-content" id="mainContent">

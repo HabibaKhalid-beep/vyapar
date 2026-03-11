@@ -7,6 +7,23 @@
  */
 
 (function () {
+  const appUser = window.App?.user || null;
+  const logoutUrl = window.App?.logoutUrl || null;
+  const csrfToken = window.App?.csrfToken || null;
+
+  const getInitials = (name) => {
+    if (!name) return 'GS';
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0].toUpperCase())
+      .join('');
+  };
+
+  const userName = appUser?.name || 'Grocery Store';
+  const userInitials = getInitials(appUser?.name);
+
   // ── Top Navbar ──
   const navbarHTML = `
   <nav class="top-navbar" id="topNavbar">
@@ -122,18 +139,64 @@
     </div>
 
     <!-- Company Selector -->
-    <div class="sidebar-company">
-      <div class="company-avatar">GS</div>
+    <div class="sidebar-company" id="sidebarCompany">
+      <div class="company-avatar">${userInitials}</div>
       <div class="company-info">
-        <div class="company-name">Grocery Store</div>
+        <div class="company-name">${userName}</div>
         <div class="company-role">My Company</div>
       </div>
+      ${logoutUrl && window.App?.isAuthenticated ? `
+      <div class="company-dropdown" id="companyDropdown">
+        <button class="company-dropdown-item" type="button" id="sidebarLogoutBtn">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
+      </div>
+      ` : ''}
     </div>
   </aside>`;
 
   // ── Inject into page ──
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
   document.body.insertAdjacentHTML('afterbegin', navbarHTML);
+
+  // ── Logout button (if available) ──
+  if (logoutUrl && window.App?.isAuthenticated) {
+    const logoutBtn = document.getElementById('sidebarLogoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = logoutUrl;
+        form.style.display = 'none';
+        const token = document.createElement('input');
+        token.type = 'hidden';
+        token.name = '_token';
+        token.value = csrfToken || '';
+        form.appendChild(token);
+        document.body.appendChild(form);
+        form.submit();
+      });
+    }
+  }
+
+  // ── Company dropdown toggle (logout menu) ──
+  const sidebarCompany = document.getElementById('sidebarCompany');
+  const companyDropdown = document.getElementById('companyDropdown');
+  if (sidebarCompany && companyDropdown) {
+    sidebarCompany.addEventListener('click', (event) => {
+      event.stopPropagation();
+      companyDropdown.classList.toggle('open');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', () => {
+      companyDropdown.classList.remove('open');
+    });
+
+    companyDropdown.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+  }
 
   // ── Highlight active page ──
   const currentPage = document.body.getAttribute('data-page') || 'dashboard';
