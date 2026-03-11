@@ -1,0 +1,66 @@
+.sale-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  margin-bottom: 18px;
+}
+
+.sale-header .business-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 88, 126, 0.08);
+  border: 1px solid rgba(255, 88, 126, 0.25);
+  font-size: 12px;
+  font-weight: 600;
+  color: #d93057;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, transform .15s;
+}
+
+.sale-header .business-badge:hover {
+  background: rgba(255, 88, 126, 0.12);
+  border-color: rgba(255, 88, 126, 0.4);
+  transform: translateY(-1px);
+}
+
+.sale-header .business-badge .badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff587e;
+  display: inline-block;
+}
+
+.sale-header .business-badge .badge-text {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sale-header .business-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sale-header .business-actions .btn {
+  min-width: 44px;
+}
+
+/* Sales page card extra info */
+.sale-card-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.sale-card-meta .sale-card-meta-label {
+  font-weight: 600;
+  color: var(--text-dark);
+}

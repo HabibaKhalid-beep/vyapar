@@ -5,7 +5,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\PartyController;
+use App\Http\Controllers\SaleController;
 use Illuminate\Support\Facades\Route;
+
+use function Symfony\Component\String\s;
 
 // Default landing page (redirects to login or dashboard)
 Route::get('/', function () {
@@ -24,6 +27,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/dashboard', function () {
         return redirect()->route('dashboard');
     });
+
+
+
+    Route::get('sales',[SaleController::class,'index'])->name('sale.index');
 
     // Invoice
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice');
