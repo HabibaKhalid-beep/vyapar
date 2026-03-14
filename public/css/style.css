@@ -1,0 +1,265 @@
+:root {
+    --bg-dark: #F3F3F3;
+    --bg-dark-second: #E8E8E8;
+    --tab-bg: #ffffff;
+    --tab-active-bg: #F4F5F6;
+    --tab-hover-bg: #F4F5F6;
+    --text-main: #000000;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --header-height: 48px;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark) !important;
+    color: var(--text-main);
+    /* Allow vertical scrolling so long forms are fully accessible */
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* Tab System Header */
+.tab-system-header {
+    background: var(--bg-dark-second);
+    padding-top: 8px;
+    height: auto;
+    user-select: none;
+}
+
+.tab-strip-wrapper {
+    display: flex;
+    align-items: flex-end;
+    padding-left: 8px;
+    height: 100%;
+}
+
+.tab-strip {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Firefox */
+    max-width: calc(100% - 50px);
+}
+
+.tab-strip::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
+}
+
+/* Tab Item Styles */
+.tab-item {
+    min-width: 140px;
+    max-width: 240px;
+    height: 38px;
+    background: transparent;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    margin-right: -4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-muted);
+    border: 1px solid transparent;
+}
+
+.tab-item:hover {
+    background: var(--tab-hover-bg);
+    color: var(--text-main);
+}
+
+.tab-item.active {
+    background: var(--tab-active-bg);
+    color: var(--text-main);
+    z-index: 2;
+    box-shadow: none;
+    border-radius: 10px 10px 0 0;
+    margin-left: 10px;
+}
+
+/* Browser Toolbar Styles */
+.browser-toolbar {
+    background: var(--tab-active-bg);
+    height: 44px;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.toolbar-actions {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+.toolbar-actions i {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.toolbar-actions i:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+}
+
+.address-bar {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 20px;
+    padding: 4px 16px;
+    font-size: 0.85rem;
+    min-width: 300px;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+/* Window Controls */
+.window-controls {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.window-controls i {
+    cursor: pointer;
+    transition: color 0.2s, transform 0.1s;
+    padding: 4px;
+}
+
+.window-controls i:hover {
+    color: var(--text-main);
+    transform: scale(1.1);
+}
+
+.close-app-icon:hover {
+    color: #ef4444 !important;
+    /* Red for close */
+}
+
+/* Modals */
+.modal-content {
+    background: var(--bg-dark-second) !important;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--border-color) !important;
+}
+
+/* Global Save Button */
+#global-save-btn {
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    background: #3b82f6;
+    border: none;
+}
+
+#global-save-btn:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+/* Tab Content */
+.tab-icon {
+    font-size: 1.1rem;
+    margin-right: 10px;
+    color: var(--accent);
+}
+
+.tab-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+}
+
+.tab-close {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    font-size: 0.8rem;
+    opacity: 0;
+    transition: all 0.1s ease;
+}
+
+.tab-item:hover .tab-close,
+.tab-item.active .tab-close {
+    opacity: 0.6;
+}
+
+.tab-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 1 !important;
+}
+
+/* Add Tab Button */
+.add-tab-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+}
+
+.add-tab-btn:hover {
+    background: var(--tab-hover-bg);
+    color: var(--text-main);
+}
+
+/* Content Pane */
+.tab-pane {
+    display: none;
+    height: 100%;
+    /* Let tab content scroll vertically while preventing horizontal scrollbars */
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: relative;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-pane.active {
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Hacks */
+@media (max-width: 576px) {
+    .tab-item {
+        min-width: 100px;
+    }
+}

@@ -11,4 +11,11 @@ class SaleController extends Controller
     {
         return view('dashboard.sales.sale_index');
     }
+
+    public function create(){
+
+    return view('dashboard.sales.create');
+    }
+
+    
 }

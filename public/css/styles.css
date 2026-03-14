@@ -466,6 +466,9 @@ a:hover {
   min-height: calc(100vh - var(--navbar-height));
   background: var(--bg-light);
   padding: 20px 24px;
+
+  width: calc(100% - var(--sidebar-width));
+  box-sizing: border-box;
 }
 
 .app-view {
