@@ -967,7 +967,8 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 </li>
     <ul id="partiesList">
   @foreach($parties as $party)
-    <li class="party-item" data-id="{{ $party->id }}" data-name="{{ $party->name }}" data-phone="{{ $party->phone }}" data-email="{{ $party->email }}" data-address="{{ $party->billing_address }}">
+    <li class="party-item" data-id="{{ $party->id }}" data-name="{{ $party->name }}" data-phone="{{ $party->phone }}" data-email="{{ $party->email }}" data-billing-address="{{ $party->billing_address }}"
+ data-shipping-address="{{ $party->shipping_address }}">
       <span class="entity-name">{{ $party->name }}</span>
       <span class="entity-balance {{ $party->opening_balance < 0 ? 'negative' : 'positive' }}">
         ₹ {{ number_format($party->opening_balance, 2) }}
@@ -997,8 +998,8 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   </div>
 
   <div class="entity-detail-meta">
-    <div class="meta-heading" id="partyEmail">Email</div>
-    <div class="meta-value"> example@email.com</div>
+    <div class="meta-heading">Email</div>
+    <div class="meta-value" id="partyEmail"> example@email.com</div>
   </div>
 
   <div class="entity-detail-meta">
@@ -1535,7 +1536,7 @@ document.getElementById("partyPhone").textContent=li.dataset.phone;
 document.getElementById("partyEmail").textContent=li.dataset.email;
 
 document.getElementById("partyAddress").textContent =
-li.dataset.billingAddress + " | " + li.dataset.shippingAddress;
+li.dataset.billingAddress;
 
 });
 
@@ -1561,8 +1562,6 @@ document.getElementById("partyPhoneInput").value=li.dataset.phone;
 
 document.querySelectorAll('#partyAddressPane textarea')[0].value = li.dataset.billingAddress;
 document.querySelectorAll('#partyAddressPane textarea')[1].value = li.dataset.shippingAddress;
-
-document.querySelector('#partyAddressPane input[type="email"]').value = li.dataset.email;
 
 document.querySelector('#partyCreditPane input[type="number"]').value=li.dataset.opening_balance;
 
@@ -1598,35 +1597,10 @@ body:JSON.stringify(partyData)
 })
 
 .then(res=>res.json())
-.then(data => {
-  if(data.success){
-    const party = data.party;
-    const li = document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
 
-    li.dataset.name = party.name;
-    li.dataset.phone = party.phone;
-    li.dataset.email = party.email;
-    li.dataset.billingAddress = party.billing_address;
-    li.dataset.shippingAddress = party.shipping_address;
-    li.dataset.opening_balance = party.opening_balance;
-
-    li.querySelector(".entity-name").textContent = party.name;
-    li.querySelector(".entity-balance").textContent = "₹ " + parseFloat(party.opening_balance).toFixed(2);
-
-    document.getElementById("partyDetailName").textContent = party.name;
-    document.getElementById("partyPhone").textContent = party.phone;
-    document.getElementById("partyEmail").textContent = party.email;
-    document.getElementById("partyAddress").textContent = party.billing_address + " | " + party.shipping_address;
-
-    alert("Party updated successfully");
-    addModal.hide();
-    resetModal();
-  }
-});
-
+.then(data=>{
 
 if(data.success){
-  const party = data.party;
 
 const li=document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
 
@@ -1703,7 +1677,7 @@ resetModal();
 
 });
 
-
+});
 </script>
 
 @endpush
