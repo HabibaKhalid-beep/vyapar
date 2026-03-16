@@ -43,3 +43,17 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+
+// GET route to show parties page
+Route::get('/parties', [PartyController::class, 'index'])->name('parties');
+
+// POST route to save new party
+Route::post('/parties', [PartyController::class, 'store'])->name('parties.store');
+
+Route::get('/parties/{party}', [PartyController::class, 'show'])->name('parties.show');
+Route::put('/parties/{party}', [PartyController::class, 'update'])->name('parties.update');
+
+Route::get('/parties/{id}', [PartyController::class,'show']);
+Route::put('/parties/{id}', [PartyController::class,'update']);
+Route::delete('/parties/{id}', [PartyController::class,'destroy']);

@@ -807,7 +807,7 @@ font-size:12px;
 
 }
 </style>
-  <script>
+   <script>
     function toggleFilter(){
 let dropdown = document.getElementById("filterDropdown");
 
@@ -863,7 +863,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 });
 
 
-  </script>
+  </script> 
   
 @section('title', 'Vyapar — Parties')
 @section('description', 'Manage your business parties, customers, and suppliers in Vyapar accounting software.')
@@ -965,44 +965,45 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
     
     
 </li>
-        <li data-party="xyz-enterprises">
-          <span class="entity-name">XYZ Enterprises</span>
-          <span class="entity-balance negative">₹ -1,200.00</span>
-        </li>
-        <li data-party="raj-traders">
-          <span class="entity-name">Raj Traders</span>
-          <span class="entity-balance positive">₹ 3,450.00</span>
-        </li>
-        <li data-party="nisha-foods">
-          <span class="entity-name">Nisha Foods</span>
-          <span class="entity-balance positive">₹ 0.00</span>
-        </li>
-      </ul>
+    <ul id="partiesList">
+  @foreach($parties as $party)
+    <li class="party-item" data-id="{{ $party->id }}" data-name="{{ $party->name }}" data-phone="{{ $party->phone }}" data-email="{{ $party->email }}" data-address="{{ $party->billing_address }}">
+      <span class="entity-name">{{ $party->name }}</span>
+      <span class="entity-balance {{ $party->opening_balance < 0 ? 'negative' : 'positive' }}">
+        ₹ {{ number_format($party->opening_balance, 2) }}
+      </span>
+    </li>
+  @endforeach
+</ul>
     </div>
     <!-- Right: Party Details -->
     <div class="split-right">
       <div class="detail-panel-header">
         <div>
+          <div style="display: flex;">
           <div class="entity-detail-name" id="partyDetailName" style="font-weight: 400;">abc
-           <button class="btn-icon" title="Edit">
-  <i class="fa-solid fa-pen"></i>
-</button>
+          
           </div>
+           <button class="btn-icon"  id="editPartyBtn" title="Edit">  <i class="fa-solid fa-pen"></i>
+ 
+</button>
+</div>
+          
          <div class="entity-detail-meta-row">
 
   <div class="entity-detail-meta">
     <div class="meta-heading">Phone Number</div>
-    <div class="meta-value"> +91 98765 43210</div>
+    <div class="meta-value"  id="partyPhone"> +91 98765 43210</div>
   </div>
 
   <div class="entity-detail-meta">
-    <div class="meta-heading">Email</div>
+    <div class="meta-heading" id="partyEmail">Email</div>
     <div class="meta-value"> example@email.com</div>
   </div>
 
   <div class="entity-detail-meta">
     <div class="meta-heading">Billing Address</div>
-    <div class="meta-value"> 123, Main Street, City</div>
+    <div class="meta-value" id="partyAddress"> 123, Main Street, City</div>
   </div>
 
 </div>
@@ -1011,6 +1012,8 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
          
         </div>
       </div>
+
+
     <div class="detail-panel-body">
   <div class="table-header">
     <h6 class="fw-600 mb-3" style="font-size: 14px !important;">Transactions</h6>
@@ -1260,7 +1263,6 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   </div>
 
 @endsection
-
 @section('modals')
 <!-- MODAL: ADD PARTY -->
 <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
@@ -1274,123 +1276,114 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
         </div>
       </div>
       <div class="modal-body">
-        <!-- Top Inputs -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" placeholder="Enter party name" id="partyNameInput">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-600">Phone Number</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-              <input type="tel" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
+        <form id="addPartyForm">
+          @csrf
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-600">Phone Number</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
+              </div>
             </div>
           </div>
-        </div>
-        <!-- Tabs -->
-        <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
-              <i class="fa-solid fa-location-dot me-1"></i> Address
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
+                <i class="fa-solid fa-location-dot me-1"></i> Address
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
+                <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
+                <i class="fa-solid fa-sliders me-1"></i> Additional Fields
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-3" id="partyModalTabContent">
+            <!-- Address Tab -->
+            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Email ID</label>
+                  <input type="email" name="email" class="form-control" placeholder="example@email.com">
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-6">
+                  <label class="form-label">Billing Address</label>
+                  <textarea id="billingAddress" class="form-control" name="billing_address" rows="3" placeholder="Enter billing address"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Shipping Address</label>
+                  <textarea  id="shippingAddress" class="form-control" name="shipping_address" rows="3" placeholder="Enter shipping address"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Credit & Balance Tab -->
+            <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Opening Balance</label>
+                  <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">As Of Date</label>
+                  <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label d-block">Credit Limit</label>
+                  <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
+                    <label class="form-check-label" for="creditLimitSwitch">Enable</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Fields Tab -->
+            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
+              <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
+              <div class="row g-3">
+                @for($i=1; $i<=4; $i++)
+                <div class="col-md-6">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="customField{{$i}}Check">
+                    <label class="form-check-label" for="customField{{$i}}Check">Custom Field {{$i}}</label>
+                  </div>
+                  <input type="text" name="custom_fields[]" class="form-control form-control-sm" placeholder="Field name">
+                </div>
+                @endfor
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
+              <i class="fa-solid fa-plus me-1"></i> Save & New
             </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
-              <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
+            <button type="button" class="btn btn-primary" id="btnSaveParty">
+              <i class="fa-solid fa-check me-1"></i> Save
             </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
-              <i class="fa-solid fa-sliders me-1"></i> Additional Fields
-            </button>
-          </li>
-        </ul>
-        <div class="tab-content pt-3" id="partyModalTabContent">
-          <!-- Address Tab -->
-          <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">Email ID</label>
-                <input type="email" class="form-control" placeholder="example@email.com">
-              </div>
-              <div class="col-md-6"></div>
-              <div class="col-md-6">
-                <label class="form-label">Billing Address</label>
-                <textarea class="form-control" rows="3" placeholder="Enter billing address"></textarea>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Shipping Address</label>
-                <textarea class="form-control" rows="3" placeholder="Enter shipping address"></textarea>
-              </div>
-            </div>
+
+          <button class="btn btn-primary" id="btnUpdateParty">Update</button>
+<button class="btn btn-danger" id="btnDeleteParty">Delete</button> 
           </div>
-          <!-- Credit & Balance Tab -->
-          <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label">Opening Balance</label>
-                <div class="input-group">
-                  <span class="input-group-text">₹</span>
-                  <input type="number" class="form-control" placeholder="0.00">
-                </div>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">As Of Date</label>
-                <input type="date" class="form-control" value="2026-03-10">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label d-block">Credit Limit</label>
-                <div class="form-check form-switch mt-2">
-                  <input class="form-check-input" type="checkbox" id="creditLimitSwitch">
-                  <label class="form-check-label" for="creditLimitSwitch">Enable</label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- Additional Fields Tab -->
-          <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
-            <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" id="customField1Check">
-                  <label class="form-check-label" for="customField1Check">Custom Field 1</label>
-                </div>
-                <input type="text" class="form-control form-control-sm" placeholder="Field name">
-              </div>
-              <div class="col-md-6">
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" id="customField2Check">
-                  <label class="form-check-label" for="customField2Check">Custom Field 2</label>
-                </div>
-                <input type="text" class="form-control form-control-sm" placeholder="Field name">
-              </div>
-              <div class="col-md-6">
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" id="customField3Check">
-                  <label class="form-check-label" for="customField3Check">Custom Field 3</label>
-                </div>
-                <input type="text" class="form-control form-control-sm" placeholder="Field name">
-              </div>
-              <div class="col-md-6">
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" id="customField4Check">
-                  <label class="form-check-label" for="customField4Check">Custom Field 4</label>
-                </div>
-                <input type="text" class="form-control form-control-sm" placeholder="Field name">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
-          <i class="fa-solid fa-plus me-1"></i> Save & New
-        </button>
-        <button type="button" class="btn btn-primary" id="btnSaveParty">
-          <i class="fa-solid fa-check me-1"></i> Save
-        </button>
+        </form>
       </div>
     </div>
   </div>
@@ -1398,35 +1391,319 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 @endsection
 
 @push('scripts')
-  <script src="{{ asset('js/parties.js') }}"></script>
 <script>
- document.querySelectorAll('.dropdown-container').forEach(container => {
+document.addEventListener("DOMContentLoaded", function () {
 
-  const input = container.querySelector('.dropdown-input');
-  const optionsContainer = container.querySelector('.dropdown-options');
-  const options = container.querySelectorAll('.dropdown-option');
+const saveBtn = document.getElementById("btnSaveParty");
+const saveNewBtn = document.getElementById("btnSaveNewParty");
+const updateBtn = document.getElementById("btnUpdateParty");
+const deleteBtn = document.getElementById("btnDeleteParty");
 
-  input.addEventListener('click', (e) => {
-    e.stopPropagation();
-    optionsContainer.style.display =
-      optionsContainer.style.display === 'block' ? 'none' : 'block';
-  });
+const partyList = document.getElementById("partiesList");
 
-  options.forEach(option => {
-    option.addEventListener('click', () => {
-      options.forEach(opt => opt.classList.remove('selected'));
-      option.classList.add('selected');
-      input.value = option.textContent;
-      optionsContainer.style.display = 'none';
-    });
-  });
+const addModalEl = document.getElementById('addPartyModal');
+const addModal = new bootstrap.Modal(addModalEl);
+
+let currentPartyId = null;
+
+
+// RESET MODAL
+function resetModal(){
+
+document.getElementById("addPartyForm").reset();
+
+saveBtn.style.display = "inline-block";
+saveNewBtn.style.display = "inline-block";
+
+updateBtn.style.display = "none";
+deleteBtn.style.display = "none";
+
+currentPartyId = null;
+
+}
+
+
+// GET FORM DATA
+function getPartyData(){
+
+return {
+
+name: document.getElementById("partyNameInput").value,
+
+phone: document.getElementById("partyPhoneInput").value,
+
+email: document.querySelector('#partyAddressPane input[type="email"]').value,
+
+billing_address: document.querySelectorAll('#partyAddressPane textarea')[0].value,
+
+shipping_address: document.querySelectorAll('#partyAddressPane textarea')[1].value,
+
+opening_balance: document.querySelector('#partyCreditPane input[type="number"]').value,
+
+as_of_date: document.querySelector('#partyCreditPane input[type="date"]').value,
+
+credit_limit_enabled: document.getElementById("creditLimitSwitch").checked ? 1 : 0
+
+};
+
+}
+
+
+// ADD PARTY
+function addParty(closeModal=true){
+
+const partyData = getPartyData();
+
+fetch("{{ route('parties.store') }}",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+"X-CSRF-TOKEN":"{{ csrf_token() }}"
+},
+
+body: JSON.stringify(partyData)
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(data.success){
+
+const party=data.party;
+
+const li=document.createElement("li");
+
+li.className="party-item";
+
+li.dataset.id=party.id;
+li.dataset.name=party.name;
+li.dataset.phone=party.phone;
+li.dataset.email=party.email;
+li.dataset.billingAddress = party.billing_address;
+li.dataset.shippingAddress = party.shipping_address;
+li.dataset.opening_balance=party.opening_balance;
+
+li.innerHTML=`
+
+<span class="entity-name">${party.name}</span>
+
+<span class="entity-balance">₹ ${parseFloat(party.opening_balance).toFixed(2)}</span>
+
+`;
+
+partyList.prepend(li);
+
+if(closeModal){
+
+addModal.hide();
+resetModal();
+
+}else{
+
+document.getElementById("addPartyForm").reset();
+
+}
+
+}
 
 });
 
-document.addEventListener('click', () => {
-  document.querySelectorAll('.dropdown-options').forEach(drop => {
-    drop.style.display = 'none';
-  });
+}
+
+
+saveBtn.addEventListener("click",()=>addParty(true));
+
+saveNewBtn.addEventListener("click",()=>addParty(false));
+
+
+
+// PARTY CLICK → RIGHT PANEL
+partyList.addEventListener("click",function(e){
+
+const li=e.target.closest(".party-item");
+
+if(!li) return;
+
+currentPartyId=li.dataset.id;
+
+document.getElementById("partyDetailName").textContent=li.dataset.name;
+document.getElementById("partyPhone").textContent=li.dataset.phone;
+document.getElementById("partyEmail").textContent=li.dataset.email;
+
+document.getElementById("partyAddress").textContent =
+li.dataset.billingAddress + " | " + li.dataset.shippingAddress;
+
 });
+
+
+// OPEN ADD MODAL
+document.querySelector(".btn-add-entity").addEventListener("click",function(){
+
+resetModal();
+addModal.show();
+
+});
+
+
+// EDIT PARTY
+document.getElementById("editPartyBtn").addEventListener("click",function(){
+
+if(!currentPartyId) return alert("Select party first");
+
+const li=document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
+
+document.getElementById("partyNameInput").value=li.dataset.name;
+document.getElementById("partyPhoneInput").value=li.dataset.phone;
+
+document.querySelectorAll('#partyAddressPane textarea')[0].value = li.dataset.billingAddress;
+document.querySelectorAll('#partyAddressPane textarea')[1].value = li.dataset.shippingAddress;
+
+document.querySelector('#partyAddressPane input[type="email"]').value = li.dataset.email;
+
+document.querySelector('#partyCreditPane input[type="number"]').value=li.dataset.opening_balance;
+
+saveBtn.style.display="none";
+saveNewBtn.style.display="none";
+
+updateBtn.style.display="inline-block";
+deleteBtn.style.display="inline-block";
+
+addModal.show();
+
+});
+
+
+// UPDATE PARTY
+updateBtn.addEventListener("click",function(){
+
+if(!currentPartyId) return;
+
+const partyData=getPartyData();
+
+fetch(`/parties/${currentPartyId}`,{
+
+method:"PUT",
+
+headers:{
+"Content-Type":"application/json",
+"X-CSRF-TOKEN":"{{ csrf_token() }}"
+},
+
+body:JSON.stringify(partyData)
+
+})
+
+.then(res=>res.json())
+.then(data => {
+  if(data.success){
+    const party = data.party;
+    const li = document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
+
+    li.dataset.name = party.name;
+    li.dataset.phone = party.phone;
+    li.dataset.email = party.email;
+    li.dataset.billingAddress = party.billing_address;
+    li.dataset.shippingAddress = party.shipping_address;
+    li.dataset.opening_balance = party.opening_balance;
+
+    li.querySelector(".entity-name").textContent = party.name;
+    li.querySelector(".entity-balance").textContent = "₹ " + parseFloat(party.opening_balance).toFixed(2);
+
+    document.getElementById("partyDetailName").textContent = party.name;
+    document.getElementById("partyPhone").textContent = party.phone;
+    document.getElementById("partyEmail").textContent = party.email;
+    document.getElementById("partyAddress").textContent = party.billing_address + " | " + party.shipping_address;
+
+    alert("Party updated successfully");
+    addModal.hide();
+    resetModal();
+  }
+});
+
+
+if(data.success){
+  const party = data.party;
+
+const li=document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
+
+li.dataset.name=partyData.name;
+li.dataset.phone=partyData.phone;
+li.dataset.email=partyData.email;
+li.dataset.billingAddress = partyData.billing_address;
+li.dataset.shippingAddress = partyData.shipping_address;
+li.dataset.opening_balance=partyData.opening_balance;
+
+li.querySelector(".entity-name").textContent=partyData.name;
+
+li.querySelector(".entity-balance").textContent="₹ "+parseFloat(partyData.opening_balance).toFixed(2);
+
+document.getElementById("partyDetailName").textContent=partyData.name;
+document.getElementById("partyPhone").textContent=partyData.phone;
+document.getElementById("partyEmail").textContent=partyData.email;
+
+document.getElementById("partyAddress").textContent =
+partyData.billing_address + " | " + partyData.shipping_address;
+
+alert("Party updated successfully");
+
+addModal.hide();
+resetModal();
+
+}
+
+});
+
+});
+
+
+// DELETE PARTY
+deleteBtn.addEventListener("click",function(){
+
+if(!currentPartyId) return;
+
+if(!confirm("Delete this party?")) return;
+
+fetch(`/parties/${currentPartyId}`,{
+
+method:"DELETE",
+
+headers:{
+"X-CSRF-TOKEN":"{{ csrf_token() }}"
+}
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(data.success){
+
+const li=document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
+
+li.remove();
+
+document.getElementById("partyDetailName").textContent="";
+document.getElementById("partyPhone").textContent="";
+document.getElementById("partyEmail").textContent="";
+document.getElementById("partyAddress").textContent="";
+
+currentPartyId=null;
+
+addModal.hide();
+resetModal();
+
+}
+
+});
+
+});
+
+
 </script>
+
 @endpush
