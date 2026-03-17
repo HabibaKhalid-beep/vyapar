@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Premium Tab System</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,10 +14,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-<link rel="stylesheet" href="{{ asset('css/form_style.css') }}">
-
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <!-- Form Styles -->
+    <link rel="stylesheet" href="{{ asset('css/saleform_style.css') }}">
 </head>
 
 <body>
@@ -42,7 +43,13 @@
             </div>
             <!-- Browser Toolbar / Heading Area -->
             <div class="browser-toolbar d-flex align-items-center px-3">
-                <p class="mt-4 ms-3">Purchase</p>
+                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Sale | </p>
+                <span class="h6 mt-3 me-2">Credit</span>
+                <div class="form-check form-switch mt-4 mb-2">
+
+                    <input class="form-check-input mb-2" type="checkbox" role="switch" id="saleToggleSwitch">
+                </div>
+                <span class="h6 mt-3 ms-2">Cash</span>
             </div>
         </header>
 
@@ -60,31 +67,41 @@
                         <!-- Header Section -->
                         <div class="header-section">
                             <div class="header-left">
-                                <div class="input-group party-input-wrapper">
-                                    <input type="text" class="input-control party-input" placeholder=" "
-                                        autocomplete="off">
-                                    <label>Party *</label>
-                                    <div class="dropdown-menu party-dropdown">
-                                        <div class="dropdown-item">Cash Sale</div>
-                                        <div class="dropdown-item">Default Customer</div>
-                                        <div class="dropdown-item">+ Add New Party</div>
-                                    </div>
-                                </div>
                                 <div class="input-group">
-                                    <input type="text" class="input-control phone-input" placeholder=" ">
+                                    <select class="input-control party-select">
+                                        <option value="" selected disabled>Select Party</option>
+                                        @foreach($parties as $party)
+                                            <option value="{{ $party->id }}" data-phone="{{ $party->phone }}" data-billing="{{ addslashes($party->billing_address ?? '') }}">{{ $party->name }}</option>
+                                        @endforeach
+                                        <option value="__new">+ Add New Party</option>
+                                    </select>
+                                    <label class="party-label">Party *</label>
+                                </div>
+
+                                <div class="input-group mt-3">
+                                    <input type="text" class="input-control phone-input" placeholder=" " readonly>
                                     <label>Phone No.</label>
+                                </div>
+                                <div class="input-group mt-3">
+                                    <textarea class="input-control billing-address" placeholder="" rows="2" readonly></textarea>
+                                    <label>Billing Address</label>
                                 </div>
                             </div>
 
-                            <div class="header-right">
+                            <div class="header-right w-25">
                                 <div class="input-group">
-                                    <input type="text" class="input-control underline-input" placeholder="Bill Number">
+                                    <span>Invoice No.</span>
+                                    <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
                                 </div>
                                 <div class="input-group date-wrapper">
-                                    <input type="date" class="input-control underline-input">
+                                    <span>Invoice Date</span>
+                                    <input type="date" class="input-control underline-input invoice-date">
                                 </div>
+
                             </div>
                         </div>
+
+                        <div class="alert alert-success d-none sale-success-msg"></div>
 
                         <!-- Table Section -->
                         <div class="table-container">
@@ -133,36 +150,14 @@
                                             <span class="row-index-text">1</span>
                                             <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                                         </td>
-                                        <td><input type="text" class="item-name" placeholder="Item name"></td>
-                                        <td class="col-category d-none"><input type="text" class="item-category"
-                                                placeholder="Category"></td>
-                                        <td class="col-item-code d-none"><input type="text" class="item-code"
-                                                placeholder="Item Code"></td>
-                                        <td class="col-description d-none"><input type="text" class="item-desc"
-                                                placeholder="Description"></td>
-                                        <td class="col-discount d-none"><input type="number" class="item-discount"
-                                                value="0">
-                                        </td>
-                                        <td><input type="number" class="item-qty" value="0"></td>
-                                        <td class="custom-size-td">
-                                            <select class="item-unit">
-                                                <option>NONE</option>
-                                                <option>PCS</option>
-                                                <option>BOX</option>
+                                        <td>
+                                            <select class="form-select item-name">
+                                                <option value="" selected disabled>Select Item</option>
+                                                @foreach($items as $item)
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-unit="{{ $item->unit }}">{{ $item->name }}</option>
+                                                @endforeach
                                             </select>
                                         </td>
-                                        <td><input type="number" class="item-price" value="0"></td>
-                                        <td class="col-amount"><input type="text" class="item-amount" value="0"
-                                                readonly></td>
-                                        <td class="add-col"></td>
-                                    </tr>
-                                    <!-- Row 2 -->
-                                    <tr class="item-row">
-                                        <td class="row-num">
-                                            <span class="row-index-text">2</span>
-                                            <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
-                                        </td>
-                                        <td><input type="text" class="item-name" placeholder="Item name"></td>
                                         <td class="col-category d-none"><input type="text" class="item-category"
                                                 placeholder="Category"></td>
                                         <td class="col-item-code d-none"><input type="text" class="item-code"
@@ -172,7 +167,7 @@
                                         <td class="col-discount d-none"><input type="number" class="item-discount"
                                                 value="0">
                                         </td>
-                                        <td><input type="number" class="item-qty" value="0"></td>
+                                        <td><input type="number" class="item-qty" value="1"></td>
                                         <td class="custom-size-td">
                                             <select class="item-unit">
                                                 <option>NONE</option>
@@ -206,29 +201,81 @@
                         <div class="bottom-section">
                             <!-- Left Column -->
                             <div class="bottom-left">
-                                <div class="input-group">
+                                <div class="payment-section">
+                                    <div class="payment-entry d-flex align-items-center gap-2 mb-2">
+                                        <select class="input-control default-payment-type">
+                                            <option value="" selected disabled>Select Payment Type</option>
+                                            @foreach($bankAccounts as $bank)
+                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
+                                        <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
+                                    </div>
 
-                                    <select class="input-control">
-                                        <option value="" selected disabled>Select Payment Type</option>
-                                        <option>Cash</option>
-                                        <option>Bank</option>
-                                        <option>Cheque</option>
-                                    </select>
+                                    <div class="payment-entries">
+                                        <!-- Payment rows will be added here when "Add Payment type" is clicked -->
+                                    </div>
+
+                                    <div class="payment-total d-flex justify-content-between align-items-center mt-2">
+                                        <span class="text-muted">Total payment:</span>
+                                        <span class="fw-bold payment-total-amount">0</span>
+                                    </div>
+
+                                    <a href="#" class="link-text add-payment-entry">+ Add Payment type</a>
                                 </div>
-                                <a href="#" class="link-text">+ Add Payment type</a>
 
-                                <button type="button" class="btn-action-light w-50">
+                                <template id="payment-entry-template">
+                                    <div class="payment-entry d-flex align-items-center gap-2 mb-2">
+                                        <select class="input-control payment-type-entry">
+                                            <option value="" selected disabled>Select Bank Account</option>
+                                            @foreach($bankAccounts as $bank)
+                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
+                                        <input type="text" class="input-control payment-reference" placeholder="Reference">
+                                        <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <button type="button" class="btn-action-light w-50 add-description">
                                     <i class="fa-solid fa-align-left"></i>
                                     ADD DESCRIPTION
                                 </button>
-                                <button type="button" class="btn-action-light w-50">
+                                <button type="button" class="btn-action-light w-50 add-image">
                                     <i class="fa-solid fa-camera"></i>
                                     ADD IMAGE
                                 </button>
-                                <button type="button" class="btn-action-light w-50">
+                                <button type="button" class="btn-action-light w-50 add-document">
                                     <i class="fa-solid fa-align-left "></i>
                                     ADD DOCUMENT
                                 </button>
+
+                                <div class="description-pane d-none mt-2">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                </div>
+
+                                <div class="image-upload-section mt-2">
+                                    <div class="image-preview d-none">
+                                        <img class="image-preview-img" src="" alt="Selected Image" />
+                                        <div class="image-preview-actions mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary replace-image">Replace</button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-image">Remove</button>
+                                        </div>
+                                    </div>
+                                    <div class="image-placeholder text-center p-3 border border-dashed rounded" style="cursor:pointer;">
+                                        <div class="text-muted">Click to select an image</div>
+                                        <div class="small text-muted">(PNG/JPG, up to 5MB)</div>
+                                    </div>
+                                    <div class="selected-document-name text-muted mt-2"></div>
+                                </div>
+
+                                <input type="file" class="d-none image-input" accept="image/*" />
+                                <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" />
                             </div>
 
                             <!-- Right Column -->
@@ -274,6 +321,20 @@
                                         <div class="calc-label" style="font-weight: 700;">Total</div>
                                     </div>
                                     <input type="text" class="total-input-large grand-total" value="0" readonly>
+                                </div>
+
+                                <div class="calc-row">
+                                    <div class="calc-label">Received</div>
+                                    <div class="calc-inputs">
+                                        <input type="number" class="mini-input received-amount" value="0" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="calc-row">
+                                    <div class="calc-label">Balance</div>
+                                    <div class="calc-inputs">
+                                        <span class="fw-bold balance-amount">0</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -333,9 +394,35 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        window.items = @json($items);
+        window.parties = @json($parties);
+        window.bankAccounts = @json($bankAccounts);
+        window.saleStoreUrl = "{{ route('sale.store') }}";
+        window.saleMethod = 'POST';
+
+        @if(isset($sale))
+            window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
+            window.saleMethod = 'PUT';
+            window.editSaleData = @json($sale->load(['items', 'payments']));
+        @endif
+    </script>
+
+    <!-- Toast container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+        <div id="sale-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Form Logic -->
-<script src="{{ asset('js/form_script.js') }}"></script>
-<script src="{{ asset('js/script.js') }}"></script>
+    <script src="{{ asset('js/saleform_script.js') }}"></script>
+    <!-- Custom JS -->
+    <script src="{{ asset('js/script.js') }}"></script>
 </body>
 
 </html>

@@ -35,6 +35,72 @@ class TabManager {
             });
         }
 
+        const saleToggle = document.getElementById('saleToggleSwitch');
+        if (saleToggle) {
+            saleToggle.addEventListener('change', (e) => {
+                const isCash = e.target.checked;
+                // Apply to all tabs
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    const label = pane.querySelector('.party-label');
+                    const cashFields = pane.querySelectorAll('.cash-fields');
+                    if (label) {
+                        label.textContent = isCash ? 'Billing Name (Optional)' : 'Party *';
+                    }
+                    cashFields.forEach(field => {
+                        if (isCash) {
+                            field.classList.remove('d-none');
+                            field.classList.add('d-flex');
+                        } else {
+                            field.classList.add('d-none');
+                            field.classList.remove('d-flex');
+                        }
+                    });
+
+                    // Handle .cash-fields-two as well inside active tabs
+                    const cashFieldsTwo = pane.querySelectorAll('.cash-fields-two');
+                    cashFieldsTwo.forEach(field => {
+                        if (isCash) {
+                            field.classList.remove('d-none');
+                            field.classList.add('d-flex');
+                        } else {
+                            field.classList.add('d-none');
+                            field.classList.remove('d-flex');
+                        }
+                    });
+                });
+
+                // Update the template for new tabs
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = this.formTemplate;
+                const tempLabel = tempDiv.querySelector('.party-label');
+                const tempCashFields = tempDiv.querySelectorAll('.cash-fields');
+                const tempCashFieldsTwo = tempDiv.querySelectorAll('.cash-fields-two');
+
+                if (tempLabel) {
+                    tempLabel.textContent = isCash ? 'Billing Name (Optional)' : 'Party *';
+                }
+                tempCashFields.forEach(field => {
+                    if (isCash) {
+                        field.classList.remove('d-none');
+                        field.classList.add('d-flex');
+                    } else {
+                        field.classList.add('d-none');
+                        field.classList.remove('d-flex');
+                    }
+                });
+                tempCashFieldsTwo.forEach(field => {
+                    if (isCash) {
+                        field.classList.remove('d-none');
+                        field.classList.add('d-flex');
+                    } else {
+                        field.classList.add('d-none');
+                        field.classList.remove('d-flex');
+                    }
+                });
+                this.formTemplate = tempDiv.innerHTML;
+            });
+        }
+
         this.confirmBtn.addEventListener('click', () => {
             if (this.closingTabId) {
                 this.executeClose(this.closingTabId);
@@ -44,7 +110,7 @@ class TabManager {
         });
 
         // Initial Tab
-        await this.createNewTab("Purchase #1");
+        await this.createNewTab("Sale #1");
     }
 
     async createNewTab(title = null, content = "") {
@@ -54,7 +120,7 @@ class TabManager {
         }
 
         this.tabCounter++;
-        const currentTitle = title || `Purchase #${this.tabCounter}`;
+        const currentTitle = title || `Sale #${this.tabCounter}`;
         const id = `tab-${Date.now()}-${this.tabCounter}`;
 
         // Use form template if no content provided
@@ -164,8 +230,8 @@ class TabManager {
     renumberTabs() {
         this.tabs.forEach((tab, index) => {
             const newIndex = index + 1;
-            tab.title = `Purchase #${newIndex}`;
-            
+            tab.title = `Sale #${newIndex}`;
+
             // Update the tab element title in UI
             const tabEl = document.getElementById(`label-${tab.id}`);
             if (tabEl) {
@@ -191,7 +257,7 @@ class TabManager {
             const el = document.getElementById(`label-${t.id}`);
             return el && el.classList.contains('active');
         });
-        
+
         if (activeTab) {
             const addressBar = document.getElementById('current-tab-title');
             if (addressBar) addressBar.textContent = activeTab.title;
