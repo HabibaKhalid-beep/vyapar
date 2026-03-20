@@ -968,7 +968,9 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
     <ul id="partiesList">
   @foreach($parties as $party)
     <li class="party-item" data-id="{{ $party->id }}" data-name="{{ $party->name }}" data-phone="{{ $party->phone }}" data-email="{{ $party->email }}" data-billing-address="{{ $party->billing_address }}"
- data-shipping-address="{{ $party->shipping_address }}">
+ data-shipping-address="{{ $party->shipping_address }}"
+  data-opening-balance="{{ $party->opening_balance }}"
+  data-transaction-type="{{ $party->transaction_type }}">
       <span class="entity-name">{{ $party->name }}</span>
       <span class="entity-balance {{ $party->opening_balance < 0 ? 'negative' : 'positive' }}">
         ₹ {{ number_format($party->opening_balance, 2) }}
@@ -1333,28 +1335,41 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
             </div>
 
             <!-- Credit & Balance Tab -->
-            <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
-              <div class="row g-3">
-                <div class="col-md-4">
-                  <label class="form-label">Opening Balance</label>
-                  <div class="input-group">
-                    <span class="input-group-text">₹</span>
-                    <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">As Of Date</label>
-                  <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label d-block">Credit Limit</label>
-                  <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
-                    <label class="form-check-label" for="creditLimitSwitch">Enable</label>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Opening Balance</label>
+      <div class="input-group">
+        <span class="input-group-text">₹</span>
+        <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+      </div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">As Of Date</label>
+      <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label d-block">Credit Limit</label>
+      <div class="form-check form-switch mt-2">
+        <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
+        <label class="form-check-label" for="creditLimitSwitch">Enable</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- To Receive / To Pay Options at the bottom -->
+  <div class="mt-4">
+    <label class="form-label d-block">Transaction Type</label>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
+      <label class="form-check-label" for="toReceive">To Receive</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="checkbox" id="toPay" value="pay">
+      <label class="form-check-label" for="toPay">To Pay</label>
+    </div>
+  </div>
+</div>
 
             <!-- Additional Fields Tab -->
             <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
@@ -1368,10 +1383,14 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
                   </div>
                   <input type="text" name="custom_fields[]" class="form-control form-control-sm" placeholder="Field name">
                 </div>
+
+                <input type="hidden" id="transactionTypeValue" name="transaction_type">
                 @endfor
+
               </div>
             </div>
           </div>
+          
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
@@ -1443,7 +1462,16 @@ opening_balance: document.querySelector('#partyCreditPane input[type="number"]')
 
 as_of_date: document.querySelector('#partyCreditPane input[type="date"]').value,
 
-credit_limit_enabled: document.getElementById("creditLimitSwitch").checked ? 1 : 0
+credit_limit_enabled: document.getElementById("creditLimitSwitch").checked ? 1 : 0,
+transaction_type: document.getElementById("toReceive").checked
+      ? 'receive'
+      : document.getElementById("toPay").checked
+      ? 'pay'
+      : null,
+      
+
+      
+
 
 };
 
@@ -1487,6 +1515,9 @@ li.dataset.email=party.email;
 li.dataset.billingAddress = party.billing_address;
 li.dataset.shippingAddress = party.shipping_address;
 li.dataset.opening_balance=party.opening_balance;
+li.dataset.as_of_date=party.as_of_date;
+li.dataset.transactionType = party.transaction_type;
+
 
 li.innerHTML=`
 
@@ -1564,6 +1595,9 @@ document.querySelectorAll('#partyAddressPane textarea')[0].value = li.dataset.bi
 document.querySelectorAll('#partyAddressPane textarea')[1].value = li.dataset.shippingAddress;
 
 document.querySelector('#partyCreditPane input[type="number"]').value=li.dataset.opening_balance;
+document.querySelector('#partyCreditPane input[type="date"]').value = party.as_of_date || new Date().toISOString().split('T')[0];
+
+li.dataset.transactionType = party.transaction_type;
 
 saveBtn.style.display="none";
 saveNewBtn.style.display="none";
@@ -1573,6 +1607,74 @@ deleteBtn.style.display="inline-block";
 
 addModal.show();
 
+});
+
+
+// Populate modal with party data for editing
+function populatePartyModal(party) {
+    currentPartyId = party.id;
+
+    // Fill inputs
+    document.getElementById("partyNameInput").value = party.name;
+    document.getElementById("partyPhoneInput").value = party.phone;
+    document.querySelector('#partyAddressPane input[type="email"]').value = party.email;
+    document.querySelectorAll('#partyAddressPane textarea')[0].value = party.billing_address;
+    document.querySelectorAll('#partyAddressPane textarea')[1].value = party.shipping_address;
+    document.querySelector('#partyCreditPane input[type="number"]').value = party.opening_balance || 0;
+    document.querySelector('#partyCreditPane input[type="date"]').value = party.as_of_date || new Date().toISOString().split('T')[0];
+    document.getElementById("creditLimitSwitch").checked = party.credit_limit_enabled == 1;
+
+    // Transaction type checkboxes
+    if (party.transaction_type === 'receive') {
+        document.getElementById("toReceive").checked = true;
+        document.getElementById("toPay").checked = false;
+    } else if (party.transaction_type === 'pay') {
+        document.getElementById("toReceive").checked = false;
+        document.getElementById("toPay").checked = true;
+    } else {
+        document.getElementById("toReceive").checked = false;
+        document.getElementById("toPay").checked = false;
+    }
+
+    // Show update/delete buttons
+    saveBtn.style.display = "none";
+    saveNewBtn.style.display = "none";
+    updateBtn.style.display = "inline-block";
+    deleteBtn.style.display = "inline-block";
+
+    addModal.show();
+}
+
+// Attach edit button click
+document.getElementById("editPartyBtn").addEventListener("click", function () {
+    if (!currentPartyId) return;
+
+    const li = document.querySelector(`.party-item[data-id='${currentPartyId}']`);
+    const party = {
+        id: li.dataset.id,
+        name: li.dataset.name,
+        phone: li.dataset.phone,
+        email: li.dataset.email,
+        billing_address: li.dataset.billingAddress,
+        shipping_address: li.dataset.shippingAddress,
+        opening_balance: li.dataset.opening_balance,
+        // optional: you can store transaction_type in data attribute too
+        transaction_type: li.dataset.transactionType || ''
+    };
+
+    populatePartyModal(party);
+});
+
+// Optional: click on party in list to select
+document.querySelectorAll(".party-item").forEach(li => {
+    li.addEventListener("click", function () {
+        currentPartyId = this.dataset.id;
+
+        document.getElementById("partyDetailName").textContent = this.dataset.name;
+        document.getElementById("partyPhone").textContent = this.dataset.phone;
+        document.getElementById("partyEmail").textContent = this.dataset.email;
+        document.getElementById("partyAddress").textContent = this.dataset.billingAddress;
+    });
 });
 
 
@@ -1610,6 +1712,7 @@ li.dataset.email=partyData.email;
 li.dataset.billingAddress = partyData.billing_address;
 li.dataset.shippingAddress = partyData.shipping_address;
 li.dataset.opening_balance=partyData.opening_balance;
+li.dataset.transactionType = partyData.transaction_type;
 
 li.querySelector(".entity-name").textContent=partyData.name;
 
@@ -1677,6 +1780,26 @@ resetModal();
 
 });
 
+});
+
+const toReceive = document.getElementById('toReceive');
+const toPay = document.getElementById('toPay');
+const transactionTypeValue = document.getElementById('transactionTypeValue');
+
+// Make checkboxes mutually exclusive
+[toReceive, toPay].forEach(checkbox => {
+  checkbox.addEventListener('change', function() {
+    if (this.checked) {
+      // Uncheck the other
+      [toReceive, toPay].forEach(cb => {
+        if (cb !== this) cb.checked = false;
+      });
+      // Update hidden input
+      transactionTypeValue.value = this.value;
+    } else {
+      transactionTypeValue.value = '';
+    }
+  });
 });
 </script>
 

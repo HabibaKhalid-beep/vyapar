@@ -8,7 +8,7 @@ class Party extends Model
 {
     protected $fillable = [
         'name', 'phone', 'email', 'billing_address', 'shipping_address',
-        'opening_balance', 'as_of_date', 'credit_limit_enabled', 'custom_fields'
+        'opening_balance', 'as_of_date', 'credit_limit_enabled', 'custom_fields', 'transaction_type',
     ];
 
     protected $casts = [

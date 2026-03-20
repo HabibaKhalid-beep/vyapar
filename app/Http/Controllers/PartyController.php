@@ -26,6 +26,8 @@ class PartyController extends Controller
             'as_of_date' => 'nullable|date',
             'credit_limit_enabled' => 'nullable|boolean',
             'custom_fields' => 'nullable|array',
+              'transaction_type' => 'nullable|in:receive,pay'
+              
         ]);
 
         $party = Party::create($data);
@@ -40,6 +42,7 @@ class PartyController extends Controller
 {
     $party = Party::findOrFail($id);
     return response()->json($party);
+
 }
 
 //update method
@@ -48,8 +51,8 @@ public function update(Request $request, $id)
 {
     $party = Party::findOrFail($id);
 
-    // JSON request parse karo
- $data = $request->all();
+    $data = $request->all();
+
     $party->update([
         'name' => $data['name'] ?? $party->name,
         'phone' => $data['phone'] ?? $party->phone,
@@ -60,6 +63,7 @@ public function update(Request $request, $id)
         'as_of_date' => $data['as_of_date'] ?? $party->as_of_date,
         'credit_limit_enabled' => $data['credit_limit_enabled'] ?? $party->credit_limit_enabled,
         'custom_fields' => $data['custom_fields'] ?? $party->custom_fields,
+        'transaction_type' => $data['transaction_type'] ?? $party->transaction_type, // ✅ yeh sahi jagah hai
     ]);
 
     return response()->json(['success' => true, 'party' => $party]);
