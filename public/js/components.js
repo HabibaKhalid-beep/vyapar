@@ -63,13 +63,13 @@
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" data-page="parties" href="/parties">
+        <a class="nav-link" data-page="parties" href="/dashboard/parties">
           <i class="fa-solid fa-users"></i> <span>Parties</span>
           <span class="badge-plus" data-modal="addPartyModal" title="Add Party">+</span>
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" data-page="items" href="/items">
+        <a class="nav-link" data-page="items" href="/dashboard/items">
           <i class="fa-solid fa-boxes-stacked"></i> <span>Items</span>
           <span class="badge-plus" data-modal="addItemModal" title="Add Item">+</span>
         </a>
@@ -80,10 +80,12 @@
           <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
         </a>
         <ul class="sidebar-submenu" id="saleSubmenu">
-          <li><a class="nav-link" data-page="invoice" href="/invoice"><span>Sale Invoice</span></a></li>
-          <li><a class="nav-link" href="#"><span>Estimate / Quotation</span></a></li>
+          <li><a class="nav-link" data-page="invoice" href="/dashboard/sales"><span>Sale Invoice</span></a></li>
+          <li><a class="nav-link" href="/dashboard/sales/estimate"><span>Estimate / Quotation</span></a></li>
           <li><a class="nav-link" href="#"><span>Payment In</span></a></li>
           <li><a class="nav-link" href="#"><span>Sale Return / Cr. Note</span></a></li>
+        <li><a class="nav-link" href="#"><span>Vyapar POS</span></a></li>
+
         </ul>
       </li>
       <li class="nav-item">
@@ -92,8 +94,8 @@
           <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
         </a>
         <ul class="sidebar-submenu" id="purchaseSubmenu">
-          <li><a class="nav-link" href="#"><span>Purchase Bill</span></a></li>
-          <li><a class="nav-link" href="#"><span>Payment Out</span></a></li>
+          <li><a class="nav-link" href="/dashboard/purchase-bill"><span>Purchase Bill</span></a></li>
+          <li><a class="nav-link" href="/dashboard/payment-out"><span>Payment Out</span></a></li>
           <li><a class="nav-link" href="#"><span>Purchase Return / Dr. Note</span></a></li>
           <li><a class="nav-link" href="#"><span>Expense</span></a></li>
         </ul>
@@ -103,11 +105,25 @@
           <i class="fa-solid fa-rocket"></i> <span>Grow Your Business</span>
         </a>
       </li>
-      <li class="nav-item">
-        <a class="nav-link" href="#">
-          <i class="fa-solid fa-wallet"></i> <span>Cash & Bank</span>
-        </a>
-      </li>
+     <li class="nav-item">
+  <a class="nav-link sidebar-dropdown-toggle" href="#">
+    <i class="fa-solid fa-wallet"></i> <span>Cash & Bank</span>
+    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+  </a>
+
+  <ul class="sidebar-submenu" id="cashBankSubmenu">
+    <li>
+      <a class="nav-link" href="/dashboard/loan-accounts">
+        <span>Loan Accounts</span>
+      </a>
+    </li>
+    <li>
+      <a class="nav-link" href="/dashboard/bank-accounts">
+        <span>Bank Accounts</span>
+      </a>
+    </li>
+  </ul>
+</li>
       <li class="nav-item">
         <a class="nav-link" href="#">
           <i class="fa-solid fa-chart-pie"></i> <span>Reports</span>
@@ -155,6 +171,44 @@
     </div>
   </aside>`;
 
+
+  // ── Secondary Topbar ──
+  const topbarHTML = `
+      <!-- topbar -->
+      <div id="topbar" class="bg-white border-bottom d-flex align-items-center mb-4" style="margin: -20px -24px 20px -24px; padding: 12px 24px;">
+        <div class="topbar-inner w-100 d-flex align-items-center">
+
+          <div class="topbar-search ms-3">
+            <span class="search-icon"><i class="bi bi-search"></i></span>
+            <input type="text" placeholder="Search...">
+          </div>
+
+          <div class="topbar-actions">
+            <button
+  onclick="window.location.href='{{ route('sale.create') }}'"
+  class="btn rounded-pill"
+  style="background-color:#FFD7DC;"
+>
+  <span class="text-danger fw-bold px-3">
+    <span class="pe-1">+</span> Add Sale
+  </span>
+</button>
+            <button class="btn rounded-pill" style="background-color: #CCE6FF;"><span class="text-primary fw-bold px-1"><span class="pe-1">+</span> Add
+                Purchase</span></button>
+            <button class="btn rounded-pill me-2" style="background-color: #CCE6FF;"><span class="text-primary fw-bold px-1"><span class="pe-1">+</span> Add
+                More</span></button>
+
+
+           <span class="text-secondary ps-3" style="border-left:1px solid black;"><i class="fas fa-print"></i></span>
+           <span class="text-secondary ps-3"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+
+          </div>
+        </div>
+      </div>`;
+
+
+
+
   // ── Inject into page ──
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
   document.body.insertAdjacentHTML('afterbegin', navbarHTML);
@@ -178,6 +232,13 @@
       });
     }
   }
+
+
+  const mainContent = document.getElementById('mainContent');
+  if (mainContent) {
+    mainContent.insertAdjacentHTML('afterbegin', topbarHTML);
+  }
+
 
   // ── Company dropdown toggle (logout menu) ──
   const sidebarCompany = document.getElementById('sidebarCompany');

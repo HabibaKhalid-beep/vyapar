@@ -1,7 +1,7 @@
 @extends('layouts.app')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
- 
+
 /* uper panel styling */
 .uper-panel{
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
@@ -92,7 +92,7 @@
 }
 .header-dropdown-menu {
   position: absolute;
-  top: 100%;      
+  top: 100%;
   left: 0;
   margin-top: 4px;
   background: white;
@@ -119,7 +119,7 @@
 }
 
 .header-dropdown-menu input[type="checkbox"] {
-  accent-color: #0f6fcc; 
+  accent-color: #0f6fcc;
 }
 
 .action-buttons {
@@ -222,7 +222,7 @@
   cursor: pointer;
   font-size: 16px;
 }
- 
+
 
 .btn-icon {
   background: transparent;        /* no full background */
@@ -421,8 +421,8 @@ margin-left:auto;
   display:flex;
   flex-direction:column;
   gap:4px;
-  
-  
+
+
 }
 
 .filter-options label{
@@ -551,7 +551,7 @@ font-size:16px;
 
 .header-icons{
 display:flex;
-align-items:center; 
+align-items:center;
 gap:12px;
 }
 
@@ -696,7 +696,7 @@ opacity:1;
 .entity-name {
   color: #9ca3af;
   font-size: 14px;
- 
+
 }
 /* parent wrapper */
 .parent-arrows{
@@ -826,7 +826,7 @@ function toggleHeaderDropdown(element) {
   const dropdownMenu = element.nextElementSibling;
   const isVisible = dropdownMenu.style.display === 'block';
   dropdownMenu.style.display = isVisible ? 'none' : 'block';
-  
+
   // Optional: rotate arrow
   element.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
 }
@@ -863,8 +863,8 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 });
 
 
-  </script> 
-  
+  </script>
+
 @section('title', 'Vyapar — Parties')
 @section('description', 'Manage your business parties, customers, and suppliers in Vyapar accounting software.')
 @section('page', 'parties')
@@ -874,7 +874,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 <!-- uper panel -->
 <div class="uper-panel">
   <div class="panel-main">
-    
+
     <!-- Left: Header + Arrow -->
     <div class="text">
       <div class="header-dropdown">
@@ -918,7 +918,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   <i class="fa fa-search"></i>
   <input type="text" class="form-control search-input" placeholder="Search Party Name" id="partySearchInput">
 </div>
-       
+
       </div>
       <ul class="entity-list" id="partyList">
         <li class="active" data-party="abc">
@@ -961,9 +961,9 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
     <i class="fa fa-chevron-down decrement"></i>
   </div>
 </div>
-    
-    
-    
+
+
+
 </li>
     <ul id="partiesList">
   @foreach($parties as $party)
@@ -985,13 +985,13 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
         <div>
           <div style="display: flex;">
           <div class="entity-detail-name" id="partyDetailName" style="font-weight: 400;">abc
-          
+
           </div>
            <button class="btn-icon"  id="editPartyBtn" title="Edit">  <i class="fa-solid fa-pen"></i>
- 
+
 </button>
 </div>
-          
+
          <div class="entity-detail-meta-row">
 
   <div class="entity-detail-meta">
@@ -1012,7 +1012,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 </div>
         </div>
         <div class="action-buttons">
-         
+
         </div>
       </div>
 
@@ -1069,7 +1069,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
       <label><input type="checkbox"> Job work out(Challan)</label>
       <label><input type="checkbox"> Purchase(Job work)</label>
       <label><input type="checkbox"> Journal Entry</label>
-   
+
     </div>
 
     <div class="filter-actions">
@@ -1109,7 +1109,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
         <label style="color: #9ca3af; margin-top:6px; width:176px;"> Number</label>
       <input type="text" style="border:1px solid #d9dfe5; border-radius:6px;height:5vh"
       >
-     
+
     </div>
 
     <div class="filter-actions">
@@ -1150,7 +1150,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 
         <label style="color: #9ca3af; margin-top:6px; width:176px;">Select Date</label>
       <input type="date" style="border:1px solid #d9dfe5; border-radius:6px;height:5vh;color:#9ca3af;padding:6px" >
-     
+
     </div>
 
     <div class="filter-actions" style="position: relative;">
@@ -1162,7 +1162,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 
   </div>
 </th>
- 
+
 <!-- total -->
     <th>
   <div class="table-main" onclick="toggleSort(this)">
@@ -1192,7 +1192,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
         <label style="color: #9ca3af; margin-top:6px; width:176px;">Total</label>
       <input type="text" style="border:1px solid #d9dfe5; border-radius:6px;height:5vh"
       >
-     
+
     </div>
 
     <div class="filter-actions">
@@ -1235,7 +1235,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
         <label style="color: #9ca3af; margin-top:6px; width:176px;">Balance</label>
       <input type="text" style="border:1px solid #d9dfe5; border-radius:6px;height:5vh"
       >
-     
+
     </div>
 
     <div class="filter-actions">
@@ -1401,7 +1401,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
             </button>
 
           <button class="btn btn-primary" id="btnUpdateParty">Update</button>
-<button class="btn btn-danger" id="btnDeleteParty">Delete</button> 
+<button class="btn btn-danger" id="btnDeleteParty">Delete</button>
           </div>
         </form>
       </div>

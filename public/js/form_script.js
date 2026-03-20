@@ -1,9 +1,24 @@
 function initializeForm(context) {
     const $ctx = $(context);
 
+    const itemOptionsHtml = (window.items || []).map(item => {
+        return `<option value="${item.id}" data-price="${item.price}" data-unit="${item.unit || ''}">${item.name}</option>`;
+    }).join('');
+
     // Party Combobox Logic
-    $ctx.find('.party-input').on('focus', function() {
-        $ctx.find('.party-dropdown').fadeIn(100);
+    $ctx.find('.party-select').on('change', function() {
+        const selectedId = $(this).val();
+        const party = (window.parties || []).find(p => String(p.id) === String(selectedId));
+        const $phone = $ctx.find('.phone-input');
+        const $billing = $ctx.find('.billing-address');
+
+        if (party) {
+            $phone.val(party.phone || '');
+            $billing.val(party.billing_address || '');
+        } else {
+            $phone.val('');
+            $billing.val('');
+        }
     });
 
     $(document).on('click', function(e) {
@@ -74,7 +89,12 @@ function initializeForm(context) {
                     <span class="row-index-text">${rowCount}</span>
                     <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                 </td>
-                <td><input type="text" class="item-name" placeholder="Item name"></td>
+                <td>
+                    <select class="form-select item-name">
+                        <option value="" selected disabled>Select Item</option>
+                        ${itemOptionsHtml}
+                    </select>
+                </td>
                 <td class="col-category ${isCatVisible ? '' : 'd-none'}"><input type="text" class="item-category" placeholder="Category"></td>
                 <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code"></td>
                 <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description"></td>
@@ -115,15 +135,31 @@ function initializeForm(context) {
         });
     }
 
+// Item selection: auto-fill price and unit when an item is chosen
+    $ctx.on('change', '.item-name', function() {
+        const $row = $(this).closest('tr');
+        const $selected = $(this).find('option:selected');
+        const price = parseFloat($selected.data('price')) || 0;
+        const unit = $selected.data('unit') || '';
+
+        $row.find('.item-price').val(price.toFixed(2));
+        if (unit) {
+            $row.find('.item-unit').val(unit);
+        }
+
+        // Recalculate totals when the item changes
+        $row.find('.item-qty').trigger('change');
+    });
+
     // Line item calculation
     $ctx.on('keyup change', '.item-qty, .item-price, .item-discount', function() {
         const $row = $(this).closest('tr');
         const qty = parseFloat($row.find('.item-qty').val()) || 0;
         const price = parseFloat($row.find('.item-price').val()) || 0;
         const itemDiscount = parseFloat($row.find('.item-discount').val()) || 0;
-        
+
         const amount = (qty * price) - itemDiscount;
-        
+
         $row.find('.item-amount').val(amount.toFixed(2));
         calculateTotals();
     });
@@ -155,7 +191,7 @@ function initializeForm(context) {
 
     function applyDiscountTax(base) {
         let finalBase = base;
-        
+
         const discPct = parseFloat($ctx.find('.discount-pct').val()) || 0;
         if (discPct > 0) {
             finalBase -= (finalBase * discPct / 100);
