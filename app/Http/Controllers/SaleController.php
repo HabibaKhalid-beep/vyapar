@@ -35,6 +35,13 @@ class SaleController extends Controller
         return view('dashboard.sales.create', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber'));
     }
 
+
+    public function pos1()
+    {
+
+        return view('dashboard.sales.pos');
+    }
+
     public function edit(Sale $sale)
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
@@ -331,5 +338,7 @@ class SaleController extends Controller
             'message' => 'Sale deleted successfully.',
         ]);
     }
+
+
 }
 

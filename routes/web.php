@@ -8,8 +8,10 @@ use App\Http\Controllers\PartyController;
 use App\Http\Controllers\LoanAccountController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SaleSectionController;
 use App\Http\Controllers\PurchaseExpenseController;
-
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Default landing page
@@ -21,6 +23,7 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth'])->prefix('dashboard')->group(function () {
+
 
 
 // POST route to save new party
@@ -36,6 +39,21 @@ Route::delete('/parties/{id}', [PartyController::class,'destroy']);
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create');
+Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
+Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+
+    // User management
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
     // Sales
     Route::get('/sale/create', [SaleController::class,'create'])->name('sale.create');
     Route::get('/sales/{sale}/edit', [SaleController::class,'edit'])->name('sale.edit');
@@ -44,6 +62,15 @@ Route::delete('/parties/{id}', [PartyController::class,'destroy']);
     Route::post('/sales', [SaleController::class,'store'])->name('sale.store');
     Route::get('/sales', [SaleController::class,'index'])->name('sale.index');
     Route::get('sales/estimate', [SaleController::class,'estimate'])->name('sale.estimate');
+    Route::get('sales/pos', [SaleController::class,'pos1'])->name('sale.pos');
+
+
+    // Sale Sections
+    Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
+    Route::get('/proforma-invoice', [SaleSectionController::class, 'proformaInvoice'])->name('proforma-invoice');
+    Route::get('/sale-return', [SaleSectionController::class, 'saleReturn'])->name('sale-return');
+ Route::get('delivery-challan', [SaleSectionController::class, 'deliveryChallan'])->name('delivery-challan');
+ Route::get('sale-order' ,[SaleSectionController::class, 'saleOrder'])->name('sale-order');
 
     // Invoice
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice');
@@ -68,6 +95,8 @@ Route::delete('/parties/{id}', [PartyController::class,'destroy']);
 
 Route::get('/purchase-bill', [PurchaseExpenseController::class, 'purchaseExpenses'])->name('purchase-expenses');
 Route::get('/payment-out', [PurchaseExpenseController::class, 'paymentOut'])->name('payment-out');
+Route::get('purchase-order', [PurchaseExpenseController::class, 'purchaseOrder'])->name('purchase-order');
+Route::get('expense', [PurchaseExpenseController::class, 'expense'])->name('expense');
 
     // Items
     Route::get('/items', [ItemController::class, 'index'])->name('items');

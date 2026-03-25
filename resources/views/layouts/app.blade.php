@@ -23,7 +23,11 @@
 <script>
   window.App = {
     isAuthenticated: @json(Auth::check()),
-    user: @json(Auth::user()?->only('name')),
+    user: @json(Auth::user() ? [
+      'id' => Auth::user()->id,
+      'name' => Auth::user()->name,
+      'permissions' => Auth::user()->getAllPermissions()
+    ] : null),
     logoutUrl: "{{ route('logout') }}",
     csrfToken: "{{ csrf_token() }}"
   };

@@ -18,4 +18,15 @@ class PurchaseExpenseController extends Controller
         return view('dashboard.purchases.payement-out');
     }
 
+    public  function purchaseOrder()
+    {
+        return view('dashboard.purchases.purchase-order');
+    }
+
+    public function expense()
+    {
+        return view('dashboard.purchases.expense');
+    }
+    
+
 }
