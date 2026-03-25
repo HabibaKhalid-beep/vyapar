@@ -1,5 +1,5 @@
 @extends('layouts.app')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"> -->
 <style>
 
 /* uper panel styling */
@@ -806,64 +806,9 @@ font-size:12px;
 }
 
 }
+
 </style>
-   <script>
-    function toggleFilter(){
-let dropdown = document.getElementById("filterDropdown");
-
-if(dropdown.style.display === "block"){
-dropdown.style.display = "none";
-}else{
-dropdown.style.display = "block";
-}
-}
-
-document.querySelector(".filter-icon").onclick = function(){
-document.querySelector(".filter-dropdown").classList.toggle("show");
-}
-
-function toggleHeaderDropdown(element) {
-  const dropdownMenu = element.nextElementSibling;
-  const isVisible = dropdownMenu.style.display === 'block';
-  dropdownMenu.style.display = isVisible ? 'none' : 'block';
-
-  // Optional: rotate arrow
-  element.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
-}
-
-function toggleSort(el){
-el.classList.toggle("active");
-}
-
-function toggleParentArrows(el){
-  el.classList.toggle('active');
-}
-
-// Toggle dropdown on icon click
-function toggleFilterDropdown(icon){
-  const dropdown = icon.nextElementSibling;
-  dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
-}
-
-// Close dropdown if clicked outside
-document.addEventListener('click', function(e){
-  document.querySelectorAll('.filter-dropdown').forEach(dd=>{
-    if(!dd.contains(e.target) && !dd.previousElementSibling.contains(e.target)){
-      dd.style.display = 'none';
-    }
-  });
-});
-
-// Clear button functionality
-document.querySelectorAll('.clear-btn').forEach(btn=>{
-  btn.addEventListener('click', function(){
-    const checkboxes = this.closest('.filter-dropdown').querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(cb=>cb.checked=false);
-  });
-});
-
-
-  </script>
+  
 
 @section('title', 'Vyapar — Parties')
 @section('description', 'Manage your business parties, customers, and suppliers in Vyapar accounting software.')
@@ -965,12 +910,21 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 
 
 </li>
-    <ul id="partiesList">
+   <ul id="partiesList">
   @foreach($parties as $party)
-    <li class="party-item" data-id="{{ $party->id }}" data-name="{{ $party->name }}" data-phone="{{ $party->phone }}" data-email="{{ $party->email }}" data-billing-address="{{ $party->billing_address }}"
- data-shipping-address="{{ $party->shipping_address }}"
-  data-opening-balance="{{ $party->opening_balance }}"
-  data-transaction-type="{{ $party->transaction_type }}">
+    <li class="party-item" 
+        data-id="{{ $party->id }}" 
+        data-name="{{ $party->name }}" 
+        data-phone="{{ $party->phone }}" 
+        data-email="{{ $party->email }}" 
+        data-billing-address="{{ $party->billing_address }}"
+        data-shipping-address="{{ $party->shipping_address }}"
+        data-opening-balance="{{ $party->opening_balance }}"
+        data-as-of-date="{{ $party->as_of_date }}"
+        data-transaction-type="{{ $party->transaction_type }}"
+        data-party-type="{{ $party->party_type }}"
+        data-credit-limit-enabled="{{ $party->credit_limit_enabled }}"
+        data-custom-fields="{{ json_encode($party->custom_fields ?? []) }}">
       <span class="entity-name">{{ $party->name }}</span>
       <span class="entity-balance {{ $party->opening_balance < 0 ? 'negative' : 'positive' }}">
         ₹ {{ number_format($party->opening_balance, 2) }}
@@ -1370,6 +1324,19 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
     </div>
   </div>
 </div>
+<div class="col-md-6">
+  <label class="form-label fw-600">Party Type</label>
+
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="party_type" id="customerParty" value="customer" checked>
+    <label class="form-check-label" for="customerParty">Customer Party</label>
+  </div>
+
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="party_type" id="supplierParty" value="supplier">
+    <label class="form-check-label" for="supplierParty">Supplier Party</label>
+  </div>
+</div>
 
             <!-- Additional Fields Tab -->
             <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
@@ -1399,9 +1366,8 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
             <button type="button" class="btn btn-primary" id="btnSaveParty">
               <i class="fa-solid fa-check me-1"></i> Save
             </button>
-
-          <button class="btn btn-primary" id="btnUpdateParty">Update</button>
-<button class="btn btn-danger" id="btnDeleteParty">Delete</button>
+ <button class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
+    <button class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
           </div>
         </form>
       </div>
@@ -1409,234 +1375,248 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   </div>
 </div>
 @endsection
-
-@push('scripts')
+  @push('scripts')
 <script>
+// ============ GLOBAL FUNCTIONS (filter, sort, dropdown) ============
+function toggleFilter(){
+    let dropdown = document.getElementById("filterDropdown");
+    if(dropdown.style.display === "block"){
+        dropdown.style.display = "none";
+    }else{
+        dropdown.style.display = "block";
+    }
+}
+
+function toggleHeaderDropdown(element) {
+    const dropdownMenu = element.nextElementSibling;
+    const isVisible = dropdownMenu.style.display === 'block';
+    dropdownMenu.style.display = isVisible ? 'none' : 'block';
+    element.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function toggleSort(el){
+    el.classList.toggle("active");
+}
+
+function toggleParentArrows(el){
+    el.classList.toggle('active');
+}
+
+function toggleFilterDropdown(icon){
+    const dropdown = icon.nextElementSibling;
+    dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+}
+
+document.addEventListener('click', function(e){
+    document.querySelectorAll('.filter-dropdown').forEach(dd=>{
+        if(!dd.contains(e.target) && !dd.previousElementSibling?.contains(e.target)){
+            dd.style.display = 'none';
+        }
+    });
+});
+
+// ============ MAIN PARTY CRUD ============
 document.addEventListener("DOMContentLoaded", function () {
 
-const saveBtn = document.getElementById("btnSaveParty");
-const saveNewBtn = document.getElementById("btnSaveNewParty");
-const updateBtn = document.getElementById("btnUpdateParty");
-const deleteBtn = document.getElementById("btnDeleteParty");
-
-const partyList = document.getElementById("partiesList");
-
-const addModalEl = document.getElementById('addPartyModal');
-const addModal = new bootstrap.Modal(addModalEl);
-
-let currentPartyId = null;
-
-
-// RESET MODAL
-function resetModal(){
-
-document.getElementById("addPartyForm").reset();
-
-saveBtn.style.display = "inline-block";
-saveNewBtn.style.display = "inline-block";
-
-updateBtn.style.display = "none";
-deleteBtn.style.display = "none";
-
-currentPartyId = null;
-
-}
-
-
-// GET FORM DATA
-function getPartyData(){
-
-return {
-
-name: document.getElementById("partyNameInput").value,
-
-phone: document.getElementById("partyPhoneInput").value,
-
-email: document.querySelector('#partyAddressPane input[type="email"]').value,
-
-billing_address: document.querySelectorAll('#partyAddressPane textarea')[0].value,
-
-shipping_address: document.querySelectorAll('#partyAddressPane textarea')[1].value,
-
-opening_balance: document.querySelector('#partyCreditPane input[type="number"]').value,
-
-as_of_date: document.querySelector('#partyCreditPane input[type="date"]').value,
-
-credit_limit_enabled: document.getElementById("creditLimitSwitch").checked ? 1 : 0,
-transaction_type: document.getElementById("toReceive").checked
-      ? 'receive'
-      : document.getElementById("toPay").checked
-      ? 'pay'
-      : null,
-      
-
-      
-
-
-};
-
-}
-
-
-// ADD PARTY
-function addParty(closeModal=true){
-
-const partyData = getPartyData();
-
-fetch("{{ route('parties.store') }}",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRF-TOKEN":"{{ csrf_token() }}"
-},
-
-body: JSON.stringify(partyData)
-
-})
-
-.then(res=>res.json())
-
-.then(data=>{
-
-if(data.success){
-
-const party=data.party;
-
-const li=document.createElement("li");
-
-li.className="party-item";
-
-li.dataset.id=party.id;
-li.dataset.name=party.name;
-li.dataset.phone=party.phone;
-li.dataset.email=party.email;
-li.dataset.billingAddress = party.billing_address;
-li.dataset.shippingAddress = party.shipping_address;
-li.dataset.opening_balance=party.opening_balance;
-li.dataset.as_of_date=party.as_of_date;
-li.dataset.transactionType = party.transaction_type;
-
-
-li.innerHTML=`
-
-<span class="entity-name">${party.name}</span>
-
-<span class="entity-balance">₹ ${parseFloat(party.opening_balance).toFixed(2)}</span>
-
-`;
-
-partyList.prepend(li);
-
-if(closeModal){
-
-addModal.hide();
-resetModal();
-
-}else{
-
-document.getElementById("addPartyForm").reset();
-
-}
-
-}
-
-});
-
-}
-
-
-saveBtn.addEventListener("click",()=>addParty(true));
-
-saveNewBtn.addEventListener("click",()=>addParty(false));
-
-
-
-// PARTY CLICK → RIGHT PANEL
-partyList.addEventListener("click",function(e){
-
-const li=e.target.closest(".party-item");
-
-if(!li) return;
-
-currentPartyId=li.dataset.id;
-
-document.getElementById("partyDetailName").textContent=li.dataset.name;
-document.getElementById("partyPhone").textContent=li.dataset.phone;
-document.getElementById("partyEmail").textContent=li.dataset.email;
-
-document.getElementById("partyAddress").textContent =
-li.dataset.billingAddress;
-
-});
-
-
-// OPEN ADD MODAL
-document.querySelector(".btn-add-entity").addEventListener("click",function(){
-
-resetModal();
-addModal.show();
-
-});
-
-
-// EDIT PARTY
-document.getElementById("editPartyBtn").addEventListener("click",function(){
-
-if(!currentPartyId) return alert("Select party first");
-
-const li=document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
-
-document.getElementById("partyNameInput").value=li.dataset.name;
-document.getElementById("partyPhoneInput").value=li.dataset.phone;
-
-document.querySelectorAll('#partyAddressPane textarea')[0].value = li.dataset.billingAddress;
-document.querySelectorAll('#partyAddressPane textarea')[1].value = li.dataset.shippingAddress;
-
-document.querySelector('#partyCreditPane input[type="number"]').value=li.dataset.opening_balance;
-document.querySelector('#partyCreditPane input[type="date"]').value = party.as_of_date || new Date().toISOString().split('T')[0];
-
-li.dataset.transactionType = party.transaction_type;
-
-saveBtn.style.display="none";
-saveNewBtn.style.display="none";
-
-updateBtn.style.display="inline-block";
-deleteBtn.style.display="inline-block";
-
-addModal.show();
-
-});
-
-
-// Populate modal with party data for editing
-function populatePartyModal(party) {
-    currentPartyId = party.id;
-
-    // Fill inputs
-    document.getElementById("partyNameInput").value = party.name;
-    document.getElementById("partyPhoneInput").value = party.phone;
-    document.querySelector('#partyAddressPane input[type="email"]').value = party.email;
-    document.querySelectorAll('#partyAddressPane textarea')[0].value = party.billing_address;
-    document.querySelectorAll('#partyAddressPane textarea')[1].value = party.shipping_address;
-    document.querySelector('#partyCreditPane input[type="number"]').value = party.opening_balance || 0;
-    document.querySelector('#partyCreditPane input[type="date"]').value = party.as_of_date || new Date().toISOString().split('T')[0];
-    document.getElementById("creditLimitSwitch").checked = party.credit_limit_enabled == 1;
-
-    // Transaction type checkboxes
-    if (party.transaction_type === 'receive') {
-        document.getElementById("toReceive").checked = true;
-        document.getElementById("toPay").checked = false;
-    } else if (party.transaction_type === 'pay') {
-        document.getElementById("toReceive").checked = false;
-        document.getElementById("toPay").checked = true;
-    } else {
-        document.getElementById("toReceive").checked = false;
-        document.getElementById("toPay").checked = false;
+    const saveBtn = document.getElementById("btnSaveParty");
+    const saveNewBtn = document.getElementById("btnSaveNewParty");
+    const updateBtn = document.getElementById("btnUpdateParty");
+    const deleteBtn = document.getElementById("btnDeleteParty");
+    const partyList = document.getElementById("partiesList");
+    const addModalEl = document.getElementById('addPartyModal');
+    const addModal = new bootstrap.Modal(addModalEl);
+
+    let currentPartyId = null;
+
+    // Checkbox mutually exclusive
+    const toReceive = document.getElementById('toReceive');
+    const toPay = document.getElementById('toPay');
+    const transactionTypeValue = document.getElementById('transactionTypeValue');
+
+    [toReceive, toPay].forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            if (this.checked) {
+                [toReceive, toPay].forEach(cb => {
+                    if (cb !== this) cb.checked = false;
+                });
+                transactionTypeValue.value = this.value;
+            } else {
+                transactionTypeValue.value = '';
+            }
+        });
+    });
+
+    // Clear filter buttons
+    document.querySelectorAll('.clear-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const checkboxes = this.closest('.filter-dropdown')?.querySelectorAll('input[type="checkbox"]');
+            if (checkboxes) checkboxes.forEach(cb => cb.checked = false);
+        });
+    });
+
+    // RESET MODAL
+    function resetModal() {
+        document.getElementById("addPartyForm").reset();
+        saveBtn.style.display = "inline-block";
+        saveNewBtn.style.display = "inline-block";
+        updateBtn.style.display = "none";
+        deleteBtn.style.display = "none";
+        currentPartyId = null;
     }
 
-    // Show update/delete buttons
+    // GET FORM DATA
+    function getPartyData() {
+        return {
+            name: document.getElementById("partyNameInput").value,
+            phone: document.getElementById("partyPhoneInput").value,
+            email: document.querySelector('#partyAddressPane input[type="email"]').value,
+            billing_address: document.querySelectorAll('#partyAddressPane textarea')[0].value,
+            shipping_address: document.querySelectorAll('#partyAddressPane textarea')[1].value,
+            opening_balance: document.querySelector('#partyCreditPane input[type="number"]').value,
+            as_of_date: document.querySelector('#partyCreditPane input[type="date"]').value,
+            credit_limit_enabled: document.getElementById("creditLimitSwitch").checked ? 1 : 0,
+            transaction_type: document.getElementById("toReceive").checked
+                ? 'receive'
+                : document.getElementById("toPay").checked
+                    ? 'pay'
+                    : null,
+            party_type: document.querySelector('input[name="party_type"]:checked')?.value,
+        };
+    }
+
+    // ADD PARTY
+    function addParty(closeModal = true) {
+        const partyData = getPartyData();
+
+        fetch("{{ route('parties.store') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify(partyData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const party = data.party;
+                const li = document.createElement("li");
+                li.className = "party-item";
+                li.dataset.id = party.id;
+                li.dataset.name = party.name;
+                li.dataset.phone = party.phone || '';
+                li.dataset.email = party.email || '';
+                li.dataset.billingAddress = party.billing_address || '';
+                li.dataset.shippingAddress = party.shipping_address || '';
+                li.dataset.openingBalance = party.opening_balance || 0;
+                li.dataset.asOfDate = party.as_of_date || '';
+                li.dataset.transactionType = party.transaction_type || '';
+                li.dataset.partyType = party.party_type || '';
+                li.dataset.creditLimitEnabled = party.credit_limit_enabled || 0;
+                 li.dataset.customFields = JSON.stringify(party.custom_fields || []);  
+
+                li.innerHTML = `
+                    <span class="entity-name">${party.name}</span>
+                    <span class="entity-balance">₹ ${parseFloat(party.opening_balance || 0).toFixed(2)}</span>
+                `;
+
+                partyList.prepend(li);
+
+                if (closeModal) {
+                    addModal.hide();
+                    resetModal();
+                } else {
+                    document.getElementById("addPartyForm").reset();
+                }
+            }
+        })
+        .catch(err => console.error("Add Party Error:", err));
+    }
+
+    saveBtn.addEventListener("click", () => addParty(true));
+    saveNewBtn.addEventListener("click", () => addParty(false));
+
+    // PARTY CLICK → RIGHT PANEL + SELECT
+    partyList.addEventListener("click", function (e) {
+        const li = e.target.closest(".party-item");
+        if (!li) return;
+
+        // Remove active from all, add to clicked
+        document.querySelectorAll('.party-item').forEach(item => item.classList.remove('active'));
+        li.classList.add('active');
+
+        currentPartyId = li.dataset.id;
+        
+        console.log("✅ Party Selected - ID:", currentPartyId);
+        
+        document.getElementById("partyDetailName").textContent = li.dataset.name || '';
+        document.getElementById("partyPhone").textContent = li.dataset.phone || '';
+        document.getElementById("partyEmail").textContent = li.dataset.email || '';
+        document.getElementById("partyAddress").textContent = li.dataset.billingAddress || '';
+    });
+
+    // OPEN ADD MODAL
+    document.querySelector(".btn-add-entity").addEventListener("click", function () {
+        resetModal();
+        addModal.show();
+    });
+
+    // POPULATE MODAL FOR EDITING
+   function populatePartyModal(party) {
+    currentPartyId = party.id;
+
+    document.getElementById("partyNameInput").value = party.name || '';
+    document.getElementById("partyPhoneInput").value = party.phone || '';
+    document.querySelector('#partyAddressPane input[type="email"]').value = party.email || '';
+    document.querySelectorAll('#partyAddressPane textarea')[0].value = party.billing_address || '';
+    document.querySelectorAll('#partyAddressPane textarea')[1].value = party.shipping_address || '';
+    document.querySelector('#partyCreditPane input[type="number"]').value = party.opening_balance || 0;
+
+    // ✅ FIX: Date ko properly format karein
+    let dateValue = party.as_of_date || '';
+    if (dateValue && dateValue.includes('T')) {
+        dateValue = dateValue.split('T')[0]; // "2025-01-15T00:00:00Z" → "2025-01-15"
+    }
+    document.querySelector('#partyCreditPane input[type="date"]').value = dateValue;
+
+    // ✅ FIX: Credit limit switch - string "1" / "true" dono handle karein
+    const creditSwitch = document.getElementById("creditLimitSwitch");
+    creditSwitch.checked = (party.credit_limit_enabled == 1 || party.credit_limit_enabled === 'true' || party.credit_limit_enabled === true);
+    creditSwitch.disabled = false; // ✅ Make sure it's NOT disabled
+
+    // Transaction type
+    if (party.transaction_type === 'receive') {
+        toReceive.checked = true;
+        toPay.checked = false;
+    } else if (party.transaction_type === 'pay') {
+        toReceive.checked = false;
+        toPay.checked = true;
+    } else {
+        toReceive.checked = false;
+        toPay.checked = false;
+    }
+
+    // Party type radio
+    if (party.party_type) {
+        const radio = document.querySelector(`input[name="party_type"][value="${party.party_type}"]`);
+        if (radio) radio.checked = true;
+    }
+
+    // ✅ FIX: Additional fields / Custom fields
+    const customFieldInputs = document.querySelectorAll('#partyAdditionalPane input[type="text"]');
+    const customFieldChecks = document.querySelectorAll('#partyAdditionalPane input[type="checkbox"]');
+    
+    if (party.custom_fields && Array.isArray(party.custom_fields)) {
+        party.custom_fields.forEach((field, index) => {
+            if (customFieldInputs[index]) {
+                customFieldInputs[index].value = field || '';
+            }
+            if (customFieldChecks[index]) {
+                customFieldChecks[index].checked = field ? true : false;
+            }
+        });
+    }
+
     saveBtn.style.display = "none";
     saveNewBtn.style.display = "none";
     updateBtn.style.display = "inline-block";
@@ -1644,163 +1624,123 @@ function populatePartyModal(party) {
 
     addModal.show();
 }
+    // EDIT PARTY BUTTON
+    document.getElementById("editPartyBtn").addEventListener("click", function () {
+        if (!currentPartyId) return alert("Pehle party select karein!");
 
-// Attach edit button click
-document.getElementById("editPartyBtn").addEventListener("click", function () {
-    if (!currentPartyId) return;
+        const li = document.querySelector(`.party-item[data-id='${currentPartyId}']`);
+        if (!li) return alert("Party nahi mili!");
 
-    const li = document.querySelector(`.party-item[data-id='${currentPartyId}']`);
-    const party = {
-        id: li.dataset.id,
-        name: li.dataset.name,
-        phone: li.dataset.phone,
-        email: li.dataset.email,
-        billing_address: li.dataset.billingAddress,
-        shipping_address: li.dataset.shippingAddress,
-        opening_balance: li.dataset.opening_balance,
-        // optional: you can store transaction_type in data attribute too
-        transaction_type: li.dataset.transactionType || ''
-    };
+        console.log("🔍 Edit - All dataset:", JSON.stringify({...li.dataset}));
 
-    populatePartyModal(party);
-});
+        const party = {
+            id: li.dataset.id,
+            name: li.dataset.name,
+            phone: li.dataset.phone,
+            email: li.dataset.email,
+            billing_address: li.dataset.billingAddress,
+            shipping_address: li.dataset.shippingAddress,
+            opening_balance: li.dataset.openingBalance,
+            as_of_date: li.dataset.asOfDate,
+            party_type: li.dataset.partyType,
+            credit_limit_enabled: li.dataset.creditLimitEnabled,
+            transaction_type: li.dataset.transactionType || '',
+             custom_fields: li.dataset.customFields ? JSON.parse(li.dataset.customFields) : []  // ✅ ADD
+        };
 
-// Optional: click on party in list to select
-document.querySelectorAll(".party-item").forEach(li => {
-    li.addEventListener("click", function () {
-        currentPartyId = this.dataset.id;
-
-        document.getElementById("partyDetailName").textContent = this.dataset.name;
-        document.getElementById("partyPhone").textContent = this.dataset.phone;
-        document.getElementById("partyEmail").textContent = this.dataset.email;
-        document.getElementById("partyAddress").textContent = this.dataset.billingAddress;
+        populatePartyModal(party);
     });
-});
 
+    // ✅ UPDATE PARTY
+    updateBtn.addEventListener("click", function () {
+        console.log("🔄 Update clicked! currentPartyId:", currentPartyId);
+        
+        if (!currentPartyId) {
+            alert("No party selected!");
+            return;
+        }
 
-// UPDATE PARTY
-updateBtn.addEventListener("click",function(){
+        const partyData = getPartyData();
+        console.log("📤 Sending data:", partyData);
+fetch(`/dashboard/parties/${currentPartyId}`, {
+    method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify(partyData)
+        })
+        .then(res => {
+            console.log("📥 Response status:", res.status);
+            return res.json();
+        })
+        .then(data => {
+            console.log("📥 Response data:", data);
 
-if(!currentPartyId) return;
+            if (data.success) {
+                const li = document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
 
-const partyData=getPartyData();
+                li.dataset.name = partyData.name;
+                li.dataset.phone = partyData.phone;
+                li.dataset.email = partyData.email;
+                li.dataset.billingAddress = partyData.billing_address;
+                li.dataset.shippingAddress = partyData.shipping_address;
+                li.dataset.openingBalance = partyData.opening_balance;
+                li.dataset.asOfDate = partyData.as_of_date;
+                li.dataset.partyType = partyData.party_type;
+                li.dataset.creditLimitEnabled = partyData.credit_limit_enabled;
+                li.dataset.transactionType = partyData.transaction_type;
 
-fetch(`/parties/${currentPartyId}`,{
+                li.querySelector(".entity-name").textContent = partyData.name;
+                li.querySelector(".entity-balance").textContent = "₹ " + parseFloat(partyData.opening_balance || 0).toFixed(2);
 
-method:"PUT",
+                document.getElementById("partyDetailName").textContent = partyData.name;
+                document.getElementById("partyPhone").textContent = partyData.phone;
+                document.getElementById("partyEmail").textContent = partyData.email;
+                document.getElementById("partyAddress").textContent = partyData.billing_address;
 
-headers:{
-"Content-Type":"application/json",
-"X-CSRF-TOKEN":"{{ csrf_token() }}"
-},
+                alert("✅ Party updated successfully!");
+                addModal.hide();
+                resetModal();
+            } else {
+                alert("❌ Update failed: " + JSON.stringify(data));
+            }
+        })
+        .catch(err => {
+            console.error("❌ Update Error:", err);
+            alert("❌ Network error: " + err.message);
+        });
+    });
 
-body:JSON.stringify(partyData)
+    // DELETE PARTY
+    deleteBtn.addEventListener("click", function () {
+        if (!currentPartyId) return;
+        if (!confirm("Delete this party?")) return;
 
-})
+       
+      fetch(`/dashboard/parties/${currentPartyId}`, {
+    method: "DELETE",
+            headers: {
+                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const li = document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
+                li.remove();
+                document.getElementById("partyDetailName").textContent = "";
+                document.getElementById("partyPhone").textContent = "";
+                document.getElementById("partyEmail").textContent = "";
+                document.getElementById("partyAddress").textContent = "";
+                currentPartyId = null;
+                addModal.hide();
+                resetModal();
+            }
+        })
+        .catch(err => console.error("Delete Error:", err));
+    });
 
-.then(res=>res.json())
-
-.then(data=>{
-
-if(data.success){
-
-const li=document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
-
-li.dataset.name=partyData.name;
-li.dataset.phone=partyData.phone;
-li.dataset.email=partyData.email;
-li.dataset.billingAddress = partyData.billing_address;
-li.dataset.shippingAddress = partyData.shipping_address;
-li.dataset.opening_balance=partyData.opening_balance;
-li.dataset.transactionType = partyData.transaction_type;
-
-li.querySelector(".entity-name").textContent=partyData.name;
-
-li.querySelector(".entity-balance").textContent="₹ "+parseFloat(partyData.opening_balance).toFixed(2);
-
-document.getElementById("partyDetailName").textContent=partyData.name;
-document.getElementById("partyPhone").textContent=partyData.phone;
-document.getElementById("partyEmail").textContent=partyData.email;
-
-document.getElementById("partyAddress").textContent =
-partyData.billing_address + " | " + partyData.shipping_address;
-
-alert("Party updated successfully");
-
-addModal.hide();
-resetModal();
-
-}
-
-});
-
-});
-
-
-// DELETE PARTY
-deleteBtn.addEventListener("click",function(){
-
-if(!currentPartyId) return;
-
-if(!confirm("Delete this party?")) return;
-
-fetch(`/parties/${currentPartyId}`,{
-
-method:"DELETE",
-
-headers:{
-"X-CSRF-TOKEN":"{{ csrf_token() }}"
-}
-
-})
-
-.then(res=>res.json())
-
-.then(data=>{
-
-if(data.success){
-
-const li=document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
-
-li.remove();
-
-document.getElementById("partyDetailName").textContent="";
-document.getElementById("partyPhone").textContent="";
-document.getElementById("partyEmail").textContent="";
-document.getElementById("partyAddress").textContent="";
-
-currentPartyId=null;
-
-addModal.hide();
-resetModal();
-
-}
-
-});
-
-});
-
-});
-
-const toReceive = document.getElementById('toReceive');
-const toPay = document.getElementById('toPay');
-const transactionTypeValue = document.getElementById('transactionTypeValue');
-
-// Make checkboxes mutually exclusive
-[toReceive, toPay].forEach(checkbox => {
-  checkbox.addEventListener('change', function() {
-    if (this.checked) {
-      // Uncheck the other
-      [toReceive, toPay].forEach(cb => {
-        if (cb !== this) cb.checked = false;
-      });
-      // Update hidden input
-      transactionTypeValue.value = this.value;
-    } else {
-      transactionTypeValue.value = '';
-    }
-  });
 });
 </script>
-
 @endpush

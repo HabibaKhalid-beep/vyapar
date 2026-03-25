@@ -8,9 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('parties', function (Blueprint $table) {
-            $table->json('party_type')->nullable()->after('transaction_type')->comment('Customer / Supplier');
-        });
+       Schema::table('parties', function (Blueprint $table) {
+    $table->string('party_type')->nullable()->after('transaction_type'); // ✅
+});
     }
 
     public function down(): void
