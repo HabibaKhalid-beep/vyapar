@@ -13,6 +13,17 @@ return new class extends Migration
     {
         Schema::create('loan_accounts', function (Blueprint $table) {
             $table->id();
+            $table->string('display_name');
+            $table->foreignId('lender_bank_id')->constrained('bank_accounts')->onDelete('cascade');
+            $table->string('account_number');
+            $table->text('description')->nullable();
+            $table->decimal('current_balance', 15, 2);
+            $table->date('balance_as_of');
+            $table->enum('received_in', ['1', '2'])->default('1'); // Assuming 1 or 2 for some enum
+            $table->decimal('interest_rate', 5, 2);
+            $table->integer('term_months');
+            $table->decimal('processing_fee', 10, 2);
+            $table->foreignId('processing_fee_paid_from_id')->constrained('bank_accounts')->onDelete('cascade');
             $table->timestamps();
         });
     }
