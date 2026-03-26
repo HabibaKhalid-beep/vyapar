@@ -1626,7 +1626,7 @@ document.addEventListener("DOMContentLoaded", function () {
 }
     // EDIT PARTY BUTTON
     document.getElementById("editPartyBtn").addEventListener("click", function () {
-        if (!currentPartyId) return alert("Pehle party select karein!");
+        if (!currentPartyId) return alert("Select Party First");
 
         const li = document.querySelector(`.party-item[data-id='${currentPartyId}']`);
         if (!li) return alert("Party nahi mili!");
