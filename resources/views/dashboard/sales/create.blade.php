@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -423,6 +424,238 @@
     <script src="{{ asset('js/saleform_script.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('js/script.js') }}"></script>
+     <div class="container">
+        @yield('content')
+    </div>
+
+@section('modals')
+<!-- MODAL: ADD PARTY -->
+ <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addPartyModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Party</h5>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-secondary" title="Settings"><i class="fa-solid fa-gear"></i></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <form id="addPartyForm">
+          @csrf
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-600">Phone Number</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
+                <i class="fa-solid fa-location-dot me-1"></i> Address
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
+                <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
+                <i class="fa-solid fa-sliders me-1"></i> Additional Fields
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-3" id="partyModalTabContent">
+            <!-- Address Tab -->
+            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Email ID</label>
+                  <input type="email" name="email" class="form-control" placeholder="example@email.com">
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-6">
+                  <label class="form-label">Billing Address</label>
+                  <textarea id="billingAddress" class="form-control" name="billing_address" rows="3" placeholder="Enter billing address"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Shipping Address</label>
+                  <textarea  id="shippingAddress" class="form-control" name="shipping_address" rows="3" placeholder="Enter shipping address"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Credit & Balance Tab -->
+          <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Opening Balance</label>
+      <div class="input-group">
+        <span class="input-group-text">₹</span>
+        <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+      </div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">As Of Date</label>
+      <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label d-block">Credit Limit</label>
+      <div class="form-check form-switch mt-2">
+        <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
+        <label class="form-check-label" for="creditLimitSwitch">Enable</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- To Receive / To Pay Options at the bottom -->
+  <div class="mt-4">
+    <label class="form-label d-block">Transaction Type</label>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
+      <label class="form-check-label" for="toReceive">To Receive</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="checkbox" id="toPay" value="pay">
+      <label class="form-check-label" for="toPay">To Pay</label>
+    </div>
+  </div>
+</div>
+<div class="col-md-6">
+  <label class="form-label fw-600">Party Type</label>
+
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="party_type" id="customerParty" value="customer" checked>
+    <label class="form-check-label" for="customerParty">Customer Party</label>
+  </div>
+
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="party_type" id="supplierParty" value="supplier">
+    <label class="form-check-label" for="supplierParty">Supplier Party</label>
+  </div>
+</div>
+
+            <!-- Additional Fields Tab -->
+            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
+              <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
+              <div class="row g-3">
+                @for($i=1; $i<=4; $i++)
+                <div class="col-md-6">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="customField{{$i}}Check">
+                    <label class="form-check-label" for="customField{{$i}}Check">Custom Field {{$i}}</label>
+                  </div>
+                  <input type="text" name="custom_fields[]" class="form-control form-control-sm" placeholder="Field name">
+                </div>
+
+                <input type="hidden" id="transactionTypeValue" name="transaction_type">
+                @endfor
+
+              </div>
+            </div>
+          </div>
+          
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
+              <i class="fa-solid fa-plus me-1"></i> Save & New
+            </button>
+            <button type="button" class="btn btn-primary" id="btnSaveParty">
+              <i class="fa-solid fa-check me-1"></i> Save
+            </button>
+ <button class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
+    <button class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+@endsection
+    @yield('modals')
+    <script>document.addEventListener("DOMContentLoaded", function () {
+    const partySelect = document.querySelector(".party-select");
+    const addModalEl = document.getElementById('addPartyModal');
+    const addModal = new bootstrap.Modal(addModalEl);
+
+    partySelect.addEventListener("change", function () {
+        if (this.value === "__new") {
+            addModal.show();
+
+            // Optional: Reset modal har bar open hone pe
+            document.getElementById("addPartyForm").reset();
+        }
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const addModalEl = document.getElementById('addPartyModal');
+    const addModal = new bootstrap.Modal(addModalEl);
+    const saveBtn = document.getElementById("btnSaveParty");
+    const saveNewBtn = document.getElementById("btnSaveNewParty");
+
+    function getPartyData() {
+        const form = document.getElementById("addPartyForm");
+        return new FormData(form);
+    }
+
+   function saveParty(closeAfterSave = true) {
+    const form = document.getElementById("addPartyForm");
+    const data = new FormData(form);
+
+    // Transaction type fix
+    const toReceive = document.getElementById("toReceive").checked;
+    const toPay = document.getElementById("toPay").checked;
+    if(toReceive) data.set("transaction_type", "receive");
+    else if(toPay) data.set("transaction_type", "pay");
+
+    // Credit limit fix
+    const creditSwitch = document.getElementById("creditLimitSwitch");
+    data.set("credit_limit_enabled", creditSwitch.checked ? 1 : 0);
+
+    fetch("{{ route('parties.store') }}", {
+        method: "POST",
+        headers: {
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            "Accept": "application/json"   // important!
+        },
+        body: data
+    })
+    .then(res => res.json())
+    .then(res => {
+        if(res.success) {
+            alert("Party saved successfully!");
+            if(closeAfterSave) addModal.hide();
+            else form.reset();
+        } else {
+            alert("Error saving party");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Something went wrong! Check console.");
+    });
+}
+    saveBtn.addEventListener('click', function () {
+        saveParty(true); // close modal after save
+    });
+
+    saveNewBtn.addEventListener('click', function () {
+        saveParty(false); // reset modal for new entry
+    });
+});
+</script>
 </body>
 
 </html>
