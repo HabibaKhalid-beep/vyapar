@@ -18,6 +18,23 @@
   <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
   <link href="{{ asset('css/sale.css') }}" rel="stylesheet">
 
+  <script>
+    // Ensure window.App is always initialized, even if Auth is null
+    const authUser = @json(Auth::user());
+    window.App = window.App || {
+      isAuthenticated: @json(Auth::check()),
+      user: authUser ? {
+        id: authUser.id,
+        name: authUser.name,
+        roles: @json(Auth::user()?->roles()->pluck('name')->toArray() ?? []),
+        permissions: @json(Auth::user()?->getAllPermissions() ?? []),
+      } : { id: null, name: null, roles: [], permissions: [] },
+      logoutUrl: "{{ route('logout') }}",
+      csrfToken: "{{ csrf_token() }}",
+    };
+    console.log('App initialized:', window.App);
+  </script>
+
   <style>
     .custom-table thead th {
   font-size: 13px;
@@ -480,6 +497,9 @@
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script src="{{ asset('js/sale.js') }}"></script>
+
+
+
 
 </body>
 

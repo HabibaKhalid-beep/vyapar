@@ -90,5 +90,14 @@ class BankAccountController extends Controller
 
         return redirect()->route('bank-accounts')->with('success', 'Bank account deleted successfully.');
     }
+
+    public function cashInHand()
+    {
+        // For simplicity, we can treat "Cash in Hand" as a special bank account with a fixed ID (e.g., 0).
+        // Alternatively, you could have a separate model/table for cash transactions.
+
+
+        return view('dashboard.accounts.cash-hand');
+    }
 }
 

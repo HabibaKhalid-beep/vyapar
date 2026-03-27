@@ -10,20 +10,58 @@
   const appUser = window.App?.user || null;
   const logoutUrl = window.App?.logoutUrl || null;
   const csrfToken = window.App?.csrfToken || null;
-  const userPermissions = Array.isArray(appUser?.permissions) ? appUser.permissions : [];
-  const isSuperAdmin = appUser?.id === 1;
+  const isAuthenticated = window.App?.isAuthenticated ?? false;
+  const userPermissionsRaw = Array.isArray(appUser?.permissions) ? appUser.permissions : [];
+  const userPermissions = userPermissionsRaw.map((p) => (typeof p === 'string' ? p.trim().toLowerCase() : p));
+
+  const userRoles = Array.isArray(appUser?.roles) ? appUser.roles.map((r) => (typeof r === 'string' ? r.trim().toLowerCase() : '')) : [];
+  const userRoleFallback = typeof appUser?.role === 'string' ? appUser.role.trim().toLowerCase() : '';
+
+  // If user is authenticated but appUser is null, treat as super admin (fail-safe)
+  const isSuperAdmin =
+    appUser?.id === 1 ||
+    userRoles.some((r) => r.includes('admin')) ||
+    userRoleFallback.includes('admin') ||
+    userPermissions.includes('admin') ||
+    userPermissions.includes('super-admin') ||
+    (typeof appUser?.name === 'string' && appUser.name.toLowerCase().includes('admin')) ||
+    (userRoles.length === 0 && userPermissions.length === 0 && appUser?.id && appUser?.id !== 0 && appUser?.name && appUser.name.toLowerCase().includes('super')) ||
+    (isAuthenticated && !appUser); // Fallback: if authenticated but no user object, show full menu
+
+  console.log('Sidebar debug: window.App', window.App, 'appUser', appUser, 'userRoles', userRoles, 'userPermissions', userPermissions, 'isSuperAdmin', isSuperAdmin);
 
   const hasPermission = (permission) => {
     if (isSuperAdmin) return true;
-    return userPermissions.includes(permission);
+    if (!permission || typeof permission !== 'string') return false;
+    return userPermissions.includes(permission.trim().toLowerCase());
   };
 
   const permissionAliases = {
-    'purchase.bill': ['purchase.bill', 'purchase.view', 'purchase.create'],
-    'purchase.payment_out': ['purchase.payment_out', 'purchase.payments', 'purchase.create'],
-    'purchase.return': ['purchase.return', 'purchase.update', 'purchase.create'],
-    'purchase.expense': ['purchase.expense', 'purchase.delete', 'purchase.create'],
-    'purchase.order': ['purchase.order', 'purchase.create'],
+    // Purchase sub-items: only specific permissions (no purchase.view/create fallback)
+    'purchase.bill': ['purchase.bill'],
+    'purchase.payment_out': ['purchase.payment_out'],
+    'purchase.return': ['purchase.return'],
+    'purchase.expense': ['purchase.expense'],
+    'purchase.order': ['purchase.order'],
+    // Purchase parent: all purchase sub-permissions
+    'purchase.view': ['purchase.view', 'purchase.bill', 'purchase.payment_out', 'purchase.return', 'purchase.expense', 'purchase.order'],
+
+    // Sales sub-items: only specific permissions (no sales.view/create fallback)
+    'sales.invoice': ['sales.invoice'],
+    'sales.estimate': ['sales.estimate'],
+    'sales.payment_in': ['sales.payment_in'],
+    'sales.proforma': ['sales.proforma'],
+    'sales.order': ['sales.order'],
+    'sales.delivery_challan': ['sales.delivery_challan'],
+    'sales.sale_return': ['sales.sale_return'],
+    'sales.pos': ['sales.pos'],
+    // Sales parent: all sales sub-permissions
+    'sales.view': ['sales.view', 'sales.invoice', 'sales.estimate', 'sales.payment_in', 'sales.proforma', 'sales.order', 'sales.delivery_challan', 'sales.sale_return', 'sales.pos'],
+
+    // Cash/Bank items
+    'cashbank.loan_accounts': ['cashbank.loan_accounts'],
+    'cashbank.bank_accounts': ['cashbank.bank_accounts'],
+    'cashbank.view': ['cashbank.view', 'cashbank.loan_accounts', 'cashbank.bank_accounts'],
   };
 
   const hasExtendedPermission = (permission) => {
@@ -93,7 +131,7 @@
     {
       label: 'Sale',
       icon: 'fa-file-invoice-dollar',
-
+      permission: 'sales.view',
       children: [
         { label: 'Sale Invoice', href: '/dashboard/sales', dataPage: 'invoice', permission: 'sales.invoice' },
         { label: 'Estimate / Quotation', href: '/dashboard/sales/estimate', dataPage: 'estimate', permission: 'sales.estimate' },
@@ -115,6 +153,7 @@
         { label: 'Purchase Return / Dr. Note', href: '/dashboard/purchase-return', dataPage: 'purchase-return', permission: 'purchase.return' },
         { label: 'Expense', href: '/dashboard/expense', dataPage: 'expense', permission: 'purchase.expense' },
         { label: 'Purchase Order', href: '/dashboard/purchase-order', dataPage: 'purchase-order', permission: 'purchase.order' },
+
       ],
     },
     {
@@ -131,6 +170,7 @@
       children: [
         { label: 'Loan Accounts', href: '/dashboard/loan-accounts', dataPage: 'loan-accounts', permission: 'cashbank.loan_accounts' },
         { label: 'Bank Accounts', href: '/dashboard/bank-accounts', dataPage: 'bank-accounts', permission: 'cashbank.bank_accounts' },
+        { label: 'Cash in Hand', href: '/dashboard/cash-in-hand', dataPage: 'cash-in-hand', permission: 'cashbank.view' },
       ],
     },
     { label: 'Reports', icon: 'fa-chart-pie', href: '#', permission: 'report.view', dataPage: 'reports' },
@@ -139,17 +179,28 @@
     { label: 'Settings', icon: 'fa-sliders', href: '#', permission: 'settings.view', dataPage: 'settings' },
   ];
 
-const canViewMenuItem = (item) => {
-  if (isSuperAdmin) return true;
+  const canViewMenuItem = (item) => {
+    // Always show Home for authenticated users
+    if (item.dataPage === 'dashboard') return true;
+    if (isSuperAdmin) return true;
 
-  // ✅ If dropdown → check children ONLY
-  if (item.children && item.children.length) {
-    return item.children.some(child => canViewMenuItem(child));
-  }
+    const hasChild = item.children ? item.children.some(canViewMenuItem) : false;
+    const hasOwn = item.permission ? hasExtendedPermission(item.permission) : false;
+    const result = hasOwn || hasChild;
 
-  // ✅ Normal item
-  return !item.permission || hasExtendedPermission(item.permission);
-};
+    console.log('Sidebar debug: canViewMenuItem', {
+      label: item.label,
+      permission: item.permission,
+      isSuperAdmin,
+      hasOwn,
+      hasChild,
+      result,
+      itemChildren: item.children?.map((c) => c.label) ?? [],
+      currentUrl,
+    });
+
+    return result;
+  };
 
   const renderMenu = () => {
     return menuItems
@@ -170,7 +221,7 @@ const canViewMenuItem = (item) => {
         }
 
         const submenuHtml = item.children
-  .filter(child => canViewMenuItem(child))
+          .filter(canViewMenuItem)
           .map((child) => {
             const activeClass = currentUrl === child.href || currentUrl === child.dataPage ? 'active' : '';
             return `
@@ -263,15 +314,11 @@ const canViewMenuItem = (item) => {
           </div>
 
           <div class="topbar-actions">
-            <button
-  onclick="window.location.href='{{ route('sale.create') }}'"
-  class="btn rounded-pill"
-  style="background-color:#FFD7DC;"
->
+            <a href="${window.routes?.saleCreate || '/dashboard/sales/create'}" class="btn rounded-pill" style="background-color:#FFD7DC;">
   <span class="text-danger fw-bold px-3">
     <span class="pe-1">+</span> Add Sale
   </span>
-</button>
+</a>
             <button class="btn rounded-pill" style="background-color: #CCE6FF;"><span class="text-primary fw-bold px-1"><span class="pe-1">+</span> Add
                 Purchase</span></button>
             <button class="btn rounded-pill me-2" style="background-color: #CCE6FF;"><span class="text-primary fw-bold px-1"><span class="pe-1">+</span> Add
@@ -340,71 +387,102 @@ const canViewMenuItem = (item) => {
 
   // ── Highlight active page ──
 
-  let bestMatch = null;
-  let bestMatchLength = 0;
+  const normalize = (value) => {
+    if (!value) return '';
+    return value.trim().toLowerCase().replace(/^\/+|\/+$/g, '');
+  };
 
-  document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
-    const href = link.getAttribute('href');
+  const normalizePageKey = (page) => {
+    if (!page) return '';
+    const normalized = page.trim().toLowerCase();
+    if (normalized.endsWith('s')) return normalized.slice(0, -1);
+    return normalized + 's';
+  };
 
-   if (href && href !== '/') {
-  // exact match OR child route match (but not root dashboard)
-  const isExactMatch = currentUrl === href;
-  const isChildMatch = currentUrl.startsWith(href + '/') && href !== '/dashboard';
+  const currentPath = normalize(currentUrl);
+  const currentBodyPage = normalize(document.body.getAttribute('data-page'));
 
-  if (isExactMatch || isChildMatch) {
-    if (href.length > bestMatchLength) {
-      if (bestMatch) bestMatch.classList.remove('active');
-      bestMatch = link;
-      bestMatchLength = href.length;
+  let matchedLink = null;
+  let matchedLength = 0;
+
+  const links = Array.from(document.querySelectorAll('.sidebar-nav .nav-link'));
+
+  links.forEach((link) => link.classList.remove('active'));
+  document.querySelectorAll('.sidebar-nav .sidebar-submenu').forEach((submenu) => submenu.classList.remove('open'));
+  document.querySelectorAll('.sidebar-nav .sidebar-dropdown-toggle').forEach((toggle) => toggle.classList.remove('expanded'));
+
+  links.forEach((link) => {
+    const href = normalize(link.getAttribute('href'));
+    const linkPage = normalize(link.getAttribute('data-page'));
+
+    // exact URL match has highest priority
+    if (href && href !== '#' && (currentPath === href || currentPath === href.replace(/^dashboard\//, ''))) {
+      if (href.length > matchedLength) {
+        matchedLink = link;
+        matchedLength = href.length;
+      }
+      return;
     }
-  }
-}
 
-// Handle Home separately
-if (currentUrl === '/dashboard') {
-  document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
-    if (link.getAttribute('href') === '/dashboard') {
-      link.classList.add('active');
+    // child route in same section, e.g. /dashboard/sales/pos should mark /dashboard/sales
+    if (href && href !== '#' && currentPath.startsWith(href + '/')) {
+      if (href.length > matchedLength) {
+        matchedLink = link;
+        matchedLength = href.length;
+      }
+      return;
+    }
+
+    // fallback by data-page value (supports singular/plural)
+    if (!matchedLink && currentBodyPage) {
+      const normalizedLinkPage = normalizePageKey(linkPage);
+      const normalizedBody = normalizePageKey(currentBodyPage);
+      if (linkPage === currentBodyPage || normalizedLinkPage === normalizedBody || linkPage === normalizedBody || normalizedLinkPage === currentBodyPage) {
+        matchedLink = link;
+      }
     }
   });
-}
 
-if (bestMatch) {
-  bestMatch.classList.add('active');
-
-  const parentSubmenu = bestMatch.closest('.sidebar-submenu');
-  if (parentSubmenu) {
-    parentSubmenu.classList.add('open');
-
-    const toggle = parentSubmenu.previousElementSibling;
-    if (toggle) toggle.classList.add('expanded');
+  // Explicit home selection
+  if (currentPath === 'dashboard' || currentBodyPage === 'dashboard') {
+    const homeLink = document.querySelector('.sidebar-nav .nav-link[href="/dashboard"]');
+    if (homeLink) {
+      matchedLink = homeLink;
+    }
   }
-}
-  });
 
-  if (bestMatch) {
-    bestMatch.classList.add('active');
+  if (matchedLink) {
+    const parentSubmenu = matchedLink.closest('.sidebar-submenu');
+    console.log('Sidebar debug: matched link', {
+      currentUrl,
+      currentPath,
+      currentBodyPage,
+      matchedHref: normalize(matchedLink.getAttribute('href')),
+      matchedDataPage: normalize(matchedLink.getAttribute('data-page')),
+      isDropdownChild: Boolean(parentSubmenu),
+    });
 
-    // open parent dropdown
-    const parentSubmenu = bestMatch.closest('.sidebar-submenu');
+    if (parentSubmenu) {
+      // for dropdown items, add active to the <li>
+      const li = matchedLink.closest('li');
+      if (li) li.classList.add('active');
+    } else {
+      // for top-level items, add to the <a>
+      matchedLink.classList.add('active');
+    }
+
     if (parentSubmenu) {
       parentSubmenu.classList.add('open');
-
       const toggle = parentSubmenu.previousElementSibling;
       if (toggle) toggle.classList.add('expanded');
     }
-  }
-
-  const currentPage = document.body.getAttribute('data-page');
-  const activeLink = document.querySelector(`.sidebar-nav .nav-link[data-page="${currentPage}"]`);
-  if (activeLink) {
-    activeLink.classList.add('active');
-    // If it's inside a submenu, open the parent dropdown
-    const parentSubmenu = activeLink.closest('.sidebar-submenu');
-    if (parentSubmenu) {
-      parentSubmenu.classList.add('open');
-      const toggle = parentSubmenu.previousElementSibling;
-      if (toggle) toggle.classList.add('expanded');
-    }
+  } else {
+    console.log('Sidebar debug: no matched link found', {
+      currentUrl,
+      currentPath,
+      currentBodyPage,
+      userPermissions,
+      isSuperAdmin,
+    });
   }
 })();

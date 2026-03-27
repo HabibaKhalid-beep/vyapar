@@ -56,7 +56,7 @@ function initializeForm(context) {
     function populateFormFromSale(sale) {
         // Fill header fields
         const partyOption = $ctx.find('.party-select option').filter(function () {
-            return $(this).text().trim() === (sale.party_name || '');
+            return $(this).val() == (sale.party_id || '');
         }).first();
 
         if (partyOption.length) {
@@ -66,10 +66,10 @@ function initializeForm(context) {
             $ctx.find('.party-select').val('');
         }
 
-        $ctx.find('.phone-input').val(sale.phone || '');
-        $ctx.find('.billing-address').val(sale.billing_address || '');
+        $ctx.find('.phone-input').val(sale.party ? sale.party.phone || '' : '');
+        $ctx.find('.billing-address').val(sale.party ? sale.party.billing_address || '' : '');
         $ctx.find('.bill-number').val(sale.bill_number || '');
-        $ctx.find('.invoice-date').val(sale.invoice_date ? sale.invoice_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
+        $ctx.find('.invoice-date').val(sale.estimate_date ? sale.estimate_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
 
         // Items
         $ctx.find('.item-rows').empty();
@@ -77,7 +77,7 @@ function initializeForm(context) {
             addRow();
             const $row = $ctx.find('.item-rows tr').last();
             const matchOption = $row.find('.item-name option').filter(function () {
-                return $(this).text().trim() === (item.item_name || '');
+                return $(this).val() == (item.item_id || '');
             }).first();
             if (matchOption.length) {
                 matchOption.prop('selected', true);
@@ -313,9 +313,9 @@ function initializeForm(context) {
     function gatherSaleData() {
         const items = Array.from($ctx.find('.item-row')).map(row => {
             const $row = $(row);
-            const itemName = $row.find('.item-name option:selected').text() || '';
+            const itemId = $row.find('.item-name').val() || '';
             return {
-                item_name: itemName,
+                item_id: itemId,
                 item_category: $row.find('.item-category').val() || '',
                 item_code: $row.find('.item-code').val() || '',
                 item_description: $row.find('.item-desc').val() || '',
@@ -325,55 +325,12 @@ function initializeForm(context) {
                 discount: parseFloat($row.find('.item-discount').val() || 0) || 0,
                 amount: parseFloat($row.find('.item-amount').val() || 0) || 0,
             };
-        }).filter(item => item.item_name || item.quantity || item.amount);
+        }).filter(item => item.item_id || item.quantity || item.amount);
 
-        const payments = [];
-
-        // Default payment type (amount + reference shown when selected)
-        const defaultTypeVal = $ctx.find('.default-payment-type').val();
-        if (defaultTypeVal) {
-            const bankId = parseInt(defaultTypeVal.replace('bank-', ''), 10);
-            const bank = (window.bankAccounts || []).find(b => b.id === bankId);
-            const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
-            const defaultReference = $ctx.find('.default-payment-reference').val() || null;
-
-            if (defaultAmount > 0) {
-                payments.push({
-                    payment_type: bank?.display_name || 'Bank',
-                    bank_account_id: bankId || null,
-                    amount: defaultAmount,
-                    reference: defaultReference,
-                });
-            }
-        }
-
-        // Additional payment rows (with amount)
-        Array.from($ctx.find('.payment-entry')).forEach(entry => {
-            const $entry = $(entry);
-            const rawType = $entry.find('.payment-type-entry').val() || '';
-            const isBank = rawType.startsWith('bank-');
-            const bankId = isBank ? rawType.replace('bank-', '') : null;
-            const bank = isBank ? (window.bankAccounts || []).find(b => String(b.id) === String(bankId)) : null;
-
-            const amount = parseFloat($entry.find('.payment-amount').val() || 0) || 0;
-            const reference = $entry.find('.payment-reference').val() || null;
-            if (!rawType || amount <= 0) return;
-
-            payments.push({
-                payment_type: isBank ? (bank?.display_name || 'Bank') : rawType,
-                bank_account_id: bankId,
-                amount: amount,
-                reference: reference,
-            });
-        });
-
-        return {
-            source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
-            party_name: $ctx.find('.party-select option:selected').text() || '',
-            phone: $ctx.find('.phone-input').val() || '',
-            billing_address: $ctx.find('.billing-address').val() || '',
+        const data = {
+            party_id: $ctx.find('.party-select').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
-            invoice_date: $ctx.find('.invoice-date').val() || '',
+            estimate_date: $ctx.find('.invoice-date').val() || '',
             total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0,
             total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0,
             discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,
@@ -389,15 +346,15 @@ function initializeForm(context) {
                 if (window.editSaleData && window.editSaleData.image_path) return window.editSaleData.image_path;
                 return null;
             })(),
-            document_path: (function() {
-                const file = $ctx.find('.document-input')[0]?.files?.[0];
-                if (file) return file.name;
-                if (window.editSaleData && window.editSaleData.document_path) return window.editSaleData.document_path;
-                return null;
-            })(),
             items,
-            payments,
         };
+
+        // Add estimate_id if editing
+        if (window.estimateId) {
+            data.estimate_id = window.estimateId;
+        }
+
+        return data;
     }
 
     // Save button
@@ -444,7 +401,7 @@ function initializeForm(context) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
 
-                    showToast('Sale saved successfully! Redirecting...', false);
+                    showToast('Estimate saved successfully! Redirecting...', false);
 
                     if (data.redirect_url) {
                         setTimeout(() => {
@@ -456,11 +413,11 @@ function initializeForm(context) {
                 }
 
                 console.error(data);
-                showToast('Unable to save sale. See console for details.', true);
+                showToast('Unable to save estimate. See console for details.', true);
             })
             .catch(err => {
                 console.error(err);
-                showToast('Error saving sale. ' + (err.message || ''), true);
+                showToast('Error saving estimate. ' + (err.message || ''), true);
             })
             .finally(() => {
                 btn.prop('disabled', false).text('Save');
