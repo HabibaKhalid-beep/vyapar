@@ -1205,15 +1205,16 @@ font-size:12px;
 
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td><span class="badge bg-primary bg-opacity-10 text-primary">Sale</span></td>
-              <td>#001</td>
-              <td>10/03/2026</td>
-              <td>₹ 500.00</td>
-              <td class="text-success-green fw-600">₹ 500.00</td>
-            </tr>
-          </tbody>
+          <tbody id="txnTableBody">
+    <!-- Transactions will be loaded here dynamically -->
+    <tr id="noTxnRow">
+        <td colspan="5" class="text-center text-muted" style="padding: 40px;">
+            <i class="fa-solid fa-receipt" style="font-size: 40px; color: #d1d5db;"></i>
+            <p class="mt-2">No Transactions Found</p>
+            <p style="font-size: 12px; color: #9ca3af;">Select a party to view transactions</p>
+        </td>
+    </tr>
+</tbody>
         </table>
       </div>
     </div>
@@ -1745,5 +1746,119 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
     });
 
 });
+
+// ============ PARTY CLICK → LOAD TRANSACTIONS ============
+partyList.addEventListener("click", function (e) {
+    const li = e.target.closest(".party-item");
+    if (!li) return;
+
+    // Remove active from all, add to clicked
+    document.querySelectorAll('.party-item').forEach(item => item.classList.remove('active'));
+    li.classList.add('active');
+
+    currentPartyId = li.dataset.id;
+
+    console.log("✅ Party Selected - ID:", currentPartyId);
+
+    // Update right panel header info
+    document.getElementById("partyDetailName").textContent = li.dataset.name || '';
+    document.getElementById("partyPhone").textContent = li.dataset.phone || '';
+    document.getElementById("partyEmail").textContent = li.dataset.email || '';
+    document.getElementById("partyAddress").textContent = li.dataset.billingAddress || '';
+
+    // ✅ LOAD TRANSACTIONS FOR THIS PARTY
+    loadPartyTransactions(currentPartyId);
+});
+
+// ============ FETCH & RENDER TRANSACTIONS ============
+function loadPartyTransactions(partyId) {
+    const tbody = document.getElementById("txnTableBody");
+
+    // Loading state
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="5" class="text-center" style="padding: 30px;">
+                <i class="fa fa-spinner fa-spin" style="font-size: 24px; color: #3b82f6;"></i>
+                <p class="mt-2" style="color: #9ca3af;">Loading transactions...</p>
+            </td>
+        </tr>
+    `;
+
+    fetch(`/dashboard/parties/${partyId}/transactions`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.transactions.length > 0) {
+                tbody.innerHTML = '';
+
+                data.transactions.forEach(txn => {
+                    const row = document.createElement('tr');
+
+                    // Status badge color
+                    let statusBadge = '';
+                    if (txn.status === 'receive') {
+                        statusBadge = `<span class="badge" style="background:#dcfce7; color:#16a34a; padding:4px 10px; border-radius:12px; font-size:11px;">To Receive</span>`;
+                    } else if (txn.status === 'pay') {
+                        statusBadge = `<span class="badge" style="background:#fee2e2; color:#dc2626; padding:4px 10px; border-radius:12px; font-size:11px;">To Pay</span>`;
+                    } else if (txn.status === 'paid') {
+                        statusBadge = `<span class="badge" style="background:#dbeafe; color:#2563eb; padding:4px 10px; border-radius:12px; font-size:11px;">Paid</span>`;
+                    } else {
+                        statusBadge = `<span class="badge" style="background:#f3f4f6; color:#6b7280; padding:4px 10px; border-radius:12px; font-size:11px;">Unpaid</span>`;
+                    }
+
+                    // Type badge color
+                    let typeBadge = '';
+                    const typeColors = {
+                        'Sale': { bg: '#dbeafe', color: '#2563eb' },
+                        'Purchase': { bg: '#fef3c7', color: '#d97706' },
+                        'Payment-In': { bg: '#dcfce7', color: '#16a34a' },
+                        'Payment-Out': { bg: '#fee2e2', color: '#dc2626' },
+                        'Credit Note': { bg: '#fce7f3', color: '#db2777' },
+                        'Debit Note': { bg: '#ede9fe', color: '#7c3aed' },
+                    };
+                    const typeStyle = typeColors[txn.type] || { bg: '#f3f4f6', color: '#374151' };
+                    typeBadge = `<span class="badge" style="background:${typeStyle.bg}; color:${typeStyle.color}; padding:4px 10px; border-radius:12px; font-size:11px;">${txn.type}</span>`;
+
+                    // Balance color
+                    let balanceColor = txn.status === 'receive' ? '#16a34a' : txn.status === 'pay' ? '#dc2626' : '#374151';
+
+                    row.innerHTML = `
+                        <td>${typeBadge}</td>
+                        <td style="font-size:13px;">${txn.number || '-'}</td>
+                        <td style="font-size:13px;">${txn.date}</td>
+                        <td style="font-size:13px;">₹ ${txn.total}</td>
+                        <td style="font-size:13px; font-weight:600; color:${balanceColor};">
+                            ₹ ${txn.balance}
+                            <br>${statusBadge}
+                        </td>
+                    `;
+
+                    tbody.appendChild(row);
+                });
+
+            } else {
+                // No transactions
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center" style="padding: 40px;">
+                            <i class="fa-solid fa-receipt" style="font-size: 40px; color: #d1d5db;"></i>
+                            <p class="mt-2" style="color: #6b7280;">No transactions yet</p>
+                            <p style="font-size: 12px; color: #9ca3af;">Create a sale or purchase for this party</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error("❌ Transaction Load Error:", err);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-danger" style="padding: 30px;">
+                        <i class="fa-solid fa-exclamation-triangle" style="font-size: 30px;"></i>
+                        <p class="mt-2">Error loading transactions</p>
+                    </td>
+                </tr>
+            `;
+        });
+}
 </script>
 @endpush

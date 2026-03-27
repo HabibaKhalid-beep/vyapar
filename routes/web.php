@@ -45,6 +45,8 @@ Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.e
 Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
 Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
 Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+ Route::get('parties/{party}/transactions', [PartyController::class, 'transactions'])
+        ->name('parties.transactions');
 
     // User management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');

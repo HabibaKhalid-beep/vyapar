@@ -79,4 +79,29 @@ class PartyController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+     public function transactions(Party $party)
+    {
+        $transactions = $party->transactions()
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($txn) {
+                return [
+                    'id'      => $txn->id,
+                    'type'    => $txn->type,
+                    'number'  => $txn->number,
+                    'date'    => $txn->date->format('d/m/Y'),
+                    'total'   => number_format($txn->total, 2),
+                    'balance' => number_format($txn->balance, 2),
+                    'status'  => $txn->status,
+                ];
+            });
+
+        return response()->json([
+            'success'      => true,
+            'transactions' => $transactions,
+            'party_name'   => $party->name,
+            'total_balance' => number_format($party->transactions->sum('balance'), 2),
+        ]);
+    }
 }

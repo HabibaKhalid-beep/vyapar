@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Transaction;
 
  class Party extends Model
 {
@@ -30,6 +31,11 @@ use Illuminate\Database\Eloquent\Model;
     public function getAsOfDateAttribute($value)
     {
         return $value ? \Carbon\Carbon::parse($value)->format('Y-m-d') : null;
+    }
+     // ✅ Party ki saari transactions
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class)->orderBy('date', 'desc');
     }
 }
 
