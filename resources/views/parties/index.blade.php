@@ -1499,6 +1499,8 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+
+              alert("✅ Party created successfully!");
                 const party = data.party;
                 const li = document.createElement("li");
                 li.className = "party-item";
@@ -1727,6 +1729,7 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+              alert("🗑️ Party deleted successfully!");
                 const li = document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
                 li.remove();
                 document.getElementById("partyDetailName").textContent = "";
