@@ -15,6 +15,25 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <!-- Custom Styles -->
   <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
+
+   <script>
+    // Ensure window.App is always initialized, even if Auth is null
+    const authUser = @json(Auth::user());
+    window.App = window.App || {
+      isAuthenticated: @json(Auth::check()),
+      user: authUser ? {
+        id: authUser.id,
+        name: authUser.name,
+        roles: @json(Auth::user()?->roles()->pluck('name')->toArray() ?? []),
+        permissions: @json(Auth::user()?->getAllPermissions() ?? []),
+      } : { id: null, name: null, roles: [], permissions: [] },
+      logoutUrl: "{{ route('logout') }}",
+      csrfToken: "{{ csrf_token() }}",
+    };
+    console.log('App initialized:', window.App);
+  </script>
+
+  
   <style>
     .search-container {
       position: relative;

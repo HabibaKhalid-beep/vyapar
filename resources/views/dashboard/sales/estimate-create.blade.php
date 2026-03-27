@@ -1,12 +1,18 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Premium Tab System</title>
+    <title>
+    @if(isset($estimate))
+        Edit
+    @else
+        Create
+    @endif
+    Estimate | Vyapar
+</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
@@ -18,7 +24,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <!-- Form Styles -->
-    <link rel="stylesheet" href="{{ asset('css/saleform_style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/estimateform_style.css') }}">
 </head>
 
 <body>
@@ -44,13 +50,8 @@
             </div>
             <!-- Browser Toolbar / Heading Area -->
             <div class="browser-toolbar d-flex align-items-center px-3">
-                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Sale | </p>
-                <span class="h6 mt-3 me-2">Credit</span>
-                <div class="form-check form-switch mt-4 mb-2">
+                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Estimate  </p>
 
-                    <input class="form-check-input mb-2" type="checkbox" role="switch" id="saleToggleSwitch">
-                </div>
-                <span class="h6 mt-3 ms-2">Cash</span>
             </div>
         </header>
 
@@ -79,14 +80,7 @@
                                     <label class="party-label">Party *</label>
                                 </div>
 
-                                <div class="input-group mt-3">
-                                    <input type="text" class="input-control phone-input" placeholder=" " readonly>
-                                    <label>Phone No.</label>
-                                </div>
-                                <div class="input-group mt-3">
-                                    <textarea class="input-control billing-address" placeholder="" rows="2" readonly></textarea>
-                                    <label>Billing Address</label>
-                                </div>
+
                             </div>
 
                             <div class="header-right w-25">
@@ -202,45 +196,9 @@
                         <div class="bottom-section">
                             <!-- Left Column -->
                             <div class="bottom-left">
-                                <div class="payment-section">
-                                    <div class="payment-entry d-flex align-items-center gap-2 mb-2">
-                                        <select class="input-control default-payment-type">
-                                            <option value="" selected disabled>Select Payment Type</option>
-                                            @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_name }}</option>
-                                            @endforeach
-                                        </select>
-                                        <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
-                                        <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
-                                    </div>
 
-                                    <div class="payment-entries">
-                                        <!-- Payment rows will be added here when "Add Payment type" is clicked -->
-                                    </div>
 
-                                    <div class="payment-total d-flex justify-content-between align-items-center mt-2">
-                                        <span class="text-muted">Total payment:</span>
-                                        <span class="fw-bold payment-total-amount">0</span>
-                                    </div>
 
-                                    <a href="#" class="link-text add-payment-entry">+ Add Payment type</a>
-                                </div>
-
-                                <template id="payment-entry-template">
-                                    <div class="payment-entry d-flex align-items-center gap-2 mb-2">
-                                        <select class="input-control payment-type-entry">
-                                            <option value="" selected disabled>Select Bank Account</option>
-                                            @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_name }}</option>
-                                            @endforeach
-                                        </select>
-                                        <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
-                                        <input type="text" class="input-control payment-reference" placeholder="Reference">
-                                        <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </template>
 
                                 <button type="button" class="btn-action-light w-50 add-description">
                                     <i class="fa-solid fa-align-left"></i>
@@ -250,10 +208,7 @@
                                     <i class="fa-solid fa-camera"></i>
                                     ADD IMAGE
                                 </button>
-                                <button type="button" class="btn-action-light w-50 add-document">
-                                    <i class="fa-solid fa-align-left "></i>
-                                    ADD DOCUMENT
-                                </button>
+
 
                                 <div class="description-pane d-none mt-2">
                                     <label class="form-label">Description</label>
@@ -324,19 +279,7 @@
                                     <input type="text" class="total-input-large grand-total" value="0" readonly>
                                 </div>
 
-                                <div class="calc-row">
-                                    <div class="calc-label">Received</div>
-                                    <div class="calc-inputs">
-                                        <input type="number" class="mini-input received-amount" value="0" readonly>
-                                    </div>
-                                </div>
 
-                                <div class="calc-row">
-                                    <div class="calc-label">Balance</div>
-                                    <div class="calc-inputs">
-                                        <span class="fw-bold balance-amount">0</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -396,24 +339,25 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <script>
-        window.items = @json($items);
-        window.parties = @json($parties);
-        window.bankAccounts = @json($bankAccounts);
-        window.saleStoreUrl = "{{ route('sale.store') }}";
-        window.saleMethod = 'POST';
-        window.editSaleData = null;
-        window.sourceEstimateId = null;
-
-        @if(isset($sale))
-            window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
-            window.saleMethod = 'PUT';
-            window.editSaleData = @json($sale->load(['items', 'payments']));
-        @elseif(isset($convertedSaleData))
-            window.editSaleData = @json($convertedSaleData);
-            window.sourceEstimateId = @json($convertedSaleData['source_estimate_id']);
-        @endif
-    </script>
+    @isset($estimate)
+        <script>
+            window.items = @json($items ?? []);
+            window.parties = @json($parties ?? []);
+            window.saleStoreUrl = "{{ route('estimate.store') }}";
+            window.saleMethod = 'POST';
+            window.estimateId = {{ $estimate->id }};
+            window.editSaleData = @json($estimate->load(['items.item'])->toArray());
+        </script>
+    @else
+        <script>
+            window.items = @json($items ?? []);
+            window.parties = @json($parties ?? []);
+            window.saleStoreUrl = "{{ route('estimate.store') }}";
+            window.saleMethod = 'POST';
+            window.estimateId = null;
+            window.editSaleData = null;
+        </script>
+    @endisset
 
     <!-- Toast container -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
@@ -426,241 +370,10 @@
     </div>
 
     <!-- Form Logic -->
-    <script src="{{ asset('js/saleform_script.js') }}"></script>
+    <script src="{{ asset('js/estimateform_script.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('js/script.js') }}"></script>
-     <div class="container">
-        @yield('content')
-    </div>
-
-@section('modals')
-<!-- MODAL: ADD PARTY -->
- <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="addPartyModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Party</h5>
-        <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-sm btn-outline-secondary" title="Settings"><i class="fa-solid fa-gear"></i></button>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-      </div>
-      <div class="modal-body">
-        <form id="addPartyForm">
-          @csrf
-          <div class="row g-3 mb-4">
-            <div class="col-md-6">
-              <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
-              <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-600">Phone Number</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-                <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
-              </div>
-            </div>
-          </div>
-
-          <!-- Tabs -->
-          <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
-                <i class="fa-solid fa-location-dot me-1"></i> Address
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
-                <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
-                <i class="fa-solid fa-sliders me-1"></i> Additional Fields
-              </button>
-            </li>
-          </ul>
-
-          <div class="tab-content pt-3" id="partyModalTabContent">
-            <!-- Address Tab -->
-            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label">Email ID</label>
-                  <input type="email" name="email" class="form-control" placeholder="example@email.com">
-                </div>
-                <div class="col-md-6"></div>
-                <div class="col-md-6">
-                  <label class="form-label">Billing Address</label>
-                  <textarea id="billingAddress" class="form-control" name="billing_address" rows="3" placeholder="Enter billing address"></textarea>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Shipping Address</label>
-                  <textarea  id="shippingAddress" class="form-control" name="shipping_address" rows="3" placeholder="Enter shipping address"></textarea>
-                </div>
-              </div>
-            </div>
-
-            <!-- Credit & Balance Tab -->
-          <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
-  <div class="row g-3">
-    <div class="col-md-4">
-      <label class="form-label">Opening Balance</label>
-      <div class="input-group">
-        <span class="input-group-text">₹</span>
-        <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
-      </div>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">As Of Date</label>
-      <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
-    </div>
-    <div class="col-md-4">
-      <label class="form-label d-block">Credit Limit</label>
-      <div class="form-check form-switch mt-2">
-        <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
-        <label class="form-check-label" for="creditLimitSwitch">Enable</label>
-      </div>
-    </div>
-  </div>
-
-  <!-- To Receive / To Pay Options at the bottom -->
-  <div class="mt-4">
-    <label class="form-label d-block">Transaction Type</label>
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
-      <label class="form-check-label" for="toReceive">To Receive</label>
-    </div>
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="toPay" value="pay">
-      <label class="form-check-label" for="toPay">To Pay</label>
-    </div>
-  </div>
-</div>
-<div class="col-md-6">
-  <label class="form-label fw-600">Party Type</label>
-
-  <div class="form-check">
-    <input class="form-check-input" type="radio" name="party_type" id="customerParty" value="customer" checked>
-    <label class="form-check-label" for="customerParty">Customer Party</label>
-  </div>
-
-  <div class="form-check">
-    <input class="form-check-input" type="radio" name="party_type" id="supplierParty" value="supplier">
-    <label class="form-check-label" for="supplierParty">Supplier Party</label>
-  </div>
-</div>
-
-            <!-- Additional Fields Tab -->
-            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
-              <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
-              <div class="row g-3">
-                @for($i=1; $i<=4; $i++)
-                <div class="col-md-6">
-                  <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="customField{{$i}}Check">
-                    <label class="form-check-label" for="customField{{$i}}Check">Custom Field {{$i}}</label>
-                  </div>
-                  <input type="text" name="custom_fields[]" class="form-control form-control-sm" placeholder="Field name">
-                </div>
-
-                <input type="hidden" id="transactionTypeValue" name="transaction_type">
-                @endfor
-
-              </div>
-            </div>
-          </div>
-          
-
-          <div class="modal-footer">
-            <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
-              <i class="fa-solid fa-plus me-1"></i> Save & New
-            </button>
-            <button type="button" class="btn btn-primary" id="btnSaveParty">
-              <i class="fa-solid fa-check me-1"></i> Save
-            </button>
- <button class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
-    <button class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-@endsection
-    @yield('modals')
-    <script>document.addEventListener("DOMContentLoaded", function () {
-    const partySelect = document.querySelector(".party-select");
-    const addModalEl = document.getElementById('addPartyModal');
-    const addModal = new bootstrap.Modal(addModalEl);
-
-    partySelect.addEventListener("change", function () {
-        if (this.value === "__new") {
-            addModal.show();
-
-            // Optional: Reset modal har bar open hone pe
-            document.getElementById("addPartyForm").reset();
-        }
-    });
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    const addModalEl = document.getElementById('addPartyModal');
-    const addModal = new bootstrap.Modal(addModalEl);
-    const saveBtn = document.getElementById("btnSaveParty");
-    const saveNewBtn = document.getElementById("btnSaveNewParty");
-
-    function getPartyData() {
-        const form = document.getElementById("addPartyForm");
-        return new FormData(form);
-    }
-
-   function saveParty(closeAfterSave = true) {
-    const form = document.getElementById("addPartyForm");
-    const data = new FormData(form);
-
-    // Transaction type fix
-    const toReceive = document.getElementById("toReceive").checked;
-    const toPay = document.getElementById("toPay").checked;
-    if(toReceive) data.set("transaction_type", "receive");
-    else if(toPay) data.set("transaction_type", "pay");
-
-    // Credit limit fix
-    const creditSwitch = document.getElementById("creditLimitSwitch");
-    data.set("credit_limit_enabled", creditSwitch.checked ? 1 : 0);
-
-    fetch("{{ route('parties.store') }}", {
-        method: "POST",
-        headers: {
-            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-            "Accept": "application/json"   // important!
-        },
-        body: data
-    })
-    .then(res => res.json())
-    .then(res => {
-        if(res.success) {
-            alert("Party saved successfully!");
-            if(closeAfterSave) addModal.hide();
-            else form.reset();
-        } else {
-            alert("Error saving party");
-        }
-    })
-    .catch(err => {
-        console.error(err);
-        alert("Something went wrong! Check console.");
-    });
-}
-    saveBtn.addEventListener('click', function () {
-        saveParty(true); // close modal after save
-    });
-
-    saveNewBtn.addEventListener('click', function () {
-        saveParty(false); // reset modal for new entry
-    });
-});
-</script>
 </body>
+
 
 </html>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
+use App\Models\Estimate;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
@@ -35,6 +36,33 @@ class SaleController extends Controller
         return view('dashboard.sales.create', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber'));
     }
 
+    public function createFromEstimate(Estimate $estimate)
+    {
+        if ($estimate->converted_sale_id || $estimate->status === 'converted') {
+            return redirect()
+                ->route('sale.estimate')
+                ->with('error', 'This estimate is already converted to sale invoice #' . ($estimate->convertedSale?->bill_number ?? $estimate->converted_sale_id));
+        }
+
+        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $items = Item::orderBy('name')->get();
+        $parties = Party::orderBy('name')->get();
+
+        $estimate->load(['party', 'items.item']);
+
+        $nextSaleId = (Sale::max('id') ?? 0) + 1;
+        $nextInvoiceNumber = (string) $nextSaleId;
+        $convertedSaleData = $this->mapEstimateToSaleDraft($estimate, $nextInvoiceNumber);
+
+        return view('dashboard.sales.create', compact(
+            'bankAccounts',
+            'items',
+            'parties',
+            'nextInvoiceNumber',
+            'convertedSaleData'
+        ));
+    }
+
 
     public function pos1()
     {
@@ -65,6 +93,7 @@ class SaleController extends Controller
     {
         // Validate incoming data (same as store)
         $data = $request->validate([
+            'source_estimate_id' => 'nullable|exists:estimates,id',
             'party_name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
@@ -192,6 +221,7 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
+            'source_estimate_id' => 'nullable|exists:estimates,id',
             'party_name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
@@ -307,6 +337,13 @@ class SaleController extends Controller
             }
         }
 
+        if (!empty($data['source_estimate_id'])) {
+            Estimate::whereKey($data['source_estimate_id'])->update([
+                'status' => 'converted',
+                'converted_sale_id' => $sale->id,
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'sale_id' => $sale->id,
@@ -318,6 +355,19 @@ class SaleController extends Controller
     public function estimate()
     {
         return view('dashboard.sales.estimate');
+    }
+
+
+    public function estimatcreate()
+    {
+        $items = Item::orderBy('name')->get();
+        $parties = Party::orderBy('name')->get();
+
+        // Pre-generate the next estimate number (based on next estimate ID)
+        $nextEstimateId = (Estimate::max('id') ?? 0) + 1;
+        $nextInvoiceNumber = 'EST-' . str_pad($nextEstimateId, 4, '0', STR_PAD_LEFT);
+
+        return view('dashboard.sales.estimate-create', compact('items', 'parties', 'nextInvoiceNumber'));
     }
 
     public function pos()
@@ -339,6 +389,47 @@ class SaleController extends Controller
         ]);
     }
 
+    private function mapEstimateToSaleDraft(Estimate $estimate, string $nextInvoiceNumber): array
+    {
+        return [
+            'source_type' => 'estimate',
+            'source_estimate_id' => $estimate->id,
+            'party_name' => $estimate->party?->name,
+            'party_id' => $estimate->party_id,
+            'phone' => $estimate->party?->phone,
+            'billing_address' => $estimate->party?->billing_address,
+            'bill_number' => $nextInvoiceNumber,
+            'invoice_date' => optional($estimate->estimate_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'total_qty' => $estimate->total_qty,
+            'total_amount' => $estimate->total_amount,
+            'discount_pct' => $estimate->discount_pct,
+            'discount_rs' => $estimate->discount_rs,
+            'tax_pct' => $estimate->tax_pct,
+            'tax_amount' => $estimate->tax_amount,
+            'round_off' => $estimate->round_off,
+            'grand_total' => $estimate->grand_total,
+            'received_amount' => 0,
+            'balance' => $estimate->grand_total,
+            'status' => 'Unpaid',
+            'description' => $estimate->description,
+            'image_path' => $estimate->image_path,
+            'items' => $estimate->items->map(function ($item) {
+                return [
+                    'item_name' => $item->item?->name ?? null,
+                    'item_id' => $item->item_id,
+                    'item_category' => $item->item_category,
+                    'item_code' => $item->item_code,
+                    'item_description' => $item->item_description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'unit_price' => $item->unit_price,
+                    'discount' => $item->discount,
+                    'amount' => $item->amount,
+                ];
+            })->values()->all(),
+            'payments' => [],
+        ];
+    }
+
 
 }
-

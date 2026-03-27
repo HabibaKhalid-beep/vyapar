@@ -23,11 +23,12 @@
 <script>
   window.App = {
     isAuthenticated: @json(Auth::check()),
-    user: @json(Auth::user() ? [
-      'id' => Auth::user()->id,
-      'name' => Auth::user()->name,
-      'permissions' => Auth::user()->getAllPermissions()
-    ] : null),
+    user: {
+      ...@json(Auth::user()?->only('id', 'name')),
+      role: @json(Auth::user()?->role ?? ''),
+      roles: @json(Auth::user()?->roles()->pluck('name')->toArray() ?? []),
+      permissions: @json(Auth::user()?->getAllPermissions() ?? [])
+    },
     logoutUrl: "{{ route('logout') }}",
     csrfToken: "{{ csrf_token() }}"
   };
@@ -41,6 +42,13 @@
 
 <!-- Page Modals -->
 @yield('modals')
+
+
+<script>
+  window.routes = {
+    saleCreate: "{{ route('sale.create') }}"
+  };
+</script>
 
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
