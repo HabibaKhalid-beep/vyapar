@@ -18,7 +18,8 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <!-- Form Styles -->
-    <link rel="stylesheet" href="{{ asset('css/saleform_style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/saleorderform_style.css') }}">
+
 </head>
 
 <body>
@@ -44,28 +45,8 @@
             </div>
             <!-- Browser Toolbar / Heading Area -->
             <div class="browser-toolbar d-flex align-items-center px-3">
-                <p class="mt-3 ms-3 mb-0 me-3 mb-2">
-                    @php
-                        $typeLabels = [
-                            'invoice' => 'Sales Invoice',
-                            'estimate' => 'Estimate / Quotation',
-                            'sale_order' => 'Sale Order',
-                            'proforma' => 'Proforma Invoice',
-                            'delivery_challan' => 'Delivery Challan',
-                            'sale_return' => 'Sale Return',
-                            'pos' => 'POS'
-                        ];
-                    @endphp
-                    {{ $typeLabels[$type] ?? 'Sale' }} |
-                </p>
+                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Sale Order | </p>
 
-                @if($type === 'invoice' || $type === 'pos')
-                    <span class="h6 mt-3 me-2">Credit</span>
-                    <div class="form-check form-switch mt-4 mb-2">
-                        <input class="form-check-input mb-2" type="checkbox" role="switch" id="saleToggleSwitch">
-                    </div>
-                    <span class="h6 mt-3 ms-2">Cash</span>
-                @endif
             </div>
         </header>
 
@@ -80,88 +61,67 @@
                 <div class="invoice-container">
                     <div class="invoice-form invoice-card">
 
-                        <!-- Tab Title/Heading -->
-                        <div class="form-heading mb-3">
-                            @php
-                                $typeLabels = [
-                                    'invoice' => 'Sales Invoice',
-                                    'estimate' => 'Estimate / Quotation',
-                                    'sale_order' => 'Sale Order',
-                                    'proforma' => 'Proforma Invoice',
-                                    'delivery_challan' => 'Delivery Challan',
-                                    'sale_return' => 'Sale Return',
-                                    'pos' => 'POS'
-                                ];
-                                $docLabel = $typeLabels[$type] ?? 'Sale';
-                            @endphp
-                            <h5 class="form-title" style="color: #333; font-weight: 500;">
-                                {{ $docLabel }}
-                            </h5>
-                        </div>
-
                         <!-- Header Section -->
                         <div class="header-section">
-                            <div class="header-left">
-                                <!-- Hidden type field for form submission -->
-                                <input type="hidden" class="doc-type" value="{{ $type }}">
 
-                                <div class="input-group">
-                                    <select class="input-control party-select">
-                                        <option value="" selected disabled>Select Party</option>
-                                        @foreach($parties as $party)
-                                            <option value="{{ $party->id }}"
-                                                data-phone="{{ $party->phone }}"
-                                                data-billing="{{ addslashes($party->billing_address ?? '') }}"
-                                                data-shipping="{{ addslashes($party->shipping_address ?? '') }}">
-                                                {{ $party->name }}
-                                            </option>
-                                        @endforeach
-                                        <option value="__new">+ Add New Party</option>
-                                    </select>
-                                    <label class="party-label">Party *</label>
-                                </div>
+                          <div class="header-left">
 
-                                <div class="input-group mt-3">
-                                    <input type="text" class="input-control phone-input" placeholder=" " readonly>
-                                    <label>Phone No.</label>
-                                </div>
-                                <div class="input-group mt-3">
-                                    <textarea class="input-control billing-address" placeholder="" rows="2" readonly></textarea>
-                                    <label>Billing Address</label>
-                                </div>
+    <!-- Row 1 -->
+    <div class="input-group">
+        <select class="input-control party-select">
+            <option value="" selected disabled>Select Party</option>
+            @foreach($parties as $party)
+            <option value="{{ $party->id }}"
+                data-phone="{{ e($party->phone) }}"
+                data-billing="{{ e($party->billing_address) }}"
+                data-shipping="{{ e($party->shipping_address) }}">
+                {{ $party->name }}
+            </option>
+            @endforeach
+        </select>
+        <label>Party *</label>
+    </div>
 
-                                <!-- Shipping Address (for Sale Orders and Delivery Challan) -->
-                                <div class="input-group mt-3 shipping-address-group d-none">
-                                    <textarea class="input-control shipping-address" placeholder="" rows="2" readonly></textarea>
-                                    <label>Shipping Address</label>
-                                </div>
-                            </div>
+    <div class="input-group">
+        <input type="text" class="input-control phone-input" readonly>
+        <label>Phone No.</label>
+    </div>
 
-                            <div class="header-right w-25">
-                                <!-- Invoice No (for Invoice, Estimate, Proforma) -->
-                                <div class="input-group invoice-number-group">
-                                    <span class="doc-number-label">Invoice No.</span>
-                                    <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
-                                </div>
+    <!-- Row 2 -->
+    <div class="input-group">
+        <textarea class="input-control billing-address" rows="2" readonly></textarea>
+        <label>Billing Address</label>
+    </div>
 
-                                <!-- Invoice/Order Date -->
-                                <div class="input-group date-wrapper invoice-date-group mt-2">
-                                    <span class="doc-date-label">Invoice Date</span>
-                                    <input type="date" class="input-control underline-input invoice-date">
-                                </div>
+    <div class="input-group">
+        <textarea class="input-control shipping-address" rows="2" readonly></textarea>
+        <label>Shipping Address</label>
+    </div>
 
-                                <!-- Order Date (for Sale Orders) -->
-                                <div class="input-group date-wrapper order-date-group @if(!in_array($type, ['sale_order', 'delivery_challan'])) d-none @endif mt-2">
-                                    <span>Order Date</span>
-                                    <input type="date" class="input-control underline-input order-date">
-                                </div>
+</div>
 
-                                <!-- Due Date (for Sale Orders and Estimates) -->
-                                <div class="input-group date-wrapper due-date-group @if(!in_array($type, ['sale_order', 'estimate'])) d-none @endif mt-2">
-                                    <span>Due Date</span>
-                                    <input type="date" class="input-control underline-input due-date">
-                                </div>
-                            </div>
+                       <div class="header-right w-25">
+
+    <!-- Order No -->
+    <div class="input-group">
+        <span>Order No.</span>
+        <input type="text" class="input-control underline-input bill-number"
+            value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
+    </div>
+
+    <!-- Order Date -->
+    <div class="input-group mt-2">
+        <span>Order Date</span>
+        <input type="date" class="input-control underline-input order-date">
+    </div>
+
+    <!-- Due Date -->
+    <div class="input-group mt-2">
+        <span>Due Date</span>
+        <input type="date" class="input-control underline-input due-date">
+    </div>
+
+</div>
                         </div>
 
                         <div class="alert alert-success d-none sale-success-msg"></div>
@@ -264,8 +224,7 @@
                         <div class="bottom-section">
                             <!-- Left Column -->
                             <div class="bottom-left">
-                                <!-- Payment Section: hidden only for estimate -->
-                                <div class="payment-section @if($type === 'estimate') d-none @endif">
+                                <div class="payment-section">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control default-payment-type">
                                             <option value="" selected disabled>Select Payment Type</option>
@@ -387,15 +346,16 @@
                                     <input type="text" class="total-input-large grand-total" value="0" readonly>
                                 </div>
 
-                                <div class="calc-row @if($type === 'estimate') d-none @endif received-row">
-                                    <div class="calc-label received-label-text">@if($type === 'sale_order') Advance Amount @else Received @endif</div>
+                                <div class="calc-row">
+                                    <div class="calc-label">Advance Amount</div>
                                     <div class="calc-inputs">
-                                        <input type="number" class="mini-input received-amount" value="0" readonly>
+                                        <input type="number" class="mini-input advance-amount" value="0" readonly>
                                     </div>
                                 </div>
+                                </div>
 
-                                <div class="calc-row @if($type === 'estimate') d-none @endif balance-row">
-                                    <div class="calc-label">@if($type === 'sale_order') Due Amount @else Balance / Due @endif</div>
+                                <div class="calc-row">
+                                    <div class="calc-label">Balance</div>
                                     <div class="calc-inputs">
                                         <span class="fw-bold balance-amount">0</span>
                                     </div>
@@ -460,27 +420,14 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
-        const docType = '{{ $type }}';
-
         window.items = @json($items);
         window.parties = @json($parties);
         window.bankAccounts = @json($bankAccounts);
-        window.saleStoreUrl = "{{ route('sale.store') }}";
-        window.saleMethod = 'POST';
-        window.editSaleData = null;
-        window.sourceEstimateId = null;
-        window.sourceSaleOrderId = null;
-        window.docType = docType;
-
-        @if(isset($sale))
-            window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
-            window.saleMethod = 'PUT';
-            window.editSaleData = @json($sale->load(['items', 'payments']));
-        @elseif(isset($convertedSaleData))
-            window.editSaleData = @json($convertedSaleData);
-            window.sourceEstimateId = @json($convertedSaleData['source_estimate_id'] ?? null);
-            window.sourceSaleOrderId = @json($convertedSaleData['source_sale_order_id'] ?? null);
-        @endif
+        window.saleOrderStoreUrl = "{{ route('sale.store') }}";
+        window.saleOrderMethod = 'POST';
+        window.editSaleOrderData = @json($convertedSaleOrderData ?? null);
+        window.sourceEstimateId = @json($convertedSaleOrderData['source_estimate_id'] ?? null);
+        window.docType = 'sale_order';
     </script>
 
     <!-- Toast container -->
@@ -494,9 +441,9 @@
     </div>
 
     <!-- Form Logic -->
-    <script src="{{ asset('js/saleform_script.js') }}"></script>
+    <script src="{{ asset('js/saleorderform_script.js') }}"></script>
     <!-- Custom JS -->
-    <script src="{{ asset('js/script.js') }}"></script>
+    <script src="{{ asset('js/scriptorder.js') }}"></script>
      <div class="container">
         @yield('content')
     </div>
@@ -727,6 +674,18 @@ document.addEventListener("DOMContentLoaded", function () {
     saveNewBtn.addEventListener('click', function () {
         saveParty(false); // reset modal for new entry
     });
+
+    $(document).on('change', '.party-select', function () {
+    let selected = $(this).find(':selected');
+
+    let phone = selected.data('phone') || '';
+    let billing = selected.data('billing') || '';
+    let shipping = selected.data('shipping') || '';
+
+    $('.phone-input').val(phone);
+    $('.billing-address').val(billing);
+    $('.shipping-address').val(shipping);
+});
 });
 </script>
 </body>

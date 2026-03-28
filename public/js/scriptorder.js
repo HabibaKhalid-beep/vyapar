@@ -11,22 +11,8 @@ class TabManager {
         this.limitModal = new bootstrap.Modal(document.getElementById('tabLimitModal'));
         this.confirmModal = new bootstrap.Modal(document.getElementById('closeConfirmModal'));
         this.confirmBtn = document.getElementById('confirm-close-btn');
-        this.docType = window.docType || 'invoice';
-        this.docLabels = {
-            invoice: 'Sale',
-            estimate: 'Estimate',
-            sale_order: 'Sale Order',
-            proforma: 'Proforma',
-            delivery_challan: 'Delivery Challan',
-            sale_return: 'Sale Return',
-            pos: 'POS',
-        };
 
         this.init();
-    }
-
-    getTabPrefix() {
-        return this.docLabels[this.docType] || 'Sale';
     }
 
     async init() {
@@ -124,7 +110,7 @@ class TabManager {
         });
 
         // Initial Tab
-        await this.createNewTab(`${this.getTabPrefix()} #1`);
+        await this.createNewTab("SaleOrder #1");
     }
 
     async createNewTab(title = null, content = "") {
@@ -134,7 +120,7 @@ class TabManager {
         }
 
         this.tabCounter++;
-        const currentTitle = title || `${this.getTabPrefix()} #${this.tabCounter}`;
+        const currentTitle = title || `SaleOrder #${this.tabCounter}`;
         const id = `tab-${Date.now()}-${this.tabCounter}`;
 
         // Use form template if no content provided
@@ -163,7 +149,7 @@ class TabManager {
         tabEl.className = 'tab-item';
         tabEl.id = `label-${tab.id}`;
         tabEl.innerHTML = `
-            
+
             <span class="tab-title">${tab.title}</span>
             <span class="tab-close" title="Close Tab"><i class="bi bi-x-lg"></i></span>
         `;
@@ -244,7 +230,7 @@ class TabManager {
     renumberTabs() {
         this.tabs.forEach((tab, index) => {
             const newIndex = index + 1;
-            tab.title = `${this.getTabPrefix()} #${newIndex}`;
+            tab.title = `Sale #${newIndex}`;
 
             // Update the tab element title in UI
             const tabEl = document.getElementById(`label-${tab.id}`);

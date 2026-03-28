@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('estimates', function (Blueprint $table) {
-            $table->enum('status', ['open', 'closed', 'pending'])->default('open')->after('image_path');
+            //
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('estimates', function (Blueprint $table) {
-            $table->dropColumn('status');
+            //
         });
     }
 };

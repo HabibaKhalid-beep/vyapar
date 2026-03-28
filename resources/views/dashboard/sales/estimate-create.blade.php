@@ -85,11 +85,11 @@
 
                             <div class="header-right w-25">
                                 <div class="input-group">
-                                    <span>Invoice No.</span>
+                                    <span>Estimate No.</span>
                                     <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
                                 </div>
                                 <div class="input-group date-wrapper">
-                                    <span>Invoice Date</span>
+                                    <span>Estimate Date</span>
                                     <input type="date" class="input-control underline-input invoice-date">
                                 </div>
 
@@ -343,19 +343,21 @@
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
-            window.saleStoreUrl = "{{ route('estimate.store') }}";
+            window.saleStoreUrl = "{{ route('sale.store') }}";
             window.saleMethod = 'POST';
             window.estimateId = {{ $estimate->id }};
             window.editSaleData = @json($estimate->load(['items.item'])->toArray());
+            window.docType = 'estimate';
         </script>
     @else
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
-            window.saleStoreUrl = "{{ route('estimate.store') }}";
+            window.saleStoreUrl = "{{ route('sale.store') }}";
             window.saleMethod = 'POST';
             window.estimateId = null;
             window.editSaleData = null;
+            window.docType = 'estimate';
         </script>
     @endisset
 

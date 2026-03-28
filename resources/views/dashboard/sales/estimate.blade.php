@@ -29,7 +29,7 @@
           </ul>
         </div>
         </div>
-        <button class="btn rounded-pill" style="background-color: #D4112E;" onclick="window.location='{{ route('sale.estimate.create') }}'"><span class="text-light">+ Add
+        <button class="btn rounded-pill" style="background-color: #D4112E;" onclick="window.location='{{ route('estimates.create') }}'"><span class="text-light">+ Add
             Estimate</span></button>
       </div>
       <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-4 py-2 rounded">
@@ -67,7 +67,7 @@
           <div class="w-100 d-flex">
             <div class="w-50 mt-2">
               <p class="ps-3 text-secondary m-0">Total Quotations</p>
-              <p class="ps-3 h4">Rs {{ number_format(($allEstimates ?? $estimates)->sum('total_amount'), 2) }}</p>
+              <p class="ps-3 h4">Rs {{ number_format(($allEstimates ?? $estimates)->sum('grand_total'), 2) }}</p>
             </div>
             <div class="w-50 mt-2 d-flex align-items-end justify-content-center flex-column">
               <div class="col-5 h-50 rounded-pill d-flex justify-content-center align-item-center me-4"
@@ -79,8 +79,8 @@
           </div>
           <div class="w-100 d-flex mt-3">
             <p class="ps-3 pe-3 text-secondary" style="border-right:1px solid rgb(45, 44, 44);">Converted : <span
-                class="fw-bold text-dark">Rs {{ number_format(($allEstimates ?? $estimates)->where('status', 'converted')->sum('total_amount'), 2) }}</span></p>
-            <p class="ps-3 text-secondary">Open : <span class="fw-bold text-dark">Rs {{ number_format(($allEstimates ?? $estimates)->where('status', 'open')->sum('total_amount'), 2) }}</span></p>
+                class="fw-bold text-dark">Rs {{ number_format(($allEstimates ?? $estimates)->where('status', 'converted')->sum('grand_total'), 2) }}</span></p>
+            <p class="ps-3 text-secondary">Open : <span class="fw-bold text-dark">Rs {{ number_format(($allEstimates ?? $estimates)->where('status', 'open')->sum('grand_total'), 2) }}</span></p>
 
           </div>
         </div>
@@ -124,16 +124,17 @@
               <tbody>
                 @forelse($estimates ?? [] as $estimate)
                 <tr data-estimate-id="{{ $estimate->id }}">
-                  <td>{{ $estimate->estimate_date ? $estimate->estimate_date->format('d/m/Y') : '-' }}</td>
+                  <td>{{ $estimate->invoice_date ? $estimate->invoice_date->format('d/m/Y') : '-' }}</td>
                   <td>{{ $estimate->bill_number ?? '-' }}</td>
-                  <td>{{ $estimate->party->name ?? '-' }}</td>
+                  <td>{{ $estimate->party_name ?? '-' }}</td>
                   <td>Rs {{ number_format($estimate->items->sum('amount'), 2) }}</td>
-                  <td>Rs {{ number_format($estimate->total_amount, 2) }}</td>
+                  <td>Rs {{ number_format($estimate->balance ?? $estimate->grand_total ?? 0, 2) }}</td>
                   <td>
                     @php
                       $isConverted = $estimate->status === 'converted';
+                      $convertedInvoiceNumber = $convertedInvoices[$estimate->id] ?? null;
                       $statusLabel = $isConverted
-                          ? 'Converted' . ($estimate->convertedSale ? ' (Invoice #' . $estimate->convertedSale->bill_number . ')' : '')
+                          ? 'Converted' . ($convertedInvoiceNumber ? ' (Invoice #' . $convertedInvoiceNumber . ')' : '')
                           : ucfirst($estimate->status);
                     @endphp
                     <span class="badge {{ $isConverted ? 'text-primary bg-primary-subtle border border-primary-subtle' : ($estimate->status === 'open' ? 'bg-success' : 'bg-warning text-dark') }}">
@@ -147,14 +148,14 @@
                       </button>
                       <ul class="dropdown-menu">
                         <li>
-                          <a class="dropdown-item {{ $isConverted ? 'disabled' : '' }}" href="#" onclick="{{ $isConverted ? 'return false;' : "convertEstimate('" . route('estimates.convert-to-sale', $estimate->id) . "'); return false;" }}">
+                          <a class="dropdown-item {{ $isConverted ? 'disabled' : '' }}" href="{{ $isConverted ? '#' : route('estimates.convert-to-sale', $estimate->id) }}">
                             <i class="fas fa-file-invoice me-2"></i>Estimate to Sale
                           </a>
                         </li>
                         <li>
-                          <span class="dropdown-item text-muted">
+                          <a class="dropdown-item {{ $isConverted ? 'disabled' : '' }}" href="{{ $isConverted ? '#' : route('estimates.convert-to-sale-order', $estimate->id) }}">
                             <i class="fas fa-clipboard-list me-2"></i>Estimate to Sale Order
-                          </span>
+                          </a>
                         </li>
                       </ul>
                     </div>
@@ -163,12 +164,12 @@
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
                       <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('estimates.edit', $estimate->id) }}"><i class="fas fa-edit me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="{{ route('estimates.edit', $estimate->id) }}"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
                         <li><a class="dropdown-item" href="#" onclick="printEstimate('{{ route('estimates.print', $estimate->id) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
                         <li><a class="dropdown-item" href="#" onclick="previewEstimate('{{ route('estimates.preview', $estimate->id) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
                         <li><a class="dropdown-item" href="#" onclick="openPdf('{{ route('estimates.pdf', $estimate->id) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteEstimate('{{ route('estimates.destroy', $estimate->id) }}', {{ $estimate->id }}); return false;"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteEstimate('{{ route('estimates.destroy', $estimate->id) }}'); return false;"><i class="fas fa-trash me-2"></i>Delete</a></li>
                       </ul>
                     </div>
                   </td>
@@ -285,8 +286,45 @@ $(document).ready(function() {
     });
   });
 });
+
+function previewEstimate(url) {
+  window.open(url, '_blank');
+}
+
+function printEstimate(url) {
+  window.open(url, '_blank');
+}
+
+function openPdf(url) {
+  window.open(url, '_blank');
+}
+
+function deleteEstimate(url) {
+  if (!confirm('Are you sure you want to delete this estimate?')) {
+    return;
+  }
+
+  fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+      'Accept': 'application/json',
+    },
+  })
+    .then(async (response) => {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Delete failed');
+      }
+
+      window.location.reload();
+    })
+    .catch((error) => {
+      alert(error.message || 'Unable to delete estimate.');
+    });
+}
 </script>
 
 <script src="{{ asset('js/sale-estimate.js') }}"></script>
-<script src="{{ asset('js/estimate-table.js') }}"></script>
 @endpush

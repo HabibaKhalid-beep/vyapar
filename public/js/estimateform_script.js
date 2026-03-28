@@ -66,10 +66,10 @@ function initializeForm(context) {
             $ctx.find('.party-select').val('');
         }
 
-        $ctx.find('.phone-input').val(sale.party ? sale.party.phone || '' : '');
-        $ctx.find('.billing-address').val(sale.party ? sale.party.billing_address || '' : '');
+        $ctx.find('.phone-input').val(sale.phone || sale.party?.phone || '');
+        $ctx.find('.billing-address').val(sale.billing_address || sale.party?.billing_address || '');
         $ctx.find('.bill-number').val(sale.bill_number || '');
-        $ctx.find('.invoice-date').val(sale.estimate_date ? sale.estimate_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
+        $ctx.find('.invoice-date').val(sale.invoice_date ? sale.invoice_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
 
         // Items
         $ctx.find('.item-rows').empty();
@@ -77,7 +77,7 @@ function initializeForm(context) {
             addRow();
             const $row = $ctx.find('.item-rows tr').last();
             const matchOption = $row.find('.item-name option').filter(function () {
-                return $(this).val() == (item.item_id || '');
+                return $(this).text().trim() === (item.item_name || '').trim();
             }).first();
             if (matchOption.length) {
                 matchOption.prop('selected', true);
@@ -313,9 +313,9 @@ function initializeForm(context) {
     function gatherSaleData() {
         const items = Array.from($ctx.find('.item-row')).map(row => {
             const $row = $(row);
-            const itemId = $row.find('.item-name').val() || '';
+            const itemName = $row.find('.item-name option:selected').text() || '';
             return {
-                item_id: itemId,
+                item_name: itemName,
                 item_category: $row.find('.item-category').val() || '',
                 item_code: $row.find('.item-code').val() || '',
                 item_description: $row.find('.item-desc').val() || '',
@@ -325,12 +325,17 @@ function initializeForm(context) {
                 discount: parseFloat($row.find('.item-discount').val() || 0) || 0,
                 amount: parseFloat($row.find('.item-amount').val() || 0) || 0,
             };
-        }).filter(item => item.item_id || item.quantity || item.amount);
+        }).filter(item => item.item_name || item.quantity || item.amount);
 
         const data = {
+            type: 'estimate',
             party_id: $ctx.find('.party-select').val() || '',
+            party_name: $ctx.find('.party-select option:selected').text() || '',
+            phone: $ctx.find('.phone-input').val() || '',
+            billing_address: $ctx.find('.billing-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
-            estimate_date: $ctx.find('.invoice-date').val() || '',
+            invoice_date: $ctx.find('.invoice-date').val() || '',
+            due_date: $ctx.find('.invoice-date').val() || '',
             total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0,
             total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0,
             discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,
@@ -347,12 +352,8 @@ function initializeForm(context) {
                 return null;
             })(),
             items,
+            payments: [],
         };
-
-        // Add estimate_id if editing
-        if (window.estimateId) {
-            data.estimate_id = window.estimateId;
-        }
 
         return data;
     }
