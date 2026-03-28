@@ -10,22 +10,22 @@ class SaleSectionController extends Controller
 
     public function paymentIn()
     {
-        return redirect()->route('sale.index.type', ['type' => 'pos']);
+        return view('dashboard.sales.payement-in');
     }
 
     public function proformaInvoice()
     {
-        return redirect()->route('sale.index.type', ['type' => 'proforma']);
+        return view('dashboard.sales.perfoma-invoice');
     }
 
     public function saleReturn()
     {
-        return redirect()->route('sale.index.type', ['type' => 'sale_return']);
+        return view('dashboard.sales.sale-return');
     }
 
     public function deliveryChallan()
     {
-        return redirect()->route('sale.index.type', ['type' => 'delivery_challan']);
+        return view('dashboard.sales.delivery-challan');
     }
 
 
