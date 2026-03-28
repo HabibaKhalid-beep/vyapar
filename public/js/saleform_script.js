@@ -7,17 +7,93 @@ function initializeForm(context) {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    // Auto-fill invoice date and placeholder invoice no
+    // IMPORTANT: Set the doc-type field from window.docType
+    // This ensures the correct type is captured when form is saved
+    $ctx.find('.doc-type').val(window.docType || 'invoice');
+
+    // Auto-fill invoice/order dates
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
-    $ctx.find('.invoice-date').val(`${yyyy}-${mm}-${dd}`);
+    const todayValue = `${yyyy}-${mm}-${dd}`;
+    $ctx.find('.invoice-date').val(todayValue);
+    $ctx.find('.order-date').val(todayValue);
+    $ctx.find('.due-date').val(todayValue);
 
     // If editing an existing sale, populate the form with saved values
     if (window.editSaleData) {
         populateFormFromSale(window.editSaleData);
     }
+
+    // ========== TOGGLE FIELDS BASED ON DOCUMENT TYPE ==========
+    const docType = window.docType || 'invoice';
+    const typeLabels = {
+        'invoice': 'Sales Invoice',
+        'estimate': 'Estimate / Quotation',
+        'sale_order': 'Sale Order',
+        'proforma': 'Proforma Invoice',
+        'delivery_challan': 'Delivery Challan',
+        'sale_return': 'Sale Return',
+        'pos': 'POS'
+    };
+
+    // Set the form title
+    const formTitle = $ctx.find('.form-title');
+    if (formTitle.length) {
+        formTitle.text(typeLabels[docType] || 'Sale');
+    }
+
+    const shippingGroup = $ctx.find('.shipping-address-group');
+    const orderDateGroup = $ctx.find('.order-date-group');
+    const dueDateGroup = $ctx.find('.due-date-group');
+    const invoiceDateGroup = $ctx.find('.invoice-date-group');
+    const docNumberLabel = $ctx.find('.doc-number-label');
+    const docDateLabel = $ctx.find('.doc-date-label');
+    const paymentSection = $ctx.find('.payment-section');
+    const receivedInput = $ctx.find('.received-amount');
+    const receivedLabelDiv = $ctx.find('.received-label-text');
+    const receivedRow = $ctx.find('.received-row');
+    const balanceRow = $ctx.find('.balance-row');
+
+    if (docType === 'sale_order' || docType === 'delivery_challan') {
+        // Show shipping address and dates
+        shippingGroup.removeClass('d-none');
+        orderDateGroup.removeClass('d-none');
+        dueDateGroup.removeClass('d-none');
+
+        // Update labels
+        if (docNumberLabel.length) docNumberLabel.text('Order No.');
+        if (docDateLabel.length) docDateLabel.text('Order Date');
+
+        // For sale_order: change "Received" to "Advance"
+        if (docType === 'sale_order') {
+            if (receivedLabelDiv.length) {
+                receivedLabelDiv.text('Advance Payment');
+            }
+            if (receivedInput.length) {
+                receivedInput.prop('readonly', true).attr('placeholder', 'Advance amount');
+            }
+        }
+    }
+    else if (docType === 'estimate') {
+        // Show due date for estimates
+        dueDateGroup.removeClass('d-none');
+
+        // Update labels
+        if (docNumberLabel.length) docNumberLabel.text('Estimate No.');
+        if (docDateLabel.length) docDateLabel.text('Estimate Date');
+
+        // Hide payment section for estimates
+        paymentSection.addClass('d-none');
+        receivedRow.addClass('d-none');
+        balanceRow.addClass('d-none');
+    }
+    else if (docType === 'proforma') {
+        // Update labels for proforma
+        if (docNumberLabel.length) docNumberLabel.text('Proforma No.');
+    }
+    // ========== END TOGGLE FIELDS ==========
 
     function buildImageUrl(path) {
         if (!path) return '';
@@ -70,6 +146,8 @@ function initializeForm(context) {
         $ctx.find('.billing-address').val(sale.billing_address || '');
         $ctx.find('.bill-number').val(sale.bill_number || '');
         $ctx.find('.invoice-date').val(sale.invoice_date ? sale.invoice_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
+        $ctx.find('.order-date').val(sale.order_date ? sale.order_date.split(' ')[0] : '');
+        $ctx.find('.due-date').val(sale.due_date ? sale.due_date.split(' ')[0] : '');
 
         // Items
         $ctx.find('.item-rows').empty();
@@ -368,12 +446,18 @@ function initializeForm(context) {
         });
 
         return {
+            type: $ctx.find('.doc-type').val() || 'invoice',
             source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
+            source_sale_order_id: window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null,
+            party_id: $ctx.find('.party-select').val() || null,
             party_name: $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
+            shipping_address: $ctx.find('.shipping-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
             invoice_date: $ctx.find('.invoice-date').val() || '',
+            order_date: $ctx.find('.order-date').val() || '',
+            due_date: $ctx.find('.due-date').val() || '',
             total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0,
             total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0,
             discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,

@@ -28,9 +28,6 @@ class SaleSectionController extends Controller
         return view('dashboard.sales.delivery-challan');
     }
 
-    public function saleOrder()
-    {
-        return view('dashboard.sales.sale-order');
-    }
-    
+
+
 }

@@ -10,6 +10,7 @@ use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleSectionController;
 use App\Http\Controllers\EstimateController;
+use App\Http\Controllers\SaleOrderController;
 use App\Http\Controllers\PurchaseExpenseController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -58,28 +59,28 @@ Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
     // Sales
-    Route::get('/sale/create', [SaleController::class,'create'])->name('sale.create');
+    Route::get('/sale/create/{type?}', [SaleController::class,'create'])->name('sale.create');
     Route::get('/sales/{sale}/edit', [SaleController::class,'edit'])->name('sale.edit');
     Route::put('/sales/{sale}', [SaleController::class,'update'])->name('sale.update');
     Route::delete('/sales/{sale}', [SaleController::class,'destroy'])->name('sale.destroy');
     Route::post('/sales', [SaleController::class,'store'])->name('sale.store');
     Route::get('/sales', [SaleController::class,'index'])->name('sale.index');
+    Route::get('/estimates/{sale}/convert-to-sale', [SaleController::class, 'createFromEstimate'])->name('estimates.convert-to-sale');
+    Route::get('/estimates/{sale}/edit', [SaleController::class, 'edit'])->name('estimates.edit');
+    Route::delete('/estimates/{sale}', [SaleController::class, 'destroy'])->name('estimates.destroy');
+    Route::get('/estimates/{sale}/preview', [SaleController::class, 'previewEstimate'])->name('estimates.preview');
+    Route::get('/estimates/{sale}/print', [SaleController::class, 'printEstimate'])->name('estimates.print');
+    Route::get('/estimates/{sale}/pdf', [SaleController::class, 'pdfEstimate'])->name('estimates.pdf');
+    Route::get('/sale-orders/{sale}/convert-to-sale', [SaleController::class, 'createFromSaleOrder'])->name('sale-orders.convert-to-sale');
+    Route::get('/sale-orders/{sale}/preview', [SaleController::class, 'previewSaleOrder'])->name('sale-orders.preview');
+    Route::get('/sale-orders/{sale}/print', [SaleController::class, 'printSaleOrder'])->name('sale-orders.print');
+    Route::get('/sale-orders/{sale}/pdf', [SaleController::class, 'pdfSaleOrder'])->name('sale-orders.pdf');
     Route::get('sales/estimate', [EstimateController::class,'index'])->name('sale.estimate');
-    Route::get('estimate/create', [SaleController::class,'estimatcreate'])->name('sale.estimate.create');
+    Route::get('estimate/create', [EstimateController::class,'create'])->name('sale.estimate.create');
+    Route::get('estimates/create', [EstimateController::class,'create'])->name('estimates.create');
     Route::get('sales/pos', [SaleController::class,'pos1'])->name('sale.pos');
 
     // Estimates
-    Route::get('/estimates', [EstimateController::class,'index'])->name('estimates.index');
-    Route::get('/estimates/create', [EstimateController::class,'create'])->name('estimates.create');
-    Route::get('/estimates/{estimate}/convert-to-sale', [SaleController::class,'createFromEstimate'])->name('estimates.convert-to-sale');
-    Route::get('/estimates/{estimate}/print', [EstimateController::class,'print'])->name('estimates.print');
-    Route::get('/estimates/{estimate}/preview', [EstimateController::class,'preview'])->name('estimates.preview');
-    Route::get('/estimates/{estimate}/pdf', [EstimateController::class,'pdf'])->name('estimates.pdf');
-    Route::post('/estimates/{estimate}/convert', [EstimateController::class,'convert'])->name('estimates.convert');
-    Route::get('/estimates/{estimate}', [EstimateController::class,'show'])->name('estimates.show');
-    Route::get('/estimates/{estimate}/edit', [EstimateController::class,'edit'])->name('estimates.edit');
-    Route::put('/estimates/{estimate}', [EstimateController::class,'update'])->name('estimates.update');
-    Route::delete('/estimates/{estimate}', [EstimateController::class,'destroy'])->name('estimates.destroy');
     Route::post('/estimates', [EstimateController::class,'store'])->name('estimate.store');
 
 
@@ -88,7 +89,11 @@ Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.
     Route::get('/proforma-invoice', [SaleSectionController::class, 'proformaInvoice'])->name('proforma-invoice');
     Route::get('/sale-return', [SaleSectionController::class, 'saleReturn'])->name('sale-return');
  Route::get('delivery-challan', [SaleSectionController::class, 'deliveryChallan'])->name('delivery-challan');
- Route::get('sale-order' ,[SaleSectionController::class, 'saleOrder'])->name('sale-order');
+
+
+ Route::get('sale-order' ,[SaleOrderController::class, 'saleOrder'])->name('sale-order');
+ Route::get('sale-order/create', [SaleOrderController::class, 'create'])->name('sale-order.create');
+ Route::get('estimates/{sale}/convert-to-sale-order', [SaleOrderController::class, 'createFromEstimate'])->name('estimates.convert-to-sale-order');
 
     // Invoice
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice');

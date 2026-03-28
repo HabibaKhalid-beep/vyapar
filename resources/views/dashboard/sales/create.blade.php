@@ -79,13 +79,28 @@
             </div>
             <!-- Browser Toolbar / Heading Area -->
             <div class="browser-toolbar d-flex align-items-center px-3">
-                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Sale | </p>
-                <span class="h6 mt-3 me-2">Credit</span>
-                <div class="form-check form-switch mt-4 mb-2">
+                <p class="mt-3 ms-3 mb-0 me-3 mb-2">
+                    @php
+                        $typeLabels = [
+                            'invoice' => 'Sales Invoice',
+                            'estimate' => 'Estimate / Quotation',
+                            'sale_order' => 'Sale Order',
+                            'proforma' => 'Proforma Invoice',
+                            'delivery_challan' => 'Delivery Challan',
+                            'sale_return' => 'Sale Return',
+                            'pos' => 'POS'
+                        ];
+                    @endphp
+                    {{ $typeLabels[$type] ?? 'Sale' }} |
+                </p>
 
-                    <input class="form-check-input mb-2" type="checkbox" role="switch" id="saleToggleSwitch">
-                </div>
-                <span class="h6 mt-3 ms-2">Cash</span>
+                @if($type === 'invoice' || $type === 'pos')
+                    <span class="h6 mt-3 me-2">Credit</span>
+                    <div class="form-check form-switch mt-4 mb-2">
+                        <input class="form-check-input mb-2" type="checkbox" role="switch" id="saleToggleSwitch">
+                    </div>
+                    <span class="h6 mt-3 ms-2">Cash</span>
+                @endif
             </div>
         </header>
 
@@ -100,59 +115,40 @@
                 <div class="invoice-container">
                     <div class="invoice-form invoice-card">
 
+                        <!-- Tab Title/Heading -->
+                        <div class="form-heading mb-3">
+                            @php
+                                $typeLabels = [
+                                    'invoice' => 'Sales Invoice',
+                                    'estimate' => 'Estimate / Quotation',
+                                    'sale_order' => 'Sale Order',
+                                    'proforma' => 'Proforma Invoice',
+                                    'delivery_challan' => 'Delivery Challan',
+                                    'sale_return' => 'Sale Return',
+                                    'pos' => 'POS'
+                                ];
+                                $docLabel = $typeLabels[$type] ?? 'Sale';
+                            @endphp
+                            <h5 class="form-title" style="color: #333; font-weight: 500;">
+                                {{ $docLabel }}
+                            </h5>
+                        </div>
+
                         <!-- Header Section -->
                         <div class="header-section">
                             <div class="header-left">
+                                <!-- Hidden type field for form submission -->
+                                <input type="hidden" class="doc-type" value="{{ $type }}">
+
                                 <div class="input-group">
-                                <!-- Party dropdown button -->
-<div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
-    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-        Select Party
-    </button>
-    <!-- Balance display -->
-    <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
-        <!-- JS will populate balance here -->
-    </div>
-
-    <!-- Dropdown menu (existing) -->
-    <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
-        <li class="dropdown-header d-flex justify-content-between px-3">
-            <span>Party Name</span>
-            <span>Opening Balance</span>
-        </li>
-        @foreach($parties as $party)
-            <li>
-                <a class="dropdown-item d-flex justify-content-between party-option" href="#" 
-                   data-id="{{ $party->id }}" 
-                   data-phone="{{ $party->phone }}" 
-                   data-billing="{{ addslashes($party->billing_address ?? '') }}" 
-                   data-opening="{{ $party->opening_balance ?? 0 }}"
-data-type="{{ $party->transaction_type }}">
-                    <span>{{ $party->name }}</span>
-                <span 
-    @if($party->transaction_type == 'pay') 
-        class="text-danger"
-    @elseif($party->transaction_type == 'receive') 
-        class="text-success"
-    @endif
->
-    @if($party->transaction_type == 'pay')
-        <i class="fa-solid fa-arrow-up me-1"></i>
-    @elseif($party->transaction_type == 'receive')
-        <i class="fa-solid fa-arrow-down me-1"></i>
-    @endif
-
-    ₹{{ number_format($party->opening_balance ?? 0, 2) }}
-</span>
-                </a>
-            </li>
-        @endforeach
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
-    </ul>
-</div>
-<input type="hidden" class="party-id" name="party_id">
-                                 
+                                    <select class="input-control party-select">
+                                        <option value="" selected disabled>Select Party</option>
+                                        @foreach($parties as $party)
+                                            <option value="{{ $party->id }}" data-phone="{{ $party->phone }}" data-billing="{{ addslashes($party->billing_address ?? '') }}">{{ $party->name }}</option>
+                                        @endforeach
+                                        <option value="__new">+ Add New Party</option>
+                                    </select>
+                                    <label class="party-label">Party *</label>
                                 </div>
 
                                 <div class="input-group mt-3">
@@ -163,18 +159,38 @@ data-type="{{ $party->transaction_type }}">
                                     <textarea class="input-control billing-address" placeholder="" rows="2" readonly></textarea>
                                     <label>Billing Address</label>
                                 </div>
+
+                                <!-- Shipping Address (for Sale Orders and Delivery Challan) -->
+                                <div class="input-group mt-3 shipping-address-group d-none">
+                                    <textarea class="input-control shipping-address" placeholder="" rows="2" readonly></textarea>
+                                    <label>Shipping Address</label>
+                                </div>
                             </div>
 
                             <div class="header-right w-25">
-                                <div class="input-group">
-                                    <span>Invoice No.</span>
+                                <!-- Invoice No (for Invoice, Estimate, Proforma) -->
+                                <div class="input-group invoice-number-group">
+                                    <span class="doc-number-label">Invoice No.</span>
                                     <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
                                 </div>
-                                <div class="input-group date-wrapper">
-                                    <span>Invoice Date</span>
+
+                                <!-- Invoice/Order Date -->
+                                <div class="input-group date-wrapper invoice-date-group mt-2">
+                                    <span class="doc-date-label">Invoice Date</span>
                                     <input type="date" class="input-control underline-input invoice-date">
                                 </div>
 
+                                <!-- Order Date (for Sale Orders) -->
+                                <div class="input-group date-wrapper order-date-group @if(!in_array($type, ['sale_order', 'delivery_challan'])) d-none @endif mt-2">
+                                    <span>Order Date</span>
+                                    <input type="date" class="input-control underline-input order-date">
+                                </div>
+
+                                <!-- Due Date (for Sale Orders and Estimates) -->
+                                <div class="input-group date-wrapper due-date-group @if(!in_array($type, ['sale_order', 'estimate'])) d-none @endif mt-2">
+                                    <span>Due Date</span>
+                                    <input type="date" class="input-control underline-input due-date">
+                                </div>
                             </div>
                         </div>
 
@@ -278,7 +294,8 @@ data-type="{{ $party->transaction_type }}">
                         <div class="bottom-section">
                             <!-- Left Column -->
                             <div class="bottom-left">
-                                <div class="payment-section">
+                                <!-- Payment Section: hidden only for estimate -->
+                                <div class="payment-section @if($type === 'estimate') d-none @endif">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control default-payment-type">
                                             <option value="" selected disabled>Select Payment Type</option>
@@ -400,15 +417,15 @@ data-type="{{ $party->transaction_type }}">
                                     <input type="text" class="total-input-large grand-total" value="0" readonly>
                                 </div>
 
-                                <div class="calc-row">
-                                    <div class="calc-label">Received</div>
+                                <div class="calc-row @if($type === 'estimate') d-none @endif received-row">
+                                    <div class="calc-label received-label-text">@if($type === 'sale_order') Advance Amount @else Received @endif</div>
                                     <div class="calc-inputs">
                                         <input type="number" class="mini-input received-amount" value="0" readonly>
                                     </div>
                                 </div>
 
-                                <div class="calc-row">
-                                    <div class="calc-label">Balance</div>
+                                <div class="calc-row @if($type === 'estimate') d-none @endif balance-row">
+                                    <div class="calc-label">@if($type === 'sale_order') Due Amount @else Balance / Due @endif</div>
                                     <div class="calc-inputs">
                                         <span class="fw-bold balance-amount">0</span>
                                     </div>
@@ -473,16 +490,23 @@ data-type="{{ $party->transaction_type }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
+        const docType = '{{ $type }}';
+
         window.items = @json($items);
         window.parties = @json($parties);
         window.bankAccounts = @json($bankAccounts);
         window.saleStoreUrl = "{{ route('sale.store') }}";
         window.saleMethod = 'POST';
+        window.editSaleData = null;
+        window.sourceEstimateId = null;
 
         @if(isset($sale))
             window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
             window.saleMethod = 'PUT';
             window.editSaleData = @json($sale->load(['items', 'payments']));
+        @elseif(isset($convertedSaleData))
+            window.editSaleData = @json($convertedSaleData);
+            window.sourceEstimateId = @json($convertedSaleData['source_estimate_id']);
         @endif
     </script>
 
@@ -641,7 +665,7 @@ data-type="{{ $party->transaction_type }}">
               </div>
             </div>
           </div>
-          
+
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">

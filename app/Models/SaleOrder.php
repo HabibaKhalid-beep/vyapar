@@ -4,12 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Estimate extends Model
+class SaleOrder extends Model
 {
     protected $fillable = [
-        'party_id',
-        'bill_number',
-        'estimate_date',
+        'party_name',
+        'phone',
+        'billing_address',
+        'shipping_address',
+        'order_number',
+        'order_date',
+        'due_date',
         'total_qty',
         'total_amount',
         'discount_pct',
@@ -18,12 +22,16 @@ class Estimate extends Model
         'tax_amount',
         'round_off',
         'grand_total',
+        'advance_amount',
+        'balance',
         'description',
         'image_path',
+        'document_path',
     ];
 
     protected $casts = [
-        'estimate_date' => 'date',
+        'order_date' => 'date',
+        'due_date' => 'date',
         'total_amount' => 'decimal:2',
         'discount_pct' => 'decimal:2',
         'discount_rs' => 'decimal:2',
@@ -31,15 +39,17 @@ class Estimate extends Model
         'tax_amount' => 'decimal:2',
         'round_off' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'advance_amount' => 'decimal:2',
+        'balance' => 'decimal:2',
     ];
-
-    public function party()
-    {
-        return $this->belongsTo(Party::class);
-    }
 
     public function items()
     {
-        return $this->hasMany(EstimateItem::class);
+        return $this->hasMany(SaleOrderItem::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(SaleOrderPayment::class);
     }
 }
