@@ -19,7 +19,42 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <!-- Form Styles -->
     <link rel="stylesheet" href="{{ asset('css/saleform_style.css') }}">
+    
 </head>
+<style>
+    /* Dropdown with two columns */
+    #partyDropdownMenu {
+    min-width: 250px; /* Adjust as needed */
+    max-width: 100%;  /* Never exceed container */
+}
+.party-option i {
+    font-size: 12px;
+}
+.party-option span {
+    display: inline-block;
+    width: 100%;
+}
+.party-option span:first-child {
+    width: 60%; /* Party name */
+}
+.party-option span:last-child {
+    width: 40%; /* Opening balance */
+    text-align: right;
+}
+
+/* Header style */
+.dropdown-header {
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Hover effect */
+.dropdown-item.party-option:hover {
+    background-color: #e2f0ff;
+}
+    </style>
 
 <body>
 
@@ -69,14 +104,55 @@
                         <div class="header-section">
                             <div class="header-left">
                                 <div class="input-group">
-                                    <select class="input-control party-select">
-                                        <option value="" selected disabled>Select Party</option>
-                                        @foreach($parties as $party)
-                                            <option value="{{ $party->id }}" data-phone="{{ $party->phone }}" data-billing="{{ addslashes($party->billing_address ?? '') }}">{{ $party->name }}</option>
-                                        @endforeach
-                                        <option value="__new">+ Add New Party</option>
-                                    </select>
-                                    <label class="party-label">Party *</label>
+                                <!-- Party dropdown button -->
+<div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
+    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+        Select Party
+    </button>
+    <!-- Balance display -->
+    <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
+        <!-- JS will populate balance here -->
+    </div>
+
+    <!-- Dropdown menu (existing) -->
+    <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+        <li class="dropdown-header d-flex justify-content-between px-3">
+            <span>Party Name</span>
+            <span>Opening Balance</span>
+        </li>
+        @foreach($parties as $party)
+            <li>
+                <a class="dropdown-item d-flex justify-content-between party-option" href="#" 
+                   data-id="{{ $party->id }}" 
+                   data-phone="{{ $party->phone }}" 
+                   data-billing="{{ addslashes($party->billing_address ?? '') }}" 
+                   data-opening="{{ $party->opening_balance ?? 0 }}"
+data-type="{{ $party->transaction_type }}">
+                    <span>{{ $party->name }}</span>
+                <span 
+    @if($party->transaction_type == 'pay') 
+        class="text-danger"
+    @elseif($party->transaction_type == 'receive') 
+        class="text-success"
+    @endif
+>
+    @if($party->transaction_type == 'pay')
+        <i class="fa-solid fa-arrow-up me-1"></i>
+    @elseif($party->transaction_type == 'receive')
+        <i class="fa-solid fa-arrow-down me-1"></i>
+    @endif
+
+    ₹{{ number_format($party->opening_balance ?? 0, 2) }}
+</span>
+                </a>
+            </li>
+        @endforeach
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
+    </ul>
+</div>
+<input type="hidden" class="party-id" name="party_id">
+                                 
                                 </div>
 
                                 <div class="input-group mt-3">
@@ -402,16 +478,11 @@
         window.bankAccounts = @json($bankAccounts);
         window.saleStoreUrl = "{{ route('sale.store') }}";
         window.saleMethod = 'POST';
-        window.editSaleData = null;
-        window.sourceEstimateId = null;
 
         @if(isset($sale))
             window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
             window.saleMethod = 'PUT';
             window.editSaleData = @json($sale->load(['items', 'payments']));
-        @elseif(isset($convertedSaleData))
-            window.editSaleData = @json($convertedSaleData);
-            window.sourceEstimateId = @json($convertedSaleData['source_estimate_id']);
         @endif
     </script>
 
@@ -610,6 +681,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const saveBtn = document.getElementById("btnSaveParty");
     const saveNewBtn = document.getElementById("btnSaveNewParty");
 
+           
+
+
     function getPartyData() {
         const form = document.getElementById("addPartyForm");
         return new FormData(form);
@@ -658,6 +732,62 @@ document.addEventListener("DOMContentLoaded", function () {
 
     saveNewBtn.addEventListener('click', function () {
         saveParty(false); // reset modal for new entry
+    });
+});
+
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dropdownBtn = document.getElementById("partyDropdownBtn");
+    const dropdownMenu = document.getElementById("partyDropdownMenu");
+    const partyIdInput = document.querySelector(".party-id");
+    const balanceDisplay = document.getElementById("partyBalanceDisplay");
+    const addModalEl = document.getElementById('addPartyModal');
+    const addModal = new bootstrap.Modal(addModalEl);
+
+    dropdownMenu.addEventListener("click", function(e) {
+        if(e.target.closest(".party-option")) {
+            e.preventDefault();
+            const option = e.target.closest(".party-option");
+            const name = option.querySelector("span:first-child").textContent;
+            let opening = parseFloat(option.dataset.opening) || 0;
+            const phone = option.dataset.phone;
+            const billing = option.dataset.billing;
+            const id = option.dataset.id;
+            const type = option.dataset.type;
+
+            // Button pe sirf party name
+            dropdownBtn.textContent = name;
+
+            // Show balance below button with color
+           if(type === "pay"){
+    balanceDisplay.innerHTML = `
+        <i class="fa-solid fa-arrow-up text-danger me-1"></i>
+        ₹${opening.toFixed(2)} 
+    `;
+} 
+else if(type === "receive"){
+    balanceDisplay.innerHTML = `
+        <i class="fa-solid fa-arrow-down text-success me-1"></i>
+        ₹${opening.toFixed(2)} 
+    `;
+} 
+else {
+    balanceDisplay.innerHTML = `₹${opening.toFixed(2)}`;
+}
+
+            // Save selected party id
+            partyIdInput.value = id;
+
+            // Populate phone & billing fields
+            document.querySelector(".phone-input").value = phone;
+            document.querySelector(".billing-address").value = billing;
+        } 
+        else if(e.target.id === "addNewPartyBtn") {
+            addModal.show();
+            document.getElementById("addPartyForm").reset();
+            balanceDisplay.textContent = "";
+        }
     });
 });
 </script>

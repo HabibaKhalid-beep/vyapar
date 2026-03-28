@@ -304,7 +304,9 @@
 display:flex;
 width:100%;
 }
-
+.text-success {
+    color: gray !important; /* apna green */
+}
 /* LEFT PANEL */
 .split-left{
 width:240px !important;
@@ -578,7 +580,7 @@ position:relative;
 display:flex;
 flex-direction:column;
 position:absolute;
-right:28px;   /* filter icon se pehle fixed position */
+right:18px;   /* filter icon se pehle fixed position */
 font-size:9px;
 line-height:7px;
 opacity:0;
@@ -734,6 +736,48 @@ color:#6b7280;
   display: flex;
   flex-direction: column; /* vertical stacked arrows */
 }
+.txn-table {
+  width: 100%; /* full width */
+  border-collapse: separate; /* keep spacing between cells */
+  border-spacing: 0 2px; /* vertical spacing between rows */
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9; /* overall table bg */
+}
+
+.txn-table th, .txn-table td {
+  padding: 12px 15px;
+  background-color: #f3f4f6; /* light gray bg for cells */
+  border-bottom: 1px solid #d1d5db; /* slightly darker line between rows */
+  text-align: left;
+  vertical-align: middle;
+}
+
+.txn-table th {
+  background-color: #e5e7eb; /* a bit darker for header */
+  font-weight: 600;
+}
+
+.txn-table tr:hover td {
+  background-color: #e0e7ff; /* optional hover effect for better UX */
+}
+
+.txn-table th:first-child {
+  width: 250px; /* wider Type column */
+}
+
+/* Optional: status badge styling */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  text-align: center;
+  display: inline-block;
+}
+.status-badge.pending { background-color: orange; }
+.status-badge.paid { background-color: green; }
+.status-badge.cancelled { background-color: red; }
 
 .counter-arrows i {
   font-size: 8px;
@@ -797,7 +841,7 @@ gap:4px;
 }
 
 .sort-arrows{
-right:16px;
+right:6px;
 font-size:8px;
 }
 
@@ -808,7 +852,7 @@ font-size:12px;
 }
 
 </style>
-
+  
 
 @section('title', 'Vyapar — Parties')
 @section('description', 'Manage your business parties, customers, and suppliers in Vyapar accounting software.')
@@ -912,11 +956,11 @@ font-size:12px;
 </li>
    <ul id="partiesList">
   @foreach($parties as $party)
-    <li class="party-item"
-        data-id="{{ $party->id }}"
-        data-name="{{ $party->name }}"
-        data-phone="{{ $party->phone }}"
-        data-email="{{ $party->email }}"
+    <li class="party-item" 
+        data-id="{{ $party->id }}" 
+        data-name="{{ $party->name }}" 
+        data-phone="{{ $party->phone }}" 
+        data-email="{{ $party->email }}" 
         data-billing-address="{{ $party->billing_address }}"
         data-shipping-address="{{ $party->shipping_address }}"
         data-opening-balance="{{ $party->opening_balance }}"
@@ -985,7 +1029,7 @@ font-size:12px;
         <table class="txn-table" id="partyTxnTable">
           <thead>
             <tr>
-           <th>
+           <th style="width:180px">
   <div class="table-main" onclick="toggleSort(this)">
     <span>Type</span>
 
@@ -1036,9 +1080,9 @@ font-size:12px;
   </div>
 </th>
 
-   <th>
+   <th style="width:100px">
   <div class="table-main" onclick="toggleSort(this)">
-    <span>Number</span>
+    <span style="margin-left: -7px"> Number</span>
 
     <div class="sort-arrows">
       <i class="fa-solid fa-sort-up"></i>
@@ -1076,7 +1120,7 @@ font-size:12px;
   </div>
 </th>
 <!-- date -->
-  <th>
+  <th style="width:100px">
   <div class="table-main" onclick="toggleSort(this)">
     <span>Date</span>
 
@@ -1118,7 +1162,7 @@ font-size:12px;
 </th>
 
 <!-- total -->
-    <th>
+    <th style="width:100px">
   <div class="table-main" onclick="toggleSort(this)">
     <span>Total</span>
 
@@ -1161,7 +1205,7 @@ font-size:12px;
 
 <!-- blance -->
 
-    <th>
+    <th style="width:100px">
   <div class="table-main" onclick="toggleSort(this)">
     <span>Balance</span>
 
@@ -1199,6 +1243,15 @@ font-size:12px;
   </div>
 </div>
 
+  </div>
+</th>
+<th style="width:100px">
+  <div class="table-main" onclick="toggleSort(this)">
+    <span>Status</span>
+    <div class="sort-arrows">
+      <i class="fa-solid fa-sort-up"></i>
+      <i class="fa-solid fa-sort-down"></i>
+    </div>
   </div>
 </th>
 
@@ -1358,7 +1411,7 @@ font-size:12px;
               </div>
             </div>
           </div>
-
+          
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
@@ -1499,9 +1552,8 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(res => res.json())
         .then(data => {
+          alert("✅Party Created Successfully!")
             if (data.success) {
-
-              alert("✅ Party created successfully!");
                 const party = data.party;
                 const li = document.createElement("li");
                 li.className = "party-item";
@@ -1516,7 +1568,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 li.dataset.transactionType = party.transaction_type || '';
                 li.dataset.partyType = party.party_type || '';
                 li.dataset.creditLimitEnabled = party.credit_limit_enabled || 0;
-                 li.dataset.customFields = JSON.stringify(party.custom_fields || []);
+                 li.dataset.customFields = JSON.stringify(party.custom_fields || []);  
 
                 li.innerHTML = `
                     <span class="entity-name">${party.name}</span>
@@ -1549,9 +1601,9 @@ document.addEventListener("DOMContentLoaded", function () {
         li.classList.add('active');
 
         currentPartyId = li.dataset.id;
-
+        
         console.log("✅ Party Selected - ID:", currentPartyId);
-
+        
         document.getElementById("partyDetailName").textContent = li.dataset.name || '';
         document.getElementById("partyPhone").textContent = li.dataset.phone || '';
         document.getElementById("partyEmail").textContent = li.dataset.email || '';
@@ -1589,9 +1641,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Transaction type
     if (party.transaction_type === 'receive') {
+       statusBadge = `<span class="badge">Receivable Opening Balance</span>`;
         toReceive.checked = true;
         toPay.checked = false;
     } else if (party.transaction_type === 'pay') {
+      statusBadge = `<span class="badge">Payable Opening Balance</span>`;
         toReceive.checked = false;
         toPay.checked = true;
     } else {
@@ -1608,7 +1662,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ✅ FIX: Additional fields / Custom fields
     const customFieldInputs = document.querySelectorAll('#partyAdditionalPane input[type="text"]');
     const customFieldChecks = document.querySelectorAll('#partyAdditionalPane input[type="checkbox"]');
-
+    
     if (party.custom_fields && Array.isArray(party.custom_fields)) {
         party.custom_fields.forEach((field, index) => {
             if (customFieldInputs[index]) {
@@ -1657,7 +1711,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ✅ UPDATE PARTY
     updateBtn.addEventListener("click", function () {
         console.log("🔄 Update clicked! currentPartyId:", currentPartyId);
-
+        
         if (!currentPartyId) {
             alert("No party selected!");
             return;
@@ -1714,40 +1768,7 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
             alert("❌ Network error: " + err.message);
         });
     });
-
-    // DELETE PARTY
-    deleteBtn.addEventListener("click", function () {
-        if (!currentPartyId) return;
-        if (!confirm("Delete this party?")) return;
-
-
-      fetch(`/dashboard/parties/${currentPartyId}`, {
-    method: "DELETE",
-            headers: {
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-              alert("🗑️ Party deleted successfully!");
-                const li = document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
-                li.remove();
-                document.getElementById("partyDetailName").textContent = "";
-                document.getElementById("partyPhone").textContent = "";
-                document.getElementById("partyEmail").textContent = "";
-                document.getElementById("partyAddress").textContent = "";
-                currentPartyId = null;
-                addModal.hide();
-                resetModal();
-            }
-        })
-        .catch(err => console.error("Delete Error:", err));
-    });
-
-});
-
-// ============ PARTY CLICK → LOAD TRANSACTIONS ============
+    // ============ PARTY CLICK → LOAD TRANSACTIONS ============
 partyList.addEventListener("click", function (e) {
     const li = e.target.closest(".party-item");
     if (!li) return;
@@ -1787,56 +1808,74 @@ function loadPartyTransactions(partyId) {
     fetch(`/dashboard/parties/${partyId}/transactions`)
         .then(res => res.json())
         .then(data => {
-            if (data.success && data.transactions.length > 0) {
-                tbody.innerHTML = '';
+          if (data.success && data.transactions.length > 0) {
+    tbody.innerHTML = '';
 
-                data.transactions.forEach(txn => {
-                    const row = document.createElement('tr');
+    data.transactions.forEach(txn => {
+        const row = document.createElement('tr');
 
-                    // Status badge color
-                    let statusBadge = '';
-                    if (txn.status === 'receive') {
-                        statusBadge = `<span class="badge" style="background:#dcfce7; color:#16a34a; padding:4px 10px; border-radius:12px; font-size:11px;">To Receive</span>`;
-                    } else if (txn.status === 'pay') {
-                        statusBadge = `<span class="badge" style="background:#fee2e2; color:#dc2626; padding:4px 10px; border-radius:12px; font-size:11px;">To Pay</span>`;
-                    } else if (txn.status === 'paid') {
-                        statusBadge = `<span class="badge" style="background:#dbeafe; color:#2563eb; padding:4px 10px; border-radius:12px; font-size:11px;">Paid</span>`;
-                    } else {
-                        statusBadge = `<span class="badge" style="background:#f3f4f6; color:#6b7280; padding:4px 10px; border-radius:12px; font-size:11px;">Unpaid</span>`;
-                    }
+        // Status badge
+        let statusBadge = '';
+        const badgeStyleBase = `
+            color:#6b7280;
+            border-radius:8px;
+            font-size:13px;
+            font-weight:500;
+        `;
+        if (txn.status === 'receive') {
+            statusBadge = `<span class="badge" style="${badgeStyleBase}">To Receive</span>`;
+        } else if (txn.status === 'pay') {
+            statusBadge = `<span class="badge" style="${badgeStyleBase}">To Pay</span>`;
+        } else if (txn.status === 'paid') {
+            statusBadge = `<span class="badge" style="color:#2563eb; border-radius:12px; font-size:13px;">Paid</span>`;
+        } else {
+            statusBadge = `<span class="badge" style="color:#6b7280; border-radius:12px; font-size:13px;">Unpaid</span>`;
+        }
 
-                    // Type badge color
-                    let typeBadge = '';
-                    const typeColors = {
-                        'Sale': { bg: '#dbeafe', color: '#2563eb' },
-                        'Purchase': { bg: '#fef3c7', color: '#d97706' },
-                        'Payment-In': { bg: '#dcfce7', color: '#16a34a' },
-                        'Payment-Out': { bg: '#fee2e2', color: '#dc2626' },
-                        'Credit Note': { bg: '#fce7f3', color: '#db2777' },
-                        'Debit Note': { bg: '#ede9fe', color: '#7c3aed' },
-                    };
-                    const typeStyle = typeColors[txn.type] || { bg: '#f3f4f6', color: '#374151' };
-                    typeBadge = `<span class="badge" style="background:${typeStyle.bg}; color:${typeStyle.color}; padding:4px 10px; border-radius:12px; font-size:11px;">${txn.type}</span>`;
+        // Transaction Type badge
+        let typeText = txn.type === 'pay'
+            ? 'Payable Opening Balance'
+            : txn.type === 'receive'
+                ? 'Receivable Opening Balance'
+                : txn.type;
 
-                    // Balance color
-                    let balanceColor = txn.status === 'receive' ? '#16a34a' : txn.status === 'pay' ? '#dc2626' : '#374151';
+        const typeColors = {
+            'Receivable Opening Balance': { color: 'gray' },
+            'Payable Opening Balance': { color: 'gray' },
+            'Sale': { bg: '#dbeafe', color: '#2563eb' },
+            'Purchase': { bg: '#fef3c7', color: '#d97706' },
+        };
+        const typeStyle = typeColors[typeText] || { bg: '#f3f4f6', color: '#374151' };
 
-                    row.innerHTML = `
-                        <td>${typeBadge}</td>
-                        <td style="font-size:13px;">${txn.number || '-'}</td>
-                        <td style="font-size:13px;">${txn.date}</td>
-                        <td style="font-size:13px;">₹ ${txn.total}</td>
-                        <td style="font-size:13px; font-weight:600; color:${balanceColor};">
-                            ₹ ${txn.balance}
-                            <br>${statusBadge}
-                        </td>
-                    `;
+      typeBadge = `<span style="
+    background:${typeStyle.bg};
+    color:${typeStyle.color};
+    
+    border-radius:12px;
+    font-size:13px;
+    display:inline-block;
+    margin-left:2px;
+   padding-top:12px;
+    white-space: nowrap; /* prevents wrapping */
+"> ${typeText} </span>`;
+        // Balance color
+        let balanceColor = txn.status === 'receive' ? '#16a34a' : txn.status === 'pay' ? '#dc2626' : '#6b7280';
 
-                    tbody.appendChild(row);
-                });
+        // Row HTML with flex inside first <td> to force left alignment
+        row.innerHTML = `
+            <td style="display:flex; justify-content:flex-start; align-items:center;">${typeBadge}</td>
+          <td style="color:#6b7280; font-size:14px;">-</td>
+            <td style="color:#6b7280; font-size:14px;">${txn.date}</td>
+            <td style="color:#6b7280; font-size:14px;">₹ ${txn.total}</td>
+            <td style="color:${balanceColor}; font-size:14px; font-weight:600;">
+                ₹ ${txn.balance}
+                <br>${statusBadge}
+            </td>
+        `;
 
-            } else {
-                // No transactions
+        tbody.appendChild(row);
+    });
+} else{                // No transactions
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="5" class="text-center" style="padding: 40px;">
@@ -1860,5 +1899,37 @@ function loadPartyTransactions(partyId) {
             `;
         });
 }
+
+    // DELETE PARTY
+    deleteBtn.addEventListener("click", function () {
+        if (!currentPartyId) return;
+        if (!confirm("Delete this party?")) return;
+
+       
+      fetch(`/dashboard/parties/${currentPartyId}`, {
+    method: "DELETE",
+            headers: {
+                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+          alert("❌Party Deleted Successfully")
+            if (data.success) {
+                const li = document.querySelector(`.party-item[data-id="${currentPartyId}"]`);
+                li.remove();
+                document.getElementById("partyDetailName").textContent = "";
+                document.getElementById("partyPhone").textContent = "";
+                document.getElementById("partyEmail").textContent = "";
+                document.getElementById("partyAddress").textContent = "";
+                currentPartyId = null;
+                addModal.hide();
+                resetModal();
+            }
+        })
+        .catch(err => console.error("Delete Error:", err));
+    });
+
+});
 </script>
 @endpush
