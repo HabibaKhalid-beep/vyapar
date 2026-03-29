@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
+use App\Models\SalePayment;
 use Illuminate\Http\Request;
 
 class BankAccountController extends Controller
@@ -10,7 +11,12 @@ class BankAccountController extends Controller
     public function index()
     {
         $bankAccounts = BankAccount::orderByDesc('created_at')->get();
-        return view('dashboard.accounts.bank', compact('bankAccounts'));
+        $bankTransactions = SalePayment::with(['sale', 'bankAccount'])
+            ->whereNotNull('bank_account_id')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('dashboard.accounts.bank', compact('bankAccounts', 'bankTransactions'));
     }
 
     public function store(Request $request)
@@ -100,4 +106,3 @@ class BankAccountController extends Controller
         return view('dashboard.accounts.cash-hand');
     }
 }
-

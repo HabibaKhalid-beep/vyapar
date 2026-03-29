@@ -14,13 +14,16 @@ class SaleOrderController extends Controller
     {
         $search = trim((string) $request->get('search', ''));
 
-        $query = Sale::with(['items', 'payments'])
+        $query = Sale::with(['items', 'payments', 'party'])
             ->where('type', 'sale_order')
             ->orderByDesc('created_at');
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search) {
                 $builder->where('party_name', 'like', "%{$search}%")
+                    ->orWhereHas('party', function ($partyQuery) use ($search) {
+                        $partyQuery->where('name', 'like', "%{$search}%");
+                    })
                     ->orWhere('bill_number', 'like', "%{$search}%");
             });
         }
@@ -69,7 +72,7 @@ class SaleOrderController extends Controller
             'source_type' => 'estimate',
             'source_estimate_id' => $sale->id,
             'party_id' => $sale->party_id,
-            'party_name' => $sale->party_name,
+            'party_name' => $sale->display_party_name,
             'phone' => $sale->phone,
             'billing_address' => $sale->billing_address,
             'shipping_address' => $sale->shipping_address,

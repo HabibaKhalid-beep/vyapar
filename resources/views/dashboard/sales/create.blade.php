@@ -499,6 +499,9 @@
         window.saleMethod = 'POST';
         window.editSaleData = null;
         window.sourceEstimateId = null;
+        window.sourceSaleOrderId = null;
+        window.sourceChallanId = null;
+        window.docType = docType;
 
         @if(isset($sale))
             window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
@@ -506,7 +509,9 @@
             window.editSaleData = @json($sale->load(['items', 'payments']));
         @elseif(isset($convertedSaleData))
             window.editSaleData = @json($convertedSaleData);
-            window.sourceEstimateId = @json($convertedSaleData['source_estimate_id']);
+            window.sourceEstimateId = @json($convertedSaleData['source_estimate_id'] ?? null);
+            window.sourceSaleOrderId = @json($convertedSaleData['source_sale_order_id'] ?? null);
+            window.sourceChallanId = @json($convertedSaleData['source_challan_id'] ?? null);
         @endif
     </script>
 

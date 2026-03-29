@@ -9,7 +9,6 @@ class Sale extends Model
     protected $fillable = [
         'type',
         'party_id',
-        'party_name',
         'phone',
         'billing_address',
         'shipping_address',
@@ -52,6 +51,11 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class);
     }
 
+    public function party()
+    {
+        return $this->belongsTo(Party::class);
+    }
+
     public function payments()
     {
         return $this->hasMany(SalePayment::class);
@@ -60,5 +64,30 @@ class Sale extends Model
     public function bankAccount()
     {
         return $this->belongsTo(BankAccount::class);
+    }
+
+    public function challanDetail()
+    {
+        return $this->hasOne(ChallanDetail::class);
+    }
+
+    public function getDisplayPartyNameAttribute(): string
+    {
+        if ($this->relationLoaded('party') && $this->party) {
+            return (string) $this->party->name;
+        }
+
+        if ($this->party_id) {
+            $party = $this->party()->first();
+            if ($party) {
+                return (string) $party->name;
+            }
+        }
+
+        if (!empty($this->party_name) && !is_numeric($this->party_name)) {
+            return (string) $this->party_name;
+        }
+
+        return '-';
     }
 }

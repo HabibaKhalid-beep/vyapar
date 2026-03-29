@@ -253,7 +253,7 @@
     <div class="filter-pill small-pill">
       <select id="salesFirmSelect" class="filter-select text-center">
         <option value="">All Firms</option>
-        @foreach($sales->pluck('party_name')->unique()->filter()->values() as $firm)
+        @foreach($sales->getCollection()->map(fn($sale) => $sale->display_party_name)->unique()->filter(fn($name) => $name !== '-')->values() as $firm)
           <option value="{{ $firm }}">{{ $firm }}</option>
         @endforeach
       </select>
@@ -420,7 +420,7 @@
           <tr>
             <td>{{ \Carbon\Carbon::parse($sale->invoice_date ?? $sale->created_at)->format('d/m/Y') }}</td>
             <td>{{ $sale->bill_number ?? $sale->id }}</td>
-            <td>{{ $sale->party_name ?? '-' }}</td>
+            <td>{{ $sale->display_party_name }}</td>
             <td>Sale</td>
 
             <td>

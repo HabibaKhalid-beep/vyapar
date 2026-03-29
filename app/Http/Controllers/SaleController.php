@@ -13,7 +13,7 @@ class SaleController extends Controller
 {
     public function index()
     {
-        $sales = Sale::with(['payments', 'bankAccount'])
+        $sales = Sale::with(['payments', 'bankAccount', 'party'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -107,6 +107,39 @@ class SaleController extends Controller
         ));
     }
 
+    public function createFromDeliveryChallan(Sale $sale)
+    {
+        if ($sale->type !== 'delivery_challan') {
+            abort(404);
+        }
+
+        if ($sale->status === 'closed') {
+            return redirect()
+                ->route('delivery-challan')
+                ->with('error', 'This delivery challan is already converted to invoice #' . ($sale->reference_id ?? ''));
+        }
+
+        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $items = Item::orderBy('name')->get();
+        $parties = Party::orderBy('name')->get();
+
+        $sale->load(['items']);
+
+        $nextSaleId = (Sale::max('id') ?? 0) + 1;
+        $nextInvoiceNumber = (string) $nextSaleId;
+        $convertedSaleData = $this->mapDeliveryChallanToSaleDraft($sale, $nextInvoiceNumber);
+        $type = 'invoice';
+
+        return view('dashboard.sales.create', compact(
+            'bankAccounts',
+            'items',
+            'parties',
+            'nextInvoiceNumber',
+            'convertedSaleData',
+            'type'
+        ));
+    }
+
 
     public function pos1()
     {
@@ -121,7 +154,7 @@ class SaleController extends Controller
         $parties = Party::orderBy('name')->get();
         $type = $sale->type ?? 'invoice';
 
-        $sale->load(['items', 'payments']);
+        $sale->load(['items', 'payments', 'party']);
 
         // Provide full URLs for existing image/document if stored in the public disk
         if ($sale->image_path) {
@@ -141,8 +174,8 @@ class SaleController extends Controller
             'type' => 'nullable|in:invoice,estimate,sale_order,proforma,delivery_challan,sale_return,pos',
             'source_estimate_id' => 'nullable|exists:sales,id',
             'source_sale_order_id' => 'nullable|exists:sales,id',
+            'source_challan_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
-            'party_name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
@@ -204,7 +237,6 @@ class SaleController extends Controller
         $sale->update([
             'type' => $type,
             'party_id' => $data['party_id'] ?? $sale->party_id,
-            'party_name' => $data['party_name'] ?? null,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
@@ -289,8 +321,8 @@ class SaleController extends Controller
             'type' => 'nullable|in:invoice,estimate,sale_order,proforma,delivery_challan,sale_return,pos',
             'source_estimate_id' => 'nullable|exists:sales,id',
             'source_sale_order_id' => 'nullable|exists:sales,id',
+            'source_challan_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
-            'party_name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
@@ -351,7 +383,6 @@ class SaleController extends Controller
         $sale = Sale::create([
             'type' => $type,
             'party_id' => $data['party_id'] ?? null,
-            'party_name' => $data['party_name'] ?? null,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
@@ -434,6 +465,17 @@ class SaleController extends Controller
                 ]);
 
             $sale->reference_id = $data['source_sale_order_id'];
+            $sale->save();
+        }
+
+        if (!empty($data['source_challan_id'])) {
+            Sale::whereKey($data['source_challan_id'])
+                ->where('type', 'delivery_challan')
+                ->update([
+                    'status' => 'closed',
+                ]);
+
+            $sale->reference_id = $data['source_challan_id'];
             $sale->save();
         }
 
@@ -542,7 +584,7 @@ class SaleController extends Controller
             'source_type' => 'estimate',
             'source_estimate_id' => $estimate->id,
             'party_id' => $estimate->party_id,
-            'party_name' => $estimate->party_name,
+            'party_name' => $estimate->display_party_name,
             'phone' => $estimate->phone,
             'billing_address' => $estimate->billing_address,
             'bill_number' => $nextInvoiceNumber,
@@ -583,7 +625,7 @@ class SaleController extends Controller
             'source_type' => 'sale_order',
             'source_sale_order_id' => $saleOrder->id,
             'party_id' => $saleOrder->party_id,
-            'party_name' => $saleOrder->party_name,
+            'party_name' => $saleOrder->display_party_name,
             'phone' => $saleOrder->phone,
             'billing_address' => $saleOrder->billing_address,
             'shipping_address' => $saleOrder->shipping_address,
@@ -619,6 +661,48 @@ class SaleController extends Controller
         ];
     }
 
+    private function mapDeliveryChallanToSaleDraft(Sale $challan, string $nextInvoiceNumber): array
+    {
+        return [
+            'source_type' => 'delivery_challan',
+            'source_challan_id' => $challan->id,
+            'party_id' => $challan->party_id,
+            'party_name' => $challan->display_party_name,
+            'phone' => $challan->phone,
+            'billing_address' => $challan->billing_address,
+            'shipping_address' => $challan->shipping_address,
+            'bill_number' => $nextInvoiceNumber,
+            'invoice_date' => now()->format('Y-m-d'),
+            'total_qty' => $challan->total_qty,
+            'total_amount' => $challan->total_amount,
+            'discount_pct' => $challan->discount_pct,
+            'discount_rs' => $challan->discount_rs,
+            'tax_pct' => $challan->tax_pct,
+            'tax_amount' => $challan->tax_amount,
+            'round_off' => $challan->round_off,
+            'grand_total' => $challan->grand_total,
+            'received_amount' => 0,
+            'balance' => $challan->grand_total,
+            'status' => 'Unpaid',
+            'description' => $challan->description,
+            'image_path' => $challan->image_path,
+            'items' => $challan->items->map(function ($item) {
+                return [
+                    'item_name' => $item->item_name,
+                    'item_category' => $item->item_category,
+                    'item_code' => $item->item_code,
+                    'item_description' => $item->item_description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'unit_price' => $item->unit_price,
+                    'discount' => $item->discount,
+                    'amount' => $item->amount,
+                ];
+            })->values()->all(),
+            'payments' => [],
+        ];
+    }
+
     private function resolveStatusForType(
         string $type,
         float $receivedAmount,
@@ -630,6 +714,7 @@ class SaleController extends Controller
         $allowedStatuses = match ($type) {
             'estimate' => ['open', 'pending', 'converted'],
             'sale_order' => ['pending', 'confirmed', 'completed'],
+            'delivery_challan' => ['open', 'closed'],
             default => ['Unpaid', 'Partial', 'Paid'],
         };
 
@@ -649,6 +734,10 @@ class SaleController extends Controller
             return 'pending';
         }
 
+        if ($type === 'delivery_challan') {
+            return 'open';
+        }
+
         if ($receivedAmount >= $grandTotal && $grandTotal > 0) {
             return 'Paid';
         }
@@ -659,6 +748,5 @@ class SaleController extends Controller
 
         return 'Unpaid';
     }
-
 
 }

@@ -132,7 +132,7 @@ function initializeForm(context) {
     function populateFormFromSale(sale) {
         // Fill header fields
         const partyOption = $ctx.find('.party-select option').filter(function () {
-            return $(this).text().trim() === (sale.party_name || '');
+            return $(this).val() == (sale.party_id || '');
         }).first();
 
         if (partyOption.length) {
@@ -449,6 +449,7 @@ function initializeForm(context) {
             type: $ctx.find('.doc-type').val() || 'invoice',
             source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
             source_sale_order_id: window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null,
+            source_challan_id: window.sourceChallanId || window.editSaleData?.source_challan_id || null,
             party_id: $ctx.find('.party-select').val() || null,
             party_name: $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',

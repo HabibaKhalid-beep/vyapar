@@ -1,7 +1,7 @@
 @extends('layouts.app')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
- 
+
 /* uper panel styling */
 .uper-panel{
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
@@ -92,7 +92,7 @@
 }
 .header-dropdown-menu {
   position: absolute;
-  top: 100%;      
+  top: 100%;
   left: 0;
   margin-top: 4px;
   background: white;
@@ -119,7 +119,7 @@
 }
 
 .header-dropdown-menu input[type="checkbox"] {
-  accent-color: #0f6fcc; 
+  accent-color: #0f6fcc;
 }
 
 .action-buttons {
@@ -227,7 +227,7 @@
   cursor: pointer;
   font-size: 16px;
 }
- 
+
 
 .btn-icon {
   background: transparent;        /* no full background */
@@ -426,8 +426,8 @@ margin-left:auto;
   display:flex;
   flex-direction:column;
   gap:4px;
-  
-  
+
+
 }
 
 .filter-options label{
@@ -560,7 +560,7 @@ font-size:16px;
 
 .header-icons{
 display:flex;
-align-items:center; 
+align-items:center;
 gap:12px;
 }
 
@@ -713,7 +713,7 @@ opacity:1;
 .entity-name {
   color: #9ca3af;
   font-size: 14px;
- 
+
 }
 /* parent wrapper */
 .parent-arrows{
@@ -892,7 +892,7 @@ function toggleHeaderDropdown(element) {
   const dropdownMenu = element.nextElementSibling;
   const isVisible = dropdownMenu.style.display === 'block';
   dropdownMenu.style.display = isVisible ? 'none' : 'block';
-  
+
   // Optional: rotate arrow
   element.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
 }
@@ -930,7 +930,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 
 
   </script>
-  
+
 @section('title', 'Vyapar — Bank Account')
 @section('description', 'Manage your business parties, customers, and suppliers in Vyapar accounting software.')
 @section('page', 'bank-accounts')
@@ -940,7 +940,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 <!-- uper panel -->
 <div class="uper-panel">
   <div class="panel-main">
-    
+
     <!-- Left: Header + Arrow -->
     <div class="text">
       <div class="header-dropdown">
@@ -1000,7 +1000,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   <i class="fa fa-search"></i>
   <input type="text" class="form-control search-input" placeholder="Search Bank Account" id="bankSearchInput">
 </div>
-       
+
       </div>
       <ul class="entity-list" id="bankList">
         @forelse($bankAccounts as $bank)
@@ -1054,12 +1054,12 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 </div>
         </div>
         <div class="action-buttons">
-         
+
         </div>
       </div>
     <div class="detail-panel-body">
   <div class="table-header">
-    <h6 class="fw-600 mb-3" style="font-size: 14px !important;">Bank Accounts</h6>
+    <h6 class="fw-600 mb-3" style="font-size: 14px !important;">Bank Transactions</h6>
     <div class="header-icons">
       <div class="table-search-box">
         <input type="text" class="form-control form-control-sm" id="tableSearchInput" placeholder="Search table">
@@ -1080,38 +1080,39 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
         <table class="txn-table" id="bankTable">
           <thead>
             <tr>
-              <th>Account Name</th>
+              <th>Type</th>
+              <th>Party</th>
               <th>Bank Name</th>
-              <th>Account Number</th>
-              <th>Opening Balance</th>
-              <th>As of Date</th>
-              <th>Actions</th>
+              <th>Payment Type</th>
+              <th>Date</th>
+              <th>Amount</th>
             </tr>
           </thead>
           <tbody>
-            @forelse($bankAccounts as $bank)
-              <tr data-bank-id="{{ $bank->id }}">
-                <td>{{ $bank->display_name }}</td>
-                <td>{{ $bank->bank_name }}</td>
-                <td>{{ $bank->account_number }}</td>
-                <td class="{{ (float) $bank->opening_balance < 0 ? 'negative' : 'positive' }}">₹ {{ number_format($bank->opening_balance, 2) }}</td>
-                <td>{{ optional($bank->as_of_date)->format('d/m/Y') }}</td>
-                <td>
-                  <div class="action-dropdown">
-                    <button type="button" class="action-toggle" aria-label="Actions">
-                      <i class="fa-solid fa-ellipsis-vertical"></i>
-                    </button>
-                    <div class="action-menu">
-                      <button type="button" class="action-item" data-action="view" data-bank-id="{{ $bank->id }}">View</button>
-                      <button type="button" class="action-item" data-action="edit" data-bank-id="{{ $bank->id }}">Edit</button>
-                      <button type="button" class="action-item" data-action="delete" data-bank-id="{{ $bank->id }}">Delete</button>
-                    </div>
-                  </div>
-                </td>
+            @forelse(($bankTransactions ?? collect()) as $transaction)
+              @php
+                $typeLabel = match($transaction->sale?->type) {
+                    'invoice' => 'Sale Invoice',
+                    'estimate' => 'Estimate',
+                    'sale_order' => 'Sale Order',
+                    'proforma' => 'Proforma',
+                    'delivery_challan' => 'Delivery Challan',
+                    'sale_return' => 'Sale Return',
+                    'pos' => 'POS',
+                    default => ucfirst(str_replace('_', ' ', $transaction->sale?->type ?? 'Unknown')),
+                };
+              @endphp
+              <tr data-bank-id="{{ $transaction->bank_account_id }}">
+                <td>{{ $typeLabel }}</td>
+                <td>{{ $transaction->sale?->display_party_name ?? '-' }}</td>
+                <td>{{ $transaction->bankAccount?->display_name ?? $transaction->bankAccount?->bank_name ?? '-' }}</td>
+                <td>{{ $transaction->payment_type ?? '-' }}</td>
+                <td>{{ optional($transaction->created_at)->format('d/m/Y h:i A') }}</td>
+                <td class="positive">₹ {{ number_format($transaction->amount, 2) }}</td>
               </tr>
             @empty
               <tr>
-                <td colspan="5" class="text-center py-5 text-muted">No bank accounts yet. Add one using the button above.</td>
+                <td colspan="6" class="text-center py-5 text-muted">No payment transactions found yet.</td>
               </tr>
             @endforelse
           </tbody>

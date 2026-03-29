@@ -126,7 +126,7 @@
                 <tr data-estimate-id="{{ $estimate->id }}">
                   <td>{{ $estimate->invoice_date ? $estimate->invoice_date->format('d/m/Y') : '-' }}</td>
                   <td>{{ $estimate->bill_number ?? '-' }}</td>
-                  <td>{{ $estimate->party_name ?? '-' }}</td>
+                  <td>{{ $estimate->display_party_name }}</td>
                   <td>Rs {{ number_format($estimate->items->sum('amount'), 2) }}</td>
                   <td>Rs {{ number_format($estimate->balance ?? $estimate->grand_total ?? 0, 2) }}</td>
                   <td>
