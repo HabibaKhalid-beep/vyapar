@@ -49,6 +49,7 @@ Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.upda
 Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
  Route::get('parties/{party}/transactions', [PartyController::class, 'transactions'])
         ->name('parties.transactions');
+        Route::get('/dashboard/payment-in', [PartyController::class, 'paymentIn'])->name('payment-in');
 
     // User management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -156,6 +157,10 @@ Route::get('/parties', [PartyController::class, 'index'])->name('parties');
     })->name('test.user_sidebar');
 
 });
+
+use App\Http\Controllers\PaymentInController;
+
+Route::post('/payments-in', [PaymentInController::class, 'store']);
 
 require __DIR__.'/auth.php';
 
