@@ -437,10 +437,10 @@
 
     {{-- TOP TABS --}}
     <div class="il-tabs">
-        <div class="il-tab" onclick="window.location.href='/items'">PRODUCTS</div>
-        <div class="il-tab active" onclick="window.location.href='/items/services'">SERVICES</div>
-        <div class="il-tab" onclick="window.location.href='/items/category'">CATEGORY</div>
-        <div class="il-tab" onclick="window.location.href='/items/units'">UNITS</div>
+        <div class="il-tab" onclick="window.location.href='{{ route("items") }}'">PRODUCTS</div>
+        <div class="il-tab active" onclick="window.location.href='{{ route("items.services") }}'">SERVICES</div>
+        <div class="il-tab" onclick="window.location.href='{{ route("items.category") }}'">CATEGORY</div>
+        <div class="il-tab" onclick="window.location.href='{{ route("items.units") }}'">UNITS</div>
     </div>
 
     @if(count($services) === 0)
@@ -458,7 +458,7 @@
             <p style="font-size:14px;color:#6b7280;max-width:420px;line-height:1.65;">
                 Add services you provide to your customers and create Sale invoices for them faster.
             </p>
-            <button onclick="window.location.href='/items/create?type=service'" style="display:inline-flex;align-items:center;background:#f59e0b;color:#fff;border:none;border-radius:6px;padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;">
+            <button onclick="window.location.href='{{ route("items.create") }}?type=service'" style="display:inline-flex;align-items:center;background:#f59e0b;color:#fff;border:none;border-radius:6px;padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;">
                 Add Your First Service
             </button>
         </div>
@@ -493,7 +493,7 @@
                     <svg class="il-search-icon" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
                     <input type="text" class="il-search-input" id="search-input" placeholder="Search services..." oninput="filterItems()"/>
                 </div>
-                <button class="il-add-btn" onclick="window.location.href='/items/create?type=service'">
+                <button class="il-add-btn" onclick="window.location.href='{{ route("items.create") }}?type=service'">
                     <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.8"><path stroke-linecap="round" d="M12 4v16m8-8H4"/></svg>
                     Add Service
                 </button>
@@ -954,7 +954,7 @@ function toggleItemDD(e, i) {
     document.querySelectorAll('.il-item-dd.open').forEach(d => d.classList.remove('open'));
     document.getElementById(`item-dd-${i}`).classList.toggle('open');
 }
-function editItemNav(i) { window.location.href = '/items/' + (allItems[i].id || i) + '/edit'; }
+function editItemNav(i) { window.location.href = '{{ url("dashboard/items") }}/' + (allItems[i].id || i) + '/edit'; }
 
 /* ── Delete modal ── */
 let deleteTargetIdx = null;
@@ -977,7 +977,7 @@ function confirmDelete() {
     const formData = new FormData();
     formData.append('_method', 'DELETE');
     formData.append('_token', csrfToken);
-    fetch(`/items/${item.id}`, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData })
+    fetch(`{{ url("dashboard/items") }}/${item.id}`, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData })
     .then(async r => {
         if (r.ok) {
             allItems.splice(i, 1);

@@ -7,13 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Item extends Model
 {
     protected $fillable = [
-        'name',
-        'unit',
-        'price',
-        'description',
+        'type', 'name', 'category_id', 'unit',
+        'sale_price', 'wholesale_price', 'purchase_price',
+        'opening_qty', 'item_code', 'location', 'min_stock',
     ];
 
-    protected $casts = [
-        'price' => 'decimal:2',
-    ];
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 }

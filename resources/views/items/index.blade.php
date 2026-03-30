@@ -566,7 +566,7 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
     {{-- TOP TABS --}}
     <div class="il-tabs">
         <div class="il-tab active" onclick="switchMainTab('products',this)">PRODUCTS</div>
-        <div class="il-tab" onclick="window.location.href='/items/services'">SERVICES</div>
+        <div class="il-tab" onclick="window.location.href='{{ route("items.services") }}'">SERVICES</div>
         <div class="il-tab" onclick="switchMainTab('category',this)">CATEGORY</div>
         <div class="il-tab" onclick="switchMainTab('units',this)">UNITS</div>
     </div>
@@ -589,7 +589,7 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
             <p style="font-size:14px;color:#6b7280;max-width:420px;line-height:1.65;">
                 Add products you sell to your customers and create Sale invoices for them faster.
             </p>
-            <button onclick="window.location.href='/items/create'" style="display:inline-flex;align-items:center;background:#f59e0b;color:#fff;border:none;border-radius:6px;padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;">
+            <button onclick="window.location.href='{{ route("items.create") }}'" style="display:inline-flex;align-items:center;background:#f59e0b;color:#fff;border:none;border-radius:6px;padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;">
                 Add Your First Product
             </button>
         </div>
@@ -1046,9 +1046,9 @@ function shareVia(method) {
 
 /* ── Main tab switch ── */
 function switchMainTab(tab, el) {
-    if (tab === 'services') { window.location.href = '/items/services'; return; }
-    if (tab === 'category') { window.location.href = '/items/category'; return; }
-    if (tab === 'units') { window.location.href = '/items/units'; return; }
+    if (tab === 'services') { window.location.href = '{{ route("items.services") }}'; return; }
+    if (tab === 'category') { window.location.href = '{{ route("items.category") }}'; return; }
+    if (tab === 'units') { window.location.href = '{{ route("items.units") }}'; return; }
     document.querySelectorAll('.il-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
 }
@@ -1097,7 +1097,7 @@ function toggleItemDD(e, i) {
     document.querySelectorAll('.il-item-dd.open').forEach(d => d.classList.remove('open'));
     document.getElementById(`item-dd-${i}`).classList.toggle('open');
 }
-function editItemNav(i) { window.location.href = '/items/' + (allItems[i].id || i) + '/edit'; }
+function editItemNav(i) { window.location.href = '{{ url("dashboard/items") }}/' + (allItems[i].id || i) + '/edit'; }
 /* ── Delete modal state ── */
 let deleteTargetIdx = null;
 
@@ -1128,7 +1128,7 @@ function confirmDelete() {
     formData.append('_method', 'DELETE');
     formData.append('_token', csrfToken);
 
-    fetch(`/items/${item.id}`, {
+    fetch(`{{ url("dashboard/items") }}/${item.id}`, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         body: formData
@@ -1390,7 +1390,7 @@ function sortByQty() {
     if (arrow) arrow.textContent = sortAsc ? '↑' : '↓';
     renderList(allItems);
 }
-function goToAddItem() { window.location.href = '/items/create'; }
+function goToAddItem() { window.location.href = '{{ route("items.create") }}'; }
 
 /* ── Excel Export ── */
 function exportToExcel() {

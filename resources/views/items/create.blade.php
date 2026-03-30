@@ -654,7 +654,7 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
 let cats=[], selCats=[], baseUnit='', secUnit='';
 
 function loadCats(){
-    fetch('/items/category/list', { headers: { 'Accept': 'application/json' } })
+    fetch('{{ route("items.category.list") }}', { headers: { 'Accept': 'application/json' } })
     .then(r => r.json())
     .then(data => { cats = data; renderCats(); })
     .catch(() => {});
@@ -663,7 +663,7 @@ let wsOpen=false, iType='product', codeN=1000;
 
 /* ─── Page switching ─────────────────────── */
 function goToList(){
-    window.location.href = iType === 'service' ? '/items/services' : '/items';
+    window.location.href = iType === 'service' ? '{{ route("items.services") }}' : '{{ route("items") }}';
 }
 function showToast(msg){
     const t = document.createElement('div');
@@ -748,7 +748,7 @@ function showCatInput(){
 function saveCat(){
     const v = document.getElementById('new-cat-text').value.trim();
     if(!v) return;
-    fetch('/items/category', {
+    fetch('{{ route("items.category.store") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -908,7 +908,7 @@ function resetForm(){
 function saveItem(){
     if(!validate()) return;
     const d = collectData();
-    fetch('/items', {
+    fetch('{{ route("items.store") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -934,7 +934,7 @@ function saveItem(){
 function saveAndNew(){
     if(!validate()) return;
     const d = collectData();
-    fetch('/items', {
+    fetch('{{ route("items.store") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
