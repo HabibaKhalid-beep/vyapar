@@ -20,8 +20,7 @@ class SaleOrderController extends Controller
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search) {
-                $builder->where('party_name', 'like', "%{$search}%")
-                    ->orWhereHas('party', function ($partyQuery) use ($search) {
+                $builder->whereHas('party', function ($partyQuery) use ($search) {
                         $partyQuery->where('name', 'like', "%{$search}%");
                     })
                     ->orWhere('bill_number', 'like', "%{$search}%");

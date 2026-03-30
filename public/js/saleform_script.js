@@ -1,5 +1,6 @@
 function initializeForm(context) {
     const $ctx = $(context);
+    const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
 
     const itemOptionsHtml = (window.items || []).map(item => {
         return `<option value="${item.id}" data-price="${item.price}" data-unit="${item.unit || ''}">${item.name}</option>`;
@@ -131,15 +132,27 @@ function initializeForm(context) {
 
     function populateFormFromSale(sale) {
         // Fill header fields
-        const partyOption = $ctx.find('.party-select option').filter(function () {
-            return $(this).val() == (sale.party_id || '');
-        }).first();
-
-        if (partyOption.length) {
-            partyOption.prop('selected', true);
-            partyOption.trigger('change');
+        if (hasCustomPartyDropdown) {
+            const party = (window.parties || []).find(p => String(p.id) === String(sale.party_id || ''));
+            $ctx.find('.party-id').val(sale.party_id || '');
+            if (party) {
+                $ctx.find('#partyDropdownBtn').text(party.name || 'Select Party');
+                $ctx.find('.phone-input').val(party.phone || sale.phone || '');
+                $ctx.find('.billing-address').val(party.billing_address || sale.billing_address || '');
+            } else {
+                $ctx.find('#partyDropdownBtn').text('Select Party');
+            }
         } else {
-            $ctx.find('.party-select').val('');
+            const partyOption = $ctx.find('.party-select option').filter(function () {
+                return $(this).val() == (sale.party_id || '');
+            }).first();
+
+            if (partyOption.length) {
+                partyOption.prop('selected', true);
+                partyOption.trigger('change');
+            } else {
+                $ctx.find('.party-select').val('');
+            }
         }
 
         $ctx.find('.phone-input').val(sale.phone || '');
@@ -227,12 +240,28 @@ function initializeForm(context) {
         const selectedId = $(this).val();
         const party = (window.parties || []).find(p => String(p.id) === String(selectedId));
         if (party) {
+            $ctx.find('.party-id').val(party.id || '');
             $ctx.find('.phone-input').val(party.phone || '');
             $ctx.find('.billing-address').val(party.billing_address || '');
         } else {
+            $ctx.find('.party-id').val('');
             $ctx.find('.phone-input').val('');
             $ctx.find('.billing-address').val('');
         }
+    });
+
+    $ctx.on('click', '.party-option', function(e) {
+        e.preventDefault();
+        const $option = $(this);
+        const partyId = $option.data('id') || '';
+        const partyName = $.trim($option.find('span').first().text());
+        const phone = $option.data('phone') || '';
+        const billing = $option.data('billing') || '';
+
+        $ctx.find('.party-id').val(partyId);
+        $ctx.find('#partyDropdownBtn').text(partyName || 'Select Party');
+        $ctx.find('.phone-input').val(phone);
+        $ctx.find('.billing-address').val(billing);
     });
 
     // Add row functionality
@@ -450,8 +479,8 @@ function initializeForm(context) {
             source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
             source_sale_order_id: window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null,
             source_challan_id: window.sourceChallanId || window.editSaleData?.source_challan_id || null,
-            party_id: $ctx.find('.party-select').val() || null,
-            party_name: $ctx.find('.party-select option:selected').text() || '',
+            party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
+            party_name: $ctx.find('#partyDropdownBtn').text().trim() || $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
             shipping_address: $ctx.find('.shipping-address').val() || '',

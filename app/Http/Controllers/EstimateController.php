@@ -22,7 +22,6 @@ class EstimateController extends Controller
         if ($search !== '') {
             $baseQuery->where(function ($query) use ($search) {
                 $query->where('bill_number', 'like', "%{$search}%")
-                    ->orWhere('party_name', 'like', "%{$search}%")
                     ->orWhereHas('party', function ($partyQuery) use ($search) {
                         $partyQuery->where('name', 'like', "%{$search}%");
                     });
