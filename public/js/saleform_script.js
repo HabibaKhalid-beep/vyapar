@@ -3,7 +3,7 @@ function initializeForm(context) {
     const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
 
     const itemOptionsHtml = (window.items || []).map(item => {
-        return `<option value="${item.id}" data-price="${item.price}" data-unit="${item.unit || ''}">${item.name}</option>`;
+        return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-unit="${item.unit || ''}">${item.name}</option>`;
     }).join('');
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -332,7 +332,7 @@ function initializeForm(context) {
     $ctx.on('change', '.item-name', function() {
         const $row = $(this).closest('tr');
         const $selected = $(this).find('option:selected');
-        const price = parseFloat($selected.data('price')) || 0;
+        const price = parseFloat($selected.data('price')) || parseFloat($selected.data('sale-price')) || 0;
         const unit = $selected.data('unit') || '';
 
         const $qty = $row.find('.item-qty');
@@ -479,6 +479,7 @@ function initializeForm(context) {
             source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
             source_sale_order_id: window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null,
             source_challan_id: window.sourceChallanId || window.editSaleData?.source_challan_id || null,
+            source_proforma_id: window.sourceProformaId || window.editSaleData?.source_proforma_id || null,
             party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
             party_name: $ctx.find('#partyDropdownBtn').text().trim() || $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',
@@ -749,3 +750,4 @@ function initializeForm(context) {
 
     calculateTotals();
 }
+

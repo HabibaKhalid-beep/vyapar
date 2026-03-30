@@ -111,4 +111,69 @@ class SaleOrderController extends Controller
             'convertedSaleOrderData'
         ));
     }
+
+    public function createFromProforma(Sale $sale)
+    {
+        if ($sale->type !== 'proforma') {
+            abort(404);
+        }
+
+        if ($sale->status === 'converted') {
+            return redirect()
+                ->route('proforma-invoice')
+                ->with('error', 'This proforma is already converted.');
+        }
+
+        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $items = Item::orderBy('name')->get();
+        $parties = Party::orderBy('name')->get();
+        $nextSaleId = (Sale::max('id') ?? 0) + 1;
+        $nextInvoiceNumber = 'SO-' . str_pad($nextSaleId, 4, '0', STR_PAD_LEFT);
+
+        $sale->load(['items']);
+
+        $convertedSaleOrderData = [
+            'source_type' => 'proforma',
+            'source_proforma_id' => $sale->id,
+            'party_id' => $sale->party_id,
+            'party_name' => $sale->display_party_name,
+            'phone' => $sale->phone,
+            'billing_address' => $sale->billing_address,
+            'shipping_address' => $sale->shipping_address,
+            'bill_number' => $nextInvoiceNumber,
+            'order_date' => now()->format('Y-m-d'),
+            'due_date' => now()->format('Y-m-d'),
+            'total_qty' => $sale->total_qty,
+            'total_amount' => $sale->total_amount,
+            'discount_pct' => $sale->discount_pct,
+            'discount_rs' => $sale->discount_rs,
+            'tax_pct' => $sale->tax_pct,
+            'tax_amount' => $sale->tax_amount,
+            'round_off' => $sale->round_off,
+            'grand_total' => $sale->grand_total,
+            'balance' => $sale->grand_total,
+            'items' => $sale->items->map(function ($item) {
+                return [
+                    'item_name' => $item->item_name,
+                    'item_category' => $item->item_category,
+                    'item_code' => $item->item_code,
+                    'item_description' => $item->item_description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'unit_price' => $item->unit_price,
+                    'discount' => $item->discount,
+                    'amount' => $item->amount,
+                ];
+            })->values()->all(),
+            'payments' => [],
+        ];
+
+        return view('dashboard.saleorder.create-sale-order', compact(
+            'bankAccounts',
+            'items',
+            'parties',
+            'nextInvoiceNumber',
+            'convertedSaleOrderData'
+        ));
+    }
 }

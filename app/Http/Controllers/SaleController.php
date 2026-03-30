@@ -140,6 +140,39 @@ class SaleController extends Controller
         ));
     }
 
+    public function createFromProforma(Sale $sale)
+    {
+        if ($sale->type !== 'proforma') {
+            abort(404);
+        }
+
+        if ($sale->status === 'converted') {
+            return redirect()
+                ->route('proforma-invoice')
+                ->with('error', 'This proforma is already converted to sale invoice #' . ($sale->reference_id ?? ''));
+        }
+
+        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $items = Item::orderBy('name')->get();
+        $parties = Party::orderBy('name')->get();
+
+        $sale->load(['items']);
+
+        $nextSaleId = (Sale::max('id') ?? 0) + 1;
+        $nextInvoiceNumber = (string) $nextSaleId;
+        $convertedSaleData = $this->mapProformaToSaleDraft($sale, $nextInvoiceNumber);
+        $type = 'invoice';
+
+        return view('dashboard.sales.create', compact(
+            'bankAccounts',
+            'items',
+            'parties',
+            'nextInvoiceNumber',
+            'convertedSaleData',
+            'type'
+        ));
+    }
+
 
     public function pos1()
     {
@@ -175,6 +208,7 @@ class SaleController extends Controller
             'source_estimate_id' => 'nullable|exists:sales,id',
             'source_sale_order_id' => 'nullable|exists:sales,id',
             'source_challan_id' => 'nullable|exists:sales,id',
+            'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
@@ -329,6 +363,7 @@ if (!empty($item['item_name'])) {
             'source_estimate_id' => 'nullable|exists:sales,id',
             'source_sale_order_id' => 'nullable|exists:sales,id',
             'source_challan_id' => 'nullable|exists:sales,id',
+            'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
@@ -494,9 +529,21 @@ if (!empty($item['item_name'])) {
             $sale->save();
         }
 
+        if (!empty($data['source_proforma_id'])) {
+            Sale::whereKey($data['source_proforma_id'])
+                ->where('type', 'proforma')
+                ->update([
+                    'status' => 'converted',
+                ]);
+
+            $sale->reference_id = $data['source_proforma_id'];
+            $sale->save();
+        }
+
         $redirectUrl = match ($sale->type) {
             'estimate' => route('sale.estimate'),
             'sale_order' => route('sale-order'),
+            'proforma' => route('proforma-invoice'),
             default => route('sale.index'),
         };
 
@@ -718,6 +765,47 @@ if (!empty($item['item_name'])) {
         ];
     }
 
+    private function mapProformaToSaleDraft(Sale $proforma, string $nextInvoiceNumber): array
+    {
+        return [
+            'source_type' => 'proforma',
+            'source_proforma_id' => $proforma->id,
+            'party_id' => $proforma->party_id,
+            'party_name' => $proforma->display_party_name,
+            'phone' => $proforma->phone,
+            'billing_address' => $proforma->billing_address,
+            'bill_number' => $nextInvoiceNumber,
+            'invoice_date' => now()->format('Y-m-d'),
+            'total_qty' => $proforma->total_qty,
+            'total_amount' => $proforma->total_amount,
+            'discount_pct' => $proforma->discount_pct,
+            'discount_rs' => $proforma->discount_rs,
+            'tax_pct' => $proforma->tax_pct,
+            'tax_amount' => $proforma->tax_amount,
+            'round_off' => $proforma->round_off,
+            'grand_total' => $proforma->grand_total,
+            'received_amount' => 0,
+            'balance' => $proforma->grand_total,
+            'status' => 'Unpaid',
+            'description' => $proforma->description,
+            'image_path' => $proforma->image_path,
+            'items' => $proforma->items->map(function ($item) {
+                return [
+                    'item_name' => $item->item_name,
+                    'item_category' => $item->item_category,
+                    'item_code' => $item->item_code,
+                    'item_description' => $item->item_description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'unit_price' => $item->unit_price,
+                    'discount' => $item->discount,
+                    'amount' => $item->amount,
+                ];
+            })->values()->all(),
+            'payments' => [],
+        ];
+    }
+
     private function resolveStatusForType(
         string $type,
         float $receivedAmount,
@@ -728,6 +816,7 @@ if (!empty($item['item_name'])) {
     {
         $allowedStatuses = match ($type) {
             'estimate' => ['open', 'pending', 'converted'],
+            'proforma' => ['open', 'pending', 'converted'],
             'sale_order' => ['pending', 'confirmed', 'completed'],
             'delivery_challan' => ['open', 'closed'],
             default => ['Unpaid', 'Partial', 'Paid'],
@@ -737,11 +826,17 @@ if (!empty($item['item_name'])) {
             return $requestedStatus;
         }
 
-        if ($currentStatus && in_array($currentStatus, $allowedStatuses, true)) {
+        if (in_array($type, ['estimate', 'proforma', 'sale_order', 'delivery_challan'], true)
+            && $currentStatus
+            && in_array($currentStatus, $allowedStatuses, true)) {
             return $currentStatus;
         }
 
         if ($type === 'estimate') {
+            return 'open';
+        }
+
+        if ($type === 'proforma') {
             return 'open';
         }
 

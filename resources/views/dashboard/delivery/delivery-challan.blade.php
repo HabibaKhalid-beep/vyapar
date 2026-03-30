@@ -134,6 +134,7 @@
                   $isOverdue = !$isClosed && $challan->due_date && $challan->due_date->isPast();
                   $convertedInvoice = $convertedInvoices[$challan->id] ?? null;
                   $convertedInvoiceNumber = $convertedInvoice->bill_number ?? null;
+                  $overdueDays = $isOverdue ? max(1, $challan->due_date->copy()->startOfDay()->diffInDays(now()->copy()->startOfDay())) : 0;
                 @endphp
                 <tr>
                   <td>{{ optional($challan->invoice_date)->format('d/m/Y') ?? '-' }}</td>
@@ -142,7 +143,7 @@
                   <td>
                     <div>{{ optional($challan->due_date)->format('d/m/Y') ?? '-' }}</div>
                     @if($isOverdue)
-                      <span class="badge text-bg-light text-secondary mt-1">Overdue: {{ $challan->due_date->diffInDays(now()) }} days</span>
+                      <span class="badge text-bg-light text-secondary mt-1">Overdue: {{ $overdueDays }} {{ $overdueDays === 1 ? 'day' : 'days' }}</span>
                     @endif
                   </td>
                   <td class="text-end fw-semibold">Rs {{ number_format($challan->grand_total ?? 0, 2) }}</td>
@@ -207,3 +208,5 @@
 </body>
 
 </html>
+
+

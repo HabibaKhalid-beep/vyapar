@@ -3,7 +3,7 @@ function initializeForm(context) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const itemOptionsHtml = (window.items || []).map(item => {
-        return `<option value="${item.id}" data-price="${item.price}" data-unit="${item.unit || ''}">${item.name}</option>`;
+        return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-unit="${item.unit || ''}">${item.name}</option>`;
     }).join('');
 
     const today = new Date();
@@ -269,6 +269,7 @@ function initializeForm(context) {
         return {
             type: 'sale_order',
             source_estimate_id: window.sourceEstimateId || null,
+            source_proforma_id: window.sourceProformaId || null,
             party_id: $ctx.find('.party-select').val() || null,
             party_name: $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',
@@ -339,7 +340,7 @@ function initializeForm(context) {
     $ctx.on('change', '.item-name', function() {
         const $row = $(this).closest('tr');
         const $selected = $(this).find('option:selected');
-        const price = parseFloat($selected.data('price')) || 0;
+        const price = parseFloat($selected.data('price')) || parseFloat($selected.data('sale-price')) || 0;
         const unit = $selected.data('unit') || '';
 
         $row.find('.item-qty').val(1);
@@ -510,3 +511,4 @@ function initializeForm(context) {
 
     calculateTotals();
 }
+

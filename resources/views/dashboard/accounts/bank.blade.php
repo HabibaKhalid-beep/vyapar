@@ -536,7 +536,7 @@ table-layout:fixed;
 }
 
 .txn-table tbody tr.active-row {
-  background-color: rgba(15, 111, 204, 0.08);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* table heads */
@@ -1047,7 +1047,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   </div>
 
   <div class="entity-detail-meta">
-    <div class="meta-heading">Opening Balance</div>
+    <div class="meta-heading"> Balance</div>
     <div class="meta-value" id="bankDetailOpeningBalance">₹ {{ number_format(optional($bankAccounts->first())->opening_balance ?? 0, 2) }}</div>
   </div>
 
@@ -1081,6 +1081,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
           <thead>
             <tr>
               <th>Type</th>
+              <th>Invoice No</th>
               <th>Party</th>
               <th>Bank Name</th>
               <th>Payment Type</th>
@@ -1104,6 +1105,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
               @endphp
               <tr data-bank-id="{{ $transaction->bank_account_id }}">
                 <td>{{ $typeLabel }}</td>
+                <td>{{ $transaction->sale?->bill_number ?? '-' }}</td>
                 <td>{{ $transaction->sale?->display_party_name ?? '-' }}</td>
                 <td>{{ $transaction->bankAccount?->display_name ?? $transaction->bankAccount?->bank_name ?? '-' }}</td>
                 <td>{{ $transaction->payment_type ?? '-' }}</td>
@@ -1112,7 +1114,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
               </tr>
             @empty
               <tr>
-                <td colspan="6" class="text-center py-5 text-muted">No payment transactions found yet.</td>
+                <td colspan="7" class="text-center py-5 text-muted">No payment transactions found yet.</td>
               </tr>
             @endforelse
           </tbody>

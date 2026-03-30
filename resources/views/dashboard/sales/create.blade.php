@@ -228,8 +228,10 @@
                                             <select class="form-select item-name">
                                                 <option value="" selected disabled>Select Item</option>
                                                 @foreach($items as $item)
-                                                    <option value="{{ $item->id }}" data-price="{{ $item->sale_price }}"data-unit="{{ $item->unit }}">{{ $item->name }}</option>
-                                                @endforeach
+                                                
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-unit="{{ $item->unit }}">{{ $item->name }}</option>
+
+                                                    @endforeach
                                             </select>
                                         </td>
                                         <td class="col-category d-none"><input type="text" class="item-category"
@@ -483,6 +485,7 @@
     window.sourceEstimateId = null;
     window.sourceSaleOrderId = null;
     window.sourceChallanId = null;
+    window.sourceProformaId = null;
 
     // Optional doc type (avoid JS error)
     window.docType = "{{ $docType ?? 'sale' }}";
@@ -499,6 +502,7 @@
         window.sourceEstimateId = @json($convertedSaleData['source_estimate_id'] ?? null);
         window.sourceSaleOrderId = @json($convertedSaleData['source_sale_order_id'] ?? null);
         window.sourceChallanId = @json($convertedSaleData['source_challan_id'] ?? null);
+        window.sourceProformaId = @json($convertedSaleData['source_proforma_id'] ?? null);
     @endif
 </script>
 
@@ -816,3 +820,4 @@ else {
 </body>
 
 </html>
+

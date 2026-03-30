@@ -187,8 +187,11 @@
 
 .table-wrapper {
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   margin-bottom: 20px;
+  max-height: 68vh;
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
 }
 
 .card-body {
@@ -206,11 +209,28 @@
 
 .table-responsive {
   overflow-x: auto;
-  overflow-y: visible !important;
+  overflow-y: auto !important;
+  max-height: 68vh;
 }
 .pagination-wrapper {
   display: flex;
   justify-content: flex-end;
+}
+
+.custom-table {
+  min-width: 1500px;
+}
+
+.custom-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: #fafafa;
+  white-space: nowrap;
+}
+
+.custom-table tbody td {
+  white-space: nowrap;
 }
 
   </style>

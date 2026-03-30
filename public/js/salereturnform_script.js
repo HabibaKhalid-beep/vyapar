@@ -3,7 +3,7 @@ function initializeForm(context) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const itemOptionsHtml = (window.items || []).map(item => {
-        return `<option value="${item.id}" data-price="${item.price}" data-unit="${item.unit || ''}">${item.name}</option>`;
+        return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-unit="${item.unit || ''}">${item.name}</option>`;
     }).join('');
 
     const today = new Date();
@@ -334,7 +334,7 @@ function initializeForm(context) {
     $ctx.on('change', '.item-name', function() {
         const $row = $(this).closest('tr');
         const $selected = $(this).find('option:selected');
-        const price = parseFloat($selected.data('price')) || 0;
+        const price = parseFloat($selected.data('price')) || parseFloat($selected.data('sale-price')) || 0;
         const unit = $selected.data('unit') || '';
 
         $row.find('.item-qty').val(1);
@@ -505,3 +505,4 @@ function initializeForm(context) {
 
     calculateTotals();
 }
+
