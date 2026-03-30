@@ -460,7 +460,7 @@
     color: #fff; cursor: pointer; font-weight: 600;
 }
 .cfd-clear:hover { background: #f3f4f6; }
-.cfd-apply:hover { background: #c53030; }
+.cfd-apply:hover { background: #4430c5; }
 
 /* ══════════════════════════════
    STOCK ADJUSTMENT MODAL
@@ -565,11 +565,11 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
 
     {{-- TOP TABS --}}
     <div class="il-tabs">
-        <div class="il-tab active" onclick="switchMainTab('products',this)">PRODUCTS</div>
-        <div class="il-tab" onclick="window.location.href='/items/services'">SERVICES</div>
-        <div class="il-tab" onclick="switchMainTab('category',this)">CATEGORY</div>
-        <div class="il-tab" onclick="switchMainTab('units',this)">UNITS</div>
-    </div>
+    <div class="il-tab {{ request()->routeIs('items') ? 'active' : '' }}" onclick="window.location.href='{{ route('items') }}'">PRODUCTS</div>
+    <div class="il-tab {{ request()->routeIs('items.services') ? 'active' : '' }}" onclick="window.location.href='{{ route('items.services') }}'">SERVICES</div>
+    <div class="il-tab {{ request()->routeIs('items.category') ? 'active' : '' }}" onclick="window.location.href='{{ route('items.category') }}'">CATEGORY</div>
+    <div class="il-tab {{ request()->routeIs('items.units') ? 'active' : '' }}" onclick="window.location.href='{{ route('items.units') }}'">UNITS</div>
+</div>
 
     @if(count($products) === 0)
 
@@ -1044,14 +1044,9 @@ function shareVia(method) {
     else if (method === 'sms') { window.open(`sms:?body=Item: ${name}`); }
 }
 
-/* ── Main tab switch ── */
-function switchMainTab(tab, el) {
-   if (tab === 'services') { window.location.href = '{{ route('items.services') }}'; return; }
-if (tab === 'category') { window.location.href = '{{ route('items.category') }}'; return; }
-if (tab === 'units') { window.location.href = '{{ route('items.units') }}'; return; }
-    document.querySelectorAll('.il-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-}
+/* ── Main tab switch (DEPRECATED - No longer used) ── */
+// This function is no longer used. Tabs now use direct navigation with route helpers.
+// Keeping this comment to avoid breaking any references, but the function is empty.
 
 /* ── Search ── */
 function toggleSearch() {
