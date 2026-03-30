@@ -263,16 +263,23 @@ class SaleController extends Controller
         // Replace items (keep payment history intact for edit mode)
         $sale->items()->delete();
         foreach ($data['items'] as $item) {
+           $itemRecord = null;
+if (!empty($item['item_name'])) {
+    $itemRecord = Item::whereRaw('LOWER(TRIM(name)) = ?', [
+        strtolower(trim($item['item_name']))
+    ])->first();
+}
             $sale->items()->create([
-                'item_name' => $item['item_name'] ?? null,
-                'item_category' => $item['item_category'] ?? null,
-                'item_code' => $item['item_code'] ?? null,
+                'item_id'          => $itemRecord?->id,
+                'item_name'        => $item['item_name']        ?? null,
+                'item_category'    => $item['item_category']    ?? null,
+                'item_code'        => $item['item_code']        ?? null,
                 'item_description' => $item['item_description'] ?? null,
-                'quantity' => $item['quantity'] ?? 0,
-                'unit' => $item['unit'] ?? null,
-                'unit_price' => $item['unit_price'] ?? 0,
-                'discount' => $item['discount'] ?? 0,
-                'amount' => $item['amount'] ?? 0,
+                'quantity'         => $item['quantity']         ?? 0,
+                'unit'             => $item['unit']             ?? null,
+                'unit_price'       => $item['unit_price']       ?? 0,
+                'discount'         => $item['discount']         ?? 0,
+                'amount'           => $item['amount']           ?? 0,
             ]);
         }
 
@@ -412,18 +419,26 @@ class SaleController extends Controller
             $sale->save();
         }
 
-        foreach ($data['items'] as $item) {
+       foreach ($data['items'] as $item) {
+          $itemRecord = null;
+if (!empty($item['item_name'])) {
+    $itemRecord = Item::whereRaw('LOWER(TRIM(name)) = ?', [
+        strtolower(trim($item['item_name']))
+    ])->first();
+}
             $sale->items()->create([
-                'item_name' => $item['item_name'] ?? null,
-                'item_category' => $item['item_category'] ?? null,
-                'item_code' => $item['item_code'] ?? null,
+                'item_id'          => $itemRecord?->id,
+                'item_name'        => $item['item_name']        ?? null,
+                'item_category'    => $item['item_category']    ?? null,
+                'item_code'        => $item['item_code']        ?? null,
                 'item_description' => $item['item_description'] ?? null,
-                'quantity' => $item['quantity'] ?? 0,
-                'unit' => $item['unit'] ?? null,
-                'unit_price' => $item['unit_price'] ?? 0,
-                'discount' => $item['discount'] ?? 0,
-                'amount' => $item['amount'] ?? 0,
+                'quantity'         => $item['quantity']         ?? 0,
+                'unit'             => $item['unit']             ?? null,
+                'unit_price'       => $item['unit_price']       ?? 0,
+                'discount'         => $item['discount']         ?? 0,
+                'amount'           => $item['amount']           ?? 0,
             ]);
+        
         }
 
         if (!empty($data['payments']) && is_array($data['payments'])) {

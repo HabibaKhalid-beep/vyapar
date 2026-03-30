@@ -153,6 +153,9 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::put('/items/units/{id}', [ItemController::class, 'updateUnit'])->name('items.units.update');
     Route::delete('/items/units/{id}', [ItemController::class, 'destroyUnit'])->name('items.units.destroy');
 
+ Route::post('/items/{id}/adjust', [ItemController::class, 'adjust'])->name('items.adjust');  // ✅ ADD THIS
+Route::get('/items/{id}/transactions', [ItemController::class, 'transactions'])->name('items.transactions');
+Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::get('/items/{id}/edit', [ItemController::class, 'edit'])->name('items.edit');
     Route::put('/items/{id}', [ItemController::class, 'update'])->name('items.update');
     Route::delete('/items/{id}', [ItemController::class, 'destroy'])->name('items.destroy');
