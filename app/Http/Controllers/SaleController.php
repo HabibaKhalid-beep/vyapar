@@ -140,12 +140,51 @@ class SaleController extends Controller
         ));
     }
 
+    // ── POS METHODS ─────────────────────────────────────────────────────────────
+    // Both pos() and pos1() share the same helper so data is consistent.
 
+    /**
+     * Shared data loader for all POS views.
+     * Passes:
+     *   $items        – all product-type items (for the search/scan bar)
+     *   $parties      – all parties/customers (for the customer dropdown)
+     *   $paymentModes – available payment method names (for the Payment Mode select)
+     */
+    private function posData(): array
+    {
+        $items = Item::where('type', 'product')
+            ->orderBy('name')
+            ->get([
+                'id', 'name', 'item_code', 'unit',
+                'sale_price', 'purchase_price', 'opening_qty',
+            ]);
+
+        $parties = Party::orderBy('name')
+            ->get(['id', 'name', 'phone']);
+
+        // If you have a PaymentMode model, replace the array below with:
+        // $paymentModes = \App\Models\PaymentMode::orderBy('sort_order')->pluck('name')->toArray();
+        $paymentModes = ['Cash', 'Card', 'UPI', 'HBL', 'Credit'];
+
+        return compact('items', 'parties', 'paymentModes');
+    }
+
+    /**
+     * Primary POS route (used by the tab-based POS blade).
+     */
+    public function pos()
+    {
+        return view('dashboard.sales.pos', $this->posData());
+    }
+
+    /**
+     * Alias / legacy POS route – identical data, same view.
+     */
     public function pos1()
     {
-
-        return view('dashboard.sales.pos');
+        return view('dashboard.sales.pos', $this->posData());
     }
+    // ────────────────────────────────────────────────────────────────────────────
 
     public function edit(Sale $sale)
     {
@@ -263,12 +302,12 @@ class SaleController extends Controller
         // Replace items (keep payment history intact for edit mode)
         $sale->items()->delete();
         foreach ($data['items'] as $item) {
-           $itemRecord = null;
-if (!empty($item['item_name'])) {
-    $itemRecord = Item::whereRaw('LOWER(TRIM(name)) = ?', [
-        strtolower(trim($item['item_name']))
-    ])->first();
-}
+            $itemRecord = null;
+            if (!empty($item['item_name'])) {
+                $itemRecord = Item::whereRaw('LOWER(TRIM(name)) = ?', [
+                    strtolower(trim($item['item_name']))
+                ])->first();
+            }
             $sale->items()->create([
                 'item_id'          => $itemRecord?->id,
                 'item_name'        => $item['item_name']        ?? null,
@@ -419,13 +458,13 @@ if (!empty($item['item_name'])) {
             $sale->save();
         }
 
-       foreach ($data['items'] as $item) {
-          $itemRecord = null;
-if (!empty($item['item_name'])) {
-    $itemRecord = Item::whereRaw('LOWER(TRIM(name)) = ?', [
-        strtolower(trim($item['item_name']))
-    ])->first();
-}
+        foreach ($data['items'] as $item) {
+            $itemRecord = null;
+            if (!empty($item['item_name'])) {
+                $itemRecord = Item::whereRaw('LOWER(TRIM(name)) = ?', [
+                    strtolower(trim($item['item_name']))
+                ])->first();
+            }
             $sale->items()->create([
                 'item_id'          => $itemRecord?->id,
                 'item_name'        => $item['item_name']        ?? null,
@@ -438,7 +477,6 @@ if (!empty($item['item_name'])) {
                 'discount'         => $item['discount']         ?? 0,
                 'amount'           => $item['amount']           ?? 0,
             ]);
-        
         }
 
         if (!empty($data['payments']) && is_array($data['payments'])) {
@@ -464,9 +502,7 @@ if (!empty($item['item_name'])) {
         if (!empty($data['source_estimate_id'])) {
             Sale::whereKey($data['source_estimate_id'])
                 ->where('type', 'estimate')
-                ->update([
-                    'status' => 'converted',
-                ]);
+                ->update(['status' => 'converted']);
 
             $sale->reference_id = $data['source_estimate_id'];
             $sale->save();
@@ -475,9 +511,7 @@ if (!empty($item['item_name'])) {
         if (!empty($data['source_sale_order_id'])) {
             Sale::whereKey($data['source_sale_order_id'])
                 ->where('type', 'sale_order')
-                ->update([
-                    'status' => 'completed',
-                ]);
+                ->update(['status' => 'completed']);
 
             $sale->reference_id = $data['source_sale_order_id'];
             $sale->save();
@@ -486,9 +520,7 @@ if (!empty($item['item_name'])) {
         if (!empty($data['source_challan_id'])) {
             Sale::whereKey($data['source_challan_id'])
                 ->where('type', 'delivery_challan')
-                ->update([
-                    'status' => 'closed',
-                ]);
+                ->update(['status' => 'closed']);
 
             $sale->reference_id = $data['source_challan_id'];
             $sale->save();
@@ -506,11 +538,6 @@ if (!empty($item['item_name'])) {
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
         ]);
-    }
-
-    public function pos()
-    {
-        return view('dashboard.sales.pos');
     }
 
     public function destroy(Sale $sale)
@@ -724,8 +751,7 @@ if (!empty($item['item_name'])) {
         float $grandTotal,
         ?string $requestedStatus = null,
         ?string $currentStatus = null
-    ): string
-    {
+    ): string {
         $allowedStatuses = match ($type) {
             'estimate' => ['open', 'pending', 'converted'],
             'sale_order' => ['pending', 'confirmed', 'completed'],
@@ -741,27 +767,13 @@ if (!empty($item['item_name'])) {
             return $currentStatus;
         }
 
-        if ($type === 'estimate') {
-            return 'open';
-        }
+        if ($type === 'estimate') return 'open';
+        if ($type === 'sale_order') return 'pending';
+        if ($type === 'delivery_challan') return 'open';
 
-        if ($type === 'sale_order') {
-            return 'pending';
-        }
-
-        if ($type === 'delivery_challan') {
-            return 'open';
-        }
-
-        if ($receivedAmount >= $grandTotal && $grandTotal > 0) {
-            return 'Paid';
-        }
-
-        if ($receivedAmount > 0 && $receivedAmount < $grandTotal) {
-            return 'Partial';
-        }
+        if ($receivedAmount >= $grandTotal && $grandTotal > 0) return 'Paid';
+        if ($receivedAmount > 0 && $receivedAmount < $grandTotal) return 'Partial';
 
         return 'Unpaid';
     }
-
 }
