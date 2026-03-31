@@ -182,24 +182,28 @@ public function createFromProforma(Sale $sale)
      *   $parties      – all parties/customers (for the customer dropdown)
      *   $paymentModes – available payment method names (for the Payment Mode select)
      */
-    private function posData(): array
-    {
-        $items = Item::where('type', 'product')
-            ->orderBy('name')
-            ->get([
-                'id', 'name', 'item_code', 'unit',
-                'sale_price', 'purchase_price', 'opening_qty',
-            ]);
+private function posData(): array
+{
+    $items = Item::where('type', 'product')
+        ->orderBy('name')
+        ->get([
+            'id', 'name', 'item_code', 'unit',
+            'sale_price', 'purchase_price', 'opening_qty',
+        ]);
 
-        $parties = Party::orderBy('name')
-            ->get(['id', 'name', 'phone']);
+    $parties = Party::orderBy('name')
+        ->get(['id', 'name', 'phone']);
 
-        // If you have a PaymentMode model, replace the array below with:
-        // $paymentModes = \App\Models\PaymentMode::orderBy('sort_order')->pluck('name')->toArray();
-        $paymentModes = ['Cash', 'Card', 'UPI', 'HBL', 'Credit'];
+    $bankAccounts = BankAccount::orderBy('display_name')->get();
 
-        return compact('items', 'parties', 'paymentModes');
-    }
+    $paymentModes = collect(['Cash', 'Card', 'UPI', 'Credit'])
+        ->merge($bankAccounts->pluck('display_name'))
+        ->unique()
+        ->values()
+        ->all();
+
+    return compact('items', 'parties', 'paymentModes', 'bankAccounts');
+}
 
     /**
      * Primary POS route (used by the tab-based POS blade).

@@ -293,7 +293,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
 
 <!-- TAB BAR -->
 <div class="tab-bar" id="tab-strip">
-  <div class="tab active" id="tab-1">
+  <div class="tab active" id="tab-1" onclick="activateTab(1)">
     <span>#1</span>
     <span style="font-size:11px;color:#999">Ctrl+W</span>
     <button class="close-x" onclick="closeTab(1,event)">✕</button>
@@ -403,7 +403,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
           <input type="text" id="cust-in"
             placeholder="Search for a customer by name, phone number [F11]"
             oninput="filterCust(this.value)"
-            onfocus="openCustDd()"
+           
             autocomplete="off"/>
           <div class="cust-dd" id="cust-dd">
             <div class="add-new" onclick="openAddCustomer()">➕ Add New Customer</div>
@@ -815,7 +815,8 @@ let PARTIES = @json($parties ?? []);
 
 // ── PAYMENT MODES from Laravel controller ──
 // FIX 4: SaleController::pos() should pass $paymentModes = PaymentMode::pluck('name') or similar
-const PAYMENT_MODES = {{ Illuminate\Support\Js::from($paymentModes ?? ['Cash','Card','UPI','HBL','Credit']) }};
+const BANK_ACCOUNTS = @json($bankAccounts ?? []);
+const PAYMENT_MODES = @json($paymentModes ?? []);
 
 // ── BOOT ──
 (async function bootData() {
@@ -835,17 +836,79 @@ let selRow       = -1;
 let billDiscount = 0;
 let remarks      = '';
 let tabCount     = 1;
+let activeTabId = 1;
+const TAB_STATES = {};
+
+function saveTabState(tabId) {
+  TAB_STATES[tabId] = {
+    billItems:         JSON.parse(JSON.stringify(billItems)),
+    selRow:            selRow,
+    billDiscount:      billDiscount,
+    additionalCharges: additionalCharges,
+    remarks:           remarks,
+    selectedPartyId:   selectedPartyId,
+    selectedPartyName: selectedPartyName,
+    selectedDate:      new Date(selectedDate.getTime()),
+    custInValue:       document.getElementById('cust-in').value,
+    amtRecvValue:      document.getElementById('amt-recv').value,
+    payMode:           document.getElementById('pay-mode').value,
+  };
+}
+
+function loadTabState(tabId) {
+  const s = TAB_STATES[tabId];
+  if (!s) {
+    billItems         = [];
+    selRow            = -1;
+    billDiscount      = 0;
+    additionalCharges = 0;
+    remarks           = '';
+    selectedPartyId   = null;
+    selectedPartyName = 'Walk-in Customer';
+    selectedDate      = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    document.getElementById('cust-in').value  = '';
+    document.getElementById('amt-recv').value = '0.00';
+    document.getElementById('pay-mode').value = document.getElementById('pay-mode').options[0]?.value || '';
+  } else {
+    billItems         = JSON.parse(JSON.stringify(s.billItems));
+    selRow            = s.selRow;
+    billDiscount      = s.billDiscount;
+    additionalCharges = s.additionalCharges;
+    remarks           = s.remarks;
+    selectedPartyId   = s.selectedPartyId;
+    selectedPartyName = s.selectedPartyName;
+    selectedDate      = new Date(s.selectedDate.getTime());
+    document.getElementById('cust-in').value  = s.custInValue;
+    document.getElementById('amt-recv').value = s.amtRecvValue;
+    document.getElementById('pay-mode').value = s.payMode;
+  }
+  renderBill();
+  updateDateDisplay();
+  renderCal();
+}
 let selectedPartyId   = null;
 let selectedPartyName = 'Walk-in Customer';
 
 const today = new Date();
 let calDate      = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 let selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 // ── INIT ──
 renderCal();
 updateDateDisplay();
 renderBill();
+document.getElementById('cust-in').addEventListener('click', function(e) {
+  e.stopPropagation();
+  filterCust(this.value);
+  document.getElementById('cust-dd').classList.add('open');
+});
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.cust-wrap')) {
+    document.getElementById('cust-dd').classList.remove('open');
+  }
+});
 
 // ── SEARCH ──
 function doSearch(q) {
@@ -881,7 +944,8 @@ function searchKey(e) {
 
 document.addEventListener('click', e => {
   if (!e.target.closest('.search-inner')) document.getElementById('search-dd').classList.remove('open');
-  if (!e.target.closest('.cust-wrap'))    document.getElementById('cust-dd').classList.remove('open');
+  if (!e.target.closest('.cust-wrap') && !e.target.closest('#cust-dd'))    
+    document.getElementById('cust-dd').classList.remove('open');
   if (!e.target.closest('.date-row') && !e.target.closest('.cal-pop'))
     document.getElementById('cal-pop').classList.remove('open');
 });
@@ -962,6 +1026,7 @@ function updateSummary() {
   document.getElementById('sum-total').textContent = `Total Rs ${total.toFixed(2)}`;
   document.getElementById('sum-meta').textContent  = `Items: ${items} , Quantity: ${qty}`;
   calcChange();
+    onPayModeChange();
 }
 
 function calcChange() {
@@ -975,7 +1040,8 @@ function onPayModeChange() {
   if (mode === 'Credit') {
     document.getElementById('amt-recv').value = '0.00';
   } else {
-    document.getElementById('amt-recv').value = getTotal().toFixed(2);
+    const total = getTotal();
+    document.getElementById('amt-recv').value = total > 0 ? total.toFixed(2) : '0.00';
   }
   calcChange();
 }
@@ -999,13 +1065,14 @@ function doSaveBill() {
     amount:       rowTotal(it),
   }));
 
-  const paymentsPayload = recv > 0 ? [{
+const bankAcc = BANK_ACCOUNTS.find(b => b.display_name === payMode);
+
+const paymentsPayload = recv > 0 ? [{
     payment_type:    payMode,
-    bank_account_id: null,
+    bank_account_id: bankAcc ? bankAcc.id : null,
     amount:          recv,
     reference:       '',
-  }] : [];
-
+}] : [];
   const payload = {
     type:         'pos',
     party_id:     selectedPartyId || null,
@@ -1443,7 +1510,7 @@ function saveCustomer() {
 }
 
 // ── CALENDAR ──
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 
 function toggleCal() {
   const pop = document.getElementById('cal-pop');
@@ -1485,6 +1552,7 @@ function updateDateDisplay() {
 
 // ── TABS ──
 function addTab() {
+  saveTabState(activeTabId);
   tabCount++;
   const strip  = document.getElementById('tab-strip');
   const newBtn = strip.querySelector('.new-tab-btn');
@@ -1494,16 +1562,21 @@ function addTab() {
   t.innerHTML  = `<span>#${tabCount}</span>
     <span style="font-size:11px;color:#999">Ctrl+W</span>
     <button class="close-x" onclick="closeTab(${tabCount},event)">✕</button>`;
-  t.onclick    = () => activateTab(tabCount);
+ t.onclick = (function(id){ return function(){ activateTab(id); }; })(tabCount);
   strip.insertBefore(t, newBtn);
-  activateTab(tabCount);
+  activeTabId = tabCount;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tabCount}`).classList.add('active');
   resetBill();
   toast('New Bill opened');
 }
 function activateTab(n) {
+  saveTabState(activeTabId);
+  activeTabId = n;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const t = document.getElementById(`tab-${n}`);
   if (t) t.classList.add('active');
+  loadTabState(n);
 }
 function closeTab(n, e) {
   if (e) e.stopPropagation();
