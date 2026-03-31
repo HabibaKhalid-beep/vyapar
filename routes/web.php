@@ -17,6 +17,7 @@ use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PaymentInController;
+use App\Http\Controllers\PerfomaController;
 use Illuminate\Support\Facades\Route;
 
 // Default landing page
@@ -77,8 +78,21 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
     // Sale Sections
     Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
-    Route::get('/proforma-invoice', [SaleSectionController::class, 'proformaInvoice'])->name('proforma-invoice');
 
+
+
+    Route::get('/proforma-invoice', [PerfomaController::class, 'proformaInvoice'])->name('proforma-invoice');
+    Route::get('/proforma-invoice/create', [PerfomaController::class, 'createProformaInvoice'])->name('proforma-invoice.create');
+    Route::post('/proforma-invoice', [PerfomaController::class, 'store'])->name('proforma-invoice.store');
+    Route::get('/proforma-invoice/{sale}/edit', [PerfomaController::class, 'edit'])->name('proforma-invoice.edit');
+    Route::put('/proforma-invoice/{sale}', [PerfomaController::class, 'update'])->name('proforma-invoice.update');
+    Route::delete('/proforma-invoice/{sale}', [PerfomaController::class, 'destroy'])->name('proforma-invoice.destroy');
+    Route::get('/proforma-invoice/{sale}/preview', [PerfomaController::class, 'preview'])->name('proforma-invoice.preview');
+    Route::get('/proforma-invoice/{sale}/print', [PerfomaController::class, 'print'])->name('proforma-invoice.print');
+    Route::get('/proforma-invoice/{sale}/pdf', [PerfomaController::class, 'pdf'])->name('proforma-invoice.pdf');
+    Route::get('/proforma-invoice/{sale}/duplicate', [PerfomaController::class, 'duplicate'])->name('proforma-invoice.duplicate');
+    Route::get('/proforma-invoice/{sale}/convert-to-sale', [SaleController::class, 'createFromProforma'])->name('proforma-invoice.convert-to-sale');
+    Route::get('/proforma-invoice/{sale}/convert-to-sale-order', [SaleOrderController::class, 'createFromProforma'])->name('proforma-invoice.convert-to-sale-order');
     // Sale Return
     Route::get('/sale-return', [SaleReturnController::class, 'saleReturn'])->name('sale-return');
     Route::get('/sale-return/create', [SaleReturnController::class, 'salereturncreate'])->name('sale-return.create');

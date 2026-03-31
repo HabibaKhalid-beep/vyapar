@@ -5,7 +5,6 @@
  */
 
 $(document).ready(function () {
-  const storageKey = 'vyaparSearchTerm';
   const $input = $('#searchTransactionsInput');
   const $dropdowns = $('.sale-dropdown');
 
@@ -25,19 +24,6 @@ $(document).ready(function () {
   // Global search term and column-specific filters
   let globalSearch = '';
   const columnFilters = {};
-
-  function getSearchTerm() {
-    return localStorage.getItem(storageKey) || '';
-  }
-
-  function setSearchTerm(value) {
-    const trimmed = (value || '').trim();
-    if (trimmed) {
-      localStorage.setItem(storageKey, trimmed);
-    } else {
-      localStorage.removeItem(storageKey);
-    }
-  }
 
   function parseDateDMY(value) {
     const parts = (value || '').split('/');
@@ -170,8 +156,8 @@ $(document).ready(function () {
   }
 
   // Initialize
-  globalSearch = getSearchTerm();
-  $input.val(globalSearch);
+  globalSearch = '';
+  $input.val('');
 
   // Helper to toggle between the display span and the custom date inputs
   function setCustomMode(isCustom) {
@@ -208,7 +194,6 @@ $(document).ready(function () {
 
   $input.on('input', function () {
     const val = $(this).val();
-    setSearchTerm(val);
     filterTransactions(val);
   });
 

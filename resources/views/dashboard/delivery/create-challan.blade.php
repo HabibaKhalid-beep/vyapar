@@ -153,7 +153,7 @@
                                             <select class="form-select item-name">
                                                 <option value="" selected disabled>Select Item</option>
                                                 @foreach($items as $item)
-                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-unit="{{ $item->unit }}">{{ $item->name }}</option>
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-unit="{{ $item->unit }}">{{ $item->name }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
@@ -393,3 +393,4 @@
 
 
 </html>
+
