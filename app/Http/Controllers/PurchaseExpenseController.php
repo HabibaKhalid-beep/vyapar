@@ -17,10 +17,6 @@ class PurchaseExpenseController extends Controller
 
 
 
-    public function expense()
-    {
-        return view('dashboard.purchases.expense');
-    }
 
     public function purchaseReturn()
     {

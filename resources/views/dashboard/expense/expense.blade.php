@@ -33,7 +33,7 @@
     console.log('App initialized:', window.App);
   </script>
 
-  
+
   <style>
     #searchBox {
       display: flex;
@@ -111,8 +111,13 @@
             <span class="search-icon"><i class="bi bi-search"></i></span>
             <input type="text" class="search-input" placeholder="Search...">
           </div>
-          <button class="other-btn btn rounded-pill" style="background-color:#ED1A3B;"><span
-              class="bg-white text-danger rounded-circle" style="padding: 0px 4px;">+</span> Add Expense</button>
+          <button class="other-btn btn rounded-pill"
+    style="background-color:#ED1A3B;"
+    onclick="window.location.href='{{ route('expense.create') }}'">
+
+    <span class="bg-white text-danger rounded-circle" style="padding: 0px 4px;">+</span>
+    Add Expense
+</button>
         </div>
         <ul class="entity-list" id="purchaseReturnList">
           <li data-note="dn-001">

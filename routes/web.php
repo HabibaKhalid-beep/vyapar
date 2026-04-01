@@ -20,7 +20,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\PaymentInController;
 use App\Http\Controllers\PerfomaController;
 use App\Http\Controllers\PurchaseOrderController;
-
+use App\Http\Controllers\ExpenseCreateController;
 use Illuminate\Support\Facades\Route;
 
 // Default landing page
@@ -177,6 +177,18 @@ Route::get('purchase-order/create', [PurchaseOrderController::class, 'create'])-
     Route::get('/payment-out', [PurchaseExpenseController::class, 'paymentOut'])->name('payment-out');
     Route::get('expense', [PurchaseExpenseController::class, 'expense'])->name('expense');
     Route::get('purchase-return', [PurchaseExpenseController::class, 'purchaseReturn'])->name('purchase-return');
+
+
+
+
+
+
+    Route::get('expense', [ExpenseCreateController::class, 'expense'])->name('expense');
+Route::get('expense/create', [ExpenseCreateController::class, 'createExpense'])->name('expense.create');
+
+
+
+
 
     // Items — static routes BEFORE wildcard {id} routes
     Route::get('/items', [ItemController::class, 'index'])->name('items');
