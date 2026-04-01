@@ -964,14 +964,15 @@ font-size:12px;
         data-billing-address="{{ $party->billing_address }}"
         data-shipping-address="{{ $party->shipping_address }}"
         data-opening-balance="{{ $party->opening_balance }}"
+        data-current-balance="{{ $party->current_balance }}"
         data-as-of-date="{{ $party->as_of_date }}"
         data-transaction-type="{{ $party->transaction_type }}"
         data-party-type="{{ $party->party_type }}"
         data-credit-limit-enabled="{{ $party->credit_limit_enabled }}"
         data-custom-fields="{{ json_encode($party->custom_fields ?? []) }}">
       <span class="entity-name">{{ $party->name }}</span>
-      <span class="entity-balance {{ $party->opening_balance < 0 ? 'negative' : 'positive' }}">
-        ₹ {{ number_format($party->opening_balance, 2) }}
+      <span class="entity-balance {{ $party->current_balance < 0 ? 'negative' : 'positive' }}">
+        Rs {{ number_format($party->current_balance, 2) }}
       </span>
     </li>
   @endforeach
@@ -1546,33 +1547,40 @@ document.addEventListener("DOMContentLoaded", function () {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json",
                 "X-CSRF-TOKEN": "{{ csrf_token() }}"
             },
             body: JSON.stringify(partyData)
         })
-        .then(res => res.json())
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || "Unable to save party.");
+            }
+            return data;
+        })
         .then(data => {
-          alert("✅Party Created Successfully!")
             if (data.success) {
                 const party = data.party;
                 const li = document.createElement("li");
                 li.className = "party-item";
                 li.dataset.id = party.id;
                 li.dataset.name = party.name;
-                li.dataset.phone = party.phone || '';
-                li.dataset.email = party.email || '';
-                li.dataset.billingAddress = party.billing_address || '';
-                li.dataset.shippingAddress = party.shipping_address || '';
+                li.dataset.phone = party.phone || "";
+                li.dataset.email = party.email || "";
+                li.dataset.billingAddress = party.billing_address || "";
+                li.dataset.shippingAddress = party.shipping_address || "";
                 li.dataset.openingBalance = party.opening_balance || 0;
-                li.dataset.asOfDate = party.as_of_date || '';
-                li.dataset.transactionType = party.transaction_type || '';
-                li.dataset.partyType = party.party_type || '';
+                li.dataset.currentBalance = party.current_balance || 0;
+                li.dataset.asOfDate = party.as_of_date || "";
+                li.dataset.transactionType = party.transaction_type || "";
+                li.dataset.partyType = party.party_type || "";
                 li.dataset.creditLimitEnabled = party.credit_limit_enabled || 0;
-                 li.dataset.customFields = JSON.stringify(party.custom_fields || []);  
+                li.dataset.customFields = JSON.stringify(party.custom_fields || []);
 
                 li.innerHTML = `
                     <span class="entity-name">${party.name}</span>
-                    <span class="entity-balance">₹ ${parseFloat(party.opening_balance || 0).toFixed(2)}</span>
+                    <span class="entity-balance">Rs ${parseFloat(party.current_balance || 0).toFixed(2)}</span>
                 `;
 
                 partyList.prepend(li);
@@ -1583,9 +1591,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else {
                     document.getElementById("addPartyForm").reset();
                 }
+
+                alert("Party created successfully!");
             }
         })
-        .catch(err => console.error("Add Party Error:", err));
+        .catch(err => {
+            console.error("Add Party Error:", err);
+            alert(err.message || "Unable to save party.");
+        });
     }
 
     saveBtn.addEventListener("click", () => addParty(true));
@@ -1743,13 +1756,14 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
                 li.dataset.billingAddress = partyData.billing_address;
                 li.dataset.shippingAddress = partyData.shipping_address;
                 li.dataset.openingBalance = partyData.opening_balance;
+                li.dataset.currentBalance = data.party.current_balance || partyData.opening_balance || 0;
                 li.dataset.asOfDate = partyData.as_of_date;
                 li.dataset.partyType = partyData.party_type;
                 li.dataset.creditLimitEnabled = partyData.credit_limit_enabled;
                 li.dataset.transactionType = partyData.transaction_type;
 
                 li.querySelector(".entity-name").textContent = partyData.name;
-                li.querySelector(".entity-balance").textContent = "₹ " + parseFloat(partyData.opening_balance || 0).toFixed(2);
+                li.querySelector(".entity-balance").textContent = "Rs " + parseFloat(data.party.current_balance || partyData.opening_balance || 0).toFixed(2);
 
                 document.getElementById("partyDetailName").textContent = partyData.name;
                 document.getElementById("partyPhone").textContent = partyData.phone;
@@ -1826,10 +1840,12 @@ function loadPartyTransactions(partyId) {
             statusBadge = `<span class="badge" style="${badgeStyleBase}">To Receive</span>`;
         } else if (txn.status === 'pay') {
             statusBadge = `<span class="badge" style="${badgeStyleBase}">To Pay</span>`;
-        } else if (txn.status === 'paid') {
+        } else if (['paid', 'completed', 'closed', 'converted'].includes((txn.status || '').toLowerCase())) {
             statusBadge = `<span class="badge" style="color:#2563eb; border-radius:12px; font-size:13px;">Paid</span>`;
+        } else if (['partial', 'pending', 'confirmed'].includes((txn.status || '').toLowerCase())) {
+            statusBadge = `<span class="badge" style="color:#d97706; border-radius:12px; font-size:13px;">${txn.status}</span>`;
         } else {
-            statusBadge = `<span class="badge" style="color:#6b7280; border-radius:12px; font-size:13px;">Unpaid</span>`;
+            statusBadge = `<span class="badge" style="color:#6b7280; border-radius:12px; font-size:13px;">${txn.status || 'Open'}</span>`;
         }
 
         // Transaction Type badge
@@ -1844,6 +1860,12 @@ function loadPartyTransactions(partyId) {
             'Payable Opening Balance': { color: 'gray' },
             'Sale': { bg: '#dbeafe', color: '#2563eb' },
             'Purchase': { bg: '#fef3c7', color: '#d97706' },
+            'Estimate': { bg: '#fef3c7', color: '#d97706' },
+            'Sale Order': { bg: '#e0f2fe', color: '#0369a1' },
+            'Proforma Invoice': { bg: '#ede9fe', color: '#7c3aed' },
+            'Delivery Challan': { bg: '#dcfce7', color: '#15803d' },
+            'Credit Note': { bg: '#fee2e2', color: '#dc2626' },
+            'POS': { bg: '#fce7f3', color: '#be185d' },
         };
         const typeStyle = typeColors[typeText] || { bg: '#f3f4f6', color: '#374151' };
 
@@ -1864,13 +1886,49 @@ function loadPartyTransactions(partyId) {
         // Row HTML with flex inside first <td> to force left alignment
         row.innerHTML = `
             <td style="display:flex; justify-content:flex-start; align-items:center;">${typeBadge}</td>
-          <td style="color:#6b7280; font-size:14px;">-</td>
+          <td style="color:#6b7280; font-size:14px;">${txn.number || '-'}</td>
             <td style="color:#6b7280; font-size:14px;">${txn.date}</td>
             <td style="color:#6b7280; font-size:14px;">₹ ${txn.total}</td>
             <td style="color:${balanceColor}; font-size:14px; font-weight:600;">
                 ₹ ${txn.balance}
                 <br>${statusBadge}
             </td>
+        `;
+
+        const normalizedStatusText = (txn.status || '').toLowerCase();
+        const cleanStatusBadge = normalizedStatusText === 'receive'
+            ? `<span style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:#ecfdf5;color:#15803d;font-size:12px;font-weight:600;">To Receive</span>`
+            : normalizedStatusText === 'pay'
+                ? `<span style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:#fef2f2;color:#dc2626;font-size:12px;font-weight:600;">To Pay</span>`
+                : ['paid', 'completed', 'closed', 'converted'].includes(normalizedStatusText)
+                    ? `<span style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:#ecfdf5;color:#15803d;font-size:12px;font-weight:600;">Paid</span>`
+                    : ['partial', 'pending', 'confirmed'].includes(normalizedStatusText)
+                        ? `<span style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:#fff7ed;color:#d97706;font-size:12px;font-weight:600;text-transform:capitalize;">${txn.status}</span>`
+                        : `<span style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:12px;font-weight:600;text-transform:capitalize;">${txn.status || 'Open'}</span>`;
+
+        const cleanTypeColors = {
+            'Receivable Opening Balance': { bg: '#f8fafc', color: '#475569' },
+            'Payable Opening Balance': { bg: '#f8fafc', color: '#475569' },
+            'Sale': { bg: '#eff6ff', color: '#2563eb' },
+            'Purchase': { bg: '#fffbeb', color: '#d97706' },
+            'Estimate': { bg: '#fff7ed', color: '#ea580c' },
+            'Sale Order': { bg: '#ecfeff', color: '#0891b2' },
+            'Proforma Invoice': { bg: '#f5f3ff', color: '#7c3aed' },
+            'Delivery Challan': { bg: '#ecfdf5', color: '#15803d' },
+            'Credit Note': { bg: '#fef2f2', color: '#dc2626' },
+            'POS': { bg: '#fdf2f8', color: '#be185d' },
+        };
+        const cleanTypeStyle = cleanTypeColors[typeText] || { bg: '#f8fafc', color: '#334155' };
+        const cleanTypeBadge = `<span style="display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:${cleanTypeStyle.bg};color:${cleanTypeStyle.color};font-size:12px;font-weight:600;white-space:nowrap;">${typeText}</span>`;
+        const cleanBalanceColor = normalizedStatusText === 'receive' ? '#16a34a' : normalizedStatusText === 'pay' ? '#dc2626' : '#475569';
+
+        row.innerHTML = `
+            <td style="background:#fff;color:#334155;font-size:14px;padding:14px 16px;border-bottom:1px solid #eef2f7;">${cleanTypeBadge}</td>
+            <td style="background:#fff;color:#64748b;font-size:14px;padding:14px 16px;border-bottom:1px solid #eef2f7;">${txn.number || '-'}</td>
+            <td style="background:#fff;color:#64748b;font-size:14px;padding:14px 16px;border-bottom:1px solid #eef2f7;">${txn.date}</td>
+            <td style="background:#fff;color:#475569;font-size:14px;padding:14px 16px;border-bottom:1px solid #eef2f7;font-weight:500;">Rs ${txn.total}</td>
+            <td style="background:#fff;color:${cleanBalanceColor};font-size:14px;padding:14px 16px;border-bottom:1px solid #eef2f7;font-weight:600;">Rs ${txn.balance}</td>
+            <td style="background:#fff;padding:14px 16px;border-bottom:1px solid #eef2f7;">${cleanStatusBadge}</td>
         `;
 
         tbody.appendChild(row);
@@ -1933,3 +1991,4 @@ function loadPartyTransactions(partyId) {
 });
 </script>
 @endpush
+

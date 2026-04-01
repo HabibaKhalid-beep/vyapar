@@ -133,7 +133,8 @@
 
       <!-- Modal Body -->
       <div class="modal-body">
-        <form id="paymentInForm">
+        <form id="paymentInForm" action="{{ route('payments-in.store') }}" method="POST">
+           @csrf
 
           <div class="row">
 
@@ -170,9 +171,9 @@
                   </ul>
                 </div>
 
-                <input type="hidden" class="party-id">
-                <input type="hidden" class="phone-input">
-                <input type="hidden" class="billing-address">
+                <input type="hidden" class="party-id" name="party_id">
+                <input type="hidden" class="phone-input" name="phone-inpur">
+                <input type="hidden" class="billing-address" name="billing_address">
                 <div id="partyBalanceDisplay" class="mt-1"></div>
               </div>
 
@@ -181,10 +182,9 @@
 
                 <div style="width: auto; height: auto; padding: 22px; border-radius: 1px; border: 1px solid #ced4da; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
 
-                <div class="row align-items-end payment-row mb-2">
+          <div class="row align-items-end payment-row mb-2">
 
-  <!-- Payment Type -->
-  <div class="col-md-5">
+  <div class="col-md-4">
     <label class="form-label">Payment Type</label>
     <select class="form-select payment-type">
       <option value="">-- Select Type --</option>
@@ -193,13 +193,22 @@
     </select>
   </div>
 
-  <!-- Amount -->
-  <div class="col-md-5">
+  <!-- ✅ Bank Account add karo -->
+  <div class="col-md-3">
+    <label class="form-label">Bank Account</label>
+    <select class="form-select payment-bank">
+      <option value="">-- Select Bank --</option>
+      @foreach($bankAccounts as $bank)
+        <option value="{{ $bank->id }}">{{ $bank->name }}</option>
+      @endforeach
+    </select>
+  </div>
+
+  <div class="col-md-3">
     <label class="form-label">Amount</label>
     <input type="number" class="form-control payment-amount" placeholder="Enter amount">
   </div>
 
-  <!-- Delete -->
   <div class="col-md-2 d-flex align-items-center">
     <button type="button" class="remove-row border-0 bg-transparent text-secondary" style="display:none; font-size:18px;">
       <i class="fa-solid fa-trash"></i>
@@ -207,7 +216,6 @@
   </div>
 
 </div>
-
 <!-- Add Payment Type Button -->
 <div class="mt-2">
   <button type="button" id="addPaymentRow" class="btn p-0 text-primary border-0 bg-transparent">
@@ -254,7 +262,7 @@
 
               <div class="mb-3">
                 <label class="form-label text-secondary">Date</label>
-                <input type="date" class="form-control">
+                <input type="date" class="form-control" name="date">
               </div>
 
               <div class="mb-3">
@@ -894,61 +902,56 @@ document.addEventListener("click", function (e) {
 });
 
 
-$(document).ready(function() {
-
-  $('#paymentInForm').on('submit', function(e) {
+$('#paymentInForm').on('submit', function(e) {
     e.preventDefault();
 
-    // Collect all payment rows
     const payments = [];
     $('#paymentContainer .payment-row').each(function() {
-      const type = $(this).find('.payment-type').val();
-      const amount = $(this).find('.payment-amount').val();
-      if(type && amount) {
-        payments.push({ type, amount });
-      }
-    });
+        const type = $(this).find('.payment-type').val();
+        const amount = $(this).find('.payment-amount').val();
+        const bank_account_id = $(this).find('.payment-bank').val(); // ✅ yeh add karo
 
-    // Prepare payload
-    const data = {
-      party_id: $('.party-id').val(),
-      reference_no: $('#referenceNo').val(),
-      payments: payments,
-      receipt_no: $('input[placeholder="Receipt No"]').val(),
-      date: $('input[type="date"]').val(),
-      received: $('input[placeholder="Received"]').val(),
-      _token: $('meta[name="csrf-token"]').attr('content')
-    };
-
-    // AJAX POST
-    $.ajax({
-      url: '/payments-in', // Laravel route
-      method: 'POST',
-      data: data,
-      success: function(res) {
-        alert('Payment saved successfully!');
-        // Optionally reset the form
-        $('#paymentInForm')[0].reset();
-        $('#paymentContainer .payment-row').not(':first').remove();
-      },
-      error: function(xhr) {
-        if(xhr.status === 422) {
-          const errors = xhr.responseJSON.errors;
-          let msg = '';
-          for(const field in errors) {
-            msg += errors[field].join(', ') + '\n';
-          }
-          alert('Validation Error:\n' + msg);
-        } else {
-          alert('Something went wrong. Please try again.');
+        if(type && amount) {
+            payments.push({ type, amount, bank_account_id });
         }
-      }
     });
 
-  });
-
+    $.ajax({
+        url: '/payments-in',
+        method: 'POST',
+        contentType: 'application/json',       
+        data: JSON.stringify({
+            party_id: $('.party-id').val(),
+            reference_no: $('#referenceNo').val(),
+            payments: payments,
+            receipt_no: $('input[placeholder="Receipt No"]').val(),
+            date: $('input[name="date"]').val(),  
+            received: $('input[placeholder="Received"]').val(),
+            _token: $('meta[name="csrf-token"]').attr('content')
+        }),
+        success: function(res) {
+            alert('Payment saved successfully!');
+            $('#paymentInForm')[0].reset();
+            $('#paymentContainer .payment-row').not(':first').remove();
+        },
+        error: function(xhr) {
+            console.log(xhr.responseJSON); 
+            if(xhr.status === 422) {
+                const errors = xhr.responseJSON.errors;
+                let msg = '';
+                for(const field in errors) {
+                    msg += field + ': ' + errors[field].join(', ') + '\n';
+                }
+                alert('Validation Error:\n' + msg);
+            } else {
+                alert('Something went wrong. Please try again.');
+            }
+        }
+    });
 });
+
 </script>
+
  
 </body>
 

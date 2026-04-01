@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Party;
+use App\Models\Sale;
 use App\Models\Transaction;
 
 
@@ -11,7 +12,7 @@ class PartyController extends Controller
     // Display all parties
     public function index()
     {
-        $parties = Party::latest()->get();
+        $parties = Party::with('sales')->latest()->get();
         return view('parties.index', compact('parties'));
     }
 
@@ -47,6 +48,8 @@ class PartyController extends Controller
 ]);
 
 
+        $party->load('sales');
+
         return response()->json([
             'success' => true,
             'party' => $party
@@ -59,7 +62,7 @@ class PartyController extends Controller
   public function show($id)
 {
     // Eager load transactions
-    $party = Party::with('transactions')->findOrFail($id);
+    $party = Party::with(['transactions', 'sales'])->findOrFail($id);
 
     // Format transactions
     $transactions = $party->transactions
@@ -80,7 +83,7 @@ class PartyController extends Controller
         'success'       => true,
         'party'         => $party,
         'transactions'  => $transactions,
-        'total_balance' => number_format($party->transactions->sum('balance'), 2),
+        'total_balance' => number_format((float) $party->current_balance, 2),
     ]);
 }
 
@@ -117,7 +120,7 @@ public function update(Request $request, $id)
         ]);
     }
 
-    $party->load('transactions');
+    $party->load(['transactions', 'sales']);
 
     $transactions = $party->transactions
         ->sortByDesc('date')
@@ -137,7 +140,7 @@ public function update(Request $request, $id)
         'success'       => true,
         'party'         => $party,
         'transactions'  => $transactions,
-        'total_balance' => number_format($party->transactions->sum('balance'), 2),
+        'total_balance' => number_format((float) $party->current_balance, 2),
     ]);
 }
     // Delete party
@@ -149,30 +152,70 @@ public function update(Request $request, $id)
         return response()->json(['success' => true]);
     }
 
-    public function transactions(Party $party)
+public function transactions(Party $party)
 {
-    // Pehle transactions ko fetch karo, descending order me
-    $transactions = $party->transactions
-        ->map(function ($txn) {
+    $party->loadMissing(['transactions', 'sales']);
+
+    $salesTransactions = Sale::query()
+        ->where('party_id', $party->id)
+        ->get()
+        ->map(function ($sale) {
+            $typeLabel = match ($sale->type) {
+                'invoice' => 'Sale',
+                'estimate' => 'Estimate',
+                'sale_order' => 'Sale Order',
+                'proforma' => 'Proforma Invoice',
+                'delivery_challan' => 'Delivery Challan',
+                'sale_return' => 'Credit Note',
+                'pos' => 'POS',
+                default => ucfirst((string) $sale->type),
+            };
+
+            $date = $sale->invoice_date ?? $sale->order_date ?? $sale->due_date ?? $sale->created_at;
+
             return [
-                'id'      => $txn->id,
-                'type'    => $txn->type,
-                'number'  => $txn->number,
-                'date'    => $txn->date->format('d/m/Y'),
-                'total'   => number_format($txn->total, 2),
-                'balance' => number_format($txn->balance, 2),
-                'status'  => $txn->status,
+                'id' => $sale->id,
+                'type' => $typeLabel,
+                'number' => $sale->bill_number ?: (string) $sale->id,
+                'date' => optional($date)->format('d/m/Y'),
+                'total' => number_format((float) ($sale->grand_total ?? $sale->total_amount ?? 0), 2),
+                'balance' => number_format((float) ($sale->balance ?? 0), 2),
+                'status' => (string) ($sale->status ?? ''),
+                'sort_date' => optional($date)->timestamp ?? $sale->created_at?->timestamp ?? 0,
             ];
         });
 
-    // Total balance calculate karna using collection
-    $total_balance = $party->transactions->sum('balance');
+    $openingBalanceTransactions = $party->transactions->map(function ($txn) {
+        $typeLabel = $txn->type === 'pay'
+            ? 'Payable Opening Balance'
+            : 'Receivable Opening Balance';
+
+        return [
+            'id' => 'opening-' . $txn->id,
+            'type' => $typeLabel,
+            'number' => $txn->number ?: '-',
+            'date' => optional($txn->date)->format('d/m/Y'),
+            'total' => number_format((float) ($txn->total ?? 0), 2),
+            'balance' => number_format((float) ($txn->balance ?? 0), 2),
+            'status' => (string) ($txn->type ?? ''),
+            'sort_date' => optional($txn->date)->timestamp ?? 0,
+        ];
+    });
+
+    $transactions = $salesTransactions
+        ->concat($openingBalanceTransactions)
+        ->sortByDesc('sort_date')
+        ->values()
+        ->map(function ($transaction) {
+            unset($transaction['sort_date']);
+            return $transaction;
+        });
 
     return response()->json([
         'success'        => true,
         'transactions'   => $transactions,
         'party_name'     => $party->name,
-        'total_balance'  => number_format($total_balance, 2),
+        'total_balance'  => number_format((float) $party->current_balance, 2),
     ]);
 }
 }
