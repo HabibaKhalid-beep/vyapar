@@ -460,7 +460,7 @@
     color: #fff; cursor: pointer; font-weight: 600;
 }
 .cfd-clear:hover { background: #f3f4f6; }
-.cfd-apply:hover { background: #c53030; }
+.cfd-apply:hover { background: #4430c5; }
 
 /* ══════════════════════════════
    STOCK ADJUSTMENT MODAL
@@ -565,11 +565,11 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
 
     {{-- TOP TABS --}}
     <div class="il-tabs">
-        <div class="il-tab active" onclick="switchMainTab('products',this)">PRODUCTS</div>
-        <div class="il-tab" onclick="window.location.href='/items/services'">SERVICES</div>
-        <div class="il-tab" onclick="switchMainTab('category',this)">CATEGORY</div>
-        <div class="il-tab" onclick="switchMainTab('units',this)">UNITS</div>
-    </div>
+    <div class="il-tab {{ request()->routeIs('items') ? 'active' : '' }}" onclick="window.location.href='{{ route('items') }}'">PRODUCTS</div>
+    <div class="il-tab {{ request()->routeIs('items.services') ? 'active' : '' }}" onclick="window.location.href='{{ route('items.services') }}'">SERVICES</div>
+    <div class="il-tab {{ request()->routeIs('items.category') ? 'active' : '' }}" onclick="window.location.href='{{ route('items.category') }}'">CATEGORY</div>
+    <div class="il-tab {{ request()->routeIs('items.units') ? 'active' : '' }}" onclick="window.location.href='{{ route('items.units') }}'">UNITS</div>
+</div>
 
     @if(count($products) === 0)
 
@@ -589,7 +589,7 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
             <p style="font-size:14px;color:#6b7280;max-width:420px;line-height:1.65;">
                 Add products you sell to your customers and create Sale invoices for them faster.
             </p>
-            <button onclick="window.location.href='/items/create'" style="display:inline-flex;align-items:center;background:#f59e0b;color:#fff;border:none;border-radius:6px;padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;">
+            <button onclick="window.location.href='{{ route('items.create') }}'" style="display:inline-flex;align-items:center;background:#f59e0b;color:#fff;border:none;border-radius:6px;padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;">
                 Add Your First Product
             </button>
         </div>
@@ -1044,14 +1044,9 @@ function shareVia(method) {
     else if (method === 'sms') { window.open(`sms:?body=Item: ${name}`); }
 }
 
-/* ── Main tab switch ── */
-function switchMainTab(tab, el) {
-    if (tab === 'services') { window.location.href = '/items/services'; return; }
-    if (tab === 'category') { window.location.href = '/items/category'; return; }
-    if (tab === 'units') { window.location.href = '/items/units'; return; }
-    document.querySelectorAll('.il-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-}
+/* ── Main tab switch (DEPRECATED - No longer used) ── */
+// This function is no longer used. Tabs now use direct navigation with route helpers.
+// Keeping this comment to avoid breaking any references, but the function is empty.
 
 /* ── Search ── */
 function toggleSearch() {
@@ -1097,7 +1092,7 @@ function toggleItemDD(e, i) {
     document.querySelectorAll('.il-item-dd.open').forEach(d => d.classList.remove('open'));
     document.getElementById(`item-dd-${i}`).classList.toggle('open');
 }
-function editItemNav(i) { window.location.href = '/items/' + (allItems[i].id || i) + '/edit'; }
+function editItemNav(i) { window.location.href = '{{ url('dashboard/items') }}/' + (allItems[i].id || i) + '/edit'; }
 /* ── Delete modal state ── */
 let deleteTargetIdx = null;
 
@@ -1128,7 +1123,7 @@ function confirmDelete() {
     formData.append('_method', 'DELETE');
     formData.append('_token', csrfToken);
 
-    fetch(`/items/${item.id}`, {
+   fetch(`{{ url('dashboard/items') }}/${item.id}`, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         body: formData
@@ -1156,9 +1151,7 @@ function confirmDelete() {
 }
 
 function getTotalQty(idx) {
-    const base = parseFloat(allItems[idx]?.opening_qty || 0);
-    const txns = transactions[idx] || [];
-    return base + txns.reduce((sum, t) => sum + (t.isAdd ? t.qty : -t.qty), 0);
+    return parseFloat(allItems[idx]?.stock_qty ?? allItems[idx]?.opening_qty ?? 0);
 }
 
 /* ── Select item ── */
@@ -1172,10 +1165,32 @@ function selectItem(idx) {
     document.getElementById('detail-name').textContent     = item.name;
     document.getElementById('detail-sale').textContent     = item.sale_price     ? 'Rs ' + parseFloat(item.sale_price).toFixed(2)     : '—';
     document.getElementById('detail-purchase').textContent = item.purchase_price ? 'Rs ' + parseFloat(item.purchase_price).toFixed(2) : '—';
-    const qty = getTotalQty(idx);
-    document.getElementById('detail-stock-qty').textContent = qty;
-    document.getElementById('detail-stock-val').textContent = 'Rs ' + (parseFloat(item.purchase_price || 0) * qty).toFixed(2);
-    renderTxns(idx);
+const stockQty = parseFloat(item.stock_qty ?? item.opening_qty ?? 0);
+document.getElementById('detail-stock-qty').textContent = stockQty;
+document.getElementById('detail-stock-val').textContent = 'Rs ' + (parseFloat(item.purchase_price || 0) * stockQty).toFixed(2);
+
+    // Show loading
+    document.getElementById('txn-tbody').innerHTML = `
+        <tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">Loading transactions...</td></tr>
+    `;
+
+    // Fetch real transactions from server
+    fetch(`/dashboard/items/${item.id}/transactions`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        transactions[idx] = data;
+        renderTxns(idx);
+    })
+    .catch(() => {
+        document.getElementById('txn-tbody').innerHTML = `
+            <tr><td colspan="9" style="text-align:center;color:#ef4444;padding:48px 0;font-size:13px;">Failed to load transactions.</td></tr>
+        `;
+    });
 }
 
 /* ── Transactions ── */
@@ -1188,28 +1203,31 @@ function renderTxns(idx) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions to show</td></tr>`;
         return;
     }
-    tbody.innerHTML = txns.map((t, ti) => `
-        <tr id="txn-row-${idx}-${ti}" onclick="selectTxnRow(${idx},${ti})" ondblclick="openAdjModalForTxn(${idx},${ti})" style="cursor:pointer;user-select:none;">
-            <td class="td-dot"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#111111;"></span></td>
+    const statusColor = { 'Paid': '#22c55e', 'Partial': '#f59e0b', 'Unpaid': '#ef4444' };
+    tbody.innerHTML = txns.map((t, ti) => {
+        const dotColor = t.isAdd ? '#22c55e' : '#ef4444';
+        const status   = t.status || 'Unpaid';
+        const color    = statusColor[status] || '#9ca3af';
+        return `
+        <tr id="txn-row-${idx}-${ti}" onclick="selectTxnRow(${idx},${ti})" style="cursor:pointer;user-select:none;">
+            <td class="td-dot"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};"></span></td>
             <td>${esc(t.type)}</td>
-            <td></td>
-            <td>${esc(t.details || '')}</td>
+            <td>${esc(t.invoice ?? '')}</td>
+            <td>${esc(t.name ?? '')}</td>
             <td>${esc(t.date)}</td>
             <td>${t.qty} ${esc(t.unit)}</td>
             <td class="td-price">${t.price ? 'Rs ' + parseFloat(t.price).toFixed(2) : '—'}</td>
-            <td class="td-status">—</td>
+            <td style="font-weight:500;color:${color};">${esc(status)}</td>
             <td class="td-actions">
                 <div class="il-row-menu-wrap">
                     <button class="il-row-menu-btn" onclick="toggleRowMenu(event,'row-menu-${idx}-${ti}')">⋮</button>
                     <div class="il-row-menu" id="row-menu-${idx}-${ti}">
-                        <div class="il-row-menu-item" onclick="openAdjModalForTxn(${idx},${ti})">View/Edit</div>
                         <div class="il-row-menu-item danger" onclick="deleteTxn(${idx},${ti})">Delete</div>
-                        <div class="il-row-menu-item" onclick="viewHistory(${idx},${ti})">View History</div>
                     </div>
                 </div>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
 }
 
 function selectTxnRow(idx, ti) {
@@ -1385,12 +1403,11 @@ function clearFilter()     {
 }
 function sortByQty() {
     sortAsc = !sortAsc;
-    allItems.sort((a, b) => sortAsc ? parseFloat(a.opening_qty||0)-parseFloat(b.opening_qty||0) : parseFloat(b.opening_qty||0)-parseFloat(a.opening_qty||0));
-    const arrow = document.getElementById('qty-sort-arrow');
+   allItems.sort((a, b) => sortAsc ? parseFloat(a.stock_qty||0)-parseFloat(b.stock_qty||0) : parseFloat(b.stock_qty||0)-parseFloat(a.stock_qty||0));
     if (arrow) arrow.textContent = sortAsc ? '↑' : '↓';
     renderList(allItems);
 }
-function goToAddItem() { window.location.href = '/items/create'; }
+function goToAddItem() { window.location.href = '{{ route('items.create') }}'; }
 
 /* ── Excel Export ── */
 function exportToExcel() {
@@ -1440,23 +1457,72 @@ function handleAdjToggle() {
 function saveAdjustment() {
     const qty = parseFloat(document.getElementById('adj-qty').value);
     if (!qty || qty <= 0) { showToast('Please enter a valid quantity.'); return; }
-    const price = document.getElementById('adj-price').value;
-    const unit  = document.getElementById('adj-unit').value;
-    const date  = document.getElementById('adj-date').value;
+
+    const isAdd   = !document.getElementById('adj-toggle').checked;
+    const unit    = document.getElementById('adj-unit').value;
+    const price   = document.getElementById('adj-price').value;
     const details = document.getElementById('adj-details').value;
-    const isAdd = !document.getElementById('adj-toggle').checked;
-    const overlay = document.getElementById('adj-overlay');
-    const isEdit = overlay.dataset.isEdit === '1';
-    const editIdx = parseInt(overlay.dataset.editIdx); const editTi = parseInt(overlay.dataset.editTi);
-    const txnData = { type: isAdd?'Add Adjustment':'Reduce Adjustment', qty, unit, price, details, date: formatDate(date), isAdd };
-    if (isEdit && !isNaN(editIdx) && !isNaN(editTi)) {
-        transactions[editIdx][editTi] = txnData; showToast('Transaction updated');
-    } else {
-        if (!transactions[selectedIdx]) transactions[selectedIdx] = [];
-        transactions[selectedIdx].push(txnData); showToast('Stock adjustment saved');
-    }
-    overlay.dataset.isEdit='0'; overlay.dataset.editIdx=''; overlay.dataset.editTi='';
-    closeAdjModal(); selectItem(selectedIdx); renderList(allItems);
+    const date    = document.getElementById('adj-date').value;
+
+    const item = allItems[selectedIdx];
+    if (!item) return;
+
+    // ── Disable save button to prevent double-click ──
+    const saveBtn = document.querySelector('.adj-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    // ── Call the backend API ──
+    fetch(`/dashboard/items/${item.id}/adjust`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ qty, is_add: isAdd, unit, price, details, date })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // ── Update local item stock so UI reflects immediately ──
+            item.stock_qty  = data.stock_qty;
+            item.opening_qty = data.opening_qty;
+
+            // ── Add to local transactions so it shows instantly ──
+            if (!transactions[selectedIdx]) transactions[selectedIdx] = [];
+            transactions[selectedIdx].push({
+                type   : isAdd ? 'Add Adjustment' : 'Reduce Adjustment',
+                qty    : qty,
+                unit   : unit,
+                price  : price,
+                details: details,
+                date   : formatDate(date),
+                isAdd  : isAdd,
+                invoice: '—',
+                name   : '—',
+                status : '—'
+            });
+
+            closeAdjModal();
+            showToast('Stock adjustment saved!');
+
+            // ── Refresh right panel stats and list ──
+            document.getElementById('detail-stock-qty').textContent = data.stock_qty;
+            document.getElementById('detail-stock-val').textContent =
+                'Rs ' + (parseFloat(item.purchase_price || 0) * parseFloat(data.stock_qty)).toFixed(2);
+
+            renderTxns(selectedIdx);
+            renderList(allItems);
+        } else {
+            showToast(data.message || 'Failed to save adjustment.');
+        }
+    })
+    .catch(() => showToast('Network error. Please try again.'))
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+    });
 }
 function formatDate(d) { if(!d)return''; const[y,m,day]=d.split('-'); return day+'/'+m+'/'+y; }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

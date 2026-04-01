@@ -23,4 +23,14 @@ class BankAccount extends Model
         'as_of_date' => 'date',
         'print_on_invoice' => 'boolean',
     ];
+
+    public function outgoingTransactions()
+    {
+        return $this->hasMany(BankTransaction::class, 'from_bank_account_id');
+    }
+
+    public function incomingTransactions()
+    {
+        return $this->hasMany(BankTransaction::class, 'to_bank_account_id');
+    }
 }

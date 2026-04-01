@@ -108,9 +108,9 @@
     {{-- TABS --}}
     <div class="vp-tabs">
         <div class="vp-tab active">PRODUCTS</div>
-        <div class="vp-tab" onclick="window.location.href='/items/services'">SERVICES</div>
-        <div class="vp-tab" onclick="window.location.href='/items/category'">CATEGORY</div>
-        <div class="vp-tab" onclick="window.location.href='/items/units'">UNITS</div>
+        <div class="vp-tab" onclick="window.location.href='{{ route("items.services") }}'">SERVICES</div>
+        <div class="vp-tab" onclick="window.location.href='{{ route("items.category") }}'">CATEGORY</div>
+        <div class="vp-tab" onclick="window.location.href='{{ route("items.units") }}'">UNITS</div>
     </div>
 
     @if(count($products) === 0)
@@ -343,7 +343,7 @@
                 Add Products/Items you sell or purchase to manage your full Stock Inventory.
             </p>
 
-            <button class="vp-add-btn" onclick="window.location.href='/items/create?type=product'">
+            <button class="vp-add-btn" onclick="window.location.href='{{ route("items.create") }}?type=product'">
                 Add Your First Product
             </button>
 
@@ -355,7 +355,7 @@
     <div class="vp-list-body">
         <div class="vp-list-toolbar">
             <span class="vp-list-title">All Products</span>
-            <button class="vp-add-btn-sm" onclick="window.location.href='/items/create?type=product'">
+            <button class="vp-add-btn-sm" onclick="window.location.href='{{ route("items.create") }}?type=product'">
                 + Add Product
             </button>
         </div>

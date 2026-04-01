@@ -27,15 +27,9 @@ public function paymentIn()
         return view('dashboard.sales.perfoma-invoice');
     }
 
-    public function saleReturn()
-    {
-        return view('dashboard.sales.sale-return');
-    }
 
-    public function deliveryChallan()
-    {
-        return view('dashboard.sales.delivery-challan');
-    }
+ 
+
 
 
 

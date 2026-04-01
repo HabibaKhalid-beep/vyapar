@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <!-- Form Styles -->
     <link rel="stylesheet" href="{{ asset('css/saleform_style.css') }}">
-    
+
 </head>
 <style>
     /* Dropdown with two columns */
@@ -119,17 +119,17 @@
         </li>
           @foreach($parties as $party)
     <li>
-        <a class="dropdown-item d-flex justify-content-between party-option" href="#" 
-           data-id="{{ $party->id }}" 
-           data-phone="{{ $party->phone }}" 
-           data-billing="{{ addslashes($party->billing_address ?? '') }}" 
+        <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+           data-id="{{ $party->id }}"
+           data-phone="{{ $party->phone }}"
+           data-billing="{{ addslashes($party->billing_address ?? '') }}"
            data-opening="{{ $party->opening_balance ?? 0 }}"
            data-type="{{ $party->transaction_type }}">
             <span>{{ $party->name }}</span>
-         <span 
-    @if($party->transaction_type == 'pay') 
+         <span
+    @if($party->transaction_type == 'pay')
         class="text-danger"
-    @elseif($party->transaction_type == 'receive') 
+    @elseif($party->transaction_type == 'receive')
         class="text-success"
     @endif
 >
@@ -149,7 +149,7 @@
     </ul>
 </div>
 <input type="hidden" class="party-id" name="party_id">
-                                 
+
                                 </div>
 
                                 <div class="input-group mt-3">
@@ -228,8 +228,10 @@
                                             <select class="form-select item-name">
                                                 <option value="" selected disabled>Select Item</option>
                                                 @foreach($items as $item)
-                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-unit="{{ $item->unit }}">{{ $item->name }}</option>
-                                                @endforeach
+
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>
+
+                                                    @endforeach
                                             </select>
                                         </td>
                                         <td class="col-category d-none"><input type="text" class="item-category"
@@ -242,13 +244,29 @@
                                                 value="0">
                                         </td>
                                         <td><input type="number" class="item-qty" value="1"></td>
-                                        <td class="custom-size-td">
-                                            <select class="item-unit">
-                                                <option>NONE</option>
-                                                <option>PCS</option>
-                                                <option>BOX</option>
-                                            </select>
-                                        </td>
+                                      <td class="custom-size-td">
+    <select class="item-unit">
+        <option value="">Select Unit</option>
+
+        <!-- Quantity -->
+        <option value="PCS">PCS (Pieces)</option>
+        <option value="BOX">BOX</option>
+        <option value="PACK">PACK</option>
+        <option value="SET">SET</option>
+
+        <!-- Weight -->
+        <option value="KG">KG (Kilogram)</option>
+        <option value="G">Gram</option>
+
+        <!-- Length -->
+        <option value="M">Meter</option>
+        <option value="FT">Feet</option>
+
+        <!-- Volume -->
+        <option value="L">Liter</option>
+        <option value="ML">Milliliter</option>
+    </select>
+</td>
                                         <td><input type="number" class="item-price" value="0"></td>
                                         <td class="col-amount"><input type="text" class="item-amount" value="0"
                                                 readonly></td>
@@ -469,19 +487,40 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <script>
-        window.items = @json($items);
-        window.parties = @json($parties);
-        window.bankAccounts = @json($bankAccounts);
-        window.saleStoreUrl = "{{ route('sale.store') }}";
-        window.saleMethod = 'POST';
 
-        @if(isset($sale))
-            window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
-            window.saleMethod = 'PUT';
-            window.editSaleData = @json($sale->load(['items', 'payments']));
-        @endif
-    </script>
+<script>
+    window.items = @json($items);
+    window.parties = @json($parties);
+    window.bankAccounts = @json($bankAccounts);
+
+    window.saleStoreUrl = "{{ route('sale.store') }}";
+    window.saleMethod = 'POST';
+
+    // Default values
+    window.editSaleData = null;
+    window.sourceEstimateId = null;
+    window.sourceSaleOrderId = null;
+    window.sourceChallanId = null;
+    window.sourceProformaId = null;
+
+    // Optional doc type (avoid JS error)
+    window.docType = "{{ $docType ?? 'sale' }}";
+
+    @if(isset($sale))
+        // Edit mode
+        window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
+        window.saleMethod = 'PUT';
+        window.editSaleData = @json($sale->load(['items', 'payments']));
+
+    @elseif(isset($convertedSaleData))
+        // Convert from estimate / sale order / challan
+        window.editSaleData = @json($convertedSaleData);
+        window.sourceEstimateId = @json($convertedSaleData['source_estimate_id'] ?? null);
+        window.sourceSaleOrderId = @json($convertedSaleData['source_sale_order_id'] ?? null);
+        window.sourceChallanId = @json($convertedSaleData['source_challan_id'] ?? null);
+        window.sourceProformaId = @json($convertedSaleData['source_proforma_id'] ?? null);
+    @endif
+</script>
 
     <!-- Toast container -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
@@ -638,7 +677,7 @@
               </div>
             </div>
           </div>
-          
+
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
@@ -657,7 +696,7 @@
 </div>
 @endsection
     @yield('modals')
-    
+
     <script>
     document.addEventListener("DOMContentLoaded", function () {
     const partySelect = document.querySelector(".party-select");
@@ -680,7 +719,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const saveBtn = document.getElementById("btnSaveParty");
     const saveNewBtn = document.getElementById("btnSaveNewParty");
 
-           
+
 
 
     function getPartyData() {
@@ -745,7 +784,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const addModalEl = document.getElementById('addPartyModal');
 
     const addModal = new bootstrap.Modal(addModalEl);
-    
+
 
     dropdownMenu.addEventListener("click", function(e) {
         if(e.target.closest(".party-option")) {
@@ -753,7 +792,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const option = e.target.closest(".party-option");
             const name = option.querySelector("span:first-child").textContent;
             let opening = parseFloat(option.dataset.opening) || 0;
-            const type = option.dataset.type; 
+            const type = option.dataset.type;
             const phone = option.dataset.phone;
             const billing = option.dataset.billing;
             const id = option.dataset.id;
@@ -765,15 +804,15 @@ document.addEventListener("DOMContentLoaded", function() {
           if(type === "pay"){
     balanceDisplay.innerHTML = `
         <i class="fa-solid fa-arrow-up text-danger me-1"></i>
-        ₹${opening.toFixed(2)} 
+        ₹${opening.toFixed(2)}
     `;
-} 
+}
 else if(type === "receive"){
     balanceDisplay.innerHTML = `
         <i class="fa-solid fa-arrow-down text-success me-1"></i>
-        ₹${opening.toFixed(2)} 
+        ₹${opening.toFixed(2)}
     `;
-} 
+}
 else {
     balanceDisplay.innerHTML = `₹${opening.toFixed(2)}`;
 }
@@ -784,16 +823,21 @@ else {
             // Populate phone & billing fields
             document.querySelector(".phone-input").value = phone;
             document.querySelector(".billing-address").value = billing;
-        } 
+        }
         else if(e.target.id === "addNewPartyBtn") {
             addModal.show();
             document.getElementById("addPartyForm").reset();
             balanceDisplay.textContent = "";
         }
     });
-    
+
 });
 </script>
 </body>
 
 </html>
+
+
+
+
+

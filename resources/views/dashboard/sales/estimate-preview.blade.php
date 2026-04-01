@@ -24,7 +24,7 @@
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <h6 class="text-muted">Party</h6>
-                        <div>{{ $sale->party_name ?? '-' }}</div>
+                        <div>{{ $sale->display_party_name }}</div>
                         <div>{{ $sale->phone ?? '-' }}</div>
                         <div>{{ $sale->billing_address ?? '-' }}</div>
                     </div>

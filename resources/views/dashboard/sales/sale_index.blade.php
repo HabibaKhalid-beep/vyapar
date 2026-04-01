@@ -184,6 +184,55 @@
   width: 110px;
   outline: none;
 }
+
+.table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  max-height: 68vh;
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+}
+
+.card-body {
+  overflow: hidden;
+}
+
+.pagination {
+  margin: 0;
+}
+
+.d-flex.justify-content-between.align-items-center.mt-3 {
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  overflow-y: auto !important;
+  max-height: 68vh;
+}
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.custom-table {
+  min-width: 1500px;
+}
+
+.custom-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: #fafafa;
+  white-space: nowrap;
+}
+
+.custom-table tbody td {
+  white-space: nowrap;
+}
+
   </style>
 </head>
 
@@ -253,7 +302,7 @@
     <div class="filter-pill small-pill">
       <select id="salesFirmSelect" class="filter-select text-center">
         <option value="">All Firms</option>
-        @foreach($sales->pluck('party_name')->unique()->filter()->values() as $firm)
+        @foreach($sales->getCollection()->map(fn($sale) => $sale->party?->name)->filter()->unique()->values() as $firm)
           <option value="{{ $firm }}">{{ $firm }}</option>
         @endforeach
       </select>
@@ -272,8 +321,7 @@
             <div class="w-50 mt-2 d-flex align-items-end justify-content-center flex-column">
               <div class="col-5 h-50 rounded-pill d-flex justify-content-center align-item-center me-4"
                 style="background-color: #DEF7EE;">
-                <p class="text-success pt-1">100% <i class="bi bi-arrow-up-right "></i></>
-                </p>
+                <p class="text-success pt-1">100% <i class="bi bi-arrow-up-right"></i></p>
               </div>
               <span class="me-4 pe-1 mt-1 text-secondary" style="font-size: 10px;">vs last month</span>
             </div>
@@ -387,14 +435,27 @@
             </th>
             <th>
               <div class="column-filter-header">
+                <span>Received Amount</span>
+                <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+              </div>
+              <div class="column-filter-dropdown">
+                <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Received">
+                <div class="d-flex justify-content-end gap-2 mt-2">
+                  <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="6">Clear</button>
+                  <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="6">Apply</button>
+                </div>
+              </div>
+            </th>
+            <th>
+              <div class="column-filter-header">
                 <span>Balance</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
               </div>
               <div class="column-filter-dropdown">
                 <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Balance">
                 <div class="d-flex justify-content-end gap-2 mt-2">
-                  <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="6">Clear</button>
-                  <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="6">Apply</button>
+                  <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="7">Clear</button>
+                  <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="7">Apply</button>
                 </div>
               </div>
             </th>
@@ -406,8 +467,8 @@
               <div class="column-filter-dropdown">
                 <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Status">
                 <div class="d-flex justify-content-end gap-2 mt-2">
-                  <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="7">Clear</button>
-                  <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="7">Apply</button>
+                  <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="8">Clear</button>
+                  <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="8">Apply</button>
                 </div>
               </div>
             </th>
@@ -420,7 +481,7 @@
           <tr>
             <td>{{ \Carbon\Carbon::parse($sale->invoice_date ?? $sale->created_at)->format('d/m/Y') }}</td>
             <td>{{ $sale->bill_number ?? $sale->id }}</td>
-            <td>{{ $sale->party_name ?? '-' }}</td>
+            <td>{{ $sale->party?->name ?? 'No Party Selected' }}</td>
             <td>Sale</td>
 
             <td>
@@ -428,6 +489,7 @@
             </td>
 
             <td>Rs {{ number_format($sale->total_amount ?? 0) }}</td>
+            <td>Rs {{ number_format($sale->received_amount ?? 0) }}</td>
             <td>Rs {{ number_format($sale->balance ?? 0) }}</td>
 
             <td>
@@ -471,7 +533,7 @@
           </tr>
           @empty
           <tr>
-            <td colspan="9" class="text-center text-muted py-4">
+            <td colspan="10" class="text-center text-muted py-4">
               No sales yet.
             </td>
           </tr>
@@ -481,8 +543,13 @@
       </table>
     </div>
 
-    <div class="d-flex justify-content-end mt-3">
-      {{ $sales->links() }}
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="text-muted small">
+        Showing {{ $sales->firstItem() ?: 0 }} to {{ $sales->lastItem() ?: 0 }} of {{ $sales->total() }} results
+      </div>
+      <div>
+        {{ $sales->withQueryString()->links() }}
+      </div>
     </div>
   </div>
 </div>

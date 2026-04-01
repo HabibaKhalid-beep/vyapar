@@ -87,6 +87,236 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function getBankOptions(selectedBankId = '') {
+    if (!list) return '';
+    return Array.from(list.querySelectorAll('li[data-bank]'))
+      .map((item) => {
+        const bankId = item.dataset.bank || '';
+        const bankName = item.querySelector('.entity-name')?.textContent?.trim() || 'Bank';
+        const selected = String(bankId) === String(selectedBankId) ? 'selected' : '';
+        return `<option value="${bankId}" ${selected}>${bankName}</option>`;
+      })
+      .join('');
+  }
+
+  function injectTransferActions() {
+    if (!addBankButton || document.getElementById('bankTransferActions')) return;
+
+    const actionButtons = addBankButton.closest('.action-buttons');
+    if (!actionButtons) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'bankTransferActions';
+    wrapper.className = 'dropdown';
+    wrapper.innerHTML = `
+      <button class="btn btn-outline-danger rounded-pill px-3 py-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        Deposit / Withdraw <i class="fa-solid fa-chevron-down ms-2"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+        <li><button class="dropdown-item bank-transfer-option" type="button" data-mode="bank_to_cash">Bank to Cash Transfer</button></li>
+        <li><button class="dropdown-item bank-transfer-option" type="button" data-mode="cash_to_bank">Cash to Bank Transfer</button></li>
+        <li><button class="dropdown-item bank-transfer-option" type="button" data-mode="bank_to_bank">Bank to Bank Transfer</button></li>
+        <li><button class="dropdown-item bank-transfer-option" type="button" data-mode="adjust_balance">Adjust Bank Balance</button></li>
+      </ul>
+    `;
+
+    actionButtons.insertBefore(wrapper, actionButtons.querySelector('.btn-settings'));
+  }
+
+  function injectTransferModal() {
+    if (document.getElementById('bankTransferModal')) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'bankTransferModal';
+    modal.tabIndex = -1;
+    modal.setAttribute('aria-hidden', 'true');
+    modal.innerHTML = `
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <form id="bankTransferForm">
+            <div class="modal-header">
+              <h5 class="modal-title" id="bankTransferModalTitle">Bank To Cash Transfer</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="bankTransferMode" value="bank_to_cash">
+              <div class="row g-3" id="bankTransferDualFields">
+                <div class="col-md-6">
+                  <label class="form-label" id="transferFromLabel">From</label>
+                  <select class="form-select" id="transferFromBank"></select>
+                  <input type="text" class="form-control d-none" id="transferFromCash" value="Cash" readonly>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" id="transferToLabel">To</label>
+                  <select class="form-select" id="transferToBank"></select>
+                  <input type="text" class="form-control d-none" id="transferToCash" value="Cash" readonly>
+                </div>
+              </div>
+              <div class="row g-3 d-none" id="bankAdjustFields">
+                <div class="col-md-6">
+                  <label class="form-label">Account Name</label>
+                  <select class="form-select" id="adjustAccountName"></select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Type</label>
+                  <select class="form-select" id="adjustType">
+                    <option value="increase">Increase balance</option>
+                    <option value="decrease">Decrease balance</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                  <label class="form-label">Amount</label>
+                  <input type="number" step="0.01" class="form-control" id="transferAmount" value="0">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Adjustment Date</label>
+                  <input type="date" class="form-control" id="transferDate">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Description</label>
+                  <textarea class="form-control" id="transferDescription" rows="3" placeholder="Add description"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Image</label>
+                  <input type="file" class="form-control" id="transferImage" accept="image/*">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger rounded-pill px-4">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  function setTransferModalMode(mode) {
+    const modalTitleEl = document.getElementById('bankTransferModalTitle');
+    const dualFields = document.getElementById('bankTransferDualFields');
+    const adjustFields = document.getElementById('bankAdjustFields');
+    const fromBank = document.getElementById('transferFromBank');
+    const toBank = document.getElementById('transferToBank');
+    const fromCash = document.getElementById('transferFromCash');
+    const toCash = document.getElementById('transferToCash');
+    const adjustAccountName = document.getElementById('adjustAccountName');
+    const transferDate = document.getElementById('transferDate');
+    const activeBankId = document.querySelector('li.active[data-bank]')?.dataset.bank || '';
+
+    if (!modalTitleEl || !dualFields || !adjustFields || !fromBank || !toBank || !fromCash || !toCash || !adjustAccountName) {
+      return;
+    }
+
+    document.getElementById('bankTransferMode').value = mode;
+    transferDate.value = new Date().toISOString().slice(0, 10);
+    fromBank.innerHTML = getBankOptions(activeBankId);
+    toBank.innerHTML = getBankOptions(activeBankId);
+    adjustAccountName.innerHTML = getBankOptions(activeBankId);
+
+    dualFields.classList.remove('d-none');
+    adjustFields.classList.add('d-none');
+    fromBank.classList.remove('d-none');
+    toBank.classList.remove('d-none');
+    fromCash.classList.add('d-none');
+    toCash.classList.add('d-none');
+
+    if (mode === 'bank_to_cash') {
+      modalTitleEl.textContent = 'Bank To Cash Transfer';
+      toCash.classList.remove('d-none');
+      toCash.readOnly = true;
+      toBank.classList.add('d-none');
+    } else if (mode === 'cash_to_bank') {
+      modalTitleEl.textContent = 'Cash To Bank Transfer';
+      fromCash.classList.remove('d-none');
+      fromCash.readOnly = true;
+      fromBank.classList.add('d-none');
+    } else if (mode === 'bank_to_bank') {
+      modalTitleEl.textContent = 'Bank To Bank Transfer';
+    } else {
+      modalTitleEl.textContent = 'Bank Adjustment Entry';
+      dualFields.classList.add('d-none');
+      adjustFields.classList.remove('d-none');
+    }
+  }
+
+  injectTransferActions();
+  injectTransferModal();
+
+  document.addEventListener('click', (event) => {
+    const transferOption = event.target.closest('.bank-transfer-option');
+    if (!transferOption) return;
+
+    const mode = transferOption.dataset.mode || 'bank_to_cash';
+    setTransferModalMode(mode);
+
+    const transferModalEl = document.getElementById('bankTransferModal');
+    if (transferModalEl && window.bootstrap) {
+      const modal = bootstrap.Modal.getOrCreateInstance(transferModalEl);
+      modal.show();
+    }
+  });
+
+  const bankTransferForm = document.getElementById('bankTransferForm');
+  if (bankTransferForm) {
+    bankTransferForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const mode = document.getElementById('bankTransferMode')?.value || 'bank_to_bank';
+      const amount = document.getElementById('transferAmount')?.value || 0;
+      const fromBankId = document.getElementById('transferFromBank')?.value || '';
+      const toBankId = document.getElementById('transferToBank')?.value || '';
+
+      if (mode !== 'bank_to_bank') {
+        showToast('Cash transfer flows ko next step me wire karenge. Bank to bank active hai.', 'warning');
+        return;
+      }
+
+      fetch('/dashboard/bank-accounts/transfer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          mode,
+          from_bank_id: fromBankId,
+          to_bank_id: toBankId,
+          amount,
+        }),
+      })
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.message || 'Transfer failed.');
+          }
+          return data;
+        })
+        .then((data) => {
+          showToast(data.message || 'Transfer completed successfully.');
+
+          const transferModalEl = document.getElementById('bankTransferModal');
+          if (transferModalEl && window.bootstrap) {
+            const modal = bootstrap.Modal.getOrCreateInstance(transferModalEl);
+            modal.hide();
+          }
+
+          setTimeout(() => {
+            window.location.reload();
+          }, 400);
+        })
+        .catch((error) => {
+          showToast(error?.message || 'Transfer failed.', 'danger');
+        });
+    });
+  }
+
   // Make the detail panel edit icon open the selected bank in edit mode
   const detailEditButton = document.querySelector('.entity-detail-name .btn-icon');
   if (detailEditButton) {

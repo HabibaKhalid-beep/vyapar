@@ -696,7 +696,7 @@ function showToast(msg) {
 
 /* ── Categories ── */
 function loadCats() {
-    fetch('/items/category/list', { headers: { 'Accept': 'application/json' } })
+    fetch('{{ route("items.category.list") }}', { headers: { 'Accept': 'application/json' } })
     .then(r => r.json()).then(data => { cats = data; renderCats(); }).catch(() => {});
 }
 function toggleCatDD() { document.getElementById('cat-dropdown').classList.toggle('open'); renderCats(); }
@@ -731,7 +731,7 @@ function showCatInput() {
 }
 function saveCat() {
     const v = document.getElementById('new-cat-text').value.trim(); if (!v) return;
-    fetch('/items/category', {
+    fetch('{{ route("items.category.store") }}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
         body: JSON.stringify({ name: v })
@@ -853,7 +853,7 @@ function confirmDiscard() {
     }
 }
 
-function navigateAway() { window.location.href = iType==='service' ? '/items/services' : '/items'; }
+function navigateAway() { window.location.href = iType==='service' ? '{{ route("items.services") }}' : '{{ route("items") }}'; }
 
 /* ── Delete ── */
 function openDeleteModal()  { document.getElementById('delete-overlay').classList.add('open'); }
@@ -861,9 +861,9 @@ function closeDeleteModal() { document.getElementById('delete-overlay').classLis
 function confirmDelete() {
     closeDeleteModal();
     const fd = new FormData(); fd.append('_method','DELETE'); fd.append('_token',CSRF);
-    fetch(`/items/${ITEM_ID}`, { method:'POST', headers:{'Accept':'application/json'}, body:fd })
+    fetch(`{{ url("dashboard/items") }}/${ITEM_ID}`, { method:'POST', headers:{'Accept':'application/json'}, body:fd })
     .then(async r => {
-        if (r.ok) { window.location.href = iType==='service' ? '/items/services' : '/items'; }
+        if (r.ok) { window.location.href = iType==='service' ? '{{ route("items.services") }}' : '{{ route("items") }}'; }
         else { let msg='Failed'; try{ const d=await r.json(); if(d.message) msg=d.message; }catch(e){} showToast(msg); }
     }).catch(() => showToast('Network error.'));
 }
@@ -887,7 +887,7 @@ function updateItem() {
         min_stock:       document.getElementById('min-stock').value,
         location:        document.getElementById('location').value,
     };
-    fetch(`/items/${ITEM_ID}`, {
+    fetch(`{{ url("dashboard/items") }}/${ITEM_ID}`, {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': CSRF },
         body: JSON.stringify(payload)

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use App\Models\SaleItem;
+use App\Models\Sale;
 
 class ItemController extends Controller
 {
@@ -19,7 +21,8 @@ class ItemController extends Controller
             return response()->json($query->get());
         }
 
-        $products = Item::with('category')->where('type', 'product')->get();
+       $products = Item::with('category')->where('type', 'product')->get();
+
 
         if ($products->isEmpty()) {
             return view('items.products', compact('products'));
@@ -53,7 +56,6 @@ class ItemController extends Controller
         $data = $request->isJson() ? $request->json()->all() : $request->all();
         $type = $data['type'] ?? 'product';
 
-        // Resolve category_id
         $categoryId = null;
         if (!empty($data['category_id'])) {
             $categoryId = $data['category_id'];
@@ -89,14 +91,13 @@ class ItemController extends Controller
     }
 
     public function edit(string $id)
-{
-    $item       = Item::findOrFail($id);
-    $categories = Category::all();
-    $units      = [];
-    $taxes      = [];
-    return view('items.edit', compact('item', 'categories', 'units', 'taxes'));
-    //                 ^^^^^ CHANGE THIS
-}
+    {
+        $item       = Item::with('category')->findOrFail($id);
+        $categories = Category::all();
+        $units      = [];
+        $taxes      = [];
+        return view('items.edit', compact('item', 'categories', 'units', 'taxes'));
+    }
 
     public function update(Request $request, string $id)
     {
@@ -173,25 +174,111 @@ class ItemController extends Controller
         Category::findOrFail($id)->delete();
         return response()->json(['success' => true]);
     }
+
     // ── Units ──────────────────────────────────────────────────────
 
-public function units()
-{
-    return view('items.units');
-}
+    public function units()
+    {
+        return view('items.units');
+    }
 
-public function storeUnit(Request $request)
-{
-    return response()->json(['success' => true]);
-}
+    public function storeUnit(Request $request)
+    {
+        return response()->json(['success' => true]);
+    }
 
-public function updateUnit(Request $request, $id)
-{
-    return response()->json(['success' => true]);
-}
+    public function updateUnit(Request $request, $id)
+    {
+        return response()->json(['success' => true]);
+    }
 
-public function destroyUnit($id)
-{
-    return response()->json(['success' => true]);
-}
+    public function destroyUnit($id)
+    {
+        return response()->json(['success' => true]);
+    }
+
+    public function show(string $id)
+    {
+        $item = Item::with('category')->findOrFail($id);
+        return view('items.show', compact('item'));
+    }
+
+    public function transactions(string $id)
+    {
+        $item = Item::findOrFail($id);
+
+        // Auto-fix any old sale_items missing item_id for this item
+        SaleItem::whereNull('item_id')
+            ->where('item_name', $item->name)
+            ->update(['item_id' => $item->id]);
+
+        // Fetch by item_id OR item_name fallback
+        $saleItems = SaleItem::with(['sale.party'])
+            ->where(function ($q) use ($id, $item) {
+                $q->where('item_id', $id)
+                  ->orWhere(function ($q2) use ($item) {
+                      $q2->whereNull('item_id')
+                         ->where('item_name', $item->name);
+                  });
+            })
+            ->get();
+
+        $typeMap = [
+            'invoice'          => 'Sale',
+            'sale_return'      => 'Credit Note',
+            'proforma'         => 'Proforma Invoice',
+            'sale_order'       => 'Sale Order',
+            'delivery_challan' => 'Delivery Challan',
+            'estimate'         => 'Estimate',
+            'pos'              => 'Sale',
+        ];
+
+        $transactions = $saleItems->map(function ($si) use ($typeMap) {
+            $sale = $si->sale;
+            if (!$sale) return null;
+
+            return [
+                'id'      => $sale->id,
+                'type'    => $typeMap[$sale->type] ?? ucfirst($sale->type),
+                'invoice' => $sale->bill_number ?? $sale->id,
+                'name'    => $sale->party?->name ?? 'Walk-in Customer',
+                'date'    => $sale->invoice_date
+                                ? \Carbon\Carbon::parse($sale->invoice_date)->format('d/m/Y')
+                                : \Carbon\Carbon::parse($sale->created_at)->format('d/m/Y'),
+                'qty'     => $si->quantity ?? 0,
+                'unit'    => $si->unit ?? '',
+                'price'   => $si->unit_price ?? 0,
+                'status'  => $sale->status ?? 'Unpaid',
+                'isAdd'   => !in_array($sale->type, ['sale_return']),
+            ];
+        })->filter()->values();
+
+return response()->json($transactions);
+    }
+
+    public function adjust(Request $request, string $id)
+    {
+        $item = Item::findOrFail($id);
+
+        $qty   = floatval($request->input('qty', 0));
+        $isAdd = filter_var($request->input('is_add', true), FILTER_VALIDATE_BOOLEAN);
+
+        if ($qty <= 0) {
+            return response()->json(['success' => false, 'message' => 'Invalid quantity'], 422);
+        }
+
+        if ($isAdd) {
+            $item->opening_qty = floatval($item->opening_qty) + $qty;
+        } else {
+            $item->opening_qty = max(0, floatval($item->opening_qty) - $qty);
+        }
+
+        $item->save();
+
+        return response()->json([
+            'success'     => true,
+            'opening_qty' => $item->opening_qty,
+            'stock_qty'   => $item->stock_qty,
+        ]);
+    }
 }

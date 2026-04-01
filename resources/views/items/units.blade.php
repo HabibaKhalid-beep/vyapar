@@ -96,9 +96,9 @@
 
     {{-- TABS --}}
     <div class="units-tabs">
-        <div class="units-tab" onclick="location.href='/items'">PRODUCTS</div>
-        <div class="units-tab" onclick="location.href='/items/services'">SERVICES</div>
-        <div class="units-tab" onclick="location.href='/items/category'">CATEGORY</div>
+        <div class="units-tab" onclick="location.href='{{ route("items") }}'">PRODUCTS</div>
+        <div class="units-tab" onclick="location.href='{{ route("items.services") }}'">SERVICES</div>
+        <div class="units-tab" onclick="location.href='{{ route("items.category") }}'">CATEGORY</div>
         <div class="units-tab active">UNITS</div>
     </div>
 

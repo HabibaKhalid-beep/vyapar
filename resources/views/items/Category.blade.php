@@ -101,10 +101,12 @@
 <div class="cat-page">
 
     <div class="cat-tabs">
-        <div class="cat-tab" onclick="location.href='/items'">PRODUCTS</div>
-        <div class="cat-tab" onclick="location.href='/items/services'">SERVICES</div>
-        <div class="cat-tab active">CATEGORY</div>
-        <div class="cat-tab" onclick="location.href='/items/units'">UNITS</div>
+     <div class="cat-tab" onclick="location.href='{{ route('items') }}'">PRODUCTS</div>
+<div class="cat-tab" onclick="location.href='{{ route('items.services') }}'">SERVICES</div>
+  <div class="cat-tab active">CATEGORY</div>
+<div class="cat-tab" onclick="location.href='{{ route('items.units') }}'">UNITS</div>
+        
+        
     </div>
 
     <div class="cat-body">
@@ -303,7 +305,7 @@ function selectCat(i) {
 function loadItems(catId) {
     const tbody = document.getElementById('items-tbody');
     tbody.innerHTML = '<tr><td colspan="3" class="cat-norows">Loading...</td></tr>';
-    const url = catId ? `/items?category_id=${catId}&json=1` : `/items?uncategorized=1&json=1`;
+    const url = catId ? {{ route('items') }}?category_id=${catId}&json=1` : `{{ url("dashboard/items") }}?uncategorized=1&json=1`;
     fetch(url, { headers: { 'Accept': 'application/json' } })
         .then(r => r.json())
         .then(data => {
@@ -330,7 +332,7 @@ function closeAdd() { document.getElementById('add-overlay').classList.remove('o
 function saveAdd() {
     const name = document.getElementById('add-input').value.trim();
     if (!name) { toast('Please enter a category name.'); return; }
-    fetch('/items/category', {
+    fetch('{{ route("items.category.store") }}', {
         method:'POST',
         headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF},
         body:JSON.stringify({name})
@@ -356,7 +358,7 @@ function saveEdit() {
     const id=document.getElementById('edit-id').value;
     const name=document.getElementById('edit-input').value.trim();
     if (!name) { toast('Please enter a name.'); return; }
-    fetch(`/items/category/${id}`,{
+    fetch(`{{ url("dashboard/items/category") }}/${id}`,{
         method:'PUT',
         headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF},
         body:JSON.stringify({name})
@@ -374,7 +376,7 @@ function openDel(id) { delId=id; document.querySelectorAll('.cat-row-dd.open').f
 function closeDel() { document.getElementById('cdel-overlay').classList.remove('open'); delId=null; }
 function confirmDel() {
     if (!delId) return;
-    fetch(`/items/category/${delId}`, {
+    fetch(`{{ url("dashboard/items/category") }}/${delId}`, {
         method: 'DELETE',
         headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF }
     })
@@ -393,7 +395,7 @@ function confirmDel() {
 }
 
 function openMoveModal() {
-    fetch('/items?json=1', { headers: { 'Accept': 'application/json' } })
+    fetch('{{ route("items") }}?json=1', { headers: { 'Accept': 'application/json' } })
     .then(r => r.json())
     .then(data => {
         const items = Array.isArray(data) ? data : (data.items ?? []);
@@ -417,7 +419,7 @@ function confirmMove() {
     const checked = [...document.querySelectorAll('#move-items-tbody input[type=checkbox]:checked')].map(c => c.value);
     if (!checked.length) { toast('Please select at least one item.'); return; }
     Promise.all(checked.map(itemId =>
-        fetch(`/items/${itemId}`, {
+        fetch(`{{ url("dashboard/items") }}/${itemId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
             body: JSON.stringify({ category_id: targetCat.id })

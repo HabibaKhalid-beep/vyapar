@@ -228,7 +228,7 @@
                   $convertedInvoiceNumber = $convertedInvoices[$saleOrder->id] ?? $saleOrder->reference_id ?? null;
                 @endphp
                 <tr>
-                  <td>{{ $saleOrder->party_name ?? '-' }}</td>
+                  <td>{{ $saleOrder->display_party_name }}</td>
                   <td>{{ $saleOrder->bill_number ?? '-' }}</td>
                   <td>{{ optional($saleOrder->order_date)->format('d/m/Y') ?? '-' }}</td>
                   <td>{{ optional($saleOrder->due_date)->format('d/m/Y') ?? '-' }}</td>

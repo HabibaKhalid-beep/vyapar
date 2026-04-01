@@ -178,7 +178,7 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
     transition: background .15s;
 }
 .vy-unit-btn:hover { background: #bfdbfe; }
-.vy-unit-btn.chosen { background: #ede9fe; color: #6d28d9; border-color: #c4b5fd; }
+.vy-unit-btn.chosen { background: #dbeafe; color: #2563eb; border-color: #93c5fd; }
 
 /* Add Item Image */
 .vy-img-area {
@@ -515,8 +515,21 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
                     </button>
                 </div>
                 <div id="wholesale-row" style="display:none;margin-top:12px;">
-                    <input type="number" id="wholesale-price" placeholder="Wholesale Price" min="0" step="0.01" class="vy-price-input"/>
-                </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <input type="number" id="wholesale-price" placeholder="Wholesale Price" min="0" step="0.01" class="vy-price-input"/>
+        <span style="color:#9ca3af;font-size:18px;line-height:1;">—</span>
+        <div style="position:relative;display:flex;align-items:center;">
+            <input type="number" id="min-wholesale-qty" placeholder="Minimum Wholesale Qty" min="0" step="1" class="vy-price-input" style="padding-right:36px;"/>
+            <span title="Minimum quantity required to apply wholesale price"
+                  style="position:absolute;right:10px;cursor:help;color:#9ca3af;display:flex;align-items:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path stroke-linecap="round" d="M12 8v4m0 4h.01"/>
+                </svg>
+            </span>
+        </div>
+    </div>
+</div>
             </div>
             {{-- ADD id="purchase-sec" --}}
             <div class="vy-price-sec" id="purchase-sec">
@@ -654,7 +667,7 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
 let cats=[], selCats=[], baseUnit='', secUnit='';
 
 function loadCats(){
-    fetch('/items/category/list', { headers: { 'Accept': 'application/json' } })
+    fetch('{{ route("items.category.list") }}', { headers: { 'Accept': 'application/json' } })
     .then(r => r.json())
     .then(data => { cats = data; renderCats(); })
     .catch(() => {});
@@ -663,7 +676,7 @@ let wsOpen=false, iType='product', codeN=1000;
 
 /* ─── Page switching ─────────────────────── */
 function goToList(){
-    window.location.href = iType === 'service' ? '/items/services' : '/items';
+    window.location.href = iType === 'service' ? '{{ route("items.services") }}' : '{{ route("items") }}';
 }
 function showToast(msg){
     const t = document.createElement('div');
@@ -748,7 +761,7 @@ function showCatInput(){
 function saveCat(){
     const v = document.getElementById('new-cat-text').value.trim();
     if(!v) return;
-    fetch('/items/category', {
+    fetch('{{ route("items.category.store") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -908,7 +921,7 @@ function resetForm(){
 function saveItem(){
     if(!validate()) return;
     const d = collectData();
-    fetch('/items', {
+    fetch('{{ route("items.store") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -934,7 +947,7 @@ function saveItem(){
 function saveAndNew(){
     if(!validate()) return;
     const d = collectData();
-    fetch('/items', {
+    fetch('{{ route("items.store") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
