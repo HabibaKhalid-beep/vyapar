@@ -1,8 +1,9 @@
 function initializeForm(context) {
     const $ctx = $(context);
+    const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
 
     const itemOptionsHtml = (window.items || []).map(item => {
-        return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-unit="${item.unit || ''}">${item.name}</option>`;
+        const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}">${richLabel}</option>`;
     }).join('');
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -20,12 +21,24 @@ function initializeForm(context) {
     }
 
     function populateFormFromSale(sale) {
-        const partyOption = $ctx.find('.party-select option').filter(function () {
-            return $(this).val() == (sale.party_id || '');
-        }).first();
+        if (hasCustomPartyDropdown) {
+            const party = (window.parties || []).find(p => String(p.id) === String(sale.party_id || ''));
+            $ctx.find('.party-id').val(sale.party_id || '');
+            if (party) {
+                $ctx.find('#partyDropdownBtn').text(party.name || 'Select Party');
+                $ctx.find('.phone-input').val(party.phone || sale.phone || '');
+                $ctx.find('.billing-address').val(party.billing_address || sale.billing_address || '');
+            } else {
+                $ctx.find('#partyDropdownBtn').text('Select Party');
+            }
+        } else {
+            const partyOption = $ctx.find('.party-select option').filter(function () {
+                return $(this).val() == (sale.party_id || '');
+            }).first();
 
-        if (partyOption.length) {
-            partyOption.prop('selected', true);
+            if (partyOption.length) {
+                partyOption.prop('selected', true);
+            }
         }
 
         $ctx.find('.bill-number').val(sale.bill_number || '');
@@ -50,7 +63,7 @@ function initializeForm(context) {
             $row.find('.item-desc').val(item.item_description || '');
             $row.find('.item-discount').val(item.discount || 0);
             $row.find('.item-qty').val(item.quantity || 0);
-            $row.find('.item-unit').val(item.unit || 'NONE');
+            ensureUnitOption($row.find('.item-unit'), item.unit || 'NONE');
             $row.find('.item-price').val(item.unit_price || 0);
             $row.find('.item-amount').val(item.amount || 0);
         });
@@ -68,6 +81,47 @@ function initializeForm(context) {
         calculateTotals();
     }
 
+    function restoreRichItemDropdownLabels() {
+        $ctx.find('.item-name option').each(function() {
+            const richLabel = $(this).data('rich-label');
+            if (richLabel) {
+                $(this).text(richLabel);
+            }
+        });
+    }
+
+    function collapseSelectedItemLabel($select) {
+        restoreRichItemDropdownLabels();
+        const $selected = $select.find('option:selected');
+        const plainLabel = $selected.data('label');
+        if (plainLabel) {
+            $selected.text(plainLabel);
+        }
+    }
+
+    function ensureUnitOption($unitSelect, unit) {
+        const normalizedUnit = (unit || '').toString().trim();
+        if (!normalizedUnit) return;
+
+        const existingOption = $unitSelect.find('option').filter(function() {
+            return ($(this).val() || $(this).text()).toString().trim() === normalizedUnit;
+        }).first();
+
+        if (!existingOption.length) {
+            $unitSelect.append(`<option value="${normalizedUnit}">${normalizedUnit}</option>`);
+        }
+
+        $unitSelect.val(normalizedUnit);
+    }
+
+    $ctx.on('focus mousedown', '.item-name', function() {
+        restoreRichItemDropdownLabels();
+    });
+
+    $ctx.on('blur', '.item-name', function() {
+        collapseSelectedItemLabel($(this));
+    });
+
     $ctx.on('change', '.item-name', function() {
         const $row = $(this).closest('tr');
         const $selected = $(this).find('option:selected');
@@ -75,8 +129,22 @@ function initializeForm(context) {
         const unit = $selected.data('unit') || 'NONE';
 
         $row.find('.item-price').val(price.toFixed(2));
-        $row.find('.item-unit').val(unit);
+        ensureUnitOption($row.find('.item-unit'), unit || 'NONE');
         $row.find('.item-qty').val(1).trigger('change');
+    });
+
+    $ctx.on('click', '.party-option', function(e) {
+        e.preventDefault();
+        const $option = $(this);
+        const partyId = $option.data('id') || '';
+        const partyName = $.trim($option.find('span').first().text());
+        const phone = $option.data('phone') || '';
+        const billing = $option.data('billing') || '';
+
+        $ctx.find('.party-id').val(partyId);
+        $ctx.find('#partyDropdownBtn').text(partyName || 'Select Party');
+        $ctx.find('.phone-input').val(phone);
+        $ctx.find('.billing-address').val(billing);
     });
 
     $ctx.find('.add-row-btn').on('click', function() {
@@ -107,7 +175,7 @@ function initializeForm(context) {
                 <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description"></td>
                 <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><input type="number" class="item-discount" value="0"></td>
                 <td><input type="number" class="item-qty" value="1"></td>
-                <td><select class="item-unit"><option>NONE</option><option>PCS</option><option>BOX</option></select></td>
+                <td><select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select></td>
                 <td><input type="number" class="item-price" value="0"></td>
                 <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
                 <td class="add-col"></td>
@@ -220,8 +288,8 @@ function initializeForm(context) {
 
         return {
             type: 'delivery_challan',
-            party_id: $ctx.find('.party-select').val() || '',
-            party_name: $ctx.find('.party-select option:selected').text() || '',
+            party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || '',
+            party_name: $ctx.find('#partyDropdownBtn').text().trim() || $ctx.find('.party-select option:selected').text() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
             invoice_date: $ctx.find('.invoice-date').val() || todayValue,
             due_date: $ctx.find('.due-date').val() || todayValue,
@@ -301,4 +369,6 @@ function initializeForm(context) {
 
     calculateTotals();
 }
+
+
 

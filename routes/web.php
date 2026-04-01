@@ -13,11 +13,14 @@ use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\SaleOrderController;
 use App\Http\Controllers\PurchaseExpenseController;
+use App\Http\Controllers\PurchaseBillController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PaymentInController;
 use App\Http\Controllers\PerfomaController;
+use App\Http\Controllers\PurchaseOrderController;
+
 use Illuminate\Support\Facades\Route;
 
 // Default landing page
@@ -57,6 +60,8 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::put('/sales/{sale}', [SaleController::class, 'update'])->name('sale.update');
     Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sale.destroy');
     Route::get('sales/pos', [SaleController::class, 'pos1'])->name('sale.pos');
+
+
 
     Route::get('/estimates/{sale}/convert-to-sale', [SaleController::class, 'createFromEstimate'])->name('estimates.convert-to-sale');
     Route::get('/estimates/{sale}/edit', [SaleController::class, 'edit'])->name('estimates.edit');
@@ -137,6 +142,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     // Bank Accounts
     Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts');
     Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
+    Route::post('/bank-accounts/transfer', [BankAccountController::class, 'transfer'])->name('bank-accounts.transfer');
     Route::get('cash-in-hand', [BankAccountController::class, 'cashInHand'])->name('cash-in-hand');
     Route::get('/bank-accounts/{bankAccount}', [BankAccountController::class, 'show'])->name('bank-accounts.show');
     Route::get('/bank-accounts/{bankAccount}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit');
@@ -144,9 +150,31 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
 
     // Purchase & Expenses
-    Route::get('/purchase-bill', [PurchaseExpenseController::class, 'purchaseExpenses'])->name('purchase-expenses');
+
+
+
+    Route::get('/purchase-bill', [PurchaseBillController::class, 'purchaseExpenses'])->name('purchase-expenses');
+    Route::get('/purchase-bill/create', [PurchaseBillController::class, 'create'])->name('purchase-bill.create');
+    Route::post('/purchase-bills', [PurchaseBillController::class, 'store'])->name('purchase-bills.store');
+    Route::get('/purchase-bills/{purchase}/edit', [PurchaseBillController::class, 'edit'])->name('purchase-bills.edit');
+    Route::put('/purchase-bills/{purchase}', [PurchaseBillController::class, 'update'])->name('purchase-bills.update');
+    Route::delete('/purchase-bills/{purchase}', [PurchaseBillController::class, 'destroy'])->name('purchase-bills.destroy');
+    Route::get('/purchase-bills/{purchase}/preview', [PurchaseBillController::class, 'preview'])->name('purchase-bills.preview');
+    Route::get('/purchase-bills/{purchase}/print', [PurchaseBillController::class, 'print'])->name('purchase-bills.print');
+    Route::get('/purchase-bills/{purchase}/pdf', [PurchaseBillController::class, 'pdf'])->name('purchase-bills.pdf');
+
+
+
+    Route::get('purchase-order', [PurchaseOrderController::class, 'purchaseOrder'])->name('purchase-order');
+Route::get('purchase-order/create', [PurchaseOrderController::class, 'create'])->name('purchase-order.create');
+
+
+
+
+
+
+
     Route::get('/payment-out', [PurchaseExpenseController::class, 'paymentOut'])->name('payment-out');
-    Route::get('purchase-order', [PurchaseExpenseController::class, 'purchaseOrder'])->name('purchase-order');
     Route::get('expense', [PurchaseExpenseController::class, 'expense'])->name('expense');
     Route::get('purchase-return', [PurchaseExpenseController::class, 'purchaseReturn'])->name('purchase-return');
 
@@ -155,6 +183,9 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/items/services', [ItemController::class, 'services'])->name('items.services');
     Route::get('/items/create', [ItemController::class, 'create'])->name('items.create');
     Route::post('/items', [ItemController::class, 'store'])->name('items.store');
+
+
+
 
     Route::get('/items/category', [ItemController::class, 'category'])->name('items.category');
     Route::get('/items/category/list', [ItemController::class, 'categoryList'])->name('items.category.list');
@@ -167,7 +198,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::put('/items/units/{id}', [ItemController::class, 'updateUnit'])->name('items.units.update');
     Route::delete('/items/units/{id}', [ItemController::class, 'destroyUnit'])->name('items.units.destroy');
 
- Route::post('/items/{id}/adjust', [ItemController::class, 'adjust'])->name('items.adjust');  
+ Route::post('/items/{id}/adjust', [ItemController::class, 'adjust'])->name('items.adjust');
 Route::get('/items/{id}/transactions', [ItemController::class, 'transactions'])->name('items.transactions');
 Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::get('/items/{id}/edit', [ItemController::class, 'edit'])->name('items.edit');

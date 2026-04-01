@@ -33,7 +33,7 @@
     console.log('App initialized:', window.App);
   </script>
 
-  
+
 </head>
 
 <body data-page="purchase-orders">
@@ -65,10 +65,13 @@
             <input type="text" placeholder="Search...">
           </div>
           <div>
-            <button class="btn border-0 bg-primary rounded text-white fw-bold"><span
-                class="bg-light text-primary rounded-circle" style="padding: 0px 4px;">+</span> Add Delivery
-              Challan</button>
-          </div>
+<button class="btn border-0 bg-primary rounded text-white fw-bold"
+        onclick="window.location.href='{{ route('purchase-order.create') }}'">
+    <span class="bg-light text-primary rounded-circle" style="padding: 0px 4px;">+</span>
+    Add Purchase Order
+</button>
+
+               </div>
         </div>
 
         <div class="table-responsive small-table">

@@ -158,9 +158,9 @@ function initializeForm(context) {
         $ctx.find('.phone-input').val(sale.phone || '');
         $ctx.find('.billing-address').val(sale.billing_address || '');
         $ctx.find('.bill-number').val(sale.bill_number || '');
-        $ctx.find('.invoice-date').val(sale.invoice_date ? sale.invoice_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
-        $ctx.find('.order-date').val(sale.order_date ? sale.order_date.split(' ')[0] : '');
-        $ctx.find('.due-date').val(sale.due_date ? sale.due_date.split(' ')[0] : '');
+        const billDate = sale.bill_date ? sale.bill_date.toString().split(' ')[0] : `${yyyy}-${mm}-${dd}`;
+        $ctx.find('.bill-date').val(billDate);
+        $ctx.find('.invoice-date').val(billDate);
 
         // Items
         $ctx.find('.item-rows').empty();
@@ -180,7 +180,7 @@ function initializeForm(context) {
             $row.find('.item-discount').val(item.discount || 0);
             $row.find('.item-qty').val(item.quantity || 0);
             if (item.unit) {
-                ensureUnitOption($row.find('.item-unit'), item.unit);
+                $row.find('.item-unit').val(item.unit);
             }
             $row.find('.item-price').val(item.unit_price || 0);
             $row.find('.item-amount').val(item.amount || 0);
@@ -190,6 +190,7 @@ function initializeForm(context) {
         $ctx.find('.discount-pct').val(sale.discount_pct || 0);
         $ctx.find('.discount-rs').val(sale.discount_rs || 0);
         $ctx.find('.tax-select').val(sale.tax_pct || 0);
+        $ctx.find('.shipping').val(sale.shipping_charge || 0);
         $ctx.find('.round-off-val').val(sale.round_off || 0);
         $ctx.find('.grand-total').val(sale.grand_total || 0);
 
@@ -213,7 +214,7 @@ function initializeForm(context) {
         }
 
         // Payments: treat values as "already received" and allow adding new payments
-        window.existingReceivedAmount = parseFloat(sale.received_amount || 0) || 0;
+        window.existingReceivedAmount = parseFloat(sale.paid_amount || 0) || 0;
         window.existingBalance = parseFloat(sale.balance || 0) || 0;
 
         // Pre-select the same bank as the first payment (so user can quickly add more)
@@ -230,6 +231,7 @@ function initializeForm(context) {
 
         // Show the current received / balance values based on stored sale
         $ctx.find('.payment-total-amount').text((window.existingReceivedAmount || 0).toFixed(2));
+        $ctx.find('.received-amount').val((window.existingReceivedAmount || 0).toFixed(2));
         $ctx.find('.balance-amount').text((window.existingBalance || 0).toFixed(2));
 
         calculateTotals();
@@ -347,24 +349,6 @@ function initializeForm(context) {
         }
     }
 
-    function ensureUnitOption($unitSelect, unit) {
-        const normalizedUnit = (unit || '').toString().trim();
-        if (!normalizedUnit) return;
-
-        let $option = $unitSelect.find('option').filter(function() {
-            return ($(this).val() || $(this).text()).toString().trim() === normalizedUnit;
-        }).first();
-
-        if (!$option.length) {
-            $option = $('<option></option>').val(normalizedUnit).text(normalizedUnit);
-            $unitSelect.append($option);
-        }
-
-        $unitSelect.find('option').prop('selected', false);
-        $option.prop('selected', true);
-        $unitSelect.val(normalizedUnit);
-    }
-
     $ctx.on('focus mousedown', '.item-name', function() {
         restoreRichItemDropdownLabels();
     });
@@ -385,9 +369,7 @@ function initializeForm(context) {
 
         $row.find('.item-price').val(price.toFixed(2));
         if (unit) {
-            ensureUnitOption($row.find('.item-unit'), unit);
-        } else {
-            $row.find('.item-unit').val('');
+            $row.find('.item-unit').val(unit);
         }
 
         $row.find('.item-qty').trigger('change');
@@ -466,8 +448,10 @@ function initializeForm(context) {
     function gatherSaleData() {
         const items = Array.from($ctx.find('.item-row')).map(row => {
             const $row = $(row);
+            const itemId = $row.find('.item-name').val() || null;
             const itemName = $row.find('.item-name option:selected').data('label') || $row.find('.item-name option:selected').text() || '';
             return {
+                item_id: itemId,
                 item_name: itemName,
                 item_category: $row.find('.item-category').val() || '',
                 item_code: $row.find('.item-code').val() || '',
@@ -521,28 +505,23 @@ function initializeForm(context) {
         });
 
         return {
-            type: $ctx.find('.doc-type').val() || 'invoice',
-            source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
-            source_sale_order_id: window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null,
-            source_challan_id: window.sourceChallanId || window.editSaleData?.source_challan_id || null,
-            source_proforma_id: window.sourceProformaId || window.editSaleData?.source_proforma_id || null,
             party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
             party_name: $ctx.find('#partyDropdownBtn').text().trim() || $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
-            shipping_address: $ctx.find('.shipping-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
-            invoice_date: $ctx.find('.invoice-date').val() || '',
-            order_date: $ctx.find('.order-date').val() || '',
-            due_date: $ctx.find('.due-date').val() || '',
+            bill_date: $ctx.find('.bill-date').val() || $ctx.find('.invoice-date').val() || '',
             total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0,
             total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0,
             discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,
             discount_rs: parseFloat($ctx.find('.discount-rs').val() || 0) || 0,
             tax_pct: parseFloat($ctx.find('.tax-select').val() || 0) || 0,
             tax_amount: parseFloat($ctx.find('.tax-amount-display').text() || 0) || 0,
+            shipping_charge: parseFloat($ctx.find('.shipping').val() || 0) || 0,
             round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0,
             grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0,
+            paid_amount: parseFloat($ctx.find('.received-amount').val() || 0) || 0,
+            balance: parseFloat($ctx.find('.balance-amount').text() || 0) || 0,
             description: $ctx.find('.description-input').val() || null,
             image_path: (function() {
                 const file = $ctx.find('.image-input')[0]?.files?.[0];
@@ -605,7 +584,7 @@ function initializeForm(context) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
 
-                    showToast('Sale saved successfully! Redirecting...', false);
+                    showToast('Purchase saved successfully! Redirecting...', false);
 
                     if (data.redirect_url) {
                         setTimeout(() => {
@@ -617,11 +596,11 @@ function initializeForm(context) {
                 }
 
                 console.error(data);
-                showToast('Unable to save sale. See console for details.', true);
+                showToast('Unable to save purchase. See console for details.', true);
             })
             .catch(err => {
                 console.error(err);
-                showToast('Error saving sale. ' + (err.message || ''), true);
+                showToast('Error saving purchase. ' + (err.message || ''), true);
             })
             .finally(() => {
                 btn.prop('disabled', false).text('Save');
@@ -710,8 +689,8 @@ function initializeForm(context) {
         applyDiscountTax(totalBaseAmount);
     }
 
-    // Discount and Tax logic
-    $ctx.on('keyup change', '.discount-pct, .discount-rs, .tax-select, .round-off-check', function() {
+    // Discount, shipping and tax logic
+    $ctx.on('keyup change', '.discount-pct, .discount-rs, .tax-select, .round-off-check, .shipping', function() {
         const totalBaseAmount = parseFloat($ctx.find('.total-base-amount').text()) || 0;
         applyDiscountTax(totalBaseAmount);
     });
@@ -737,6 +716,9 @@ function initializeForm(context) {
         }
         $ctx.find('.tax-amount-display').text(taxAmount.toFixed(2));
 
+        const shippingCharge = parseFloat($ctx.find('.shipping').val() || 0) || 0;
+        finalBase += shippingCharge;
+
         let grandTotal = finalBase;
         let roundOffVal = 0;
 
@@ -749,46 +731,49 @@ function initializeForm(context) {
         $ctx.find('.round-off-val').val(roundOffVal.toFixed(2));
         $ctx.find('.grand-total').val(grandTotal.toFixed(2));
 
-        // Update payment summary (total payments / received / balance) whenever grand total changes
         updatePaymentSummary();
     }
 
     function updatePaymentSummary() {
         const grandTotal = parseFloat($ctx.find('.grand-total').val() || 0) || 0;
+        let paymentTotal = 0;
 
-        // Received amount starts from existing sale payments when editing
-        let received = 0;
-        if (window.editSaleData) {
-            received += parseFloat(window.editSaleData.received_amount || 0) || 0;
-        }
-
-        // Include the default payment row (first row) as additional payment when editing
         const defaultType = $ctx.find('.default-payment-type').val() || '';
         if (defaultType.startsWith('bank-')) {
-            received += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
+            paymentTotal += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
         }
 
-        // Include additional payment entries
-        received += Array.from($ctx.find('.payment-type-entry')).reduce((sum, el) => {
+        paymentTotal += Array.from($ctx.find('.payment-type-entry')).reduce((sum, el) => {
             const rawType = $(el).val() || '';
-            const isBank = rawType.startsWith('bank-');
-            if (!isBank) return sum;
+            if (!rawType.startsWith('bank-')) {
+                return sum;
+            }
 
             const amountInput = $(el).closest('.payment-entry').find('.payment-amount');
             return sum + (parseFloat(amountInput.val() || 0) || 0);
         }, 0);
 
-        const balance = Math.max(0, grandTotal - received);
+        if (!$ctx.find('.received-amount').data('manual-edited')) {
+            $ctx.find('.received-amount').val(paymentTotal.toFixed(2));
+        }
 
-        $ctx.find('.payment-total-amount').text(received.toFixed(2));
-        $ctx.find('.received-amount').val(received.toFixed(2));
+        const paidAmount = parseFloat($ctx.find('.received-amount').val() || 0) || 0;
+        const balance = Math.max(0, grandTotal - paidAmount);
+
+        $ctx.find('.payment-total-amount').text(paymentTotal.toFixed(2));
+        $ctx.find('.received-amount').val(paidAmount.toFixed(2));
         $ctx.find('.balance-amount').text(balance.toFixed(2));
     }
 
-    // Recalculate payment summary when payments change
-    $ctx.on('keyup change', '.default-payment-amount, .payment-amount', updatePaymentSummary);
+    $ctx.on('input change', '.default-payment-amount, .payment-amount', function() {
+        updatePaymentSummary();
+    });
 
-    // Update when payment rows are removed
+    $ctx.on('input change', '.received-amount', function() {
+        $(this).data('manual-edited', true);
+        updatePaymentSummary();
+    });
+
     $ctx.on('click', '.remove-payment-entry', function() {
         $(this).closest('.payment-entry').remove();
         updatePaymentSummary();
@@ -796,3 +781,8 @@ function initializeForm(context) {
 
     calculateTotals();
 }
+
+
+
+
+

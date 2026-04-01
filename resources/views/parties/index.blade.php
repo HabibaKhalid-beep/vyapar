@@ -852,7 +852,7 @@ font-size:12px;
 }
 
 </style>
-  
+
 
 @section('title', 'Vyapar — Parties')
 @section('description', 'Manage your business parties, customers, and suppliers in Vyapar accounting software.')
@@ -956,11 +956,11 @@ font-size:12px;
 </li>
    <ul id="partiesList">
   @foreach($parties as $party)
-    <li class="party-item" 
-        data-id="{{ $party->id }}" 
-        data-name="{{ $party->name }}" 
-        data-phone="{{ $party->phone }}" 
-        data-email="{{ $party->email }}" 
+    <li class="party-item"
+        data-id="{{ $party->id }}"
+        data-name="{{ $party->name }}"
+        data-phone="{{ $party->phone }}"
+        data-email="{{ $party->email }}"
         data-billing-address="{{ $party->billing_address }}"
         data-shipping-address="{{ $party->shipping_address }}"
         data-opening-balance="{{ $party->opening_balance }}"
@@ -1412,7 +1412,7 @@ font-size:12px;
               </div>
             </div>
           </div>
-          
+
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
@@ -1614,9 +1614,9 @@ document.addEventListener("DOMContentLoaded", function () {
         li.classList.add('active');
 
         currentPartyId = li.dataset.id;
-        
+
         console.log("✅ Party Selected - ID:", currentPartyId);
-        
+
         document.getElementById("partyDetailName").textContent = li.dataset.name || '';
         document.getElementById("partyPhone").textContent = li.dataset.phone || '';
         document.getElementById("partyEmail").textContent = li.dataset.email || '';
@@ -1675,7 +1675,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ✅ FIX: Additional fields / Custom fields
     const customFieldInputs = document.querySelectorAll('#partyAdditionalPane input[type="text"]');
     const customFieldChecks = document.querySelectorAll('#partyAdditionalPane input[type="checkbox"]');
-    
+
     if (party.custom_fields && Array.isArray(party.custom_fields)) {
         party.custom_fields.forEach((field, index) => {
             if (customFieldInputs[index]) {
@@ -1724,7 +1724,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ✅ UPDATE PARTY
     updateBtn.addEventListener("click", function () {
         console.log("🔄 Update clicked! currentPartyId:", currentPartyId);
-        
+
         if (!currentPartyId) {
             alert("No party selected!");
             return;
@@ -1872,7 +1872,7 @@ function loadPartyTransactions(partyId) {
       typeBadge = `<span style="
     background:${typeStyle.bg};
     color:${typeStyle.color};
-    
+
     border-radius:12px;
     font-size:13px;
     display:inline-block;
@@ -1963,7 +1963,7 @@ function loadPartyTransactions(partyId) {
         if (!currentPartyId) return;
         if (!confirm("Delete this party?")) return;
 
-       
+
       fetch(`/dashboard/parties/${currentPartyId}`, {
     method: "DELETE",
             headers: {

@@ -1,25 +1,70 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ isset($saleReturn) ? 'Edit' : 'Create' }} Sale Return | Vyapar</title>
+    <title>Purchase Bill</title>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/saleorderform_style.css') }}">
+    <!-- Custom CSS -->
+
+        <link rel="stylesheet" href="{{ asset('css/purchaseco.css') }}">
+
+    <link rel="stylesheet" href="{{ asset('css/purchaseorderform_style.css') }}">
+    <!-- Form Styles -->
+
 </head>
+<style>
+    /* Dropdown with two columns */
+    #partyDropdownMenu {
+    min-width: 250px; /* Adjust as needed */
+    max-width: 100%;  /* Never exceed container */
+}
+.party-option span {
+    display: inline-block;
+    width: 100%;
+}
+.party-option span:first-child {
+    width: 60%; /* Party name */
+}
+.party-option span:last-child {
+    width: 40%; /* Opening balance */
+    text-align: right;
+}
+
+/* Header style */
+.dropdown-header {
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Hover effect */
+.dropdown-item.party-option:hover {
+    background-color: #e2f0ff;
+}
+    </style>
 
 <body>
+
     <div class="container-fluid min-vh-100 d-flex flex-column p-0">
+        <!-- Explorer / Tab Bar Area -->
         <header class="tab-system-header">
             <div class="tab-strip-wrapper justify-content-between">
                 <div class="d-flex align-items-end flex-grow-1 overflow-hidden">
-                    <div id="tab-strip" class="tab-strip d-flex align-items-end"></div>
+                    <div id="tab-strip" class="tab-strip d-flex align-items-end">
+                        <!-- Tabs will be dynamically inserted here -->
+                    </div>
                     <button id="add-tab-btn" class="btn add-tab-btn" title="New Tab">
                         <i class="bi bi-plus-lg"></i>
                     </button>
@@ -31,18 +76,28 @@
                     <i class="fa-solid fa-xmark close-app-icon" title="Close Window"></i>
                 </div>
             </div>
+            <!-- Browser Toolbar / Heading Area -->
             <div class="browser-toolbar d-flex align-items-center px-3">
-                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Sale Return / Credit Note</p>
+                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Purchase </p>
+
             </div>
         </header>
 
-        <main id="content-area">
+        <!-- Content Area -->
+        <main id="content-area" class="">
+            <!-- Tab contents will be dynamically inserted here
+            <button id="global-save-btn" class="btn btn-primary position-absolute bottom-0 end-0 m-4 shadow-lg z-3">
+                <i class="bi bi-save me-2"></i>Save
+            </button> -->
+            <!-- Form Template -->
             <template id="form-template">
                 <div class="invoice-container">
                     <div class="invoice-form invoice-card">
+
+                        <!-- Header Section -->
                         <div class="header-section">
                             <div class="header-left">
-                             <div class="input-group">
+                                <div class="input-group">
                                 <!-- Party dropdown button -->
 <div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
     <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -54,7 +109,7 @@
     </div>
 
     <!-- Dropdown menu (existing) -->
-    <ul class="dropdown-menu w-110" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+    <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
         <li class="dropdown-header d-flex justify-content-between px-3">
             <span>Party Name</span>
             <span>Opening Balance</span>
@@ -94,40 +149,32 @@
 
                                 </div>
 
-                                <div class="input-group mt-2">
-                                    <input type="text" class="input-control phone-input" readonly>
+                                <div class="input-group mt-3">
+                                    <input type="text" class="input-control phone-input" placeholder=" " readonly>
                                     <label>Phone No.</label>
                                 </div>
-
-                                <div class="input-group mt-2">
-                                    <textarea class="input-control billing-address" rows="2" readonly></textarea>
+                                <div class="input-group mt-3">
+                                    <textarea class="input-control billing-address" placeholder="" rows="2" readonly></textarea>
                                     <label>Billing Address</label>
-                                </div>
-
-                                <div class="input-group mt-2">
-                                    <textarea class="input-control shipping-address" rows="2" readonly></textarea>
-                                    <label>Shipping Address</label>
                                 </div>
                             </div>
 
                             <div class="header-right w-25">
                                 <div class="input-group">
-                                    <span>Return No.</span>
+                                    <span>Bill No.</span>
                                     <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
                                 </div>
-                                <div class="input-group mt-2">
-                                    <span>Invoice Date</span>
-                                    <input type="date" class="input-control underline-input order-date">
+                                <div class="input-group date-wrapper">
+                                    <span>Bill Date</span>
+                                    <input type="date" class="input-control underline-input bill-date invoice-date">
                                 </div>
-                                <div class="input-group mt-2">
-                                    <span> Date</span>
-                                    <input type="date" class="input-control underline-input due-date">
-                                </div>
+
                             </div>
                         </div>
 
                         <div class="alert alert-success d-none sale-success-msg"></div>
 
+                        <!-- Table Section -->
                         <div class="table-container">
                             <table class="item-table">
                                 <thead>
@@ -143,9 +190,9 @@
                                         <th>PRICE/UNIT</th>
                                         <th>AMOUNT</th>
                                         <th class="add-col" style="position: relative;">
-                                            <button type="button" class="btn-add-circle table-settings-btn">
-                                                <i class="fa-solid fa-plus"></i>
-                                            </button>
+                                            <button type="button" class="btn-add-circle table-settings-btn"><i
+                                                    class="fa-solid fa-plus"></i></button>
+                                            <!-- Settings Box -->
                                             <div class="settings-box">
                                                 <div class="settings-item">
                                                     <input type="checkbox" class="check-category">
@@ -168,6 +215,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="item-rows">
+                                    <!-- Row 1 -->
                                     <tr class="item-row">
                                         <td class="row-num">
                                             <span class="row-index-text">1</span>
@@ -177,20 +225,32 @@
                                             <select class="form-select item-name">
                                                 <option value="" selected disabled>Select Item</option>
                                                 @foreach($items as $item)
+
                                                     <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>
-                                                @endforeach
+
+                                                    @endforeach
                                             </select>
                                         </td>
-                                        <td class="col-category d-none"><input type="text" class="item-category" placeholder="Category"></td>
-                                        <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code"></td>
-                                        <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description"></td>
-                                        <td class="col-discount d-none"><input type="number" class="item-discount" value="0"></td>
+                                        <td class="col-category d-none"><input type="text" class="item-category"
+                                                placeholder="Category"></td>
+                                        <td class="col-item-code d-none"><input type="text" class="item-code"
+                                                placeholder="Item Code"></td>
+                                        <td class="col-description d-none"><input type="text" class="item-desc"
+                                                placeholder="Description"></td>
+                                        <td class="col-discount d-none"><input type="number" class="item-discount"
+                                                value="0">
+                                        </td>
                                         <td><input type="number" class="item-qty" value="1"></td>
                                         <td class="custom-size-td">
-                                            <select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select>
+                                            <select class="item-unit">
+                                                <option>NONE</option>
+                                                <option>PCS</option>
+                                                <option>BOX</option>
+                                            </select>
                                         </td>
                                         <td><input type="number" class="item-price" value="0"></td>
-                                        <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
+                                        <td class="col-amount"><input type="text" class="item-amount" value="0"
+                                                readonly></td>
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
@@ -210,7 +270,9 @@
                             </div>
                         </div>
 
+                        <!-- Bottom Split Section -->
                         <div class="bottom-section">
+                            <!-- Left Column -->
                             <div class="bottom-left">
                                 <div class="payment-section">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
@@ -224,7 +286,9 @@
                                         <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
                                     </div>
 
-                                    <div class="payment-entries"></div>
+                                    <div class="payment-entries">
+                                        <!-- Payment rows will be added here when "Add Payment type" is clicked -->
+                                    </div>
 
                                     <div class="payment-total d-flex justify-content-between align-items-center mt-2">
                                         <span class="text-muted">Total payment:</span>
@@ -259,7 +323,7 @@
                                     ADD IMAGE
                                 </button>
                                 <button type="button" class="btn-action-light w-50 add-document">
-                                    <i class="fa-solid fa-file-lines"></i>
+                                    <i class="fa-solid fa-align-left "></i>
                                     ADD DOCUMENT
                                 </button>
 
@@ -287,7 +351,9 @@
                                 <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" />
                             </div>
 
+                            <!-- Right Column -->
                             <div class="bottom-right">
+                                <!-- Discount -->
                                 <div class="calc-row">
                                     <div class="calc-label">Discount</div>
                                     <div class="calc-inputs">
@@ -297,6 +363,7 @@
                                     </div>
                                 </div>
 
+                                <!-- Tax -->
                                 <div class="calc-row">
                                     <div class="calc-label">Tax</div>
                                     <div class="calc-inputs">
@@ -310,6 +377,14 @@
                                     </div>
                                 </div>
 
+                                   <div class="final-total-group">
+                                    <div class="calc-row" style="margin-bottom: 5px;">
+                                        <div class="calc-label" style="font-weight: 700; margin-left:90%;">Shipping</div>
+                                    </div>
+                                    <input type="number" class="total-input-large shipping" value="0" step="0.01">
+                                </div>
+
+                                <!-- Round Off -->
                                 <div class="calc-row">
                                     <div class="checkbox-group">
                                         <input type="checkbox" class="custom-checkbox round-off-check" checked>
@@ -320,17 +395,18 @@
                                     </div>
                                 </div>
 
+                                <!-- Final Total -->
                                 <div class="final-total-group">
                                     <div class="calc-row" style="margin-bottom: 5px;">
-                                        <div class="calc-label" style="font-weight: 700;">Total</div>
+                                        <div class="calc-label" style="font-weight: 700; margin-left:95%;">Total</div>
                                     </div>
                                     <input type="text" class="total-input-large grand-total" value="0" readonly>
                                 </div>
 
                                 <div class="calc-row">
-                                    <div class="calc-label">Received Amount</div>
+                                    <div class="calc-label">Paid</div>
                                     <div class="calc-inputs">
-                                        <input type="number" class="mini-input advance-amount" value="0" readonly>
+                                        <input type="number" class="mini-input received-amount" value="0" step="0.01">
                                     </div>
                                 </div>
 
@@ -344,6 +420,7 @@
                         </div>
                     </div>
 
+                    <!-- Fixed Action Bar -->
                     <div class="sticky-actions">
                         <div class="btn-share">
                             <button class="btn-share-main">Share</button>
@@ -356,6 +433,9 @@
         </main>
     </div>
 
+
+
+    <!-- Tab Limit Modal -->
     <div class="modal fade" id="tabLimitModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-dark border-secondary">
@@ -369,15 +449,18 @@
         </div>
     </div>
 
+    <!-- Close Confirmation Modal -->
     <div class="modal fade" id="closeConfirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-dark border-secondary">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Close Tab?</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to close this tab? Your sale return will not be saved.</p>
+                    <p>Are you sure you want to close this tab? Your purchase will not be saved. Use the Save button on
+                        the bottom right of the screen to save.</p>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -387,41 +470,39 @@
         </div>
     </div>
 
+    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    @if(isset($saleReturn))
-        <script>
-            window.items = @json($items ?? []);
-            window.parties = @json($parties ?? []);
-            window.bankAccounts = @json($bankAccounts ?? []);
-            window.saleReturnStoreUrl = "{{ route('sale-return.update', $saleReturn->id) }}";
-            window.saleReturnMethod = 'PUT';
-            window.editSaleReturnData = @json($saleReturn->load(['items', 'payments'])->toArray());
-            window.docType = 'sale_return';
-        </script>
-    @elseif(isset($duplicateSaleReturn))
-        <script>
-            window.items = @json($items ?? []);
-            window.parties = @json($parties ?? []);
-            window.bankAccounts = @json($bankAccounts ?? []);
-            window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
-            window.saleReturnMethod = 'POST';
-            window.editSaleReturnData = @json(array_merge($duplicateSaleReturn->load(['items', 'payments'])->toArray(), ['bill_number' => $nextInvoiceNumber]));
-            window.docType = 'sale_return';
-        </script>
-    @else
-        <script>
-            window.items = @json($items ?? []);
-            window.parties = @json($parties ?? []);
-            window.bankAccounts = @json($bankAccounts ?? []);
-            window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
-            window.saleReturnMethod = 'POST';
-            window.editSaleReturnData = null;
-            window.docType = 'sale_return';
-        </script>
-    @endif
 
+<script>
+    window.items = @json($items);
+    window.parties = @json($parties);
+    window.bankAccounts = @json($bankAccounts);
+
+    window.saleStoreUrl = "{{ route('purchase-bills.store') }}";
+    window.saleMethod = 'POST';
+
+    // Default values
+    window.editSaleData = null;
+    window.sourceEstimateId = null;
+    window.sourceSaleOrderId = null;
+    window.sourceChallanId = null;
+    window.sourceProformaId = null;
+
+    // Optional doc type (avoid JS error)
+    window.docType = "purchase_bill";
+
+    @if(isset($purchase))
+        // Edit mode
+        window.saleStoreUrl = "{{ route('purchase-bills.update', $purchase->id) }}";
+        window.saleMethod = 'PUT';
+        window.editSaleData = @json($purchase->load(['items', 'payments']));
+    @endif
+</script>
+
+    <!-- Toast container -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
         <div id="sale-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -431,8 +512,308 @@
         </div>
     </div>
 
-    <script src="{{ asset('js/salereturnform_script.js') }}"></script>
-    <script src="{{ asset('js/scriptreturn.js') }}"></script>
+    <!-- Form Logic -->
+    <script src="{{ asset('js/purchase/purchaseformorder_script.js') }}"></script>
+    <!-- Custom JS -->
+    <script src="{{ asset('js/purchase/purchaseorderscript.js') }}"></script>
+     <div class="container">
+        @yield('content')
+    </div>
+
+@section('modals')
+<!-- MODAL: ADD PARTY -->
+ <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addPartyModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Party</h5>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-secondary" title="Settings"><i class="fa-solid fa-gear"></i></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <form id="addPartyForm">
+          @csrf
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-600">Phone Number</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
+                <i class="fa-solid fa-location-dot me-1"></i> Address
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
+                <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
+                <i class="fa-solid fa-sliders me-1"></i> Additional Fields
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-3" id="partyModalTabContent">
+            <!-- Address Tab -->
+            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Email ID</label>
+                  <input type="email" name="email" class="form-control" placeholder="example@email.com">
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-6">
+                  <label class="form-label">Billing Address</label>
+                  <textarea id="billingAddress" class="form-control" name="billing_address" rows="3" placeholder="Enter billing address"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Shipping Address</label>
+                  <textarea  id="shippingAddress" class="form-control" name="shipping_address" rows="3" placeholder="Enter shipping address"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Credit & Balance Tab -->
+          <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Opening Balance</label>
+      <div class="input-group">
+        <span class="input-group-text">₹</span>
+        <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+      </div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">As Of Date</label>
+      <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label d-block">Credit Limit</label>
+      <div class="form-check form-switch mt-2">
+        <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
+        <label class="form-check-label" for="creditLimitSwitch">Enable</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- To Receive / To Pay Options at the bottom -->
+  <div class="mt-4">
+    <label class="form-label d-block">Transaction Type</label>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
+      <label class="form-check-label" for="toReceive">To Receive</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="checkbox" id="toPay" value="pay">
+      <label class="form-check-label" for="toPay">To Pay</label>
+    </div>
+  </div>
+</div>
+<div class="col-md-6">
+  <label class="form-label fw-600">Party Type</label>
+
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="party_type" id="customerParty" value="customer" checked>
+    <label class="form-check-label" for="customerParty">Customer Party</label>
+  </div>
+
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="party_type" id="supplierParty" value="supplier">
+    <label class="form-check-label" for="supplierParty">Supplier Party</label>
+  </div>
+</div>
+
+            <!-- Additional Fields Tab -->
+            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
+              <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
+              <div class="row g-3">
+                @for($i=1; $i<=4; $i++)
+                <div class="col-md-6">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="customField{{$i}}Check">
+                    <label class="form-check-label" for="customField{{$i}}Check">Custom Field {{$i}}</label>
+                  </div>
+                  <input type="text" name="custom_fields[]" class="form-control form-control-sm" placeholder="Field name">
+                </div>
+
+                <input type="hidden" id="transactionTypeValue" name="transaction_type">
+                @endfor
+
+              </div>
+            </div>
+          </div>
+
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
+              <i class="fa-solid fa-plus me-1"></i> Save & New
+            </button>
+            <button type="button" class="btn btn-primary" id="btnSaveParty">
+              <i class="fa-solid fa-check me-1"></i> Save
+            </button>
+ <button class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
+    <button class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+@endsection
+
+@yield('modals')
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const partySelect = document.querySelector(".party-select");
+    const addModalEl = document.getElementById('addPartyModal');
+    const addModal = new bootstrap.Modal(addModalEl);
+
+    partySelect.addEventListener("change", function () {
+        if (this.value === "__new") {
+            addModal.show();
+
+            // Optional: Reset modal har bar open hone pe
+            document.getElementById("addPartyForm").reset();
+        }
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const addModalEl = document.getElementById('addPartyModal');
+    const addModal = new bootstrap.Modal(addModalEl);
+    const saveBtn = document.getElementById("btnSaveParty");
+    const saveNewBtn = document.getElementById("btnSaveNewParty");
+
+
+
+
+    function getPartyData() {
+        const form = document.getElementById("addPartyForm");
+        return new FormData(form);
+    }
+
+   function saveParty(closeAfterSave = true) {
+    const form = document.getElementById("addPartyForm");
+    const data = new FormData(form);
+
+    // Transaction type fix
+    const toReceive = document.getElementById("toReceive").checked;
+    const toPay = document.getElementById("toPay").checked;
+    if(toReceive) data.set("transaction_type", "receive");
+    else if(toPay) data.set("transaction_type", "pay");
+
+    // Credit limit fix
+    const creditSwitch = document.getElementById("creditLimitSwitch");
+    data.set("credit_limit_enabled", creditSwitch.checked ? 1 : 0);
+
+    fetch("{{ route('parties.store') }}", {
+        method: "POST",
+        headers: {
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            "Accept": "application/json"   // important!
+        },
+        body: data
+    })
+    .then(res => res.json())
+    .then(res => {
+        if(res.success) {
+            alert("Party saved successfully!");
+            if(closeAfterSave) addModal.hide();
+            else form.reset();
+        } else {
+            alert("Error saving party");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Something went wrong! Check console.");
+    });
+}
+    saveBtn.addEventListener('click', function () {
+        saveParty(true); // close modal after save
+    });
+
+    saveNewBtn.addEventListener('click', function () {
+        saveParty(false); // reset modal for new entry
+    });
+});
+
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dropdownBtn = document.getElementById("partyDropdownBtn");
+    const dropdownMenu = document.getElementById("partyDropdownMenu");
+    const partyIdInput = document.querySelector(".party-id");
+    const balanceDisplay = document.getElementById("partyBalanceDisplay");
+    const addModalEl = document.getElementById('addPartyModal');
+
+    const addModal = new bootstrap.Modal(addModalEl);
+
+
+    dropdownMenu.addEventListener("click", function(e) {
+        if(e.target.closest(".party-option")) {
+            e.preventDefault();
+            const option = e.target.closest(".party-option");
+            const name = option.querySelector("span:first-child").textContent;
+            let opening = parseFloat(option.dataset.opening) || 0;
+            const type = option.dataset.type;
+            const phone = option.dataset.phone;
+            const billing = option.dataset.billing;
+            const id = option.dataset.id;
+
+            // Button pe sirf party name
+            dropdownBtn.textContent = name;
+
+            // Show balance below button with color
+          if(type === "pay"){
+    balanceDisplay.innerHTML = `
+        <i class="fa-solid fa-arrow-up text-danger me-1"></i>
+        ₹${opening.toFixed(2)}
+    `;
+}
+else if(type === "receive"){
+    balanceDisplay.innerHTML = `
+        <i class="fa-solid fa-arrow-down text-success me-1"></i>
+        ₹${opening.toFixed(2)}
+    `;
+}
+else {
+    balanceDisplay.innerHTML = `₹${opening.toFixed(2)}`;
+}
+
+            // Save selected party id
+            partyIdInput.value = id;
+
+            // Populate phone & billing fields
+            document.querySelector(".phone-input").value = phone;
+            document.querySelector(".billing-address").value = billing;
+        }
+        else if(e.target.id === "addNewPartyBtn") {
+            addModal.show();
+            document.getElementById("addPartyForm").reset();
+            balanceDisplay.textContent = "";
+        }
+    });
+
+});
+</script>
 </body>
 
 </html>
