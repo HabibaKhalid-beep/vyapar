@@ -144,11 +144,12 @@ class ItemController extends Controller
 
     // ── Category ─────────────────────────────────────────────────
 
-    public function category()
-    {
-        $categories = Category::withCount('items')->get();
-        return view('items.category', compact('categories'));
-    }
+   public function category(Request $request)
+{
+    $categories = Category::withCount('items')->get();
+    $uncategorizedCount = Item::whereNull('category_id')->count();
+    return view('items.category', compact('categories', 'uncategorizedCount'));
+}
 
     public function categoryList()
     {

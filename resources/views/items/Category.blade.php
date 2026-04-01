@@ -101,12 +101,10 @@
 <div class="cat-page">
 
     <div class="cat-tabs">
-     <div class="cat-tab" onclick="location.href='{{ route('items') }}'">PRODUCTS</div>
-<div class="cat-tab" onclick="location.href='{{ route('items.services') }}'">SERVICES</div>
-  <div class="cat-tab active">CATEGORY</div>
-<div class="cat-tab" onclick="location.href='{{ route('items.units') }}'">UNITS</div>
-        
-        
+        <div class="cat-tab" onclick="location.href='{{ route('items') }}'">PRODUCTS</div>
+        <div class="cat-tab" onclick="location.href='{{ route('items.services') }}'">SERVICES</div>
+        <div class="cat-tab active">CATEGORY</div>
+        <div class="cat-tab" onclick="location.href='{{ route('items.units') }}'">UNITS</div>
     </div>
 
     <div class="cat-body">
@@ -207,24 +205,31 @@
         </div>
     </div>
 </div>
+
 {{-- MOVE MODAL --}}
 <div class="cat-overlay" id="move-overlay" onclick="if(event.target===this)closeMoveModal()">
     <div class="cat-mbox" style="width:560px;">
         <div class="cat-mhdr">
-            <span class="cat-mtitle">Select Items</span>
+            <span class="cat-mtitle">Select Items to Move</span>
             <button class="cat-mclose" onclick="closeMoveModal()">✕</button>
         </div>
         <div style="padding:0 26px 10px;">
-            <input placeholder="Search items..."
-                oninput="document.querySelectorAll('#move-items-tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(this.value.toLowerCase())?'':'none')"
-                style="width:100%;border:1.5px solid #3b82f6;border-radius:7px;padding:10px 14px;font-size:13px;outline:none;margin-bottom:10px;"/>
+            <input
+                id="move-search"
+                placeholder="Search items..."
+                oninput="filterMoveItems(this.value)"
+                style="width:100%;border:1.5px solid #3b82f6;border-radius:7px;padding:10px 14px;font-size:13px;outline:none;margin-bottom:10px;"
+            />
         </div>
         <div style="max-height:300px;overflow-y:auto;border-top:1px solid #f3f4f6;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead><tr>
-                    <th style="padding:10px 16px;font-size:11px;color:#9ca3af;border-bottom:1px solid #f3f4f6;"></th>
+                    <th style="padding:10px 16px;font-size:11px;color:#9ca3af;border-bottom:1px solid #f3f4f6;">
+                        <input type="checkbox" id="move-select-all" style="width:15px;height:15px;accent-color:#3b82f6;" onchange="toggleSelectAll(this.checked)">
+                    </th>
                     <th style="padding:10px 16px;font-size:11px;color:#9ca3af;text-align:left;border-bottom:1px solid #f3f4f6;">ITEM NAME</th>
-                    <th style="padding:10px 16px;font-size:11px;color:#9ca3af;text-align:right;border-bottom:1px solid #f3f4f6;">QUANTITY</th>
+                    <th style="padding:10px 16px;font-size:11px;color:#9ca3af;text-align:left;border-bottom:1px solid #f3f4f6;">CATEGORY</th>
+                    <th style="padding:10px 16px;font-size:11px;color:#9ca3af;text-align:right;border-bottom:1px solid #f3f4f6;">QTY</th>
                 </tr></thead>
                 <tbody id="move-items-tbody"></tbody>
             </table>
@@ -233,18 +238,23 @@
             <input type="checkbox" id="remove-existing-cb" style="width:16px;height:16px;accent-color:#3b82f6;">
             <label for="remove-existing-cb" style="font-size:13px;color:#374151;">Remove selected items from existing category</label>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 26px;border-top:1px solid #f3f4f6;">
-            <button onclick="closeMoveModal()" style="background:#f3f4f6;border:none;border-radius:7px;padding:10px 24px;font-size:13px;font-weight:600;cursor:pointer;">Cancel</button>
-            <button onclick="confirmMove()" style="background:#ef4444;color:#fff;border:none;border-radius:7px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;">Move to this category</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 26px;border-top:1px solid #f3f4f6;">
+            <span id="move-selected-count" style="font-size:13px;color:#6b7280;">0 items selected</span>
+            <div style="display:flex;gap:10px;">
+                <button onclick="closeMoveModal()" style="background:#f3f4f6;border:none;border-radius:7px;padding:10px 24px;font-size:13px;font-weight:600;cursor:pointer;color:#374151;">Cancel</button>
+                <button onclick="confirmMove()" id="move-confirm-btn" style="background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;">Move to this category</button>
+            </div>
         </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
 let cats = @json($categories ?? []);
+let uncategorizedCount = {{ $uncategorizedCount ?? 0 }};
 let selIdx = 0, delId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -253,10 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', () => document.querySelectorAll('.cat-row-dd.open').forEach(d => d.classList.remove('open')));
 });
 
-function toast(m) {
+function toast(m, success = false) {
     const t = document.getElementById('cat-toast');
-    t.textContent = m; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
+    t.textContent = m;
+    t.style.background = success ? '#16a34a' : '#111827';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
 }
 
 function toggleSearch() {
@@ -264,23 +276,26 @@ function toggleSearch() {
     w.classList.toggle('open');
     if (w.classList.contains('open')) document.getElementById('sq').focus();
 }
+
 function filterList() {
     const q = document.getElementById('sq').value.toLowerCase();
     renderList(cats.filter(c => c.name.toLowerCase().includes(q)));
 }
 
 function renderList(list) {
-    const rows = [{ id: null, name: 'Items not in any Category', items_count: 0 }, ...list];
+   const rows = [{ id: null, name: 'Items not in any Category', items_count: uncategorizedCount }, ...list];
     document.getElementById('cat-list').innerHTML = rows.map((c, i) => `
-        <div class="cat-row ${selIdx===i?'active':''}" onclick="selectCat(${i})">
+        <div class="cat-row ${selIdx === i ? 'active' : ''}" onclick="selectCat(${i})">
             <span class="cat-row-name">${esc(c.name)}</span>
-            <span class="cat-row-count">${c.items_count??0}</span>
+            <span class="cat-row-count">${c.items_count ?? 0}</span>
             <div class="cat-row-more" onclick="event.stopPropagation()">
                 <button class="cat-row-more-btn" onclick="toggleDD(event,${i})">⋮</button>
                 <div class="cat-row-dd" id="dd-${i}">
-                    ${c.id ? `<div class="cat-dd-item" onclick="openEdit(${i})">Edit</div>
-                               <div class="cat-dd-item danger" onclick="openDel(${c.id})">Delete</div>`
-                            : `<div class="cat-dd-item" style="color:#9ca3af;pointer-events:none;">No actions</div>`}
+                    ${c.id
+                        ? `<div class="cat-dd-item" onclick="openEdit(${i})">Edit</div>
+                           <div class="cat-dd-item danger" onclick="openDel(${c.id})">Delete</div>`
+                        : `<div class="cat-dd-item" style="color:#9ca3af;pointer-events:none;">No actions</div>`
+                    }
                 </div>
             </div>
         </div>`).join('');
@@ -294,7 +309,7 @@ function toggleDD(e, i) {
 
 function selectCat(i) {
     selIdx = i;
-    const rows = [{ id: null, name: 'Items not in any Category', items_count: 0 }, ...cats];
+    const rows = [{ id: null, name: 'Items not in any Category', items_count: uncategorizedCount }, ...cats];
     const c = rows[i];
     document.querySelectorAll('.cat-row').forEach((r, ri) => r.classList.toggle('active', ri === i));
     document.getElementById('r-title').textContent = c.id ? c.name.toUpperCase() : 'ITEMS NOT IN ANY CATEGORY';
@@ -305,19 +320,27 @@ function selectCat(i) {
 function loadItems(catId) {
     const tbody = document.getElementById('items-tbody');
     tbody.innerHTML = '<tr><td colspan="3" class="cat-norows">Loading...</td></tr>';
-    const url = catId ? {{ route('items') }}?category_id=${catId}&json=1` : `{{ url("dashboard/items") }}?uncategorized=1&json=1`;
+    // FIX: corrected template literal (was missing opening backtick)
+    const url = catId
+        ? `{{ route('items') }}?category_id=${catId}&json=1`
+        : `{{ url("dashboard/items") }}?uncategorized=1&json=1`;
     fetch(url, { headers: { 'Accept': 'application/json' } })
         .then(r => r.json())
         .then(data => {
             const items = Array.isArray(data) ? data : (data.items ?? []);
-            if (!items.length) { tbody.innerHTML = '<tr><td colspan="3" class="cat-norows">No Rows To Show</td></tr>'; return; }
+            if (!items.length) {
+                tbody.innerHTML = '<tr><td colspan="3" class="cat-norows">No Rows To Show</td></tr>';
+                return;
+            }
             tbody.innerHTML = items.map(it => `<tr>
                 <td>${esc(it.name)}</td>
-                <td>${it.opening_qty??0}</td>
-                <td>Rs ${(parseFloat(it.purchase_price||0)*parseFloat(it.opening_qty||0)).toFixed(2)}</td>
+                <td>${it.opening_qty ?? 0}</td>
+                <td>Rs ${(parseFloat(it.purchase_price || 0) * parseFloat(it.opening_qty || 0)).toFixed(2)}</td>
             </tr>`).join('');
         })
-        .catch(() => { tbody.innerHTML = '<tr><td colspan="3" class="cat-norows">No Rows To Show</td></tr>'; });
+        .catch(() => {
+            tbody.innerHTML = '<tr><td colspan="3" class="cat-norows">No Rows To Show</td></tr>';
+        });
 }
 
 function filterItems(q) {
@@ -326,54 +349,74 @@ function filterItems(q) {
     });
 }
 
-/* ADD */
-function openAdd() { document.getElementById('add-input').value=''; document.getElementById('add-overlay').classList.add('open'); setTimeout(()=>document.getElementById('add-input').focus(),80); }
+/* ── ADD ── */
+function openAdd() {
+    document.getElementById('add-input').value = '';
+    document.getElementById('add-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('add-input').focus(), 80);
+}
 function closeAdd() { document.getElementById('add-overlay').classList.remove('open'); }
 function saveAdd() {
     const name = document.getElementById('add-input').value.trim();
     if (!name) { toast('Please enter a category name.'); return; }
     fetch('{{ route("items.category.store") }}', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF},
-        body:JSON.stringify({name})
-    }).then(r=>r.json()).then(d=>{
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({ name })
+    }).then(r => r.json()).then(d => {
         const cat = d.category || d;
-        if (cat?.id) { cat.items_count=0; cats.push(cat); renderList(cats); closeAdd(); toast('Category created!'); }
-        else toast(d.message||'Failed to create.');
-    }).catch(()=>toast('Network error.'));
+        if (cat?.id) {
+            cat.items_count = 0;
+            cats.push(cat);
+            renderList(cats);
+            closeAdd();
+            toast('Category created!', true);
+        } else {
+            toast(d.message || 'Failed to create.');
+        }
+    }).catch(() => toast('Network error.'));
 }
 
-/* EDIT */
+/* ── EDIT ── */
 function openEdit(i) {
-    const rows=[{id:null,name:''},...cats]; const c=rows[i];
+    const rows = [{ id: null, name: '' }, ...cats];
+    const c = rows[i];
     if (!c?.id) return;
-    document.getElementById('edit-id').value=c.id;
-    document.getElementById('edit-input').value=c.name;
-    document.querySelectorAll('.cat-row-dd.open').forEach(d=>d.classList.remove('open'));
+    document.getElementById('edit-id').value = c.id;
+    document.getElementById('edit-input').value = c.name;
+    document.querySelectorAll('.cat-row-dd.open').forEach(d => d.classList.remove('open'));
     document.getElementById('edit-overlay').classList.add('open');
-    setTimeout(()=>document.getElementById('edit-input').focus(),80);
+    setTimeout(() => document.getElementById('edit-input').focus(), 80);
 }
 function closeEdit() { document.getElementById('edit-overlay').classList.remove('open'); }
 function saveEdit() {
-    const id=document.getElementById('edit-id').value;
-    const name=document.getElementById('edit-input').value.trim();
+    const id   = document.getElementById('edit-id').value;
+    const name = document.getElementById('edit-input').value.trim();
     if (!name) { toast('Please enter a name.'); return; }
-    fetch(`{{ url("dashboard/items/category") }}/${id}`,{
-        method:'PUT',
-        headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF},
-        body:JSON.stringify({name})
-    }).then(r=>r.json()).then(d=>{
-        if (d.success||d.id||d.category) {
-            const i=cats.findIndex(c=>c.id==id);
-            if (i!==-1) cats[i].name=name;
-            renderList(cats); closeEdit(); toast('Category updated!');
-        } else toast(d.message||'Failed to update.');
-    }).catch(()=>toast('Network error.'));
+    fetch(`{{ url("dashboard/items/category") }}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({ name })
+    }).then(r => r.json()).then(d => {
+        if (d.success || d.id || d.category) {
+            const i = cats.findIndex(c => c.id == id);
+            if (i !== -1) cats[i].name = name;
+            renderList(cats);
+            closeEdit();
+            toast('Category updated!', true);
+        } else {
+            toast(d.message || 'Failed to update.');
+        }
+    }).catch(() => toast('Network error.'));
 }
 
-/* DELETE */
-function openDel(id) { delId=id; document.querySelectorAll('.cat-row-dd.open').forEach(d=>d.classList.remove('open')); document.getElementById('cdel-overlay').classList.add('open'); }
-function closeDel() { document.getElementById('cdel-overlay').classList.remove('open'); delId=null; }
+/* ── DELETE ── */
+function openDel(id) {
+    delId = id;
+    document.querySelectorAll('.cat-row-dd.open').forEach(d => d.classList.remove('open'));
+    document.getElementById('cdel-overlay').classList.add('open');
+}
+function closeDel() { document.getElementById('cdel-overlay').classList.remove('open'); delId = null; }
 function confirmDel() {
     if (!delId) return;
     fetch(`{{ url("dashboard/items/category") }}/${delId}`, {
@@ -384,8 +427,10 @@ function confirmDel() {
     .then(d => {
         if (d.success) {
             cats = cats.filter(c => c.id != delId);
-            selIdx = 0; renderList(cats); selectCat(0);
-            toast('Category deleted.');
+            selIdx = 0;
+            renderList(cats);
+            selectCat(0);
+            toast('Category deleted.', true);
         } else {
             toast(d.message || 'Failed to delete.');
         }
@@ -394,43 +439,140 @@ function confirmDel() {
     .catch(() => { toast('Network error.'); closeDel(); });
 }
 
+/* ── MOVE MODAL ── */
 function openMoveModal() {
-    fetch('{{ route("items") }}?json=1', { headers: { 'Accept': 'application/json' } })
+    const rows = [{ id: null }, ...cats];
+    const targetCat = rows[selIdx];
+
+    // Guard: "Items not in any category" row cannot be a move target
+    if (!targetCat?.id) {
+        toast('Please select a real category on the left first.');
+        return;
+    }
+
+    const tbody = document.getElementById('move-items-tbody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#9ca3af;">Loading…</td></tr>';
+    document.getElementById('move-overlay').classList.add('open');
+    document.getElementById('move-search').value = '';
+    document.getElementById('move-select-all').checked = false;
+    document.getElementById('move-selected-count').textContent = '0 items selected';
+
+    // FIX: load ALL items EXCEPT those already in the target category
+    fetch(`{{ url("dashboard/items") }}?exclude_category_id=${targetCat.id}&json=1`, {
+        headers: { 'Accept': 'application/json' }
+    })
     .then(r => r.json())
     .then(data => {
         const items = Array.isArray(data) ? data : (data.items ?? []);
-        const tbody = document.getElementById('move-items-tbody');
-        tbody.innerHTML = !items.length
-            ? '<tr><td colspan="3" style="text-align:center;padding:30px;color:#9ca3af;">No items available</td></tr>'
-            : items.map(it => `<tr>
-                <td style="width:40px;padding:10px 16px;"><input type="checkbox" value="${it.id}" style="width:16px;height:16px;accent-color:#3b82f6;"></td>
+        if (!items.length) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#9ca3af;">No items available to move</td></tr>';
+            return;
+        }
+        tbody.innerHTML = items.map(it => {
+            const catName = it.category ? esc(it.category.name) : '<span style="color:#d1d5db;">—</span>';
+            return `<tr data-name="${esc(it.name).toLowerCase()}">
+                <td style="width:40px;padding:10px 16px;">
+                    <input type="checkbox" value="${it.id}" style="width:15px;height:15px;accent-color:#3b82f6;" onchange="updateMoveCount()">
+                </td>
                 <td style="font-size:14px;color:#111827;padding:10px 16px;">${esc(it.name)}</td>
-                <td style="width:80px;text-align:right;font-size:14px;color:#10b981;padding:10px 16px;">${it.opening_qty??0}</td>
-            </tr>`).join('');
-        document.getElementById('move-overlay').classList.add('open');
+                <td style="font-size:13px;color:#6b7280;padding:10px 16px;">${catName}</td>
+                <td style="width:60px;text-align:right;font-size:14px;color:#10b981;padding:10px 16px;">${it.opening_qty ?? 0}</td>
+            </tr>`;
+        }).join('');
     })
-    .catch(() => toast('Failed to load items.'));
+    .catch(() => {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#ef4444;">Failed to load items.</td></tr>';
+    });
 }
-function closeMoveModal() { document.getElementById('move-overlay').classList.remove('open'); }
+
+function closeMoveModal() {
+    document.getElementById('move-overlay').classList.remove('open');
+}
+
+function filterMoveItems(q) {
+    document.querySelectorAll('#move-items-tbody tr').forEach(r => {
+        r.style.display = (r.dataset.name || '').includes(q.toLowerCase()) ? '' : 'none';
+    });
+}
+
+function toggleSelectAll(checked) {
+    document.querySelectorAll('#move-items-tbody input[type=checkbox]').forEach(cb => {
+        if (cb.closest('tr').style.display !== 'none') cb.checked = checked;
+    });
+    updateMoveCount();
+}
+
+function updateMoveCount() {
+    const n = document.querySelectorAll('#move-items-tbody input[type=checkbox]:checked').length;
+    document.getElementById('move-selected-count').textContent = `${n} item${n !== 1 ? 's' : ''} selected`;
+    // Sync select-all checkbox state
+    const all  = document.querySelectorAll('#move-items-tbody input[type=checkbox]').length;
+    document.getElementById('move-select-all').indeterminate = n > 0 && n < all;
+    document.getElementById('move-select-all').checked = n > 0 && n === all;
+}
+
 function confirmMove() {
     const rows = [{ id: null }, ...cats];
     const targetCat = rows[selIdx];
     if (!targetCat?.id) { toast('Please select a category first.'); return; }
+
     const checked = [...document.querySelectorAll('#move-items-tbody input[type=checkbox]:checked')].map(c => c.value);
     if (!checked.length) { toast('Please select at least one item.'); return; }
+
+    const btn = document.getElementById('move-confirm-btn');
+    btn.disabled = true;
+    btn.textContent = 'Moving…';
+
     Promise.all(checked.map(itemId =>
         fetch(`{{ url("dashboard/items") }}/${itemId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
             body: JSON.stringify({ category_id: targetCat.id })
-        })
-    )).then(() => {
-        closeMoveModal(); toast('Items moved successfully!'); selectCat(selIdx);
-        const i = cats.findIndex(c => c.id == targetCat.id);
-        if (i !== -1) { cats[i].items_count = (cats[i].items_count ?? 0) + checked.length; renderList(cats); }
-    }).catch(() => toast('Failed to move some items.'));
+        }).then(r => r.json())
+    ))
+    .then(results => {
+        const failed = results.filter(r => !r.success && !r.id && !r.item).length;
+        closeMoveModal();
+        // Refresh item counts from server
+        refreshCatCounts();
+        selectCat(selIdx);
+        toast(failed ? `Done. ${failed} item(s) failed.` : `${checked.length} item(s) moved successfully!`, !failed);
+    })
+    .catch(() => {
+        toast('Failed to move some items.');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Move to this category';
+    });
 }
 
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+// Re-fetch category counts from server so the sidebar stays accurate
+function refreshCatCounts() {
+    fetch('{{ url("dashboard/items/categories?json=1") }}', {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const updated = Array.isArray(data) ? data : (data.categories ?? []);
+        updated.forEach(u => {
+            const i = cats.findIndex(c => c.id == u.id);
+            if (i !== -1) cats[i].items_count = u.items_count ?? 0;
+        });
+        renderList(cats);
+    })
+    .catch(() => {
+        // Fallback: increment count manually
+        const i = cats.findIndex(c => c.id == ([{ id: null }, ...cats][selIdx]?.id));
+        if (i !== -1) {
+            cats[i].items_count = (cats[i].items_count ?? 0);
+            renderList(cats);
+        }
+    });
+}
+
+function esc(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 </script>
 @endpush
