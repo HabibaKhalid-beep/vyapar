@@ -268,6 +268,10 @@ Route::post('/payments-in', [BankAccountController::class, 'paymentIn'])->name('
         return view('dashboard.test_user_sidebar');
     })->name('test.user_sidebar');
 
+      Route::get('/theme', function () {
+        return view('themes.index');
+    })->name('theme');
+
 });
 
 
