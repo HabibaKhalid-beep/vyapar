@@ -1,5 +1,8 @@
 function initializeForm(context) {
     const $ctx = $(context);
+    const docType = window.docType || 'sale_return';
+    const docLabel = docType === 'purchase_return' ? 'purchase return' : 'sale return';
+    const docLabelTitle = docType === 'purchase_return' ? 'Purchase return' : 'Sale return';
     const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
     const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -17,6 +20,48 @@ function initializeForm(context) {
     $ctx.find('.order-date').val(todayValue);
     $ctx.find('.due-date').val(todayValue);
 
+    function formatDateForDisplay(value) {
+        if (!value) return '';
+        const parts = value.split('-');
+        if (parts.length !== 3) return value;
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function bindDateMirror(hiddenSelector, textSelector) {
+        const $hidden = $ctx.find(hiddenSelector).first();
+        const $text = $ctx.find(textSelector).first();
+        const $icon = $text.closest('.purchase-doc-row').find('.purchase-doc-icon').first();
+
+        if (!$hidden.length || !$text.length) {
+            return;
+        }
+
+        $text.val(formatDateForDisplay($hidden.val()));
+
+        const openPicker = function () {
+            const input = $hidden.get(0);
+            if (!input) return;
+            if (typeof input.showPicker === 'function') {
+                input.showPicker();
+            } else {
+                input.click();
+            }
+        };
+
+        $text.off('.dateMirror');
+        $hidden.off('.dateMirror');
+        $icon.off('.dateMirror');
+
+        $text.on('focus.dateMirror click.dateMirror', openPicker);
+        $icon.on('click.dateMirror', openPicker);
+        $hidden.on('change.dateMirror', function () {
+            $text.val(formatDateForDisplay($hidden.val()));
+        });
+    }
+
+    bindDateMirror('.order-date', '.order-date-text');
+    bindDateMirror('.due-date', '.due-date-text');
+
     if (window.editSaleReturnData) {
         populateFormFromSaleReturn(window.editSaleReturnData);
     }
@@ -31,7 +76,7 @@ function initializeForm(context) {
             }
         }
 
-        if ($paidInput.length && !$ctx.find('.fill-balance-check').length) {
+        if (docType !== 'purchase_return' && $paidInput.length && !$ctx.find('.fill-balance-check').length) {
             $paidInput.closest('.calc-inputs').prepend(
                 `<label class="d-flex align-items-center gap-1 me-2 mb-0 text-nowrap" style="font-size:12px;">
                     <input type="checkbox" class="fill-balance-check">
@@ -59,6 +104,11 @@ function initializeForm(context) {
     }
 
     function populateFormFromSaleReturn(saleReturn) {
+        const sourceDate = docType === 'purchase_return'
+            ? (saleReturn.bill_date || saleReturn.order_date || saleReturn.invoice_date || todayValue)
+            : (saleReturn.order_date || saleReturn.invoice_date || todayValue);
+        const sourceDueDate = saleReturn.due_date || sourceDate || todayValue;
+
         if (hasCustomPartyDropdown) {
             const party = (window.parties || []).find(p => String(p.id) === String(saleReturn.party_id || ''));
             $ctx.find('.party-id').val(saleReturn.party_id || '');
@@ -85,19 +135,30 @@ function initializeForm(context) {
         $ctx.find('.shipping-address').val(saleReturn.shipping_address || '');
         $ctx.find('.bill-number').val(saleReturn.bill_number || '');
         $ctx.find('.reference-bill-number').val(saleReturn.reference_bill_number || '');
-        $ctx.find('.order-date').val(saleReturn.order_date || saleReturn.invoice_date || todayValue);
-        $ctx.find('.due-date').val(saleReturn.due_date || todayValue);
+        $ctx.find('.order-date').val(sourceDate);
+        $ctx.find('.due-date').val(sourceDueDate);
+        $ctx.find('.order-date-text').val(formatDateForDisplay($ctx.find('.order-date').val()));
+        $ctx.find('.due-date-text').val(formatDateForDisplay($ctx.find('.due-date').val()));
 
         $ctx.find('.item-rows').empty();
         (saleReturn.items || []).forEach(item => {
             addRow();
             const $row = $ctx.find('.item-rows tr').last();
             const matchOption = $row.find('.item-name option').filter(function () {
-                return $(this).text().trim() === (item.item_name || '').trim();
+                const optionLabel = (($(this).data('label') || $(this).text()) + '').trim().toLowerCase();
+                const itemLabel = ((item.item_name || '') + '').trim().toLowerCase();
+                const optionValue = (($(this).val() || '') + '').trim();
+                const itemId = ((item.item_id || '') + '').trim();
+
+                return optionLabel === itemLabel || (itemId && optionValue === itemId);
             }).first();
 
             if (matchOption.length) {
                 matchOption.prop('selected', true);
+            } else if (item.item_name) {
+                $row.find('.item-name').append(
+                    `<option value="${item.item_id || ''}" data-label="${item.item_name}" selected>${item.item_name}</option>`
+                );
             }
 
             $row.find('.item-category').val(item.item_category || '');
@@ -108,6 +169,7 @@ function initializeForm(context) {
             ensureUnitOption($row.find('.item-unit'), item.unit || 'NONE');
             $row.find('.item-price').val(item.unit_price || 0);
             $row.find('.item-amount').val(item.amount || 0);
+            collapseSelectedItemLabel($row.find('.item-name'));
         });
 
         $ctx.find('.discount-pct').val(saleReturn.discount_pct || 0);
@@ -117,7 +179,7 @@ function initializeForm(context) {
         $ctx.find('.round-off-val').val(parseFloat(saleReturn.round_off || 0).toFixed(2));
         $ctx.find('.grand-total').val(parseFloat(saleReturn.grand_total || 0).toFixed(2));
         $ctx.find('.balance-amount').text(parseFloat(saleReturn.balance || saleReturn.grand_total || 0).toFixed(2));
-        $paidInput.val(parseFloat(saleReturn.received_amount || 0).toFixed(2));
+        $paidInput.val(parseFloat((docType === 'purchase_return' ? saleReturn.paid_amount : saleReturn.received_amount) || 0).toFixed(2));
         $ctx.find('.description-input').val(saleReturn.description || '');
 
         calculateTotals();
@@ -160,6 +222,12 @@ function initializeForm(context) {
     }
 
     function updatePaymentSummary() {
+        if (docType === 'purchase_return') {
+            const received = parseFloat($paidInput.val() || 0) || 0;
+            $ctx.find('.payment-total-amount').text(received.toFixed(2));
+            return;
+        }
+
         const grandTotal = parseFloat($ctx.find('.grand-total').val() || 0) || 0;
         let received = 0;
 
@@ -178,7 +246,7 @@ function initializeForm(context) {
             return sum + (parseFloat(amountInput.val() || 0) || 0);
         }, 0);
 
-        if ($ctx.find('.fill-balance-check').is(':checked')) {
+        if (docType !== 'purchase_return' && $ctx.find('.fill-balance-check').is(':checked')) {
             received = grandTotal;
         }
 
@@ -295,13 +363,16 @@ function initializeForm(context) {
         });
 
         return {
-            type: 'sale_return',
+            _token: csrfToken,
+            type: docType,
             party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
+            party_name: ($ctx.find('#partyDropdownBtn').text() || '').trim() === 'Select Party' ? '' : ($ctx.find('#partyDropdownBtn').text() || '').trim(),
             phone: $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
             shipping_address: $ctx.find('.shipping-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
             reference_bill_number: $ctx.find('.reference-bill-number').val() || '',
+            bill_date: $ctx.find('.order-date').val() || '',
             order_date: $ctx.find('.order-date').val() || '',
             due_date: $ctx.find('.due-date').val() || '',
             invoice_date: $ctx.find('.order-date').val() || '',
@@ -313,6 +384,7 @@ function initializeForm(context) {
             tax_amount: parseFloat($ctx.find('.tax-amount-display').text() || 0) || 0,
             round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0,
             grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0,
+            paid_amount: parseFloat($paidInput.val() || 0) || 0,
             balance: parseFloat($ctx.find('.balance-amount').text() || 0) || 0,
             description: $ctx.find('.description-input').val() || null,
             image_path: (() => {
@@ -478,10 +550,15 @@ function initializeForm(context) {
         const totalBaseAmount = parseFloat($ctx.find('.total-base-amount').text()) || 0;
         applyDiscountTax(totalBaseAmount);
     });
+    $ctx.on('keyup change', '.advance-amount', function() {
+        const value = parseFloat($(this).val() || 0) || 0;
+        $(this).val(value.toFixed(2));
+    });
     $ctx.on('change', '.fill-balance-check, .round-off-check', function() {
         setupAdjustmentControls();
         calculateTotals();
     });
+    $ctx.on('keyup change', '.advance-amount', updatePaymentSummary);
     $ctx.on('input change', '.round-off-val', calculateTotals);
 
     $ctx.on('click', '.add-description', function() {
@@ -545,9 +622,11 @@ function initializeForm(context) {
 
         fetch(window.saleReturnStoreUrl, {
             method: window.saleReturnMethod || 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
             },
             body: JSON.stringify(saleReturnData),
@@ -574,7 +653,7 @@ function initializeForm(context) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
 
-                    showToast('Sale return saved successfully! Redirecting...');
+                    showToast(docLabelTitle + ' saved successfully! Redirecting...');
                     if (data.redirect_url) {
                         setTimeout(() => {
                             window.location.href = data.redirect_url;
@@ -583,11 +662,11 @@ function initializeForm(context) {
                     return;
                 }
 
-                showToast('Unable to save sale return.', true);
+                showToast('Unable to save ' + docLabel + '.', true);
             })
             .catch(err => {
                 console.error(err);
-                showToast('Error saving sale return. ' + (err.message || ''), true);
+                showToast('Error saving ' + docLabel + '. ' + (err.message || ''), true);
             })
             .finally(() => {
                 btn.prop('disabled', false).text('Save');
@@ -597,6 +676,3 @@ function initializeForm(context) {
     setupAdjustmentControls();
     calculateTotals();
 }
-
-
-

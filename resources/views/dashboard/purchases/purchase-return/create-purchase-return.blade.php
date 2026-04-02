@@ -5,13 +5,91 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ isset($saleReturn) ? 'Edit' : 'Create' }} Sale Return | Vyapar</title>
+    <title>{{ isset($purchaseReturn) ? 'Edit' : 'Create' }} Purchase Return | Vyapar</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/saleorderform_style.css') }}">
+    <style>
+        .purchase-party-phone {
+            margin-top: 14px;
+            max-width: 240px;
+        }
+
+        .purchase-party-phone input {
+            width: 100%;
+            border: 0;
+            border-bottom: 1px solid #d7dbe5;
+            padding: 8px 2px;
+            font-size: 15px;
+            color: #374151;
+            background: transparent;
+            outline: none;
+        }
+
+        .purchase-right-panel {
+            width: 32%;
+            padding-top: 8px;
+        }
+
+        .purchase-doc-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .purchase-doc-row {
+            display: grid;
+            grid-template-columns: 110px 1fr 28px;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .purchase-doc-label {
+            text-align: right;
+            color: #8b93a7;
+            font-size: 17px;
+            font-weight: 500;
+        }
+
+        .purchase-doc-input {
+            border: 0;
+            border-bottom: 1px solid #d9deea;
+            padding: 8px 0 6px;
+            background: transparent;
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 500;
+            outline: none;
+        }
+
+        .purchase-doc-input::placeholder {
+            color: #a0a7bb;
+            font-weight: 500;
+        }
+
+        .purchase-doc-input[readonly] {
+            color: #1f2937;
+        }
+
+        .purchase-doc-icon {
+            color: #0d75df;
+            font-size: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .purchase-hidden-date {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 1px;
+            height: 1px;
+        }
+    </style>
 </head>
 
 <body>
@@ -32,7 +110,7 @@
                 </div>
             </div>
             <div class="browser-toolbar d-flex align-items-center px-3">
-                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Sale Return / Credit Note</p>
+                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Purchase Return / Debit Note</p>
             </div>
         </header>
 
@@ -93,39 +171,36 @@
 <input type="hidden" class="party-id" name="party_id">
 
                                 </div>
-
-                                <div class="input-group mt-2">
-                                    <input type="text" class="input-control phone-input" readonly>
-                                    <label>Phone No.</label>
+                                <div class="purchase-party-phone">
+                                    <input type="text" class="phone-input" placeholder="Phone Number">
                                 </div>
 
-                                <div class="input-group mt-2">
-                                    <textarea class="input-control billing-address" rows="2" readonly></textarea>
-                                    <label>Billing Address</label>
-                                </div>
-
-                                <div class="input-group mt-2">
-                                    <textarea class="input-control shipping-address" rows="2" readonly></textarea>
-                                    <label>Shipping Address</label>
-                                </div>
                             </div>
 
-                            <div class="header-right w-25">
-                                <div class="input-group">
-                                    <span>Return No.</span>
-                                    <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
-                                </div>
-                                <div class="input-group mt-2">
-                                    <span>Invoice Number</span>
-                                    <input type="text" class="input-control underline-input reference-bill-number" placeholder="Enter invoice number">
-                                </div>
-                                <div class="input-group mt-2">
-                                    <span>Invoice Date</span>
-                                    <input type="date" class="input-control underline-input order-date">
-                                </div>
-                                <div class="input-group mt-2">
-                                    <span> Date</span>
-                                    <input type="date" class="input-control underline-input due-date">
+                            <div class="purchase-right-panel">
+                                <div class="purchase-doc-grid">
+                                    <div class="purchase-doc-row">
+                                        <span class="purchase-doc-label">Return No.</span>
+                                        <input type="text" class="purchase-doc-input bill-number" value="{{ $nextInvoiceNumber ?? 'PR-0001' }}" readonly>
+                                        <span></span>
+                                    </div>
+                                    <div class="purchase-doc-row">
+                                        <span class="purchase-doc-label">Bill Number</span>
+                                        <input type="text" class="purchase-doc-input reference-bill-number" placeholder="">
+                                        <span></span>
+                                    </div>
+                                    <div class="purchase-doc-row">
+                                        <span class="purchase-doc-label">Bill Date</span>
+                                        <input type="text" class="purchase-doc-input order-date-text" placeholder="DD/MM/YYYY" readonly>
+                                        <span class="purchase-doc-icon"><i class="bi bi-calendar-date"></i></span>
+                                        <input type="date" class="order-date purchase-hidden-date">
+                                    </div>
+                                    <div class="purchase-doc-row">
+                                        <span class="purchase-doc-label">Date</span>
+                                        <input type="text" class="purchase-doc-input due-date-text" placeholder="DD/MM/YYYY" readonly>
+                                        <span class="purchase-doc-icon"><i class="bi bi-calendar-date"></i></span>
+                                        <input type="date" class="due-date purchase-hidden-date">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -332,18 +407,12 @@
                                 </div>
 
                                 <div class="calc-row">
-                                    <div class="calc-label">Received Amount</div>
+                                    <div class="calc-label">Received</div>
                                     <div class="calc-inputs">
-                                        <input type="number" class="mini-input advance-amount" value="0" readonly>
+                                        <input type="number" class="mini-input advance-amount" value="0" min="0" step="0.01">
                                     </div>
                                 </div>
 
-                                <div class="calc-row">
-                                    <div class="calc-label">Balance</div>
-                                    <div class="calc-inputs">
-                                        <span class="fw-bold balance-amount">0</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -381,7 +450,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to close this tab? Your sale return will not be saved.</p>
+                    <p>Are you sure you want to close this tab? Your purchase return will not be saved.</p>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -533,35 +602,35 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    @if(isset($saleReturn))
+    @if(isset($purchaseReturn))
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
-            window.saleReturnStoreUrl = "{{ route('sale-return.update', $saleReturn->id) }}";
+            window.saleReturnStoreUrl = "{{ route('purchase-return.update', $purchaseReturn->id) }}";
             window.saleReturnMethod = 'PUT';
-            window.editSaleReturnData = @json($saleReturn->load(['items', 'payments'])->toArray());
-            window.docType = 'sale_return';
+            window.editSaleReturnData = @json($purchaseReturn->load(['items', 'payments'])->toArray());
+            window.docType = 'purchase_return';
         </script>
-    @elseif(isset($duplicateSaleReturn))
+    @elseif(isset($duplicatePurchaseReturn))
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
-            window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
+            window.saleReturnStoreUrl = "{{ route('purchase-return.store') }}";
             window.saleReturnMethod = 'POST';
-            window.editSaleReturnData = @json(array_merge($duplicateSaleReturn->load(['items', 'payments'])->toArray(), ['bill_number' => $nextInvoiceNumber]));
-            window.docType = 'sale_return';
+            window.editSaleReturnData = @json(array_merge($duplicatePurchaseReturn->load(['items', 'payments'])->toArray(), ['bill_number' => $nextInvoiceNumber]));
+            window.docType = 'purchase_return';
         </script>
     @else
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
-            window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
+            window.saleReturnStoreUrl = "{{ route('purchase-return.store') }}";
             window.saleReturnMethod = 'POST';
             window.editSaleReturnData = null;
-            window.docType = 'sale_return';
+            window.docType = 'purchase_return';
         </script>
     @endif
 
@@ -584,6 +653,48 @@
             const transactionTypeValue = document.getElementById('transactionTypeValue');
             const toReceive = document.getElementById('toReceive');
             const toPay = document.getElementById('toPay');
+
+            function formatDateForDisplay(value) {
+                if (!value) return '';
+                const parts = value.split('-');
+                if (parts.length !== 3) return value;
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+
+            function attachDatePickerSync(hiddenSelector, textSelector) {
+                document.querySelectorAll('.tab-pane').forEach(function (pane) {
+                    const hiddenInput = pane.querySelector(hiddenSelector);
+                    const textInput = pane.querySelector(textSelector);
+                    const icon = textInput ? textInput.closest('.purchase-doc-row')?.querySelector('.purchase-doc-icon') : null;
+
+                    if (!hiddenInput || !textInput || textInput.dataset.bound === '1') {
+                        return;
+                    }
+
+                    textInput.dataset.bound = '1';
+                    textInput.value = formatDateForDisplay(hiddenInput.value);
+
+                    const openPicker = function () {
+                        hiddenInput.showPicker ? hiddenInput.showPicker() : hiddenInput.click();
+                    };
+
+                    textInput.addEventListener('focus', openPicker);
+                    textInput.addEventListener('click', openPicker);
+
+                    if (icon) {
+                        icon.addEventListener('click', openPicker);
+                    }
+
+                    hiddenInput.addEventListener('change', function () {
+                        textInput.value = formatDateForDisplay(hiddenInput.value);
+                    });
+                });
+            }
+
+            setTimeout(function () {
+                attachDatePickerSync('.order-date', '.order-date-text');
+                attachDatePickerSync('.due-date', '.due-date-text');
+            }, 0);
 
             [toReceive, toPay].forEach(function (checkbox) {
                 checkbox.addEventListener('change', function () {
@@ -639,13 +750,9 @@
                 const button = activePane.querySelector('#partyDropdownBtn');
                 const hiddenInput = activePane.querySelector('.party-id');
                 const balance = activePane.querySelector('#partyBalanceDisplay');
-                const phoneInput = activePane.querySelector('.phone-input');
-                const billingInput = activePane.querySelector('.billing-address');
 
                 if (button) button.textContent = party.name || 'Select Party';
                 if (hiddenInput) hiddenInput.value = party.id || '';
-                if (phoneInput) phoneInput.value = party.phone || '';
-                if (billingInput) billingInput.value = party.billing_address || '';
                 if (balance) {
                     const amount = Number(party.opening_balance || 0).toFixed(2);
                     if (party.transaction_type === 'pay') {
@@ -718,8 +825,3 @@
 </body>
 
 </html>
-
-
-
-
-

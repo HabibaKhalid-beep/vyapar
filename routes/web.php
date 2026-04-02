@@ -11,6 +11,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleSectionController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\SaleReturnController;
+use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\SaleOrderController;
 use App\Http\Controllers\PurchaseExpenseController;
 use App\Http\Controllers\PurchaseBillController;
@@ -193,7 +194,16 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
     Route::get('/payment-out', [PurchaseExpenseController::class, 'paymentOut'])->name('payment-out');
     Route::get('expense', [PurchaseExpenseController::class, 'expense'])->name('expense');
-    Route::get('purchase-return', [PurchaseExpenseController::class, 'purchaseReturn'])->name('purchase-return');
+    Route::get('purchase-return', [PurchaseReturnController::class, 'index'])->name('purchase-return');
+    Route::get('purchase-return/create', [PurchaseReturnController::class, 'create'])->name('purchase-return.create');
+    Route::post('/purchase-return', [PurchaseReturnController::class, 'store'])->name('purchase-return.store');
+    Route::get('/purchase-return/{purchase}/edit', [PurchaseReturnController::class, 'edit'])->name('purchase-return.edit');
+    Route::put('/purchase-return/{purchase}', [PurchaseReturnController::class, 'update'])->name('purchase-return.update');
+    Route::delete('/purchase-return/{purchase}', [PurchaseReturnController::class, 'destroy'])->name('purchase-return.destroy');
+    Route::get('/purchase-return/{purchase}/preview', [PurchaseReturnController::class, 'preview'])->name('purchase-return.preview');
+    Route::get('/purchase-return/{purchase}/print', [PurchaseReturnController::class, 'print'])->name('purchase-return.print');
+    Route::get('/purchase-return/{purchase}/pdf', [PurchaseReturnController::class, 'pdf'])->name('purchase-return.pdf');
+    Route::get('/purchase-return/{purchase}/duplicate', [PurchaseReturnController::class, 'duplicate'])->name('purchase-return.duplicate');
 
 
 
