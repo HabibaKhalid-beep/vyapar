@@ -199,9 +199,30 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
 
+// ═══════════════════════════════════════
+// ADD THESE ROUTES inside the auth middleware group in web.php
+// Replace the two existing expense routes:
+//   Route::get('expense', [ExpenseCreateController::class, 'expense'])->name('expense');
+//   Route::get('expense/create', [ExpenseCreateController::class, 'createExpense'])->name('expense.create');
+// WITH THESE:
+// ═══════════════════════════════════════
 
-    Route::get('expense', [ExpenseCreateController::class, 'expense'])->name('expense');
-Route::get('expense/create', [ExpenseCreateController::class, 'createExpense'])->name('expense.create');
+Route::get('expense', [ExpenseCreateController::class, 'expense'])->name('expense');
+
+// Expense Categories
+Route::post('expense/categories', [ExpenseCreateController::class, 'storeCategory'])->name('expense.categories.store');
+Route::delete('expense/categories/{id}', [ExpenseCreateController::class, 'destroyCategory'])->name('expense.categories.destroy');
+Route::put('expense/categories/{id}', [ExpenseCreateController::class, 'updateCategory'])->name('expense.categories.update');
+
+// Expense Items
+Route::post('expense/items', [ExpenseCreateController::class, 'storeItem'])->name('expense.items.store');
+Route::put('expense/items/{id}', [ExpenseCreateController::class, 'updateItem'])->name('expense.items.update');
+Route::delete('expense/items/{id}', [ExpenseCreateController::class, 'destroyItem'])->name('expense.items.destroy');
+
+// Expenses
+Route::post('expense/save', [ExpenseCreateController::class, 'storeExpense'])->name('expense.save');
+Route::delete('expense/{id}', [ExpenseCreateController::class, 'destroyExpense'])->name('expense.destroy');
+
 
 
 

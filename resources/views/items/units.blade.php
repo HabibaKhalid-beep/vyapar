@@ -96,9 +96,9 @@
 
     {{-- TABS --}}
     <div class="units-tabs">
-        <div class="units-tab" onclick="location.href='{{ route("items") }}'">PRODUCTS</div>
-        <div class="units-tab" onclick="location.href='{{ route("items.services") }}'">SERVICES</div>
-        <div class="units-tab" onclick="location.href='{{ route("items.category") }}'">CATEGORY</div>
+        <div class="units-tab" onclick="location.href='{{ route('items') }}'">PRODUCTS</div>
+<div class="units-tab" onclick="location.href='{{ route('items.services') }}'">SERVICES</div>
+<div class="units-tab" onclick="location.href='{{ route('items.category') }}'">CATEGORY</div>
         <div class="units-tab active">UNITS</div>
     </div>
 
@@ -191,9 +191,12 @@
         <div class="u-mbody">
     <div class="conv-fields" style="display:flex; align-items:flex-end; gap:10px; flex-wrap:nowrap;">
         <div style="flex:1;">
-            <label class="u-mlabel">Base Unit</label>
-            <select class="conv-select" id="conv-base"></select>
-        </div>
+    <label class="u-mlabel">Base Unit</label>
+    <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:14px;font-weight:700;color:#374151;">1</span>
+        <select class="conv-select" id="conv-base"></select>
+    </div>
+</div>
         <div style="display:flex; align-items:center; padding-bottom:11px;">
             <span class="conv-eq">=</span>
         </div>
@@ -426,7 +429,7 @@ function saveConversion(andNew = false) {
     const rate = parseFloat(document.getElementById('conv-rate-input').value);
     if (!sec)  { toast('Please select a secondary unit.'); return; }
     if (base === sec) { toast('Base and secondary unit cannot be the same.'); return; }
-    if (!rate || rate <= 0) { toast('Please enter a valid rate.'); return; }
+   if (isNaN(rate) || rate < 0) { toast('Please enter a valid rate.'); return; }
     if (!conversions[selUnitId]) conversions[selUnitId] = [];
     conversions[selUnitId].push({ base, secondary: sec, rate });
     renderConversions(selUnitId);
