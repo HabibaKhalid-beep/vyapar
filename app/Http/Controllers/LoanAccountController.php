@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
+use App\Models\BankTransaction;
 use App\Models\LoanAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,20 @@ class LoanAccountController extends Controller
                 if ($bank) {
                     $bank->opening_balance -= $data['processing_fee'];
                     $bank->save();
+
+                    BankTransaction::create([
+                        'from_bank_account_id' => $bank->id,
+                        'type' => 'loan_processing_fee',
+                        'amount' => $data['processing_fee'],
+                        'transaction_date' => $data['balance_as_of'] ?? now()->toDateString(),
+                        'reference_type' => LoanAccount::class,
+                        'reference_id' => $loan->id,
+                        'description' => 'Loan processing fee deducted',
+                        'meta' => [
+                            'loan_name' => $loan->display_name,
+                            'action' => 'deduct',
+                        ],
+                    ]);
                 }
             }
         });
@@ -98,6 +113,20 @@ class LoanAccountController extends Controller
                 if ($oldBank) {
                     $oldBank->opening_balance += $oldFee;
                     $oldBank->save();
+
+                    BankTransaction::create([
+                        'to_bank_account_id' => $oldBank->id,
+                        'type' => 'loan_processing_fee_refund',
+                        'amount' => $oldFee,
+                        'transaction_date' => $data['balance_as_of'] ?? now()->toDateString(),
+                        'reference_type' => LoanAccount::class,
+                        'reference_id' => $loanAccount->id,
+                        'description' => 'Loan processing fee refunded',
+                        'meta' => [
+                            'loan_name' => $loanAccount->display_name,
+                            'action' => 'refund_old_fee',
+                        ],
+                    ]);
                 }
             }
 
@@ -112,6 +141,27 @@ class LoanAccountController extends Controller
                     if ($bank) {
                         $bank->opening_balance -= $feeDelta;
                         $bank->save();
+
+                        $transactionPayload = [
+                            'type' => $feeDelta > 0 ? 'loan_processing_fee' : 'loan_processing_fee_refund',
+                            'amount' => abs($feeDelta),
+                            'transaction_date' => $data['balance_as_of'] ?? now()->toDateString(),
+                            'reference_type' => LoanAccount::class,
+                            'reference_id' => $loanAccount->id,
+                            'description' => $feeDelta > 0 ? 'Loan processing fee deducted' : 'Loan processing fee adjustment reversal',
+                            'meta' => [
+                                'loan_name' => $loanAccount->display_name,
+                                'action' => $feeDelta > 0 ? 'deduct_delta' : 'reverse_delta',
+                            ],
+                        ];
+
+                        if ($feeDelta > 0) {
+                            $transactionPayload['from_bank_account_id'] = $bank->id;
+                        } else {
+                            $transactionPayload['to_bank_account_id'] = $bank->id;
+                        }
+
+                        BankTransaction::create($transactionPayload);
                     }
                 }
             }
@@ -133,6 +183,20 @@ class LoanAccountController extends Controller
                 if ($bank) {
                     $bank->opening_balance += $fee;
                     $bank->save();
+
+                    BankTransaction::create([
+                        'to_bank_account_id' => $bank->id,
+                        'type' => 'loan_processing_fee_refund',
+                        'amount' => $fee,
+                        'transaction_date' => now()->toDateString(),
+                        'reference_type' => LoanAccount::class,
+                        'reference_id' => $loanAccount->id,
+                        'description' => 'Loan processing fee refunded on delete',
+                        'meta' => [
+                            'loan_name' => $loanAccount->display_name,
+                            'action' => 'delete_refund',
+                        ],
+                    ]);
                 }
             }
         });

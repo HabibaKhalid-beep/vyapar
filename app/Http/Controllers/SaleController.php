@@ -14,6 +14,7 @@ class SaleController extends Controller
     public function index()
     {
         $sales = Sale::with(['payments', 'bankAccount', 'party'])
+            ->where('type', 'invoice')
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -870,4 +871,13 @@ if ($receivedAmount >= $grandTotal && $grandTotal > 0) return 'Paid';
 
         return 'Unpaid';
     }
+
+ public function paymentIn()
+{
+    $parties = Party::all();
+    $bankAccounts = BankAccount::all();
+
+    return view('dashboard.sales.payement-in', compact('parties', 'bankAccounts'));
+}
+
 }

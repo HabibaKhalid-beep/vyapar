@@ -69,15 +69,56 @@
                         <!-- Header Section -->
                         <div class="header-section">
                             <div class="header-left">
-                                <div class="input-group">
-                                    <select class="input-control party-select">
-                                        <option value="" selected disabled>Select Party</option>
-                                        @foreach($parties as $party)
-                                            <option value="{{ $party->id }}" data-phone="{{ $party->phone }}" data-billing="{{ addslashes($party->billing_address ?? '') }}">{{ $party->name }}</option>
-                                        @endforeach
-                                        <option value="__new">+ Add New Party</option>
-                                    </select>
-                                    <label class="party-label">Party *</label>
+                                   <div class="input-group">
+                                <!-- Party dropdown button -->
+<div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
+    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+        Select Party
+    </button>
+    <!-- Balance display -->
+    <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
+        <!-- JS will populate balance here -->
+    </div>
+
+    <!-- Dropdown menu (existing) -->
+    <ul class="dropdown-menu w-110" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+        <li class="dropdown-header d-flex justify-content-between px-3">
+            <span>Party Name</span>
+            <span>Opening Balance</span>
+        </li>
+          @foreach($parties as $party)
+    <li>
+        <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+           data-id="{{ $party->id }}"
+           data-phone="{{ $party->phone }}"
+           data-billing="{{ addslashes($party->billing_address ?? '') }}"
+           data-opening="{{ $party->opening_balance ?? 0 }}"
+           data-type="{{ $party->transaction_type }}">
+            <span>{{ $party->name }}</span>
+         <span
+    @if($party->transaction_type == 'pay')
+        class="text-danger"
+    @elseif($party->transaction_type == 'receive')
+        class="text-success"
+    @endif
+>
+    @if($party->transaction_type == 'pay')
+        <i class="fa-solid fa-arrow-up me-1"></i>
+    @elseif($party->transaction_type == 'receive')
+        <i class="fa-solid fa-arrow-down me-1"></i>
+    @endif
+
+    ₹{{ number_format($party->opening_balance ?? 0, 2) }}
+</span>
+        </a>
+    </li>
+@endforeach
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
+    </ul>
+</div>
+<input type="hidden" class="party-id" name="party_id">
+
                                 </div>
 
 
@@ -149,7 +190,7 @@
                                             <select class="form-select item-name">
                                                 <option value="" selected disabled>Select Item</option>
                                                 @foreach($items as $item)
-                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-unit="{{ $item->unit }}">{{ $item->name }}</option>
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
@@ -165,9 +206,17 @@
                                         <td><input type="number" class="item-qty" value="1"></td>
                                         <td class="custom-size-td">
                                             <select class="item-unit">
-                                                <option>NONE</option>
-                                                <option>PCS</option>
-                                                <option>BOX</option>
+                                                <option value="">Select Unit</option>
+                                                <option value="PCS">PCS (Pieces)</option>
+                                                <option value="BOX">BOX</option>
+                                                <option value="PACK">PACK</option>
+                                                <option value="SET">SET</option>
+                                                <option value="KG">KG (Kilogram)</option>
+                                                <option value="G">Gram</option>
+                                                <option value="M">Meter</option>
+                                                <option value="FT">Feet</option>
+                                                <option value="L">Liter</option>
+                                                <option value="ML">Milliliter</option>
                                             </select>
                                         </td>
                                         <td><input type="number" class="item-price" value="0"></td>
@@ -379,4 +428,7 @@
 
 
 </html>
+
+
+
 

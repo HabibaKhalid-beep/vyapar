@@ -228,8 +228,8 @@
                                             <select class="form-select item-name">
                                                 <option value="" selected disabled>Select Item</option>
                                                 @foreach($items as $item)
-                                                
-                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-unit="{{ $item->unit }}">{{ $item->name }}</option>
+
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>
 
                                                     @endforeach
                                             </select>
@@ -244,13 +244,29 @@
                                                 value="0">
                                         </td>
                                         <td><input type="number" class="item-qty" value="1"></td>
-                                        <td class="custom-size-td">
-                                            <select class="item-unit">
-                                                <option>NONE</option>
-                                                <option>PCS</option>
-                                                <option>BOX</option>
-                                            </select>
-                                        </td>
+                                      <td class="custom-size-td">
+    <select class="item-unit">
+        <option value="">Select Unit</option>
+
+        <!-- Quantity -->
+        <option value="PCS">PCS (Pieces)</option>
+        <option value="BOX">BOX</option>
+        <option value="PACK">PACK</option>
+        <option value="SET">SET</option>
+
+        <!-- Weight -->
+        <option value="KG">KG (Kilogram)</option>
+        <option value="G">Gram</option>
+
+        <!-- Length -->
+        <option value="M">Meter</option>
+        <option value="FT">Feet</option>
+
+        <!-- Volume -->
+        <option value="L">Liter</option>
+        <option value="ML">Milliliter</option>
+    </select>
+</td>
                                         <td><input type="number" class="item-price" value="0"></td>
                                         <td class="col-amount"><input type="text" class="item-amount" value="0"
                                                 readonly></td>
@@ -820,4 +836,8 @@ else {
 </body>
 
 </html>
+
+
+
+
 

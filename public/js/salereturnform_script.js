@@ -1,9 +1,11 @@
 function initializeForm(context) {
     const $ctx = $(context);
+    const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
+    const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const itemOptionsHtml = (window.items || []).map(item => {
-        return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-unit="${item.unit || ''}">${item.name}</option>`;
+        const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}">${richLabel}</option>`;
     }).join('');
 
     const today = new Date();
@@ -17,6 +19,26 @@ function initializeForm(context) {
 
     if (window.editSaleReturnData) {
         populateFormFromSaleReturn(window.editSaleReturnData);
+    }
+
+    function setupAdjustmentControls() {
+        const $roundOffInput = $ctx.find('.round-off-val');
+        const $roundOffCheck = $ctx.find('.round-off-check');
+        if ($roundOffInput.length && $roundOffCheck.length) {
+            $roundOffInput.prop('readonly', !$roundOffCheck.is(':checked'));
+            if (!$roundOffCheck.is(':checked')) {
+                $roundOffInput.val('0');
+            }
+        }
+
+        if ($paidInput.length && !$ctx.find('.fill-balance-check').length) {
+            $paidInput.closest('.calc-inputs').prepend(
+                `<label class="d-flex align-items-center gap-1 me-2 mb-0 text-nowrap" style="font-size:12px;">
+                    <input type="checkbox" class="fill-balance-check">
+                    <span>Full Advance</span>
+                </label>`
+            );
+        }
     }
 
     function showToast(message, isError = false) {
@@ -37,19 +59,32 @@ function initializeForm(context) {
     }
 
     function populateFormFromSaleReturn(saleReturn) {
-        const partyOption = $ctx.find('.party-select option').filter(function () {
-            return $(this).val() == (saleReturn.party_id || '');
-        }).first();
+        if (hasCustomPartyDropdown) {
+            const party = (window.parties || []).find(p => String(p.id) === String(saleReturn.party_id || ''));
+            $ctx.find('.party-id').val(saleReturn.party_id || '');
+            if (party) {
+                $ctx.find('#partyDropdownBtn').text(party.name || 'Select Party');
+                $ctx.find('.phone-input').val(party.phone || saleReturn.phone || '');
+                $ctx.find('.billing-address').val(party.billing_address || saleReturn.billing_address || '');
+            } else {
+                $ctx.find('#partyDropdownBtn').text('Select Party');
+            }
+        } else {
+            const partyOption = $ctx.find('.party-select option').filter(function () {
+                return $(this).val() == (saleReturn.party_id || '');
+            }).first();
 
-        if (partyOption.length) {
-            partyOption.prop('selected', true);
-            partyOption.trigger('change');
+            if (partyOption.length) {
+                partyOption.prop('selected', true);
+                partyOption.trigger('change');
+            }
         }
 
         $ctx.find('.phone-input').val(saleReturn.phone || '');
         $ctx.find('.billing-address').val(saleReturn.billing_address || '');
         $ctx.find('.shipping-address').val(saleReturn.shipping_address || '');
         $ctx.find('.bill-number').val(saleReturn.bill_number || '');
+        $ctx.find('.reference-bill-number').val(saleReturn.reference_bill_number || '');
         $ctx.find('.order-date').val(saleReturn.order_date || saleReturn.invoice_date || todayValue);
         $ctx.find('.due-date').val(saleReturn.due_date || todayValue);
 
@@ -70,7 +105,7 @@ function initializeForm(context) {
             $row.find('.item-desc').val(item.item_description || '');
             $row.find('.item-discount').val(item.discount || 0);
             $row.find('.item-qty').val(item.quantity || 1);
-            $row.find('.item-unit').val(item.unit || 'NONE');
+            ensureUnitOption($row.find('.item-unit'), item.unit || 'NONE');
             $row.find('.item-price').val(item.unit_price || 0);
             $row.find('.item-amount').val(item.amount || 0);
         });
@@ -82,7 +117,7 @@ function initializeForm(context) {
         $ctx.find('.round-off-val').val(parseFloat(saleReturn.round_off || 0).toFixed(2));
         $ctx.find('.grand-total').val(parseFloat(saleReturn.grand_total || 0).toFixed(2));
         $ctx.find('.balance-amount').text(parseFloat(saleReturn.balance || saleReturn.grand_total || 0).toFixed(2));
-        $ctx.find('.advance-amount').val(parseFloat(saleReturn.received_amount || 0).toFixed(2));
+        $paidInput.val(parseFloat(saleReturn.received_amount || 0).toFixed(2));
         $ctx.find('.description-input').val(saleReturn.description || '');
 
         calculateTotals();
@@ -113,11 +148,7 @@ function initializeForm(context) {
                 <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><input type="number" class="item-discount" value="0"></td>
                 <td><input type="number" class="item-qty" value="1"></td>
                 <td>
-                    <select class="item-unit">
-                        <option>NONE</option>
-                        <option>PCS</option>
-                        <option>BOX</option>
-                    </select>
+                    <select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select>
                 </td>
                 <td><input type="number" class="item-price" value="0"></td>
                 <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
@@ -147,9 +178,13 @@ function initializeForm(context) {
             return sum + (parseFloat(amountInput.val() || 0) || 0);
         }, 0);
 
+        if ($ctx.find('.fill-balance-check').is(':checked')) {
+            received = grandTotal;
+        }
+
         const balance = Math.max(0, grandTotal - received);
         $ctx.find('.payment-total-amount').text(received.toFixed(2));
-        $ctx.find('.advance-amount').val(received.toFixed(2));
+        $paidInput.val(received.toFixed(2));
         $ctx.find('.balance-amount').text(balance.toFixed(2));
     }
 
@@ -175,14 +210,9 @@ function initializeForm(context) {
 
         $ctx.find('.tax-amount-display').text(taxAmount.toFixed(2));
 
-        let grandTotal = finalBase;
-        let roundOffVal = 0;
-
-        if ($ctx.find('.round-off-check').is(':checked')) {
-            const rounded = Math.round(grandTotal);
-            roundOffVal = rounded - grandTotal;
-            grandTotal = rounded;
-        }
+        const roundOffEnabled = $ctx.find('.round-off-check').is(':checked');
+        let roundOffVal = roundOffEnabled ? (parseFloat($ctx.find('.round-off-val').val()) || 0) : 0;
+        let grandTotal = finalBase + roundOffVal;
 
         $ctx.find('.round-off-val').val(roundOffVal.toFixed(2));
         $ctx.find('.grand-total').val(grandTotal.toFixed(2));
@@ -209,7 +239,7 @@ function initializeForm(context) {
     function gatherSaleReturnData() {
         const items = Array.from($ctx.find('.item-row')).map(row => {
             const $row = $(row);
-            const itemName = $row.find('.item-name option:selected').text() || '';
+            const itemName = $row.find('.item-name option:selected').data('label') || $row.find('.item-name option:selected').text() || '';
 
             return {
                 item_name: itemName,
@@ -266,11 +296,12 @@ function initializeForm(context) {
 
         return {
             type: 'sale_return',
-            party_id: $ctx.find('.party-select').val() || null,
+            party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
             phone: $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
             shipping_address: $ctx.find('.shipping-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
+            reference_bill_number: $ctx.find('.reference-bill-number').val() || '',
             order_date: $ctx.find('.order-date').val() || '',
             due_date: $ctx.find('.due-date').val() || '',
             invoice_date: $ctx.find('.order-date').val() || '',
@@ -312,6 +343,20 @@ function initializeForm(context) {
         }
     });
 
+    $ctx.on('click', '.party-option', function(e) {
+        e.preventDefault();
+        const $option = $(this);
+        const partyId = $option.data('id') || '';
+        const partyName = $.trim($option.find('span').first().text());
+        const phone = $option.data('phone') || '';
+        const billing = $option.data('billing') || '';
+
+        $ctx.find('.party-id').val(partyId);
+        $ctx.find('#partyDropdownBtn').text(partyName || 'Select Party');
+        $ctx.find('.phone-input').val(phone);
+        $ctx.find('.billing-address').val(billing);
+    });
+
     $ctx.find('.add-row-btn').on('click', function() {
         addRow();
     });
@@ -331,6 +376,47 @@ function initializeForm(context) {
         calculateTotals();
     });
 
+    function restoreRichItemDropdownLabels() {
+        $ctx.find('.item-name option').each(function() {
+            const richLabel = $(this).data('rich-label');
+            if (richLabel) {
+                $(this).text(richLabel);
+            }
+        });
+    }
+
+    function collapseSelectedItemLabel($select) {
+        restoreRichItemDropdownLabels();
+        const $selected = $select.find('option:selected');
+        const plainLabel = $selected.data('label');
+        if (plainLabel) {
+            $selected.text(plainLabel);
+        }
+    }
+
+    function ensureUnitOption($unitSelect, unit) {
+        const normalizedUnit = (unit || '').toString().trim();
+        if (!normalizedUnit) return;
+
+        const existingOption = $unitSelect.find('option').filter(function() {
+            return ($(this).val() || $(this).text()).toString().trim() === normalizedUnit;
+        }).first();
+
+        if (!existingOption.length) {
+            $unitSelect.append(`<option value="${normalizedUnit}">${normalizedUnit}</option>`);
+        }
+
+        $unitSelect.val(normalizedUnit);
+    }
+
+    $ctx.on('focus mousedown', '.item-name', function() {
+        restoreRichItemDropdownLabels();
+    });
+
+    $ctx.on('blur', '.item-name', function() {
+        collapseSelectedItemLabel($(this));
+    });
+
     $ctx.on('change', '.item-name', function() {
         const $row = $(this).closest('tr');
         const $selected = $(this).find('option:selected');
@@ -340,7 +426,7 @@ function initializeForm(context) {
         $row.find('.item-qty').val(1);
         $row.find('.item-price').val(price.toFixed(2));
         if (unit) {
-            $row.find('.item-unit').val(unit);
+            ensureUnitOption($row.find('.item-unit'), unit);
         }
 
         $row.find('.item-qty').trigger('change');
@@ -392,6 +478,11 @@ function initializeForm(context) {
         const totalBaseAmount = parseFloat($ctx.find('.total-base-amount').text()) || 0;
         applyDiscountTax(totalBaseAmount);
     });
+    $ctx.on('change', '.fill-balance-check, .round-off-check', function() {
+        setupAdjustmentControls();
+        calculateTotals();
+    });
+    $ctx.on('input change', '.round-off-val', calculateTotals);
 
     $ctx.on('click', '.add-description', function() {
         const $pane = $ctx.find('.description-pane');
@@ -503,6 +594,9 @@ function initializeForm(context) {
             });
     });
 
+    setupAdjustmentControls();
     calculateTotals();
 }
+
+
 
