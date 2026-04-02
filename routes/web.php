@@ -21,6 +21,8 @@ use App\Http\Controllers\PaymentInController;
 use App\Http\Controllers\PerfomaController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ExpenseCreateController;
+use App\Http\Controllers\SettingController;
+
 use Illuminate\Support\Facades\Route;
 
 // Default landing page
@@ -178,7 +180,13 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::delete('purchase-orders/{purchase}', [PurchaseOrderController::class, 'destroy'])->name('purchase-orders.destroy');
 
 
-
+    Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
+    Route::get('settings/transactions', [SettingController::class, 'transactions'])->name('settings.transactions');
+    Route::get('settings/taxes', [SettingController::class, 'taxes'])->name('settings.taxes');
+    Route::get('settings/items', [SettingController::class, 'items'])->name('settings.items');
+    Route::get('settings/parties', [SettingController::class, 'parties'])->name('settings.parties');
+    Route::get('settings/transaction-messages', [SettingController::class, 'transactionMessages'])->name('settings.transaction-messages');
+    Route::get('settings/print-layout', [SettingController::class, 'printLayout'])->name('settings.print-layout');
 
 
 

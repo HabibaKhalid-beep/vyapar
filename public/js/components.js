@@ -176,7 +176,7 @@
     { label: 'Reports', icon: 'fa-chart-pie', href: '#', permission: 'report.view', dataPage: 'reports' },
     { label: 'Sync / Share / Backup', icon: 'fa-cloud-arrow-up', href: '#', permission: 'sync.view', dataPage: 'sync' },
     { label: 'Utilities', icon: 'fa-screwdriver-wrench', href: '#', permission: 'utilities.view', dataPage: 'utilities' },
-    { label: 'Settings', icon: 'fa-sliders', href: '#', permission: 'settings.view', dataPage: 'settings' },
+    { label: 'Settings', icon: 'fa-sliders', href: '/dashboard/settings/general', permission: 'settings.view', dataPage: 'settings' },
   ];
 
   const canViewMenuItem = (item) => {
