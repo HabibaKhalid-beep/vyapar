@@ -8,6 +8,7 @@ use App\Models\Party;
 use App\Models\Purchase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PurchaseBillController extends Controller
 {
@@ -16,6 +17,7 @@ class PurchaseBillController extends Controller
         $search = trim((string) $request->get('search', ''));
 
         $purchases = Purchase::with(['items', 'payments.bankAccount', 'party'])
+            ->where('type', 'purchase_bill')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('bill_number', 'like', '%' . $search . '%')
@@ -48,12 +50,35 @@ class PurchaseBillController extends Controller
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextInvoiceNumber = 'PB-' . ((Purchase::max('id') ?? 0) + 1);
+        $convertedPurchaseData = null;
+
+        $sourcePurchaseOrderId = request()->integer('source_purchase_order_id');
+        if ($sourcePurchaseOrderId) {
+            $alreadyConvertedPurchase = Purchase::where('type', 'purchase_bill')
+                ->where('source_purchase_order_id', $sourcePurchaseOrderId)
+                ->first();
+
+            if ($alreadyConvertedPurchase) {
+                return redirect()
+                    ->route('purchase-order')
+                    ->with('error', 'This purchase order is already converted to purchase #' . ($alreadyConvertedPurchase->bill_number ?? $alreadyConvertedPurchase->id));
+            }
+
+            $sourcePurchaseOrder = Purchase::with(['items', 'payments'])
+                ->where('type', 'purchase_order')
+                ->find($sourcePurchaseOrderId);
+
+            if ($sourcePurchaseOrder) {
+                $convertedPurchaseData = $sourcePurchaseOrder;
+            }
+        }
 
         return view('dashboard.purchases.create-purchase-bill', compact(
             'bankAccounts',
             'items',
             'parties',
-            'nextInvoiceNumber'
+            'nextInvoiceNumber',
+            'convertedPurchaseData'
         ));
     }
 
@@ -141,6 +166,7 @@ class PurchaseBillController extends Controller
     private function validatePurchase(Request $request): array
     {
         return $request->validate([
+            'source_purchase_order_id' => 'nullable|exists:purchases,id',
             'party_id' => 'nullable|exists:parties,id',
             'party_name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
@@ -183,7 +209,24 @@ class PurchaseBillController extends Controller
     private function savePurchase(Purchase $purchase, array $data): Purchase
     {
         return DB::transaction(function () use ($purchase, $data) {
+            if (!empty($data['source_purchase_order_id'])) {
+                $existingConvertedPurchase = Purchase::where('type', 'purchase_bill')
+                    ->where('source_purchase_order_id', $data['source_purchase_order_id'])
+                    ->when($purchase->exists, function ($query) use ($purchase) {
+                        $query->where('id', '!=', $purchase->id);
+                    })
+                    ->first();
+
+                if ($existingConvertedPurchase) {
+                    throw ValidationException::withMessages([
+                        'source_purchase_order_id' => 'This purchase order is already converted to purchase #' . ($existingConvertedPurchase->bill_number ?? $existingConvertedPurchase->id),
+                    ]);
+                }
+            }
+
             $purchase->fill([
+                'type' => 'purchase_bill',
+                'source_purchase_order_id' => $data['source_purchase_order_id'] ?? null,
                 'party_id' => $data['party_id'] ?? null,
                 'party_name' => $data['party_name'] ?? null,
                 'phone' => $data['phone'] ?? null,

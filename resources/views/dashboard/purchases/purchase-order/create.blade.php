@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Purchase Bill</title>
+    <title>Purchase Order</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
@@ -16,44 +16,11 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
-
-        <link rel="stylesheet" href="{{ asset('css/purchaseco.css') }}">
-
-    <link rel="stylesheet" href="{{ asset('css/purchaseorderform_style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <!-- Form Styles -->
+    <link rel="stylesheet" href="{{ asset('css/purchaseorderform_style.css') }}">
 
 </head>
-<style>
-    /* Dropdown with two columns */
-    #partyDropdownMenu {
-    min-width: 250px; /* Adjust as needed */
-    max-width: 100%;  /* Never exceed container */
-}
-.party-option span {
-    display: inline-block;
-    width: 100%;
-}
-.party-option span:first-child {
-    width: 60%; /* Party name */
-}
-.party-option span:last-child {
-    width: 40%; /* Opening balance */
-    text-align: right;
-}
-
-/* Header style */
-.dropdown-header {
-    font-weight: 600;
-    font-size: 0.9rem;
-    background: #f8f9fa;
-    border-bottom: 1px solid #ddd;
-}
-
-/* Hover effect */
-.dropdown-item.party-option:hover {
-    background-color: #e2f0ff;
-}
-    </style>
 
 <body>
 
@@ -78,7 +45,7 @@
             </div>
             <!-- Browser Toolbar / Heading Area -->
             <div class="browser-toolbar d-flex align-items-center px-3">
-                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Purchase </p>
+                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Purchase Order | </p>
 
             </div>
         </header>
@@ -96,8 +63,11 @@
 
                         <!-- Header Section -->
                         <div class="header-section">
-                            <div class="header-left">
-                                <div class="input-group">
+
+                          <div class="header-left">
+
+    <!-- Row 1 -->
+<div class="input-group">
                                 <!-- Party dropdown button -->
 <div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
     <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -108,8 +78,41 @@
         <!-- JS will populate balance here -->
     </div>
 
+    <div class="modal fade" id="purchaseOrderTableSettingsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">More Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <input type="checkbox" class="form-check-input check-category m-0" id="purchaseOrderCheckCategory" style="position: static; transform: none;">
+                        <label for="purchaseOrderCheckCategory" style="position: static; transform: none; margin: 0; color: #1f2937; font-size: 16px;">Item Category</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <input type="checkbox" class="form-check-input check-item-code m-0" id="purchaseOrderCheckItemCode" style="position: static; transform: none;">
+                        <label for="purchaseOrderCheckItemCode" style="position: static; transform: none; margin: 0; color: #1f2937; font-size: 16px;">Item Code</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <input type="checkbox" class="form-check-input check-description m-0" id="purchaseOrderCheckDescription" style="position: static; transform: none;">
+                        <label for="purchaseOrderCheckDescription" style="position: static; transform: none; margin: 0; color: #1f2937; font-size: 16px;">Description</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="checkbox" class="form-check-input check-discount m-0" id="purchaseOrderCheckDiscount" style="position: static; transform: none;">
+                        <label for="purchaseOrderCheckDiscount" style="position: static; transform: none; margin: 0; color: #1f2937; font-size: 16px;">Discount</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary apply-table-settings" data-bs-dismiss="modal">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Dropdown menu (existing) -->
-    <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+    <ul class="dropdown-menu w-110" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
         <li class="dropdown-header d-flex justify-content-between px-3">
             <span>Party Name</span>
             <span>Opening Balance</span>
@@ -149,27 +152,32 @@
 
                                 </div>
 
-                                <div class="input-group mt-3">
-                                    <input type="text" class="input-control phone-input" placeholder=" " readonly>
-                                    <label>Phone No.</label>
-                                </div>
-                                <div class="input-group mt-3">
-                                    <textarea class="input-control billing-address" placeholder="" rows="2" readonly></textarea>
-                                    <label>Billing Address</label>
-                                </div>
-                            </div>
 
-                            <div class="header-right w-25">
-                                <div class="input-group">
-                                    <span>Bill No.</span>
-                                    <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
-                                </div>
-                                <div class="input-group date-wrapper">
-                                    <span>Bill Date</span>
-                                    <input type="date" class="input-control underline-input bill-date invoice-date">
-                                </div>
 
-                            </div>
+</div>
+
+                       <div class="header-right w-25">
+
+    <!-- Order No -->
+    <div class="input-group">
+        <span>Order No.</span>
+        <input type="text" class="input-control underline-input bill-number"
+            value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
+    </div>
+
+    <!-- Order Date -->
+    <div class="input-group mt-2">
+        <span>Order Date</span>
+        <input type="date" class="input-control underline-input order-date">
+    </div>
+
+    <!-- Due Date -->
+    <div class="input-group mt-2">
+        <span>Due Date</span>
+        <input type="date" class="input-control underline-input due-date">
+    </div>
+
+</div>
                         </div>
 
                         <div class="alert alert-success d-none sale-success-msg"></div>
@@ -190,27 +198,14 @@
                                         <th>PRICE/UNIT</th>
                                         <th>AMOUNT</th>
                                         <th class="add-col" style="position: relative;">
-                                            <button type="button" class="btn-add-circle table-settings-btn"><i
-                                                    class="fa-solid fa-plus"></i></button>
-                                            <!-- Settings Box -->
-                                            <div class="settings-box">
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-category">
-                                                    <label>Item Category</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-item-code">
-                                                    <label>Item Code</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-description">
-                                                    <label>Description</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-discount">
-                                                    <label>Discount</label>
-                                                </div>
-                                            </div>
+                                            <button
+                                                type="button"
+                                                class="btn-add-circle table-settings-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#purchaseOrderTableSettingsModal"
+                                            >
+                                                <i class="fa-solid fa-plus"></i>
+                                            </button>
                                         </th>
                                     </tr>
                                 </thead>
@@ -225,10 +220,8 @@
                                             <select class="form-select item-name">
                                                 <option value="" selected disabled>Select Item</option>
                                                 @foreach($items as $item)
-
-                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>
-
-                                                    @endforeach
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}" data-category="{{ $item->category->name ?? '' }}" data-item-code="{{ $item->item_code ?? '' }}" data-description="">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>
+                                                @endforeach
                                             </select>
                                         </td>
                                         <td class="col-category d-none"><input type="text" class="item-category"
@@ -243,9 +236,17 @@
                                         <td><input type="number" class="item-qty" value="1"></td>
                                         <td class="custom-size-td">
                                             <select class="item-unit">
-                                                <option>NONE</option>
-                                                <option>PCS</option>
-                                                <option>BOX</option>
+                                                <option value="">Select Unit</option>
+                                                <option value="PCS">PCS (Pieces)</option>
+                                                <option value="BOX">BOX</option>
+                                                <option value="PACK">PACK</option>
+                                                <option value="SET">SET</option>
+                                                <option value="KG">KG (Kilogram)</option>
+                                                <option value="G">Gram</option>
+                                                <option value="M">Meter</option>
+                                                <option value="FT">Feet</option>
+                                                <option value="L">Liter</option>
+                                                <option value="ML">Milliliter</option>
                                             </select>
                                         </td>
                                         <td><input type="number" class="item-price" value="0"></td>
@@ -377,13 +378,6 @@
                                     </div>
                                 </div>
 
-                                   <div class="final-total-group">
-                                    <div class="calc-row" style="margin-bottom: 5px;">
-                                        <div class="calc-label" style="font-weight: 700; margin-left:90%;">Shipping</div>
-                                    </div>
-                                    <input type="number" class="total-input-large shipping" value="0" step="0.01">
-                                </div>
-
                                 <!-- Round Off -->
                                 <div class="calc-row">
                                     <div class="checkbox-group">
@@ -398,24 +392,26 @@
                                 <!-- Final Total -->
                                 <div class="final-total-group">
                                     <div class="calc-row" style="margin-bottom: 5px;">
-                                        <div class="calc-label" style="font-weight: 700; margin-left:95%;">Total</div>
+                                        <div class="calc-label" style="font-weight: 700;">Total</div>
                                     </div>
                                     <input type="text" class="total-input-large grand-total" value="0" readonly>
                                 </div>
 
                                 <div class="calc-row">
-                                    <div class="calc-label">Paid</div>
+                                    <div class="calc-label">Advance Amount</div>
                                     <div class="calc-inputs">
-                                        <input type="number" class="mini-input received-amount" value="0" step="0.01">
+                                        <input type="number" class="mini-input advance-amount" value="0" readonly>
                                     </div>
                                 </div>
-
-                                <div class="calc-row">
+                                  <div class="calc-row">
                                     <div class="calc-label">Balance</div>
                                     <div class="calc-inputs">
                                         <span class="fw-bold balance-amount">0</span>
                                     </div>
                                 </div>
+                                </div>
+
+
                             </div>
                         </div>
                     </div>
@@ -475,32 +471,21 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+    <script>
+        window.items = @json($items);
+        window.parties = @json($parties);
+        window.bankAccounts = @json($bankAccounts);
+        window.saleStoreUrl = "{{ route('purchase-orders.store') }}";
+        window.saleMethod = 'POST';
+        window.editSaleData = null;
+        window.docType = 'purchase_order';
 
-<script>
-    window.items = @json($items);
-    window.parties = @json($parties);
-    window.bankAccounts = @json($bankAccounts);
-
-    window.saleStoreUrl = "{{ route('purchase-bills.store') }}";
-    window.saleMethod = 'POST';
-
-    // Default values
-    window.editSaleData = null;
-    window.sourceEstimateId = null;
-    window.sourceSaleOrderId = null;
-    window.sourceChallanId = null;
-    window.sourceProformaId = null;
-
-    // Optional doc type (avoid JS error)
-    window.docType = "purchase_bill";
-
-    @if(isset($purchase))
-        // Edit mode
-        window.saleStoreUrl = "{{ route('purchase-bills.update', $purchase->id) }}";
-        window.saleMethod = 'PUT';
-        window.editSaleData = @json($purchase->load(['items', 'payments']));
-    @endif
-</script>
+        @if(isset($purchase))
+            window.saleStoreUrl = "{{ route('purchase-orders.update', $purchase->id) }}";
+            window.saleMethod = 'PUT';
+            window.editSaleData = @json($purchase);
+        @endif
+    </script>
 
     <!-- Toast container -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
@@ -675,14 +660,15 @@
   </div>
 </div>
 @endsection
-
-@yield('modals')
-
-    <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    @yield('modals')
+<script>document.addEventListener("DOMContentLoaded", function () {
     const partySelect = document.querySelector(".party-select");
     const addModalEl = document.getElementById('addPartyModal');
     const addModal = new bootstrap.Modal(addModalEl);
+
+    if (!partySelect) {
+        return;
+    }
 
     partySelect.addEventListener("change", function () {
         if (this.value === "__new") {
@@ -699,9 +685,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const addModal = new bootstrap.Modal(addModalEl);
     const saveBtn = document.getElementById("btnSaveParty");
     const saveNewBtn = document.getElementById("btnSaveNewParty");
-
-
-
 
     function getPartyData() {
         const form = document.getElementById("addPartyForm");
@@ -752,74 +735,20 @@ document.addEventListener("DOMContentLoaded", function () {
     saveNewBtn.addEventListener('click', function () {
         saveParty(false); // reset modal for new entry
     });
+
+    $(document).on('change', '.party-select', function () {
+    let selected = $(this).find(':selected');
+
+    let phone = selected.data('phone') || '';
+    let billing = selected.data('billing') || '';
+    let shipping = selected.data('shipping') || '';
+
+    $('.phone-input').val(phone);
+    $('.billing-address').val(billing);
+    $('.shipping-address').val(shipping);
 });
-
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const dropdownBtn = document.getElementById("partyDropdownBtn");
-    const dropdownMenu = document.getElementById("partyDropdownMenu");
-    const partyIdInput = document.querySelector(".party-id");
-    const balanceDisplay = document.getElementById("partyBalanceDisplay");
-    const addModalEl = document.getElementById('addPartyModal');
-
-    const addModal = new bootstrap.Modal(addModalEl);
-
-
-    dropdownMenu.addEventListener("click", function(e) {
-        if(e.target.closest(".party-option")) {
-            e.preventDefault();
-            const option = e.target.closest(".party-option");
-            const name = option.querySelector("span:first-child").textContent;
-            let opening = parseFloat(option.dataset.opening) || 0;
-            const type = option.dataset.type;
-            const phone = option.dataset.phone;
-            const billing = option.dataset.billing;
-            const id = option.dataset.id;
-
-            // Button pe sirf party name
-            dropdownBtn.textContent = name;
-
-            // Show balance below button with color
-          if(type === "pay"){
-    balanceDisplay.innerHTML = `
-        <i class="fa-solid fa-arrow-up text-danger me-1"></i>
-        ₹${opening.toFixed(2)}
-    `;
-}
-else if(type === "receive"){
-    balanceDisplay.innerHTML = `
-        <i class="fa-solid fa-arrow-down text-success me-1"></i>
-        ₹${opening.toFixed(2)}
-    `;
-}
-else {
-    balanceDisplay.innerHTML = `₹${opening.toFixed(2)}`;
-}
-
-            // Save selected party id
-            partyIdInput.value = id;
-
-            // Populate phone & billing fields
-            document.querySelector(".phone-input").value = phone;
-            document.querySelector(".billing-address").value = billing;
-        }
-        else if(e.target.id === "addNewPartyBtn") {
-            addModal.show();
-            document.getElementById("addPartyForm").reset();
-            balanceDisplay.textContent = "";
-        }
-    });
-
 });
 </script>
 </body>
 
 </html>
-
-
-
-
-
-

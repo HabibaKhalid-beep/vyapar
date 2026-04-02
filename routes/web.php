@@ -166,7 +166,16 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
     Route::get('purchase-order', [PurchaseOrderController::class, 'purchaseOrder'])->name('purchase-order');
-Route::get('purchase-order/create', [PurchaseOrderController::class, 'create'])->name('purchase-order.create');
+    Route::get('purchase-order/create', [PurchaseOrderController::class, 'create'])->name('purchase-order.create');
+    Route::get('purchase-orders/{purchase}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show');
+    Route::post('purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
+    Route::get('purchase-orders/{purchase}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
+    Route::get('purchase-orders/{purchase}/preview', [PurchaseOrderController::class, 'preview'])->name('purchase-orders.preview');
+    Route::get('purchase-orders/{purchase}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print');
+    Route::get('purchase-orders/{purchase}/pdf', [PurchaseOrderController::class, 'pdf'])->name('purchase-orders.pdf');
+    Route::get('purchase-orders/{purchase}/history', [PurchaseOrderController::class, 'history'])->name('purchase-orders.history');
+    Route::put('purchase-orders/{purchase}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
+    Route::delete('purchase-orders/{purchase}', [PurchaseOrderController::class, 'destroy'])->name('purchase-orders.destroy');
 
 
 

@@ -13,6 +13,7 @@ class Sale extends Model
         'billing_address',
         'shipping_address',
         'bill_number',
+        'reference_bill_number',
         'invoice_date',
         'order_date',
         'due_date',

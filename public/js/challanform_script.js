@@ -1,6 +1,7 @@
 function initializeForm(context) {
     const $ctx = $(context);
     const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
+    const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
 
     const itemOptionsHtml = (window.items || []).map(item => {
         const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}">${richLabel}</option>`;
@@ -18,6 +19,27 @@ function initializeForm(context) {
 
     if (window.editSaleData) {
         populateFormFromSale(window.editSaleData);
+    }
+
+    function setupAdjustmentControls() {
+        const $roundOffInput = $ctx.find('.round-off-val');
+        const $roundOffCheck = $ctx.find('.round-off-check');
+        if ($roundOffInput.length && $roundOffCheck.length) {
+            $roundOffInput.prop('readonly', !$roundOffCheck.is(':checked'));
+            if (!$roundOffCheck.is(':checked')) {
+                $roundOffInput.val('0');
+            }
+        }
+
+        if ($paidInput.length && !$ctx.find('.fill-balance-check').length) {
+            const checkboxText = $paidInput.hasClass('advance-amount') ? 'Full Advance' : 'Full Receive';
+            $paidInput.closest('.calc-inputs').prepend(
+                `<label class="d-flex align-items-center gap-1 me-2 mb-0 text-nowrap" style="font-size:12px;">
+                    <input type="checkbox" class="fill-balance-check">
+                    <span>${checkboxText}</span>
+                </label>`
+            );
+        }
     }
 
     function populateFormFromSale(sale) {
@@ -258,13 +280,9 @@ function initializeForm(context) {
 
         $ctx.find('.tax-amount-display').text(taxAmount.toFixed(2));
 
-        let grandTotal = finalBase;
-        let roundOffVal = 0;
-        if ($ctx.find('.round-off-check').is(':checked')) {
-            const rounded = Math.round(grandTotal);
-            roundOffVal = rounded - grandTotal;
-            grandTotal = rounded;
-        }
+        const roundOffEnabled = $ctx.find('.round-off-check').is(':checked');
+        let roundOffVal = roundOffEnabled ? (parseFloat($ctx.find('.round-off-val').val()) || 0) : 0;
+        let grandTotal = finalBase + roundOffVal;
 
         $ctx.find('.round-off-val').val(roundOffVal.toFixed(2));
         $ctx.find('.grand-total').val(grandTotal.toFixed(2));
@@ -367,6 +385,13 @@ function initializeForm(context) {
             });
     });
 
+    $ctx.on('change', '.fill-balance-check, .round-off-check', function() {
+        setupAdjustmentControls();
+        calculateTotals();
+    });
+    $ctx.on('input change', '.round-off-val', calculateTotals);
+
+    setupAdjustmentControls();
     calculateTotals();
 }
 

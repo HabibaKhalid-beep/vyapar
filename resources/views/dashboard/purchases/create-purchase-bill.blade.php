@@ -486,6 +486,7 @@
 
     // Default values
     window.editSaleData = null;
+    window.sourcePurchaseOrderId = null;
     window.sourceEstimateId = null;
     window.sourceSaleOrderId = null;
     window.sourceChallanId = null;
@@ -499,6 +500,9 @@
         window.saleStoreUrl = "{{ route('purchase-bills.update', $purchase->id) }}";
         window.saleMethod = 'PUT';
         window.editSaleData = @json($purchase->load(['items', 'payments']));
+    @elseif(isset($convertedPurchaseData) && $convertedPurchaseData)
+        window.editSaleData = @json($convertedPurchaseData);
+        window.sourcePurchaseOrderId = @json($convertedPurchaseData->id ?? null);
     @endif
 </script>
 

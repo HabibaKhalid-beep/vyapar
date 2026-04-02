@@ -1,16 +1,23 @@
 function initializeForm(context) {
     const $ctx = $(context);
     const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
+    const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
+    const $settingsModal = $('#purchaseOrderTableSettingsModal');
+    if ($settingsModal.length && !$settingsModal.parent().is('body')) {
+        $settingsModal.appendTo('body');
+    }
 
     const itemOptionsHtml = (window.items || []).map(item => {
-        const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}">${richLabel}</option>`;
+        const plainLabel = item.name || "";
+        const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`;
+        return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${item.category?.name ?? ''}" data-item-code="${item.item_code ?? ''}" data-description="">${richLabel}</option>`;
     }).join('');
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     // IMPORTANT: Set the doc-type field from window.docType
     // This ensures the correct type is captured when form is saved
-    $ctx.find('.doc-type').val(window.docType || 'invoice');
+    $ctx.find('.doc-type').val(window.docType || 'purchase_order');
 
     // Auto-fill invoice/order dates
     const today = new Date();
@@ -27,12 +34,34 @@ function initializeForm(context) {
         populateFormFromSale(window.editSaleData);
     }
 
+    function setupAdjustmentControls() {
+        const $roundOffInput = $ctx.find('.round-off-val');
+        const $roundOffCheck = $ctx.find('.round-off-check');
+        if ($roundOffInput.length && $roundOffCheck.length) {
+            $roundOffInput.prop('readonly', !$roundOffCheck.is(':checked'));
+            if (!$roundOffCheck.is(':checked')) {
+                $roundOffInput.val('0');
+            }
+        }
+
+        if ($paidInput.length && !$ctx.find('.fill-balance-check').length) {
+            const checkboxText = $paidInput.hasClass('advance-amount') ? 'Full Advance' : 'Full Receive';
+            $paidInput.closest('.calc-inputs').prepend(
+                `<label class="d-flex align-items-center gap-1 me-2 mb-0 text-nowrap" style="font-size:12px;">
+                    <input type="checkbox" class="fill-balance-check">
+                    <span>${checkboxText}</span>
+                </label>`
+            );
+        }
+    }
+
     // ========== TOGGLE FIELDS BASED ON DOCUMENT TYPE ==========
     const docType = window.docType || 'invoice';
     const typeLabels = {
         'invoice': 'Sales Invoice',
         'estimate': 'Estimate / Quotation',
         'sale_order': 'Sale Order',
+        'purchase_order': 'Purchase Order',
         'proforma': 'Proforma Invoice',
         'delivery_challan': 'Delivery Challan',
         'sale_return': 'Sale Return',
@@ -52,12 +81,26 @@ function initializeForm(context) {
     const docNumberLabel = $ctx.find('.doc-number-label');
     const docDateLabel = $ctx.find('.doc-date-label');
     const paymentSection = $ctx.find('.payment-section');
-    const receivedInput = $ctx.find('.received-amount');
+    const receivedInput = $paidInput;
     const receivedLabelDiv = $ctx.find('.received-label-text');
     const receivedRow = $ctx.find('.received-row');
     const balanceRow = $ctx.find('.balance-row');
 
-    if (docType === 'sale_order' || docType === 'delivery_challan') {
+    if (docType === 'purchase_order') {
+        orderDateGroup.removeClass('d-none');
+        dueDateGroup.removeClass('d-none');
+
+        if (docNumberLabel.length) docNumberLabel.text('Order No.');
+        if (docDateLabel.length) docDateLabel.text('Order Date');
+
+        if (receivedLabelDiv.length) {
+            receivedLabelDiv.text('Advance Amount');
+        }
+        if (receivedInput.length) {
+            receivedInput.prop('readonly', false).attr('placeholder', 'Advance amount');
+        }
+    }
+    else if (docType === 'sale_order' || docType === 'delivery_challan') {
         // Show shipping address and dates
         shippingGroup.removeClass('d-none');
         orderDateGroup.removeClass('d-none');
@@ -159,8 +202,11 @@ function initializeForm(context) {
         $ctx.find('.billing-address').val(sale.billing_address || '');
         $ctx.find('.bill-number').val(sale.bill_number || '');
         const billDate = sale.bill_date ? sale.bill_date.toString().split(' ')[0] : `${yyyy}-${mm}-${dd}`;
+        const dueDate = sale.due_date ? sale.due_date.toString().split(' ')[0] : billDate;
         $ctx.find('.bill-date').val(billDate);
         $ctx.find('.invoice-date').val(billDate);
+        $ctx.find('.order-date').val(billDate);
+        $ctx.find('.due-date').val(dueDate);
 
         // Items
         $ctx.find('.item-rows').empty();
@@ -180,6 +226,7 @@ function initializeForm(context) {
             $row.find('.item-discount').val(item.discount || 0);
             $row.find('.item-qty').val(item.quantity || 0);
             if (item.unit) {
+                ensureUnitOption($row.find('.item-unit'), item.unit);
                 $row.find('.item-unit').val(item.unit);
             }
             $row.find('.item-price').val(item.unit_price || 0);
@@ -231,7 +278,7 @@ function initializeForm(context) {
 
         // Show the current received / balance values based on stored sale
         $ctx.find('.payment-total-amount').text((window.existingReceivedAmount || 0).toFixed(2));
-        $ctx.find('.received-amount').val((window.existingReceivedAmount || 0).toFixed(2));
+        $paidInput.val((window.existingReceivedAmount || 0).toFixed(2));
         $ctx.find('.balance-amount').text((window.existingBalance || 0).toFixed(2));
 
         calculateTotals();
@@ -297,9 +344,17 @@ function initializeForm(context) {
                 <td><input type="number" class="item-qty" value="1"></td>
                 <td>
                     <select class="item-unit">
-                        <option>NONE</option>
-                        <option>PCS</option>
-                        <option>BOX</option>
+                        <option value="">Select Unit</option>
+                        <option value="PCS">PCS (Pieces)</option>
+                        <option value="BOX">BOX</option>
+                        <option value="PACK">PACK</option>
+                        <option value="SET">SET</option>
+                        <option value="KG">KG (Kilogram)</option>
+                        <option value="G">Gram</option>
+                        <option value="M">Meter</option>
+                        <option value="FT">Feet</option>
+                        <option value="L">Liter</option>
+                        <option value="ML">Milliliter</option>
                     </select>
                 </td>
                 <td><input type="number" class="item-price" value="0"></td>
@@ -308,6 +363,29 @@ function initializeForm(context) {
             </tr>
         `;
         $ctx.find('.item-rows').append(newRow);
+    }
+
+    function ensureUnitOption($select, unit) {
+        if (!unit) return;
+        const hasOption = $select.find('option').filter(function() {
+            return $(this).val() === unit;
+        }).length > 0;
+
+        if (!hasOption) {
+            $select.append(`<option value="${unit}">${unit}</option>`);
+        }
+    }
+
+    function applyTableSettings() {
+        [
+            { check: '.check-category', column: '.col-category' },
+            { check: '.check-item-code', column: '.col-item-code' },
+            { check: '.check-description', column: '.col-description' },
+            { check: '.check-discount', column: '.col-discount' },
+        ].forEach(({ check, column }) => {
+            const shouldShow = $ctx.find(check).is(':checked');
+            $ctx.find(column).toggleClass('d-none', !shouldShow);
+        });
     }
 
     // Delete row functionality
@@ -362,13 +440,20 @@ function initializeForm(context) {
         const $selected = $(this).find('option:selected');
         const price = parseFloat($selected.data('price')) || parseFloat($selected.data('sale-price')) || 0;
         const unit = $selected.data('unit') || '';
+        const category = $selected.data('category') || '';
+        const itemCode = $selected.data('item-code') || '';
+        const description = $selected.data('description') || '';
 
         const $qty = $row.find('.item-qty');
         // Always default selected item quantity to 1 when item is chosen
         $qty.val(1);
 
         $row.find('.item-price').val(price.toFixed(2));
+        $row.find('.item-category').val(category);
+        $row.find('.item-code').val(itemCode);
+        $row.find('.item-desc').val(description);
         if (unit) {
+            ensureUnitOption($row.find('.item-unit'), unit);
             $row.find('.item-unit').val(unit);
         }
 
@@ -510,7 +595,8 @@ function initializeForm(context) {
             phone: $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
-            bill_date: $ctx.find('.bill-date').val() || $ctx.find('.invoice-date').val() || '',
+            bill_date: $ctx.find('.order-date').val() || $ctx.find('.bill-date').val() || $ctx.find('.invoice-date').val() || '',
+            due_date: $ctx.find('.due-date').val() || '',
             total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0,
             total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0,
             discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,
@@ -520,7 +606,7 @@ function initializeForm(context) {
             shipping_charge: parseFloat($ctx.find('.shipping').val() || 0) || 0,
             round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0,
             grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0,
-            paid_amount: parseFloat($ctx.find('.received-amount').val() || 0) || 0,
+            paid_amount: parseFloat($paidInput.val() || 0) || 0,
             balance: parseFloat($ctx.find('.balance-amount').text() || 0) || 0,
             description: $ctx.find('.description-input').val() || null,
             image_path: (function() {
@@ -719,14 +805,9 @@ function initializeForm(context) {
         const shippingCharge = parseFloat($ctx.find('.shipping').val() || 0) || 0;
         finalBase += shippingCharge;
 
-        let grandTotal = finalBase;
-        let roundOffVal = 0;
-
-        if ($ctx.find('.round-off-check').is(':checked')) {
-            const rounded = Math.round(grandTotal);
-            roundOffVal = rounded - grandTotal;
-            grandTotal = rounded;
-        }
+        const roundOffEnabled = $ctx.find('.round-off-check').is(':checked');
+        let roundOffVal = roundOffEnabled ? (parseFloat($ctx.find('.round-off-val').val()) || 0) : 0;
+        let grandTotal = finalBase + roundOffVal;
 
         $ctx.find('.round-off-val').val(roundOffVal.toFixed(2));
         $ctx.find('.grand-total').val(grandTotal.toFixed(2));
@@ -753,15 +834,17 @@ function initializeForm(context) {
             return sum + (parseFloat(amountInput.val() || 0) || 0);
         }, 0);
 
-        if (!$ctx.find('.received-amount').data('manual-edited')) {
-            $ctx.find('.received-amount').val(paymentTotal.toFixed(2));
+        if ($ctx.find('.fill-balance-check').is(':checked')) {
+            $paidInput.val(grandTotal.toFixed(2));
+        } else if (!$paidInput.data('manual-edited')) {
+            $paidInput.val(paymentTotal.toFixed(2));
         }
 
-        const paidAmount = parseFloat($ctx.find('.received-amount').val() || 0) || 0;
+        const paidAmount = parseFloat($paidInput.val() || 0) || 0;
         const balance = Math.max(0, grandTotal - paidAmount);
 
         $ctx.find('.payment-total-amount').text(paymentTotal.toFixed(2));
-        $ctx.find('.received-amount').val(paidAmount.toFixed(2));
+        $paidInput.val(paidAmount.toFixed(2));
         $ctx.find('.balance-amount').text(balance.toFixed(2));
     }
 
@@ -769,20 +852,27 @@ function initializeForm(context) {
         updatePaymentSummary();
     });
 
-    $ctx.on('input change', '.received-amount', function() {
+    $ctx.on('input change', '.received-amount, .advance-amount', function() {
         $(this).data('manual-edited', true);
         updatePaymentSummary();
     });
+    $ctx.on('change', '.fill-balance-check, .round-off-check', function() {
+        setupAdjustmentControls();
+        calculateTotals();
+    });
+    $ctx.on('input change', '.round-off-val', calculateTotals);
 
     $ctx.on('click', '.remove-payment-entry', function() {
         $(this).closest('.payment-entry').remove();
         updatePaymentSummary();
     });
 
+    $ctx.on('click', '.apply-table-settings', function() {
+        applyTableSettings();
+    });
+
+    setupAdjustmentControls();
     calculateTotals();
+    applyTableSettings();
 }
-
-
-
-
 

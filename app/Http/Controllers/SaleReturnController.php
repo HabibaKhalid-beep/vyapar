@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankTransaction;
 use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SaleReturnController extends Controller
 {
@@ -59,15 +61,19 @@ class SaleReturnController extends Controller
         $receivedAmount = $this->calculateReceivedAmount($data['payments'] ?? []);
         $grandTotal = (float) ($data['grand_total'] ?? 0);
 
-        $sale = Sale::create($this->buildSalePayload(
-            $data,
-            $receivedAmount,
-            max(0, $grandTotal - $receivedAmount),
-            $this->resolvePaymentStatus($receivedAmount, $grandTotal)
-        ));
+        $sale = DB::transaction(function () use ($data, $receivedAmount, $grandTotal) {
+            $sale = Sale::create($this->buildSalePayload(
+                $data,
+                $receivedAmount,
+                max(0, $grandTotal - $receivedAmount),
+                $this->resolvePaymentStatus($receivedAmount, $grandTotal)
+            ));
 
-        $this->syncItems($sale, $data['items']);
-        $this->syncPayments($sale, $data['payments'] ?? []);
+            $this->syncItems($sale, $data['items']);
+            $this->syncPayments($sale, $data['payments'] ?? []);
+
+            return $sale;
+        });
 
         return response()->json([
             'success' => true,
@@ -87,16 +93,18 @@ class SaleReturnController extends Controller
         $receivedAmount = $existingReceived + $newReceived;
         $grandTotal = (float) ($data['grand_total'] ?? 0);
 
-        $sale->update($this->buildSalePayload(
-            $data,
-            $receivedAmount,
-            max(0, $grandTotal - $receivedAmount),
-            $this->resolvePaymentStatus($receivedAmount, $grandTotal)
-        ));
+        DB::transaction(function () use ($sale, $data, $receivedAmount, $grandTotal) {
+            $sale->update($this->buildSalePayload(
+                $data,
+                $receivedAmount,
+                max(0, $grandTotal - $receivedAmount),
+                $this->resolvePaymentStatus($receivedAmount, $grandTotal)
+            ));
 
-        $sale->items()->delete();
-        $this->syncItems($sale, $data['items']);
-        $this->syncPayments($sale, $data['payments'] ?? []);
+            $sale->items()->delete();
+            $this->syncItems($sale, $data['items']);
+            $this->syncPayments($sale, $data['payments'] ?? []);
+        });
 
         return response()->json([
             'success' => true,
@@ -170,6 +178,7 @@ class SaleReturnController extends Controller
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'required|string|max:100',
+            'reference_bill_number' => 'nullable|string|max:100',
             'invoice_date' => 'nullable|date',
             'order_date' => 'nullable|date',
             'due_date' => 'nullable|date',
@@ -211,6 +220,7 @@ class SaleReturnController extends Controller
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
             'bill_number' => $data['bill_number'],
+            'reference_bill_number' => $data['reference_bill_number'] ?? null,
             'invoice_date' => $data['invoice_date'] ?? now()->toDateString(),
             'order_date' => $data['order_date'] ?? ($data['invoice_date'] ?? now()->toDateString()),
             'due_date' => $data['due_date'] ?? ($data['order_date'] ?? $data['invoice_date'] ?? now()->toDateString()),
@@ -264,8 +274,24 @@ class SaleReturnController extends Controller
 
             $bank = BankAccount::find($payment['bank_account_id']);
             if ($bank) {
-                $bank->opening_balance = ($bank->opening_balance ?? 0) + (float) $payment['amount'];
+                $bank->opening_balance = ($bank->opening_balance ?? 0) - (float) $payment['amount'];
                 $bank->save();
+
+                BankTransaction::create([
+                    'from_bank_account_id' => $bank->id,
+                    'to_bank_account_id' => null,
+                    'type' => 'sale_return_refund',
+                    'amount' => (float) $payment['amount'],
+                    'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
+                    'reference_type' => 'sale_return',
+                    'reference_id' => $sale->id,
+                    'description' => 'Sale return refund to party',
+                    'meta' => [
+                        'party_id' => $sale->party_id,
+                        'reference_bill_number' => $sale->reference_bill_number,
+                        'payment_type' => $payment['payment_type'] ?? null,
+                    ],
+                ]);
             }
         }
     }

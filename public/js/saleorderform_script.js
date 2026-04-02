@@ -1,6 +1,7 @@
 function initializeForm(context) {
     const $ctx = $(context);
     const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
+    const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const itemOptionsHtml = (window.items || []).map(item => {
@@ -18,6 +19,26 @@ function initializeForm(context) {
 
     if (window.editSaleOrderData) {
         populateFormFromSaleOrder(window.editSaleOrderData);
+    }
+
+    function setupAdjustmentControls() {
+        const $roundOffInput = $ctx.find('.round-off-val');
+        const $roundOffCheck = $ctx.find('.round-off-check');
+        if ($roundOffInput.length && $roundOffCheck.length) {
+            $roundOffInput.prop('readonly', !$roundOffCheck.is(':checked'));
+            if (!$roundOffCheck.is(':checked')) {
+                $roundOffInput.val('0');
+            }
+        }
+
+        if ($paidInput.length && !$ctx.find('.fill-balance-check').length) {
+            $paidInput.closest('.calc-inputs').prepend(
+                `<label class="d-flex align-items-center gap-1 me-2 mb-0 text-nowrap" style="font-size:12px;">
+                    <input type="checkbox" class="fill-balance-check">
+                    <span>Full Advance</span>
+                </label>`
+            );
+        }
     }
 
     function showToast(message, isError = false) {
@@ -96,7 +117,7 @@ function initializeForm(context) {
         $ctx.find('.round-off-val').val(parseFloat(saleOrder.round_off || 0).toFixed(2));
         $ctx.find('.grand-total').val(parseFloat(saleOrder.grand_total || 0).toFixed(2));
         $ctx.find('.balance-amount').text(parseFloat(saleOrder.balance || saleOrder.grand_total || 0).toFixed(2));
-        $ctx.find('.advance-amount').val('0.00');
+        $paidInput.val('0.00');
 
         calculateTotals();
     }
@@ -161,10 +182,14 @@ function initializeForm(context) {
             return sum + (parseFloat(amountInput.val() || 0) || 0);
         }, 0);
 
+        if ($ctx.find('.fill-balance-check').is(':checked')) {
+            advance = grandTotal;
+        }
+
         const balance = Math.max(0, grandTotal - advance);
 
         $ctx.find('.payment-total-amount').text(advance.toFixed(2));
-        $ctx.find('.advance-amount').val(advance.toFixed(2));
+        $paidInput.val(advance.toFixed(2));
         $ctx.find('.balance-amount').text(balance.toFixed(2));
     }
 
@@ -190,14 +215,9 @@ function initializeForm(context) {
 
         $ctx.find('.tax-amount-display').text(taxAmount.toFixed(2));
 
-        let grandTotal = finalBase;
-        let roundOffVal = 0;
-
-        if ($ctx.find('.round-off-check').is(':checked')) {
-            const rounded = Math.round(grandTotal);
-            roundOffVal = rounded - grandTotal;
-            grandTotal = rounded;
-        }
+        const roundOffEnabled = $ctx.find('.round-off-check').is(':checked');
+        let roundOffVal = roundOffEnabled ? (parseFloat($ctx.find('.round-off-val').val()) || 0) : 0;
+        let grandTotal = finalBase + roundOffVal;
 
         $ctx.find('.round-off-val').val(roundOffVal.toFixed(2));
         $ctx.find('.grand-total').val(grandTotal.toFixed(2));
@@ -301,7 +321,7 @@ function initializeForm(context) {
             tax_amount: parseFloat($ctx.find('.tax-amount-display').text() || 0) || 0,
             round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0,
             grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0,
-            advance_amount: parseFloat($ctx.find('.advance-amount').val() || 0) || 0,
+            advance_amount: parseFloat($paidInput.val() || 0) || 0,
             balance: parseFloat($ctx.find('.balance-amount').text() || 0) || 0,
             description: $ctx.find('.description-input').val() || null,
             image_path: (function() {
@@ -469,6 +489,11 @@ function initializeForm(context) {
         const totalBaseAmount = parseFloat($ctx.find('.total-base-amount').text()) || 0;
         applyDiscountTax(totalBaseAmount);
     });
+    $ctx.on('change', '.fill-balance-check, .round-off-check', function() {
+        setupAdjustmentControls();
+        calculateTotals();
+    });
+    $ctx.on('input change', '.round-off-val', calculateTotals);
 
     $ctx.on('click', '.add-description', function() {
         const $pane = $ctx.find('.description-pane');
@@ -580,6 +605,6 @@ function initializeForm(context) {
             });
     });
 
+    setupAdjustmentControls();
     calculateTotals();
 }
-

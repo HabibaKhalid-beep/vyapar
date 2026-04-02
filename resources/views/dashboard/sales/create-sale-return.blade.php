@@ -116,6 +116,10 @@
                                     <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
                                 </div>
                                 <div class="input-group mt-2">
+                                    <span>Invoice Number</span>
+                                    <input type="text" class="input-control underline-input reference-bill-number" placeholder="Enter invoice number">
+                                </div>
+                                <div class="input-group mt-2">
                                     <span>Invoice Date</span>
                                     <input type="date" class="input-control underline-input order-date">
                                 </div>
