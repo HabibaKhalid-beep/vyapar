@@ -870,4 +870,12 @@ if ($receivedAmount >= $grandTotal && $grandTotal > 0) return 'Paid';
 
         return 'Unpaid';
     }
+
+ public function paymentIn()
+{
+    $parties = Party::all();
+    $bankAccounts = BankAccount::all(); 
+    
+    return view('dashboard.sales.payement-in', compact('parties', 'bankAccounts'));
+}
 }

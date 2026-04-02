@@ -193,15 +193,15 @@
     </select>
   </div>
 
-  <!-- ✅ Bank Account add karo -->
+  
   <div class="col-md-3">
     <label class="form-label">Bank Account</label>
-    <select class="form-select payment-bank">
-      <option value="">-- Select Bank --</option>
-      @foreach($bankAccounts as $bank)
-        <option value="{{ $bank->id }}">{{ $bank->name }}</option>
-      @endforeach
-    </select>
+    <select class="form-select payment-bank" name="bank_account_id">
+    <option value="">-- Select Bank --</option>
+    @foreach($bankAccounts as $bank)
+       <option value="{{ $bank->id }}">{{ $bank->display_name }}</option>
+    @endforeach
+</select>
   </div>
 
   <div class="col-md-3">
@@ -257,7 +257,7 @@
 
               <div class="mb-3">
                 <label class="form-label text-secondary">Receipt No</label>
-                <input type="text" class="form-control" placeholder="Receipt No">
+               <input type="text" class="form-control" id="receiptNo" placeholder="Receipt No">
               </div>
 
               <div class="mb-3">
@@ -891,7 +891,7 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
             </button>
         </div>
     `;
-  $('#paymentContainer > div:first').append(newRow); // ✅ append inside modal
+  $('#paymentContainer > div:first').append(newRow); 
 });
 
 // Remove row
@@ -917,14 +917,14 @@ $('#paymentInForm').on('submit', function(e) {
     });
 
     $.ajax({
-        url: '/payments-in',
+        url:'/dashboard/payments-in', 
         method: 'POST',
         contentType: 'application/json',       
         data: JSON.stringify({
             party_id: $('.party-id').val(),
             reference_no: $('#referenceNo').val(),
             payments: payments,
-            receipt_no: $('input[placeholder="Receipt No"]').val(),
+          receipt_no: $('#receiptNo').val(), // 
             date: $('input[name="date"]').val(),  
             received: $('input[placeholder="Received"]').val(),
             _token: $('meta[name="csrf-token"]').attr('content')

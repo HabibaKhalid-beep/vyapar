@@ -33,4 +33,9 @@ class BankAccount extends Model
     {
         return $this->hasMany(BankTransaction::class, 'to_bank_account_id');
     }
+
+    public function paymentIns() {
+    return $this->hasMany(PaymentIn::class);
+}
+
 }

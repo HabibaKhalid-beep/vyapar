@@ -160,4 +160,55 @@ class BankAccountController extends Controller
 
         return view('dashboard.accounts.cash-hand');
     }
+  public function paymentIn(Request $request)
+{
+    $data = $request->validate([
+        'party_id'                   => 'required|exists:parties,id',
+        'payments'                   => 'required|array',
+        'payments.*.type'            => 'required|string',
+        'payments.*.amount'          => 'required|numeric|min:0',
+        'payments.*.bank_account_id' => 'nullable|exists:bank_accounts,id',
+        'reference_no'               => 'nullable|string',
+        'receipt_no'                 => 'nullable|string',
+        'date'                       => 'nullable|date',
+    ]);
+
+    $totalAmount = collect($data['payments'])->sum('amount');
+
+    // ✅ 1. PaymentIn record save karo
+    foreach ($data['payments'] as $payment) {
+        \App\Models\PaymentIn::create([
+            'party_id'        => $data['party_id'],
+            'bank_account_id' => !empty($payment['bank_account_id']) ? $payment['bank_account_id'] : null,
+            'amount'          => $payment['amount'],
+            'payment_type'    => $payment['type'],
+            'reference_no'    => $data['reference_no'] ?? null,
+            'receipt_no'      => $data['receipt_no'] ?? null,
+            'date'            => $data['date'] ?? now(),
+        ]);
+    }
+
+    // ✅ 2. Party balance minus karo
+    $party = \App\Models\Party::findOrFail($data['party_id']);
+    $party->opening_balance = ($party->opening_balance ?? 0) - $totalAmount;
+    $party->save();
+
+    // ✅ 3. Bank balance add karo — bank_account_id check properly
+    foreach ($data['payments'] as $payment) {
+        $bankId = $payment['bank_account_id'] ?? null;
+
+        if (!empty($bankId) && is_numeric($bankId)) { // ✅ Proper check
+            $bank = BankAccount::find($bankId);
+            if ($bank) {
+                $bank->opening_balance = ($bank->opening_balance ?? 0) + floatval($payment['amount']);
+                $bank->save();
+            }
+        }
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Payment recorded successfully.'
+    ]);
+}
 }

@@ -224,6 +224,9 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::put('/parties/{party}', [PartyController::class, 'update'])->name('parties.update');
     Route::delete('/parties/{id}', [PartyController::class, 'destroy'])->name('parties.destroy');
     Route::get('parties/{party}/transactions', [PartyController::class, 'transactions'])->name('parties.transactions');
+    // payment-in
+    Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
+Route::post('/payments-in', [BankAccountController::class, 'paymentIn'])->name('payments-in.store');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -250,7 +253,5 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
 
 });
 
-// Payment In (outside dashboard prefix)
-Route::post('/payments-in', [PaymentInController::class, 'store']);
 
 require __DIR__.'/auth.php';

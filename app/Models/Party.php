@@ -78,4 +78,9 @@ use App\Models\Sale;
     {
         return number_format((float) $this->current_balance, 2);
     }
+
+    public function paymentIns() {
+    return $this->hasMany(PaymentIn::class);
+}
+
 }
