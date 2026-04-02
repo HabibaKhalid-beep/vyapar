@@ -16,6 +16,8 @@ class TabManager {
     }
 
     async init() {
+        this.docType = window.docType || 'sale_return';
+        this.docLabel = this.docType === 'purchase_return' ? 'Purchase Return' : 'Sale Return';
         this.addBtn.addEventListener('click', () => this.createNewTab());
 
         // Get form template from DOM
@@ -110,7 +112,7 @@ class TabManager {
         });
 
         // Initial Tab
-        await this.createNewTab("Sale Return #1");
+        await this.createNewTab(`${this.docLabel} #1`);
     }
 
     async createNewTab(title = null, content = "") {
@@ -120,7 +122,7 @@ class TabManager {
         }
 
         this.tabCounter++;
-        const currentTitle = title || `Sale Return #${this.tabCounter}`;
+        const currentTitle = title || `${this.docLabel} #${this.tabCounter}`;
         const id = `tab-${Date.now()}-${this.tabCounter}`;
 
         // Use form template if no content provided
@@ -230,7 +232,7 @@ class TabManager {
     renumberTabs() {
         this.tabs.forEach((tab, index) => {
             const newIndex = index + 1;
-            tab.title = `Sale Return #${newIndex}`;
+            tab.title = `${this.docLabel} #${newIndex}`;
 
             // Update the tab element title in UI
             const tabEl = document.getElementById(`label-${tab.id}`);
