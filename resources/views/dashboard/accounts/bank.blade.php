@@ -1092,22 +1092,13 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
           <tbody>
             @forelse(($bankTransactions ?? collect()) as $transaction)
               @php
-                $typeLabel = match($transaction->sale?->type) {
-                    'invoice' => 'Sale Invoice',
-                    'estimate' => 'Estimate',
-                    'sale_order' => 'Sale Order',
-                    'proforma' => 'Proforma',
-                    'delivery_challan' => 'Delivery Challan',
-                    'sale_return' => 'Sale Return',
-                    'pos' => 'POS',
-                    default => ucfirst(str_replace('_', ' ', $transaction->sale?->type ?? 'Unknown')),
-                };
+                $typeLabel = $transaction->type_label ?? '-';
               @endphp
               <tr data-bank-id="{{ $transaction->bank_account_id }}">
-                <td>{{ $typeLabel }}</td>
-                <td>{{ $transaction->sale?->bill_number ?? '-' }}</td>
-                <td>{{ $transaction->sale?->display_party_name ?? '-' }}</td>
-                <td>{{ $transaction->bankAccount?->display_name ?? $transaction->bankAccount?->bank_name ?? '-' }}</td>
+                <td>{{ $transaction->type_label ?? '-' }}</td>
+                <td>{{ $transaction->invoice_no ?? '-' }}</td>
+                <td>{{ $transaction->party_name ?? '-' }}</td>
+                <td>{{ $transaction->bank_name ?? '-' }}</td>
                 <td>{{ $transaction->payment_type ?? '-' }}</td>
                 <td>{{ optional($transaction->created_at)->format('d/m/Y h:i A') }}</td>
                 <td class="positive">₹ {{ number_format($transaction->amount, 2) }}</td>

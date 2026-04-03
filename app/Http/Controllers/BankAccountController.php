@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
 use App\Models\BankTransaction;
+use App\Models\PurchasePayment;
 use App\Models\SalePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,10 +14,66 @@ class BankAccountController extends Controller
     public function index()
     {
         $bankAccounts = BankAccount::orderByDesc('created_at')->get();
-        $bankTransactions = SalePayment::with(['sale', 'bankAccount'])
+
+        $saleTransactions = SalePayment::with(['sale.party', 'bankAccount'])
             ->whereNotNull('bank_account_id')
             ->orderByDesc('created_at')
-            ->get();
+            ->get()
+            ->map(function ($payment) {
+                $typeLabel = match ($payment->sale?->type) {
+                    'invoice' => 'Sale Invoice',
+                    'estimate' => 'Estimate',
+                    'sale_order' => 'Sale Order',
+                    'proforma' => 'Proforma',
+                    'delivery_challan' => 'Delivery Challan',
+                    'sale_return' => 'Sale Return',
+                    'pos' => 'POS',
+                    default => ucfirst(str_replace('_', ' ', $payment->sale?->type ?? 'Unknown')),
+                };
+
+                return (object) [
+                    'bank_account_id' => $payment->bank_account_id,
+                    'type_label' => $typeLabel,
+                    'invoice_no' => $payment->sale?->bill_number ?? '-',
+                    'party_name' => $payment->sale?->display_party_name ?? '-',
+                    'bank_name' => $payment->bankAccount?->display_name ?? $payment->bankAccount?->bank_name ?? '-',
+                    'payment_type' => $payment->payment_type ?? '-',
+                    'created_at' => $payment->created_at,
+                    'amount' => (float) ($payment->amount ?? 0),
+                ];
+            });
+
+        $purchaseTransactions = PurchasePayment::with(['purchase.party', 'bankAccount'])
+            ->whereNotNull('bank_account_id')
+            ->whereHas('purchase', fn ($query) => $query->whereIn('type', ['purchase_bill', 'purchase_return']))
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($payment) {
+                $typeLabel = match ($payment->purchase?->type) {
+                    'purchase_bill' => 'Purchase Bill',
+                    'purchase_return' => 'Purchase Return',
+                    'purchase_order' => 'Purchase Order',
+                    default => ucfirst(str_replace('_', ' ', $payment->purchase?->type ?? 'Unknown')),
+                };
+
+                return (object) [
+                    'bank_account_id' => $payment->bank_account_id,
+                    'type_label' => $typeLabel,
+                    'invoice_no' => $payment->purchase?->bill_number ?? '-',
+                    'party_name' => $payment->purchase?->party?->name
+                        ?? $payment->purchase?->party_name
+                        ?? '-',
+                    'bank_name' => $payment->bankAccount?->display_name ?? $payment->bankAccount?->bank_name ?? '-',
+                    'payment_type' => $payment->payment_type ?? '-',
+                    'created_at' => $payment->created_at,
+                    'amount' => (float) ($payment->amount ?? 0),
+                ];
+            });
+
+        $bankTransactions = $saleTransactions
+            ->concat($purchaseTransactions)
+            ->sortByDesc(fn ($transaction) => $transaction->created_at?->timestamp ?? 0)
+            ->values();
 
         return view('dashboard.accounts.bank', compact('bankAccounts', 'bankTransactions'));
     }

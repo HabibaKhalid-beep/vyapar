@@ -18,4 +18,9 @@ class PurchasePayment extends Model
     {
         return $this->belongsTo(BankAccount::class);
     }
+
+    public function purchase()
+    {
+        return $this->belongsTo(Purchase::class);
+    }
 }

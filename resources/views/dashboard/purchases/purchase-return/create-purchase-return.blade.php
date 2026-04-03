@@ -143,7 +143,7 @@
            data-id="{{ $party->id }}"
            data-phone="{{ $party->phone }}"
            data-billing="{{ addslashes($party->billing_address ?? '') }}"
-           data-opening="{{ $party->opening_balance ?? 0 }}"
+           data-opening="{{ $party->current_balance ?? $party->opening_balance ?? 0 }}"
            data-type="{{ $party->transaction_type }}">
             <span>{{ $party->name }}</span>
          <span
@@ -718,7 +718,7 @@
                 document.querySelectorAll('#partyDropdownMenu').forEach(function (menu) {
                     const divider = menu.querySelector('.dropdown-divider');
                     const li = document.createElement('li');
-                    const amount = Number(party.opening_balance || 0).toFixed(2);
+                    const amount = Number(party.current_balance || party.opening_balance || 0).toFixed(2);
                     const type = party.transaction_type || '';
                     const colorClass = type === 'pay' ? 'text-danger' : (type === 'receive' ? 'text-success' : '');
                     const arrowIcon = type === 'pay'
@@ -730,7 +730,7 @@
                            data-id="${party.id}"
                            data-phone="${party.phone || ''}"
                            data-billing="${party.billing_address || ''}"
-                           data-opening="${party.opening_balance || 0}"
+                           data-opening="${party.current_balance || party.opening_balance || 0}"
                            data-type="${type}">
                             <span>${party.name}</span>
                             <span class="${colorClass}">${arrowIcon}Rs ${amount}</span>
@@ -754,7 +754,7 @@
                 if (button) button.textContent = party.name || 'Select Party';
                 if (hiddenInput) hiddenInput.value = party.id || '';
                 if (balance) {
-                    const amount = Number(party.opening_balance || 0).toFixed(2);
+                    const amount = Number(party.current_balance || party.opening_balance || 0).toFixed(2);
                     if (party.transaction_type === 'pay') {
                         balance.innerHTML = `<i class="fa-solid fa-arrow-up text-danger me-1"></i>Rs ${amount}`;
                     } else if (party.transaction_type === 'receive') {

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Transaction;
 use App\Models\Sale;
+use App\Models\Purchase;
 
  class Party extends Model
 {
@@ -49,26 +50,57 @@ use App\Models\Sale;
         return $this->hasMany(Sale::class);
     }
 
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
     public function getCurrentBalanceAttribute()
     {
         $openingBalance = (float) ($this->opening_balance ?? 0);
 
-        $salesImpact = $this->relationLoaded('sales')
-            ? (float) $this->sales->sum(function ($sale) {
-                return (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
-            })
+        $salesTotal = $this->relationLoaded('sales')
+            ? (float) $this->sales
+                ->whereIn('type', ['invoice', 'pos'])
+                ->sum(fn ($sale) => (float) ($sale->grand_total ?? $sale->total_amount ?? 0))
             : (float) $this->sales()
+                ->whereIn('type', ['invoice', 'pos'])
                 ->get(['grand_total', 'total_amount'])
-                ->sum(function ($sale) {
-                    return (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
-                });
+                ->sum(fn ($sale) => (float) ($sale->grand_total ?? $sale->total_amount ?? 0));
+
+        $saleReturnTotal = $this->relationLoaded('sales')
+            ? (float) $this->sales
+                ->where('type', 'sale_return')
+                ->sum(fn ($sale) => (float) ($sale->grand_total ?? $sale->total_amount ?? 0))
+            : (float) $this->sales()
+                ->where('type', 'sale_return')
+                ->get(['grand_total', 'total_amount'])
+                ->sum(fn ($sale) => (float) ($sale->grand_total ?? $sale->total_amount ?? 0));
+
+        $purchaseTotal = $this->relationLoaded('purchases')
+            ? (float) $this->purchases
+                ->where('type', 'purchase_bill')
+                ->sum(fn ($purchase) => (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0))
+            : (float) $this->purchases()
+                ->where('type', 'purchase_bill')
+                ->get(['grand_total', 'total_amount'])
+                ->sum(fn ($purchase) => (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0));
+
+        $purchaseReturnTotal = $this->relationLoaded('purchases')
+            ? (float) $this->purchases
+                ->where('type', 'purchase_return')
+                ->sum(fn ($purchase) => (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0))
+            : (float) $this->purchases()
+                ->where('type', 'purchase_return')
+                ->get(['grand_total', 'total_amount'])
+                ->sum(fn ($purchase) => (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0));
 
         if ($this->transaction_type === 'pay') {
-            return $openingBalance - $salesImpact;
+            return $openingBalance + $purchaseTotal - $purchaseReturnTotal;
         }
 
         if ($this->transaction_type === 'receive') {
-            return $openingBalance + $salesImpact;
+            return $openingBalance + $salesTotal - $saleReturnTotal;
         }
 
         return $openingBalance;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
+use App\Models\BankTransaction;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Purchase;
@@ -84,9 +85,14 @@ class PurchaseReturnController extends Controller
     public function destroy(Purchase $purchase)
     {
         abort_unless($purchase->type === 'purchase_return', 404);
-        $purchase->items()->delete();
-        $purchase->payments()->delete();
-        $purchase->delete();
+        $purchase->load('payments');
+
+        DB::transaction(function () use ($purchase) {
+            $this->revertBankAdjustments($purchase);
+            $purchase->items()->delete();
+            $purchase->payments()->delete();
+            $purchase->delete();
+        });
 
         return response()->json([
             'success' => true,
@@ -188,6 +194,13 @@ class PurchaseReturnController extends Controller
     private function savePurchaseReturn(Purchase $purchase, array $data): Purchase
     {
         return DB::transaction(function () use ($purchase, $data) {
+            $isExistingPurchaseReturn = $purchase->exists;
+
+            if ($isExistingPurchaseReturn) {
+                $purchase->loadMissing('payments');
+                $this->revertBankAdjustments($purchase);
+            }
+
             $purchase->fill([
                 'type' => 'purchase_return',
                 'party_id' => $data['party_id'] ?? null,
@@ -238,15 +251,68 @@ class PurchaseReturnController extends Controller
 
             $purchase->payments()->delete();
             foreach ($data['payments'] ?? [] as $payment) {
-                $purchase->payments()->create([
+                $paymentRecord = $purchase->payments()->create([
                     'payment_type' => $payment['payment_type'],
                     'bank_account_id' => $payment['bank_account_id'] ?? null,
                     'amount' => $payment['amount'] ?? 0,
                     'reference' => $payment['reference'] ?? null,
                 ]);
+
+                $this->applyBankAdjustment($purchase, $paymentRecord);
             }
 
             return $purchase->fresh(['items', 'payments.bankAccount', 'party']);
         });
+    }
+
+    private function applyBankAdjustment(Purchase $purchase, $payment): void
+    {
+        if (empty($payment->bank_account_id) || empty($payment->amount)) {
+            return;
+        }
+
+        $bank = BankAccount::find($payment->bank_account_id);
+        if (!$bank) {
+            return;
+        }
+
+        $bank->opening_balance = ($bank->opening_balance ?? 0) + (float) $payment->amount;
+        $bank->save();
+
+        BankTransaction::create([
+            'from_bank_account_id' => null,
+            'to_bank_account_id' => $bank->id,
+            'type' => 'purchase_return_refund',
+            'amount' => (float) $payment->amount,
+            'transaction_date' => $purchase->bill_date ?? now()->toDateString(),
+            'reference_type' => 'purchase_return',
+            'reference_id' => $purchase->id,
+            'description' => 'Purchase return refund received from supplier',
+            'meta' => [
+                'party_id' => $purchase->party_id,
+                'bill_number' => $purchase->bill_number,
+                'payment_type' => $payment->payment_type ?? null,
+                'reference' => $payment->reference ?? null,
+            ],
+        ]);
+    }
+
+    private function revertBankAdjustments(Purchase $purchase): void
+    {
+        foreach ($purchase->payments as $payment) {
+            if (empty($payment->bank_account_id) || empty($payment->amount)) {
+                continue;
+            }
+
+            $bank = BankAccount::find($payment->bank_account_id);
+            if ($bank) {
+                $bank->opening_balance = ($bank->opening_balance ?? 0) - (float) $payment->amount;
+                $bank->save();
+            }
+        }
+
+        BankTransaction::where('reference_type', 'purchase_return')
+            ->where('reference_id', $purchase->id)
+            ->delete();
     }
 }
