@@ -48,7 +48,7 @@ class Item extends Model
             ->whereHas('sale', fn($q) => $q->where('type', 'sale_return'))
             ->sum('quantity');
 
-        return floatval($this->opening_qty) + floatval($returned) - floatval($sold);
+        return max(0, floatval($this->opening_qty) + floatval($returned) - floatval($sold));
     }
 
     public function getStockValueAttribute(): float

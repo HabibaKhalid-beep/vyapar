@@ -268,10 +268,20 @@ return response()->json($transactions);
             return response()->json(['success' => false, 'message' => 'Invalid quantity'], 422);
         }
 
+        if (!$isAdd) {
+            $currentStock = floatval($item->stock_qty ?? $item->opening_qty ?? 0);
+            if ($qty > $currentStock) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot reduce. Current stock is only {$currentStock}."
+                ], 422);
+            }
+        }
+
         if ($isAdd) {
             $item->opening_qty = floatval($item->opening_qty) + $qty;
         } else {
-            $item->opening_qty = max(0, floatval($item->opening_qty) - $qty);
+            $item->opening_qty = floatval($item->opening_qty) - $qty;
         }
 
         $item->save();

@@ -333,17 +333,27 @@
       outline: none;
       background: #fff;
     }
-    .total-label-text { font-size: 13px; font-weight: 600; color: #333; }
-    .total-box {
-      border: 1px solid #bbb;
-      border-radius: 4px;
-      padding: 6px 14px;
-      min-width: 180px;
-      text-align: right;
-      font-size: 14px;
-      font-weight: 600;
-      background: #fff;
-    }
+   .total-label-text { display: none; }
+.total-field-wrap { position: relative; display: inline-block; min-width: 200px; }
+.total-field-label {
+  position: absolute;
+  top: -8px; left: 10px;
+  background: #f5f5f5;
+  font-size: 10px; color: #555;
+  padding: 0 4px; z-index: 1;
+  pointer-events: none;
+}
+.total-box {
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  padding: 14px 14px 10px 12px;
+  min-width: 200px; min-height: 48px;
+  text-align: right;
+  font-size: 14px; font-weight: 600;
+  background: #fff;
+  display: flex; align-items: center; justify-content: flex-end;
+  color: #1a1f36;
+}
 
     /* ── FORM EXTRA BTNS (Image 2: only ADD DESCRIPTION, no ADD IMAGE) ── */
     .form-extra-btns { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
@@ -915,8 +925,10 @@
               <label for="roundOffChk" style="font-size:13px;cursor:pointer;">Round Off</label>
               <input type="text" class="round-val" id="roundOffVal" value="0" readonly>
             </div>
-            <span class="total-label-text">Total</span>
-            <div class="total-box" id="formTotalBox"></div>
+            <div class="total-field-wrap">
+  <span class="total-field-label">Total</span>
+  <div class="total-box" id="formTotalBox"></div>
+</div>
           </div>
         </div>
         <div class="form-extra-btns">

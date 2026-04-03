@@ -351,13 +351,16 @@ private function posData(): array
         // Replace items (keep payment history intact for edit mode)
         $sale->items()->delete();
         foreach ($data['items'] as $item) {
-            $itemRecord = null;
-            if (!empty($item['item_name'])) {
-                $itemRecord = Item::whereRaw('LOWER(TRIM(name)) = ?', [
-                    strtolower(trim($item['item_name']))
-                ])->first();
-            }
-            $sale->items()->create([
+    $itemRecord = null;
+    if (!empty($item['item_name'])) {
+        $itemRecord = Item::whereRaw('LOWER(TRIM(name)) = ?', [
+            strtolower(trim($item['item_name']))
+        ])->first();
+    }
+
+  
+
+    $sale->items()->create([
                 'item_id'          => $itemRecord?->id,
                 'item_name'        => $item['item_name']        ?? null,
                 'item_category'    => $item['item_category']    ?? null,

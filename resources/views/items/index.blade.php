@@ -1464,16 +1464,25 @@ function saveAdjustment() {
     const details = document.getElementById('adj-details').value;
     const date    = document.getElementById('adj-date').value;
 
-    const item = allItems[selectedIdx];
+   const item = allItems[selectedIdx];
     if (!item) return;
 
-    // ── Disable save button to prevent double-click ──
     const saveBtn = document.querySelector('.adj-save');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
 
-    // ── Call the backend API ──
-    fetch(`/dashboard/items/${item.id}/adjust`, {
+    if (!isAdd) {
+        const currentStock = parseFloat(item.stock_qty ?? item.opening_qty ?? 0);
+        if (qty > currentStock) {
+            showToast(`Cannot reduce. Current stock is only ${currentStock}.`);
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+            return;
+        }
+    }
+
+// ── Call the backend API ──
+fetch(`/dashboard/items/${item.id}/adjust`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
