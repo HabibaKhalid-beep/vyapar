@@ -173,7 +173,7 @@
         { label: 'Cash in Hand', href: '/dashboard/cash-in-hand', dataPage: 'cash-in-hand', permission: 'cashbank.view' },
       ],
     },
-    { label: 'Reports', icon: 'fa-chart-pie', href: '#', permission: 'report.view', dataPage: 'reports' },
+    { label: 'Reports', icon: 'fa-chart-pie', href: '/dashboard/reports', permission: 'report.view', dataPage: 'reports' },
     { label: 'Sync / Share / Backup', icon: 'fa-cloud-arrow-up', href: '#', permission: 'sync.view', dataPage: 'sync' },
     { label: 'Utilities', icon: 'fa-screwdriver-wrench', href: '#', permission: 'utilities.view', dataPage: 'utilities' },
     { label: 'Settings', icon: 'fa-sliders', href: '/dashboard/settings/general', permission: 'settings.view', dataPage: 'settings' },

@@ -23,6 +23,7 @@ use App\Http\Controllers\PerfomaController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ExpenseCreateController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\ReportController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -212,6 +213,9 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/purchase-return/{purchase}/duplicate', [PurchaseReturnController::class, 'duplicate'])->name('purchase-return.duplicate');
 
 
+
+
+Route::get('reports', [ReportController::class, 'index'])->name('reports');
 
 
 

@@ -1,0 +1,7027 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vyapar — Reports</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <!-- Custom Styles -->
+  <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
+
+  <script>
+    // Ensure window.App is always initialized, even if Auth is null
+    const authUser = @json(Auth::user());
+    window.App = window.App || {
+      isAuthenticated: @json(Auth::check()),
+      user: authUser ? {
+        id: authUser.id,
+        name: authUser.name,
+        roles: @json(Auth::user()?->roles()->pluck('name')->toArray() ?? []),
+        permissions: @json(Auth::user()?->getAllPermissions() ?? []),
+      } : { id: null, name: null, roles: [], permissions: [] },
+      logoutUrl: "{{ route('logout') }}",
+      csrfToken: "{{ csrf_token() }}",
+    };
+    console.log('App initialized:', window.App);
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    .reports-container {
+      font-family: 'Inter', sans-serif;
+      height: calc(100vh - 60px);
+      /* Adjust based on topbar height to fit screen */
+    }
+
+    .reports-nav .nav-link {
+      font-size: 14px;
+      transition: all 0.2s ease-in-out;
+      color: #495057;
+    }
+
+    .reports-nav .nav-link:hover {
+      background-color: #f1f3f5;
+      color: #212529;
+    }
+
+    .reports-nav .nav-link.active {
+      background-color: #e2e8f0;
+      font-weight: 500;
+      color: #111827 !important;
+      border-right: 4px solid #6366f1;
+    }
+
+    .cursor-pointer {
+      cursor: pointer;
+    }
+
+    /* Minor overrides for tables and custom badges equivalent to Tailwind */
+    .bg-success-subtle-custom {
+      background-color: #d1fae5;
+    }
+
+    .text-success-custom {
+      color: #047857;
+    }
+
+    .border-indigo-100 {
+      border: 1px solid #e0e7ff;
+    }
+
+    .table-custom-header th {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+      background-color: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .table-custom-body td {
+      font-size: 14px;
+      color: #374151;
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+      vertical-align: middle;
+    }
+
+    .reports-filter-box {
+      background-color: white;
+      border: 1px solid #e5e7eb;
+      transition: background-color 0.2s;
+    }
+
+    .reports-filter-box:hover {
+      background-color: #f9fafb;
+    }
+
+    /* PnL Custom Styles */
+    .pnl-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .pnl-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .pnl-container::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 10px;
+    }
+
+    .pnl-row-hover:hover {
+      background-color: #f8fafc !important;
+    }
+
+    .pnl-chevron {
+      width: 24px;
+      text-align: center;
+      cursor: pointer;
+      color: #3b82f6;
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+
+    .pnl-bullet {
+      width: 24px;
+      text-align: center;
+      color: #9ca3af;
+      display: inline-block;
+      font-size: 20px;
+      line-height: 14px;
+    }
+
+    /* Party Statement Styles */
+    .ps-radio {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #ccc;
+      border-radius: 50%;
+      margin: 0;
+      display: grid;
+      place-content: center;
+      cursor: pointer;
+    }
+
+    .ps-radio::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      transform: scale(0);
+      background-color: #4b5563;
+      transition: transform 120ms ease-in-out;
+    }
+
+    .ps-radio:checked {
+      border: 2px solid #4b5563;
+    }
+
+    .ps-radio:checked::before {
+      transform: scale(1);
+    }
+  </style>
+</head>
+
+<body data-page="reports">
+
+  <!-- Navbar & Sidebar injected by components.js -->
+
+  <main class="main-content" id="mainContent" style="padding: 0; overflow: hidden;">
+
+    <div class="d-flex w-100 reports-container" style="background-color: #f3f4f6;">
+      <!-- Internal Reports Sidebar -->
+      <aside class="reports-sidebar border-end flex-shrink-0"
+        style="width: 200px; min-width: 200px; background-color: #f9fafb; overflow-y: auto;">
+        <div class="pt-4">
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3" style="font-size: 11px; letter-spacing: 0.5px;">
+            Transaction report</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4 active" data-target="Sale"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i> Sale</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Purchase"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i> Purchase</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Daybook"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i> Day book</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Alltransactions"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary "></i>All Transactions</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="ProfitAndLoss"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i> Profit and Loss</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="cashFlow"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Cash Flow</a></li>
+            <!-- <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Bill Wise Profit"><i
+                  class="fa-solid fa-crown me-2 text-primary"></i> Bill Wise Profit</a></li> -->
+
+          </ul>
+
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+            style="font-size: 11px; letter-spacing: 0.5px;">Party report</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Party Statement"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i> Party Statement</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="All Parties"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i> All Parties</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Party Report by Items"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i> Party Report by Items</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Partysalepurchase"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Purchase by Party</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Partysalepurchasegroup"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Purchase by Party Group</a></li>
+            <!-- <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Trial Balance Report"><i
+                  class="fa-solid fa-crown me-2 text-primary"></i> Trial Balance Report</a></li> -->
+            <!-- <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Balance Sheet"><i
+                  class="fa-solid fa-crown me-2 text-primary"></i> Balance Sheet</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Party wise Profit & Loss"><i
+                  class="fa-solid fa-crown me-2 text-primary"></i> Party wise Profit & Loss</a></li> -->
+          </ul>
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+            style="font-size: 11px; letter-spacing: 0.5px;">Item/Stock Report</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="stock summary"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Summary</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="party report summary"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Party report by items</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="item wise profit and loss"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Item wise profit and loss</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4"
+                data-target="item category wise profit and loss"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Category wise profit and loss</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="low stock summary"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Low stock summary</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="stock details"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Details</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="item details"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Details</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4"
+                data-target="sale purchase report by item category"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale/Purchase report by item category</a>
+            </li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4"
+                data-target="stock summary report by item category"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Summary report by item category</a>
+            </li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="item wise discount"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Item wise discount</a></li>
+
+
+          </ul>
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+            style="font-size: 11px; letter-spacing: 0.5px;">Business Status</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="bank statement"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Bank Statement</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="discount report"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Discount report</a></li>
+
+          </ul>
+
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+            style="font-size: 11px; letter-spacing: 0.5px;">Taxes</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="tax report"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Tax Report</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="tax rate report"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Tax Rate Report</a></li>
+
+          </ul>
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+            style="font-size: 11px; letter-spacing: 0.5px;">Expense Report</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="expense"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Expense</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="expense category report"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Expense Category Report</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="expense item report"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Expense item Report</a></li>
+
+          </ul>
+
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+            style="font-size: 11px; letter-spacing: 0.5px;">Sale Order Report</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="sale order"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Order</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="sale order item"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Order item</a></li>
+
+
+          </ul>
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+            style="font-size: 11px; letter-spacing: 0.5px;">Loan Accounts</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="loan statement"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Loan Statement</a></li>
+
+
+
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Main Reports Content Area -->
+      <div class="flex-grow-1 overflow-auto p-4" id="reportsContentArea">
+
+        <!-- Tab Content: Sale -->
+        <div id="tab-Sale" class="report-tab-content">
+
+          <!-- Header -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-dark mb-0">Sale Invoices</h3>
+            <div class="d-flex gap-2">
+              <button class="btn btn-danger rounded-pill px-4 fw-medium text-white"
+                style="background-color: #ef4444; border: none;">
+                <span class="fs-5 lh-1 me-1">+</span> Add Sale
+              </button>
+              <button class="btn bg-white border border-secondary-subtle text-secondary px-3 py-1 shadow-sm">
+                <i class="fa-solid fa-gear"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-4 py-2 rounded">
+            <div class="d-flex">
+              <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div>
+              <div class="d-flex rounded-pill" style="background-color:#E4F2FF;">
+                <div class="d-flex justify-content-center align-items-center text-center"
+                  style="width: 9rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;"><select
+                    name="" id="" class="bg-transparent border-0" style="outline:none;">
+                    <option value="">All Estimates</option>
+                    <option value="" selected>This Month</option>
+                    <option value="">Last Month</option>
+                    <option value="">This Quarter</option>
+                    <option value="">This Year</option>
+                    <option value="">Custom</option>
+                  </select></div>
+                <div class="d-flex justify-content-center align-items-center" style="width: 16rem; height: 40px;">
+                  01/03/2026
+                  To 31/03/2026</div>
+
+              </div>
+              <div class="d-flex justify-content-center align-items-center rounded-pill ms-4"
+                style="background-color:#E4F2FF; width: 8rem; height: 40px;"><select name="" id=""
+                  class="bg-transparent border-0" style="outline:none;">
+                  <option value="" selected>All Firms</option>
+                  <option value=""><a href="">Firm 1</a></option>
+                  <option value=""><a href="">Firm 2</a></option>
+                  <option value=""><a href="">Firm 3</a></option>
+
+                </select></div>
+
+            </div>
+          </div>
+
+          <!-- Summary Card -->
+          <div class="card bg-white shadow-sm mb-4 rounded-3 border-indigo-100" style="max-width: 350px;">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-secondary fw-medium" style="font-size: 14px;">Total Sales Amount</span>
+                <div class="text-end">
+                  <div
+                    class="badge bg-success-subtle-custom text-success-custom rounded-pill px-2 py-1 fw-bold border-0 d-inline-flex align-items-center">
+                    100% <i class="fa-solid fa-arrow-up-right-dots ms-1" style="font-size: 11px;"></i>
+                  </div>
+                  <div class="text-secondary mt-1" style="font-size: 10px;">vs last month</div>
+                </div>
+              </div>
+
+              <h2 class="fw-bold mb-3 text-dark">Rs 1,211</h2>
+
+              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-secondary fw-medium"
+                style="font-size: 14px;">
+                <div>Received: <span class="text-dark">Rs 100</span></div>
+                <div class="vr bg-secondary opacity-25" style="height: 15px;"></div>
+                <div>Balance: <span class="text-dark">Rs 1,111</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Table -->
+          <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
+            <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+              <h5 class="fw-bold mb-0 text-dark fs-5">Transactions</h5>
+              <div class="text-secondary d-flex gap-2">
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Search"><i
+                    class="fa-solid fa-magnifying-glass"></i></button>
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Chart"><i
+                    class="fa-solid fa-chart-simple"></i></button>
+                <button class="btn btn-link text-success p-1 text-decoration-none" title="Excel"><i
+                    class="fa-regular fa-file-excel"></i></button>
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Print"><i
+                    class="fa-solid fa-print"></i></button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 align-middle table-clean">
+                <thead>
+                  <tr class="d-flex gap-3">
+                    <th class="d-flex">
+                      <p class="pt-1">Date</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Equal to</option>
+                              <option value=""><a href="">Less than</a></option>
+                              <option value=""><a href="">Greater than</a></option>
+                              <option value=""><a href="">Range</a></option>
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Date:</p>
+                            <input type="date" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                          </li>
+                          <div class="mt-2 ms-4">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Invoice No.</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Contanis</option>
+                              <option value="">Exact Match</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Invoice No.</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Party Name</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Contanis</option>
+                              <option value="">Exact Match</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Party Name</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+                    <th class="d-flex">
+                      <p class="pt-1">Transaction</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Sale</span>
+                          </li>
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Lite Sale</span>
+                          </li>
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Credit Note</span>
+                          </li>
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Sale (Invoice)</span>
+                          </li>
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Credit Note (Invoice)</span>
+                          </li>
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">POS Sale</span>
+                          </li>
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Sale [Cancelled]</span>
+                          </li>
+                          <div class="mt-2 ms-4">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Payment</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Cash</span>
+                          </li>
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Cheque</span>
+                          </li>
+
+                          <div class="mt-2 ms-4">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Amount</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Amount</p>
+                            <input type="range" min="" max="" value="100">
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Min</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;"
+                              placeholder="0">
+                            <p class="mb-0 mt-1" style="font-size: 11px;">Max</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;"
+                              placeholder="+500000">
+
+                          </li>
+                          <div class="mt-2 ms-4">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Balance</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Price Range</p>
+                            <input type="range" min="" max="" value="100">
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Min</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;"
+                              placeholder="0">
+                            <p class="mb-0 mt-1" style="font-size: 11px;">Max</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;"
+                              placeholder="+500000">
+
+                          </li>
+                          <div class="mt-2 ms-4">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+                    <th class="d-flex">
+                      <p class="pt-1">Actions</p>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                      No estimates yet. Click "New Estimate" to create one.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- purchase Bills  -->
+        <div id="tab-Purchase" class="report-tab-content d-none">
+
+          <!-- Header -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-dark mb-0">Purchase Bills</h3>
+            <div class="d-flex gap-2">
+              <button class="btn btn-danger rounded-pill px-4 fw-medium text-white"
+                style="background-color: #ef4444; border: none;">
+                <span class="fs-5 lh-1 me-1">+</span> Add Purchase
+              </button>
+              <button class="btn bg-white border border-secondary-subtle text-secondary px-3 py-1 shadow-sm">
+                <i class="fa-solid fa-gear"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center bg-light px-4 py-2 rounded">
+            <div class="d-flex">
+              <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
+              <select name="" id="" class="bg-transparent border-0 fs-5 fw-bold" style="outline:none;">
+                <option value="">All Purchase Invoices</option>
+                <option value="" selected>This Month</option>
+                <option value="">Last Month</option>
+                <option value="">This Quarter</option>
+                <option value="">This Year</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="d-flex pt-3 ps-2">
+              <p class="text-center pt-2 text-white fw-bold"
+                style="width: 6rem; height: 40px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Between</p>
+              <div class="d-flex justify-content-center pt-2 gap-3"
+                style="width: 20rem; height: 40px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA">
+                <p>01/03/2026</p>
+                <p>To</p>
+                <p>31/03/2026</p>
+              </div>
+
+            </div>
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 40px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Firms</option>
+                <option value=""><a href="">Firm 1</a></option>
+                <option value=""><a href="">Firm 2</a></option>
+                <option value=""><a href="">Firm 3</a></option>
+
+              </select></div>
+            <div class="px-5 mx-5"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+
+          <div class="bg-light mb-2 px-4 py-3 rounded d-flex">
+            <div class="rounded d-flex flex-column ps-3 pt-2"
+              style="width: 11rem; height:5rem; background-color: #B9F3E7;">
+              <p class="mb-1 h5">Paid</p>
+              <p class="fs-4 fw-bold">Rs 0.00</p>
+            </div>
+            <div class="d-flex align-items-center mx-3"><span class="h2">+</span></div>
+            <div class="rounded" style="width: 11rem; height:5rem; background-color: #B9F3E7;">
+              <div class="rounded d-flex flex-column ps-3 pt-2"
+                style="width: 11rem; height:5rem; background-color: #CFE6FE;">
+                <p class="mb-1 h5">Unpaid</p>
+                <p class="fs-4 fw-bold">Rs 0.00</p>
+              </div>
+            </div>
+            <div class="d-flex align-items-center mx-3"><span class="h2">=</span></div>
+            <div class="rounded" style="width: 11rem; height:5rem; background-color: #B9F3E7;">
+              <div class="rounded d-flex flex-column ps-3 pt-2"
+                style="width: 11rem; height:5rem; background-color: #F8C889;">
+                <p class="mb-1 h5">Total</p>
+                <p class="fs-4 fw-bold">Rs 0.00</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="row g-2 mb-3">
+                <p class="fw-bold">Transactions</p>
+              </div>
+
+              <div class="table-responsive small-table">
+                <table class="table table-hover mb-0 align-middle table-clean">
+                  <thead>
+                    <tr class="d-flex gap-3">
+                      <th class="d-flex">
+                        <p class="pt-1">Date</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Date:</p>
+                              <input type="date" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            </li>
+                            <div class="mt-2 ms-4">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Invoice No.</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Party Name</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Party Name</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Party Name</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Price Range</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Price Range</p>
+                              <input type="range" min="" max="" value="100">
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Min</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;"
+                                placeholder="0">
+                              <p class="mb-0 mt-1" style="font-size: 11px;">Max</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;"
+                                placeholder="+500000">
+
+                            </li>
+                            <div class="mt-2 ms-4">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Balance</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Price Range</p>
+                              <input type="range" min="" max="" value="100">
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Min</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;"
+                                placeholder="0">
+                              <p class="mb-0 mt-1" style="font-size: 11px;">Max</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;"
+                                placeholder="+500000">
+
+                            </li>
+                            <div class="mt-2 ms-4">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Status</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Open</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Completed</span>
+                            </li>
+                            <div class="mt-2 ms-4">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Actions</p>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">
+                        No estimates yet. Click "New Estimate" to create one.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <!-- Day book  -->
+        <div id="tab-Daybook" class="report-tab-content d-none">
+
+
+          <div class="d-flex align-items-center bg-light px-4 py-2 rounded mb-2">
+
+            <div class="d-flex pt-3 ps-2">
+              <p class="text-center pt-2 text-white fw-bold"
+                style="width: 6rem; height: 40px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Date</p>
+              <div class="d-flex justify-content-center pt-2 gap-3"
+                style="width: 10rem; height: 40px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA">
+                <p>01/03/2026</p>
+              </div>
+
+            </div>
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 40px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Firms</option>
+                <option value=""><a href="">Firm 1</a></option>
+                <option value=""><a href="">Firm 2</a></option>
+                <option value=""><a href="">Firm 3</a></option>
+
+              </select></div>
+            <div class="px-3 col-3"></div>
+            <div class="px-5 mx-5"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+
+
+
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="row g-2 mb-3">
+                <p class="fw-bold">Transactions</p>
+              </div>
+              <div class="col-12 d-flex justify-content-between">
+                <div class="topbar-search ms-3">
+                  <span class="search-icon"><i class="bi bi-search"></i></span>
+                  <input type="text" placeholder="Search...">
+                </div>
+
+              </div>
+
+              <div class="table-responsive small-table">
+                <table class="table table-hover mb-0 align-middle table-clean">
+                  <thead>
+                    <tr class="d-flex gap-3">
+
+                      <th class="d-flex">
+                        <p class="pt-1">Name</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Contains</option>
+                                <option value=""><a href="">Exact match</a></option>
+
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Name</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Reference No.</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Contains</option>
+                                <option value=""><a href="">Exact match</a></option>
+
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Reference No.</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Type</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Sale</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Purchase</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Payment In</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Payment Out</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Credit Note</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Debit Note</span>
+                            </li>
+                            <div class="mt-2 ms-2">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Payment Type</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Cash</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Cheque</span>
+                            </li>
+
+                            <div class="mt-2 ms-2">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+
+
+                      <th class="d-flex">
+                        <p class="pt-1">Total</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Total Amount</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Money In</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Money In</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Money Out</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Money Out</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+
+                      <th class="d-flex">
+                        <p class="pt-1">Print/Share</p>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">
+                        No estimates yet. Click "New Estimate" to create one.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <!-- All Transactions  -->
+        <div id="tab-Alltransactions" class="report-tab-content d-none">
+
+
+
+          <div class="d-flex align-items-center bg-light px-4 py-2">
+            <div class="d-flex">
+              <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
+              <select name="" id="" class="bg-transparent border-0 fs-5 fw-bold" style="outline:none;">
+                <option value="">All Purchase Invoices</option>
+                <option value="" selected>This Month</option>
+                <option value="">Last Month</option>
+                <option value="">This Quarter</option>
+                <option value="">This Year</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="d-flex pt-3 ps-2">
+              <p class="text-center pt-2 text-white fw-bold"
+                style="width: 6rem; height: 40px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Between</p>
+              <div class="d-flex justify-content-center pt-2 gap-3"
+                style="width: 15rem; height: 40px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA">
+                <p>01/03/2026</p>
+                <p>To</p>
+                <p>31/03/2026</p>
+              </div>
+
+            </div>
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 40px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Firms</option>
+                <option value=""><a href="">Firm 1</a></option>
+                <option value=""><a href="">Firm 2</a></option>
+                <option value=""><a href="">Firm 3</a></option>
+
+              </select></div>
+            <div class="px-1 mx-2"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+          <div class="bg-light px-4 mb-3 pb-3">
+            <div class="d-flex justify-content-center align-items-center"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 13rem; height: 40px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Transactions</option>
+                <option value=""><a href="">Sale</a></option>
+                <option value=""><a href="">Purchase</a></option>
+                <option value=""><a href="">Payment In</a></option>
+                <option value=""><a href="">Payment Out</a></option>
+                <option value=""><a href="">Credit Note</a></option>
+                <option value=""><a href="">Debit Note</a></option>
+                <option value=""><a href="">Sale Order</a></option>
+                <option value=""><a href="">Purchase Order</a></option>
+                <option value=""><a href="">Estimate</a></option>
+                <option value=""><a href="">Proforma Invoice</a></option>
+                <option value=""><a href="">Delivery Challan</a></option>
+                <option value=""><a href="">Expense</a></option>
+                <option value=""><a href="">Party to Party [Received]</a></option>
+                <option value=""><a href="">Party to Party [Paid]</a></option>
+                <option value=""><a href="">Manufacture</a></option>
+                <option value=""><a href="">Sale FA</a></option>
+                <option value=""><a href="">Purchase FA</a></option>
+                <option value=""><a href="">Sale [Canceled]</a></option>
+                <option value=""><a href="">Journel Entry</a></option>
+                <option value=""><a href="">Purchase (Job Work)</a></option>
+
+              </select></div>
+          </div>
+
+
+
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="row g-2 mb-3">
+                <p class="fw-bold">Transactions</p>
+              </div>
+              <div class="col-12 d-flex justify-content-between">
+                <div class="topbar-search ms-3">
+                  <span class="search-icon"><i class="bi bi-search"></i></span>
+                  <input type="text" placeholder="Search...">
+                </div>
+
+              </div>
+
+              <div class="table-responsive small-table">
+                <table class="table table-hover mb-0 align-middle table-clean">
+                  <thead>
+                    <tr class="d-flex gap-3">
+                      <th class="d-flex">
+                        <p class="pt-1">Date</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Date:</p>
+                              <input type="date" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            </li>
+                            <div class="mt-2 ms-4">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Refernece No</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Reference No.</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Party Name</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Contains</option>
+                                <option value=""><a href="">Exact Match</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Party Name</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Category Name</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Contains</option>
+                                <option value=""><a href="">Exact Match</a></option>
+
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Category Name</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-4">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Type</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Sale</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Purchase</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Payment In</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Payment Out</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Credit Note</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Debit Note</span>
+                            </li>
+                            <div class="mt-2 ms-4">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Total</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Total</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Received</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Received/Paid</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Balance</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Balance</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+
+
+                      <th class="d-flex col-1">
+                        <p class="pt-1">Print / Share</p>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">
+                        No estimates yet. Click "New Estimate" to create one.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+        <!-- Cash Flow -->
+        <div id="tab-cashFlow" class="report-tab-content d-none">
+
+
+
+          <div class="d-flex align-items-center bg-light px-4 py-2">
+            <div class="d-flex">
+              <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
+              <select name="" id="" class="bg-transparent border-0 fs-5 fw-bold" style="outline:none;">
+                <option value="">All Purchase Invoices</option>
+                <option value="" selected>This Month</option>
+                <option value="">Last Month</option>
+                <option value="">This Quarter</option>
+                <option value="">This Year</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="d-flex pt-3 ps-2">
+              <p class="text-center pt-2 text-white fw-bold"
+                style="width: 6rem; height: 40px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Between</p>
+              <div class="d-flex justify-content-center pt-2 gap-3"
+                style="width: 15rem; height: 40px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA">
+                <p>01/03/2026</p>
+                <p>To</p>
+                <p>31/03/2026</p>
+              </div>
+
+            </div>
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 40px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Firms</option>
+                <option value=""><a href="">Firm 1</a></option>
+                <option value=""><a href="">Firm 2</a></option>
+                <option value=""><a href="">Firm 3</a></option>
+
+              </select></div>
+            <div class="px-1 mx-2"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+          <div class="col-12 bg-light d-flex">
+            <p class="text-success ps-4">Opening cash in hand: Rs 0.00</p>
+            <div class="ms-4">
+              <input type="checkbox" class="me-2 mt-1"><span>Show zero amount transactions</span>
+            </div>
+          </div>
+
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="row g-2 mb-3">
+                <p class="fw-bold">Transactions</p>
+              </div>
+              <div class="col-12 d-flex justify-content-between">
+                <div class="topbar-search ms-3">
+                  <span class="search-icon"><i class="bi bi-search"></i></span>
+                  <input type="text" placeholder="Search...">
+                </div>
+
+              </div>
+
+              <div class="table-responsive small-table">
+                <table class="table table-hover mb-0 align-middle table-clean">
+                  <thead>
+                    <tr class="d-flex gap-3">
+
+                      <th class="d-flex">
+                        <p class="pt-1">Name</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Contains</option>
+                                <option value=""><a href="">Exact match</a></option>
+
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Name</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Reference No.</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Contains</option>
+                                <option value=""><a href="">Exact match</a></option>
+
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Reference No.</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Type</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Sale</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Purchase</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Payment In</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Payment Out</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Credit Note</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Debit Note</span>
+                            </li>
+                            <div class="mt-2 ms-2">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Payment Type</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Cash</span>
+                            </li>
+                            <li class="dropdown-item">
+                              <input type="checkbox"><span class="ms-1">Cheque</span>
+                            </li>
+
+                            <div class="mt-2 ms-2">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+
+
+                      <th class="d-flex">
+                        <p class="pt-1">Total</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Total Amount</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Cash In</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Cash In</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Cash Out</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Cash Out</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+                      <th class="d-flex">
+                        <p class="pt-1">Running Cash</p>
+                        <div class="dropdown ms-3">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-filter"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                              <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                                style="outline:none;">
+                                <option value="" selected>Equal to</option>
+                                <option value=""><a href="">Less than</a></option>
+                                <option value=""><a href="">Greater than</a></option>
+                                <option value=""><a href="">Range</a></option>
+                              </select>
+                            </li>
+                            <li class="dropdown-item">
+                              <p class="mb-0" style="font-size: 11px;">Running Cash in hand</p>
+                              <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                            </li>
+                            <div class="mt-2 ms-3">
+                              <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                  style="color: #71748E;">Clear</span></button>
+                              <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                  class="text-light">Apply</span></button>
+                            </div>
+
+                          </ul>
+                        </div>
+                      </th>
+
+                      <th class="d-flex">
+                        <p class="pt-1">Print/Share</p>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">
+                        No estimates yet. Click "New Estimate" to create one.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+
+
+        </div>
+
+
+
+        <!-- Profit and Loss Tab -->
+        <div id="tab-ProfitAndLoss" class="report-tab-content d-none p-4 w-100 bg-white pnl-container"
+          style="height: 100%; overflow-y: auto; overflow-x: hidden;">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center gap-3 border rounded px-3 py-2 bg-white"
+              style="border-color: #e5e7eb;">
+              <span class="text-secondary fw-medium" style="font-size: 14px;">From</span>
+              <div class="d-flex align-items-center gap-2 cursor-pointer">
+                <input type="date" value="2026-03-01" class="fw-medium text-dark bg-transparent border-0"
+                  style="font-size: 14px; outline: none; box-shadow: none;">
+              </div>
+              <span class="text-secondary fw-medium ms-2" style="font-size: 14px;">To</span>
+              <div class="d-flex align-items-center gap-2 cursor-pointer">
+                <input type="date" value="2026-03-27" class="fw-medium text-dark bg-transparent border-0"
+                  style="font-size: 14px; outline: none; box-shadow: none;">
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-white border rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px; border-color: #e5e7eb;">
+                <i class="fa-regular fa-file-excel text-success fs-5"></i>
+              </button>
+              <button class="btn btn-white border rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px; border-color: #e5e7eb;">
+                <i class="fa-solid fa-print text-secondary fs-5"></i>
+              </button>
+            </div>
+          </div>
+
+          <h4 class="fw-bold text-dark mb-4 text-uppercase" style="letter-spacing: 0.5px;">Profit and Loss Report</h4>
+
+          <div class="d-flex justify-content-between align-items-end mb-3">
+            <div class="d-flex align-items-center gap-3">
+              <span class="text-secondary fw-medium" style="font-size: 14px;">View :</span>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="pnlViewType" id="viewVyapar" value="vyapar" checked>
+                <label class="form-check-label fw-medium text-dark" for="viewVyapar" style="font-size: 14px;">
+                  Vyapar
+                </label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="pnlViewType" id="viewAccounting" value="accounting">
+                <label class="form-check-label fw-medium text-dark" for="viewAccounting" style="font-size: 14px;">
+                  Accounting
+                </label>
+              </div>
+            </div>
+
+            <button id="pnlExpandAllBtn" class="btn btn-link text-primary text-decoration-none p-0 fw-medium d-none"
+              style="font-size: 14px;">
+              <i class="fa-solid fa-chevron-down me-1"></i> Expand all accounts
+            </button>
+          </div>
+
+          <!-- Table Header -->
+          <div class="d-flex justify-content-between align-items-center px-4 py-2 mb-2 rounded"
+            style="background-color: #f3f4f6;">
+            <span class="fw-bold text-dark" style="font-size: 14px;">Particulars</span>
+            <span class="fw-bold text-dark" style="font-size: 14px;">Amount</span>
+          </div>
+
+          <!-- Vyapar View Data -->
+          <div id="pnlVyaparView" class="w-100">
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Sale (+)</span>
+              <span class="text-success fw-medium" style="font-size: 14px;">Rs 1,211.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Credit Note (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Sale FA (+)</span>
+              <span class="text-success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Purchase (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Debit Note (+)</span>
+              <span class="text-success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Purchase FA (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 "
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Direct Expenses(-)</span>
+              <span></span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">Other Direct Expenses (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">Payment-in Discount (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 "
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Tax Payable (-)</span>
+              <span></span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">Tax Payable (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3  bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">TCS Payable (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">TDS Payable (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 "
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Tax Receivable (-)</span>
+              <span></span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3  bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">Tax Receivable (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">TCS Receivable (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">TDS Receivable (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 "
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Opening Socket (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 1,211.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 "
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Closing Socket (+)</span>
+              <span class="text-success fw-medium" style="font-size: 14px;">Rs 1,211.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3" style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Opening Socket FA (-)</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 1,211.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Closing Socket FA (+)</span>
+              <span class="text-success fw-medium" style="font-size: 14px;">Rs 1,211.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Gross Profit</span>
+              <span class="text-success fw-medium" style="font-size: 14px;">Rs 1,211.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3" style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Other Income</span>
+              <span class="text-success fw-medium" style="font-size: 14px;">Rs 1,211.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 "
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Indirect Expenses (-)</span>
+              <span></span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">Other Expenses</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">Loan Interest Expenses</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">Loan Processing Fee Expense</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-white"
+              style="padding-left: 2.5rem !important;">
+              <span class="text-dark" style="font-size: 14px;">Loan Charges Expense</span>
+              <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style="background-color: #fafafa;">
+              <span class="text-dark fw-medium" style="font-size: 14px;">Profit</span>
+              <span class="text-success fw-medium" style="font-size: 14px;">Rs 1,211.00</span>
+            </div>
+          </div>
+
+          <!-- Accounting View Data -->
+          <div id="pnlAccountingView" class="w-100 d-none">
+            <div
+              class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-white pnl-row-hover">
+              <span class="text-dark fw-bold" style="font-size: 14px;"><span class="pnl-chevron"><i
+                    class="fa-solid fa-chevron-down"></i></span> Income</span>
+              <span></span>
+            </div>
+            <!-- L2 Children -->
+            <div class="pnl-child-group">
+              <div class="d-flex justify-content-between align-items-center py-3 border-bottom bg-white pnl-row-hover"
+                style="padding-left: 3.5rem; padding-right: 1.5rem;">
+                <span class="text-dark fw-medium" style="font-size: 14px;"><span class="pnl-chevron"><i
+                      class="fa-solid fa-chevron-down"></i></span> Sale Accounts</span>
+                <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+              </div>
+              <div class="pnl-child-group">
+
+                <div class="pnl-child-group">
+                  <div
+                    class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                    style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                    <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span> Sale
+                      Revenue Account</span>
+                    <span class="text-Success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                  </div>
+                  <div
+                    class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                    style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                    <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                      Additional Charges on Sale</span>
+                    <span class="text-success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="pnl-child-group">
+              <div class="d-flex justify-content-between align-items-center py-3 border-bottom bg-white pnl-row-hover"
+                style="padding-left: 3.5rem; padding-right: 1.5rem;">
+                <span class="text-dark fw-medium" style="font-size: 14px;"><span class="pnl-chevron"><i
+                      class="fa-solid fa-chevron-down"></i></span> Other Incomes (Direct)</span>
+                <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+              </div>
+              <div class="pnl-child-group">
+
+                <div class="pnl-child-group">
+                  <div
+                    class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                    style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                    <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                      Payment-Out Discount</span>
+                    <span class="text-Success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                  </div>
+                  <div
+                    class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                    style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                    <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span> Other
+                      Direct Incomes</span>
+                    <span class="text-success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                  </div>
+                </div>
+              </div>
+
+
+            </div>
+            <div class="pnl-child-group">
+              <div class="d-flex justify-content-between align-items-center py-3 border-bottom bg-white pnl-row-hover"
+                style="padding-left: 3.5rem; padding-right: 1.5rem;">
+                <span class="text-dark fw-medium" style="font-size: 14px;"><span class="pnl-chevron"><i
+                      class="fa-solid fa-chevron-down"></i></span> Other Incomes (Indirect)</span>
+                <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+              </div>
+              <div class="pnl-child-group">
+
+                <div class="pnl-child-group">
+                  <div
+                    class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                    style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                    <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span> Profit
+                      on Sale of Assets</span>
+                    <span class="text-Success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                  </div>
+                  <div
+                    class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                    style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                    <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                      Appreciation on Assets</span>
+                    <span class="text-success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                  </div>
+                </div>
+                <div class="pnl-child-group">
+                  <div
+                    class="d-flex justify-content-between align-items-center py-3 border-bottom bg-white pnl-row-hover"
+                    style="padding-left: 3.5rem; padding-right: 1.5rem;">
+                    <span class="text-dark fw-medium" style="font-size: 14px;"><span class="pnl-chevron"><i
+                          class="fa-solid fa-chevron-down"></i></span> Expenses</span>
+                    <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                  </div>
+                  <div class="pnl-child-group">
+                    <div
+                      class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                      style="padding-left: 5rem; padding-right: 1.5rem;">
+                      <span class="text-dark" style="font-size: 14px;"><span class="pnl-chevron"><i
+                            class="fa-solid fa-chevron-right"></i></span> Purchase Accounts</span>
+                      <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                    </div>
+                    <div class="pnl-child-group">
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Opening Socket</span>
+                        <span class="text-Success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Closing Socket</span>
+                        <span class="text-success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pnl-child-group">
+                    <div
+                      class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                      style="padding-left: 5rem; padding-right: 1.5rem;">
+                      <span class="text-dark" style="font-size: 14px;"><span class="pnl-chevron"><i
+                            class="fa-solid fa-chevron-right"></i></span> Direct Expenses</span>
+                      <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                    </div>
+                    <div class="pnl-child-group">
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Payment-In Discount</span>
+                        <span class="text-Success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Manufacturing Expense</span>
+                        <span class="text-success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Petrol</span>
+                        <span class="text-success fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pnl-child-group" style="display: none;"></div>
+
+                  <div
+                    class="d-flex justify-content-between align-items-center py-3 border-bottom bg-white pnl-row-hover"
+                    style="padding-left: 3.5rem; padding-right: 1.5rem;">
+                    <span class="text-dark fw-medium" style="font-size: 14px;"><span class="pnl-chevron"><i
+                          class="fa-solid fa-chevron-down"></i></span> Indirect Expenses</span>
+                    <span class="text-danger fw-medium" style="font-size: 14px;">Rs 100.00</span>
+                  </div>
+                  <div class="pnl-child-group">
+                    <div
+                      class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                      style="padding-left: 5rem; padding-right: 1.5rem;">
+                      <span class="text-dark" style="font-size: 14px;"><span class="pnl-chevron"><i
+                            class="fa-solid fa-chevron-right"></i></span> Cost of Financing</span>
+                      <span class="text-danger fw-medium" style="font-size: 14px;">Rs 100.00</span>
+                    </div>
+                    <div class="pnl-child-group" style="display: none;">
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Charges On Loan</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 100.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Processing Fee for Loans</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 100.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Interest Payment for ABC</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 100.00</span>
+                      </div>
+                    </div>
+                    <div
+                      class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                      style="padding-left: 5rem; padding-right: 1.5rem;">
+                      <span class="text-dark" style="font-size: 14px;"><span class="pnl-chevron"><i
+                            class="fa-solid fa-chevron-right"></i></span> Other Expenses</span>
+                      <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                    </div>
+                    <div class="pnl-child-group" style="display: none;">
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Expenses on Purchase of assets</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Depreciation of assets</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Loyalty redeemed</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Rent</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Salary</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Tea</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center py-2 border-bottom bg-white pnl-row-hover"
+                        style="padding-left: 6.5rem; padding-right: 1.5rem;">
+                        <span class="text-secondary" style="font-size: 14px;"><span class="pnl-bullet">&bull;</span>
+                          Transport</span>
+                        <span class="text-danger fw-medium" style="font-size: 14px;">Rs 0.00</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+            </div>
+
+            <!-- Footer Row -->
+            <div class="d-flex justify-content-between align-items-center px-4 py-4 mt-2">
+              <span class="text-dark fw-bold" style="font-size: 14px;">Net Profit (Incomes - Expenses)</span>
+              <span class="text-success fw-bold" style="font-size: 14px;">Rs 1,111.00</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Party Statement Tab -->
+        <div id="tab-Party Statement" class="report-tab-content d-none d-flex flex-column h-100 bg-white">
+          <div class="d-flex align-items-center bg-light px-4 py-2">
+            <div class="d-flex">
+              <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
+              <select name="" id="" class="bg-transparent border-0 fs-5 fw-bold" style="outline:none;">
+                <option value="">All Purchase Invoices</option>
+                <option value="" selected>This Month</option>
+                <option value="">Last Month</option>
+                <option value="">This Quarter</option>
+                <option value="">This Year</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="d-flex pt-3 ps-2">
+              <p class="text-center pt-1 text-white fw-bold"
+                style="width: 6rem; height: 30px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Between</p>
+              <div class="d-flex justify-content-center pt-1 gap-3"
+                style="width: 15rem; height: 30px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA; font-size: 12px;">
+                <p>01/03/2026</p>
+                <p>To</p>
+                <p>31/03/2026</p>
+              </div>
+
+            </div>
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 30px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Firms</option>
+                <option value=""><a href="">Firm 1</a></option>
+                <option value=""><a href="">Firm 2</a></option>
+                <option value=""><a href="">Firm 3</a></option>
+
+              </select></div>
+            <div class="px-4"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+          <!-- Top Controls -->
+          <div class="px-4 py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <span class="text-secondary fw-medium" style="font-size: 14px;">View :</span>
+              <label class="d-flex align-items-center gap-2 cursor-pointer mb-0">
+                <input type="radio" name="psToggleView" id="psVyaparRadio" value="vyapar" class="ps-radio" checked>
+                <span class="fw-medium text-dark" style="font-size: 14px;">Vyapar</span>
+              </label>
+              <label class="d-flex align-items-center gap-2 cursor-pointer mb-0">
+                <input type="radio" name="psToggleView" id="psAccountingRadio" value="accounting" class="ps-radio">
+                <span class="fw-medium text-dark" style="font-size: 14px;">Accounting</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Main Data Table Container -->
+          <div class="flex-grow-1 overflow-auto bg-white border-top custom-scrollbar">
+            <table class="table table-borderless w-100 mb-0 position-relative">
+              <thead id="psVyaparThead" style="background-color: #f9fafb; font-size: 11px; text-transform: uppercase;">
+                <tr class="d-flex gap-3">
+                  <th class="d-flex">
+                    <p class="pt-1">Date</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less than</a></option>
+                            <option value=""><a href="">Greater than</a></option>
+                            <option value=""><a href="">Range</a></option>
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Date:</p>
+                          <input type="date" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-4">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">TXN Type</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Sale</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Purchase</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Payment-In</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Payment-Out</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Credit Note</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Debit Note</span>
+                        </li>
+                        <div class="mt-2 ms-4">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Reference No.</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Contains</option>
+                            <option value=""><a href="">Exact Match</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Reference No.</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Payment Type</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Cash</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Cheque</span>
+                        </li>
+                        <div class="mt-2 ms-2">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Debit</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Debit</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Credit</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Credit</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Running Balance</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Running balance</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+
+
+
+                  <th class="d-flex">
+                    <p class="pt-1">Print/Share</p>
+                  </th>
+                </tr>
+              </thead>
+              <thead id="psAccountingThead" class="d-none"
+                style="background-color: #f9fafb; font-size: 11px; text-transform: uppercase;">
+                <tr class="d-flex gap-3">
+                  <th class="d-flex">
+                    <p class="pt-1">Date</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less than</a></option>
+                            <option value=""><a href="">Greater than</a></option>
+                            <option value=""><a href="">Range</a></option>
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Date:</p>
+                          <input type="date" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-4">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">TXN Type</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Sale</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Purchase</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Payment-In</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Payment-Out</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Credit Note</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Debit Note</span>
+                        </li>
+                        <div class="mt-2 ms-4">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Reference No.</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Contains</option>
+                            <option value=""><a href="">Exact Match</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Reference No.</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Payment Type</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Cash</span>
+                        </li>
+                        <li class="dropdown-item">
+                          <input type="checkbox"><span class="ms-1">Cheque</span>
+                        </li>
+                        <div class="mt-2 ms-2">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Debit</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Debit</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Credit</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Credit</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Running Balance</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Running balance</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+
+
+
+                  <th class="d-flex">
+                    <p class="pt-1">Print/Share</p>
+                  </th>
+                </tr>
+              </thead>
+              <tbody style="min-height: 250px;">
+                <tr>
+                  <td colspan="9" class="text-center text-muted" style="height: 250px; vertical-align: middle;">
+                    No transactions to show
+                  </td>
+                </tr>
+              </tbody>
+
+            </table>
+          </div>
+
+          <!-- Sticky Bottom Summary Card -->
+          <div class="bg-white p-4 border-top" style=" box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="text-dark mb-0 fw-bold" style="font-size: 18px;">Party Statement Summary</h5>
+              <i class="fa-solid fa-chevron-down text-secondary cursor-pointer"></i>
+            </div>
+
+            <div class="row w-100 m-0">
+              <div class="col-3 d-flex flex-column">
+                <span class="text-dark fw-medium">Total Sale: Rs 0.00</span>
+                <span class="text-muted" style="font-size: 11px;">(Sale - Sale Return)</span>
+                <div class="my-2"></div>
+                <span class="text-dark fw-medium">Total Money-In: Rs 0.00</span>
+              </div>
+              <div class="col-4 d-flex flex-column">
+                <span class="text-dark fw-medium">Total Purchase: Rs 0.00</span>
+                <span class="text-muted" style="font-size: 11px;">(Purchase - Purchase Return)</span>
+                <div class="my-2"></div>
+                <span class="text-dark fw-medium">Total Money-Out: Rs 0.00</span>
+              </div>
+              <div class="col-2 d-flex flex-column border-end">
+                <span class="text-dark fw-medium">Total Expense: Rs 0.00</span>
+              </div>
+              <div class="col-3 d-flex flex-column align-items-center justify-content-center">
+                <span class="text-dark fw-bold d-block text-center w-100">Total Receivable</span>
+                <span class="fw-bold d-block text-center w-100 mt-1" style="color: #00b894; font-size: 18px;">Rs
+                  0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- All Parties Tab -->
+        <div id="tab-All Parties" class="report-tab-content d-none d-flex flex-column h-100 bg-white"
+          style="border: 1px solid #e5e7eb;">
+          <div class="d-flex align-items-center bg-light px-4 py-2">
+            <div class="d-flex">
+              <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
+              <input type="checkbox" class="me-2 mt-1" id="allPartiesDateCheckbox"><span class="mt-1">Date Filter</span>
+              <input type="date" class="ms-2 d-none" id="allPartiesDateInput">
+            </div>
+
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 30px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Parties</option>
+                <option value=""><a href="">Receivable</a></option>
+                <option value=""><a href="">Payable</a></option>
+
+
+              </select></div>
+            <div class="px-5 ms-5"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+          <!-- Top Search Section -->
+          <div class="px-3 py-3 border-bottom">
+            <div class="position-relative" style="width: 250px;">
+              <i class="fa-solid fa-magnifying-glass position-absolute text-secondary"
+                style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+              <input type="text" class="form-control" placeholder="Search"
+                style="padding-left: 32px; border: 1px solid #d1d5db; border-radius: 4px; background-color: #fff; width: 100%;">
+            </div>
+          </div>
+
+          <!-- Data Table Architecture -->
+          <div class="flex-grow-1 overflow-auto custom-scrollbar">
+            <table class="table table-borderless w-100 mb-0">
+              <thead style="background-color: #fafafa; font-size: 11px; text-transform: uppercase;">
+                <tr class="d-flex gap-3">
+
+
+                  <th class="d-flex">
+                    <p class="pt-1">Party Name</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Contains</option>
+                            <option value=""><a href="">Exact Match</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Party Name</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Email</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Contains</option>
+                            <option value=""><a href="">Exact Match</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Email</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Phone No.</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Contains</option>
+                            <option value=""><a href="">Exact Match</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Phone No.</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Receivable Balance</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value="" selected>Less Than</option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Receivable Balance</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Payable Balance</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value="" selected>Less Than</option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Payable Balance</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex">
+                    <p class="pt-1">Credit Limit</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value="" selected>Less Than</option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Credit Limit</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="party-row border-bottom d-flex gap-3 align-items-center" style="background-color: #dbeafe;">
+                  <td class="d-flex py-2 px-3 align-middle" style="flex: 1; min-width: 150px;">
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="checkbox" class="form-check-input mt-0 party-checkbox" checked
+                        style="cursor: pointer;">
+                      <span class="text-dark fw-medium" style="font-size: 13px;">abc</span>
+                    </div>
+                  </td>
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 150px; font-size: 13px;">abc@example.com</td>
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 120px; font-size: 13px;">00000000000</td>
+                  <td class="d-flex py-2 px-3 align-middle fw-medium"
+                    style="flex: 1; min-width: 140px; font-size: 13px; color: #10b981;">Rs 1,011.00</td>
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 140px; font-size: 13px;">0.00</td>
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 140px; font-size: 13px;">50,000.00</td>
+                </tr>
+                <tr class="party-row border-bottom d-flex gap-3 align-items-center hover-light">
+                  <td class="d-flex py-2 px-3 align-middle" style="flex: 1; min-width: 150px;">
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="checkbox" class="form-check-input mt-0 party-checkbox" style="cursor: pointer;">
+                      <span class="text-dark fw-medium" style="font-size: 13px;">xyz client</span>
+                    </div>
+                  </td>
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 150px; font-size: 13px;">xyz@example.com</td>
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 120px; font-size: 13px;">12345678900</td>
+                  <td class="d-flex py-2 px-3 align-middle fw-medium"
+                    style="flex: 1; min-width: 140px; font-size: 13px; color: #10b981;">Rs 0.00</td>
+                  <td class="d-flex py-2 px-3 align-middle fw-medium text-danger"
+                    style="flex: 1; min-width: 140px; font-size: 13px;">Rs 5,500.00</td>
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 140px; font-size: 13px;">10,000.00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Summary Footer -->
+          <div class="px-4 py-3 bg-white border-top d-flex justify-content-between align-items-center mt-auto"
+            style="box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.02);">
+            <div>
+              <span class="text-dark fw-bold" style="font-size: 14px;">Total Receivable: </span>
+              <span class="fw-bold" style="font-size: 14px; color: #10b981;">Rs 1,011.00</span>
+            </div>
+            <div>
+              <span class="text-dark fw-bold" style="font-size: 14px;">Total Payable: </span>
+              <span class="fw-bold" style="font-size: 14px; color: #10b981;">Rs 0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Party Report by Items Tab -->
+        <div id="tab-Party Report by Items" class="report-tab-content d-none d-flex flex-column h-100 bg-white"
+          style="border: 1px solid #e5e7eb;">
+          <div class="d-flex align-items-center bg-light px-4 py-2">
+            <div class="d-flex">
+              <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
+              <select name="" id="" class="bg-transparent border-0 fs-5 fw-bold" style="outline:none;">
+                <option value="">All Purchase Invoices</option>
+                <option value="" selected>This Month</option>
+                <option value="">Last Month</option>
+                <option value="">This Quarter</option>
+                <option value="">This Year</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="d-flex pt-3 ps-2">
+              <p class="text-center pt-1 text-white fw-bold"
+                style="width: 6rem; height: 30px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Between</p>
+              <div class="d-flex justify-content-center pt-1 gap-3"
+                style="width: 15rem; height: 30px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA; font-size: 12px;">
+                <p>01/03/2026</p>
+                <p>To</p>
+                <p>31/03/2026</p>
+              </div>
+
+            </div>
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 30px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Firms</option>
+                <option value=""><a href="">Firm 1</a></option>
+                <option value=""><a href="">Firm 2</a></option>
+                <option value=""><a href="">Firm 3</a></option>
+
+              </select></div>
+            <div class="px-4"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+          <div class="bg-light px-4 mb-3 pb-3 d-flex gap-3">
+            <div class="d-flex justify-content-center align-items-center"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 13rem; height: 40px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Categories</option>
+
+
+
+              </select>
+            </div>
+            <div class="d-flex justify-content-center align-items-center"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 13rem; height: 40px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All items</option>
+
+
+
+              </select>
+            </div>
+          </div>
+
+          <!-- Top Search Section -->
+          <div class="px-3 py-3 border-bottom">
+            <div class="position-relative" style="width: 250px;">
+              <i class="fa-solid fa-magnifying-glass position-absolute text-secondary"
+                style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+              <input type="text" class="form-control" placeholder="Search"
+                style="padding-left: 32px; border: 1px solid #d1d5db; border-radius: 4px; background-color: #fff; width: 100%;">
+            </div>
+          </div>
+
+          <!-- Data Table Architecture -->
+          <div class="flex-grow-1 overflow-auto custom-scrollbar">
+            <table class="table table-borderless w-100 mb-0">
+              <thead style="background-color: #fafafa; font-size: 11px; text-transform: uppercase;">
+                <tr class="d-flex gap-3 text-secondary border-bottom">
+
+
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Party Name</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Contains</option>
+                            <option value=""><a href="">Exact Match</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Party Name</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Sale Quantity</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Sale Quantity</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Sale Amount</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Sale Amount</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Purchase Quantity</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Purchase Quantity</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Purchase Amount</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Purchase Amount</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+
+                </tr>
+              </thead>
+
+              <tfoot
+                style="background-color: #fff; position: sticky; bottom: 0; box-shadow: 0 -1px 0 #e5e7eb, 0 -4px 6px -1px rgba(0,0,0,0.02);">
+                <tr class="text-dark fw-bold border-top d-flex gap-3 align-items-center" style="font-size: 13px;">
+                  <td class="d-flex py-3 px-3 border-end text-start" style="flex: 1; min-width: 150px;">Total:</td>
+                  <td class="d-flex py-3 px-3 border-end" style="flex: 1; min-width: 150px;"></td>
+                  <td class="d-flex py-3 px-3 border-end" style="flex: 1; min-width: 120px;"></td>
+                  <td class="d-flex py-3 px-3 border-end text-end" style="flex: 1; min-width: 140px;">Rs 1,111.00</td>
+                  <td class="d-flex py-3 px-3 border-end text-end" style="flex: 1; min-width: 140px;">Rs 0.00</td>
+                  <td class="d-flex py-3 px-3 text-end" style="flex: 1; min-width: 140px;">Rs 0.00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        <!-- Sale purchase by party-->
+        <div id="tab-Partysalepurchase" class="report-tab-content d-none d-flex flex-column h-100 bg-white"
+          style="border: 1px solid #e5e7eb;">
+          <div class="d-flex align-items-center bg-light px-4 py-2">
+            <div class="d-flex">
+              <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
+              <select name="" id="" class="bg-transparent border-0 fs-5 fw-bold" style="outline:none;">
+                <option value="">All Purchase Invoices</option>
+                <option value="" selected>This Month</option>
+                <option value="">Last Month</option>
+                <option value="">This Quarter</option>
+                <option value="">This Year</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="d-flex pt-3 ps-2">
+              <p class="text-center pt-1 text-white fw-bold"
+                style="width: 6rem; height: 30px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Between</p>
+              <div class="d-flex justify-content-center pt-1 gap-3"
+                style="width: 15rem; height: 30px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA; font-size: 12px;">
+                <p>01/03/2026</p>
+                <p>To</p>
+                <p>31/03/2026</p>
+              </div>
+
+            </div>
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 30px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Firms</option>
+                <option value=""><a href="">Firm 1</a></option>
+                <option value=""><a href="">Firm 2</a></option>
+                <option value=""><a href="">Firm 3</a></option>
+
+              </select></div>
+            <div class="px-4"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+
+
+          <!-- Top Search Section -->
+          <div class="px-3 py-3 border-bottom">
+            <div class="position-relative" style="width: 250px;">
+              <i class="fa-solid fa-magnifying-glass position-absolute text-secondary"
+                style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+              <input type="text" class="form-control" placeholder="Search"
+                style="padding-left: 32px; border: 1px solid #d1d5db; border-radius: 4px; background-color: #fff; width: 100%;">
+            </div>
+          </div>
+
+          <!-- Data Table Architecture -->
+          <div class="flex-grow-1 overflow-auto custom-scrollbar">
+            <table class="table table-borderless w-100 mb-0">
+              <thead style="background-color: #fafafa; font-size: 11px; text-transform: uppercase;">
+                <tr class="d-flex gap-3 text-secondary border-bottom">
+
+
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Party Name</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Contains</option>
+                            <option value=""><a href="">Exact Match</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Party Name</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Sale Amount</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Sale Amount</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Purchase Amount</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Purchase Amount</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+
+
+                </tr>
+              </thead>
+
+
+              <tfoot
+                style="background-color: #fff; position: sticky; bottom: 0; box-shadow: 0 -1px 0 #e5e7eb, 0 -4px 6px -1px rgba(0,0,0,0.02);">
+                <tr class="text-dark fw-bold border-top d-flex gap-3 align-items-center" style="font-size: 13px;">
+                  <td class="d-flex py-3 px-3 border-end text-start" style="flex: 1; min-width: 150px;">Total:</td>
+                  <td class="d-flex py-3 px-3 border-end" style="flex: 1; min-width: 150px;"></td>
+                  <td class="d-flex py-3 px-3 border-end text-end" style="flex: 1; min-width: 150px;">Rs 0.00</td>
+                  <td class="d-flex py-3 px-3 border-end text-end" style="flex: 1; min-width: 150px;"></td>
+                  <td class="d-flex py-3 px-3 text-end" style="flex: 1; min-width: 150px;">Rs 0.00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Sale purchase by party Group-->
+        <div id="tab-Partysalepurchasegroup" class="report-tab-content d-none d-flex flex-column h-100 bg-white"
+          style="border: 1px solid #e5e7eb;">
+          <div class="d-flex align-items-center bg-light px-4 py-2">
+            <div class="d-flex">
+              <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
+              <select name="" id="" class="bg-transparent border-0 fs-5 fw-bold" style="outline:none;">
+                <option value="">All Purchase Invoices</option>
+                <option value="" selected>This Month</option>
+                <option value="">Last Month</option>
+                <option value="">This Quarter</option>
+                <option value="">This Year</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="d-flex pt-3 ps-2">
+              <p class="text-center pt-1 text-white fw-bold"
+                style="width: 6rem; height: 30px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Between</p>
+              <div class="d-flex justify-content-center pt-1 gap-3"
+                style="width: 15rem; height: 30px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA; font-size: 12px;">
+                <p>01/03/2026</p>
+                <p>To</p>
+                <p>31/03/2026</p>
+              </div>
+
+            </div>
+            <div class="d-flex justify-content-center align-items-center ms-4"
+              style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 30px;"><select name="" id=""
+                class="bg-transparent border-0" style="outline:none;">
+                <option value="" selected>All Firms</option>
+                <option value=""><a href="">Firm 1</a></option>
+                <option value=""><a href="">Firm 2</a></option>
+                <option value=""><a href="">Firm 3</a></option>
+
+              </select></div>
+            <div class="px-4"></div>
+            <div class="d-flex gap-5 text-secondary">
+              <i class="fa-solid fa-file-excel fs-5"></i>
+              <i class="fa-solid fa-print fs-5"></i>
+            </div>
+
+          </div>
+
+
+          <!-- Top Search Section -->
+          <div class="px-3 py-3 border-bottom">
+            <div class="position-relative" style="width: 250px;">
+              <i class="fa-solid fa-magnifying-glass position-absolute text-secondary"
+                style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+              <input type="text" class="form-control" placeholder="Search"
+                style="padding-left: 32px; border: 1px solid #d1d5db; border-radius: 4px; background-color: #fff; width: 100%;">
+            </div>
+          </div>
+
+          <!-- Data Table Architecture -->
+          <div class="flex-grow-1 overflow-auto custom-scrollbar">
+            <table class="table table-borderless w-100 mb-0">
+              <thead style="background-color: #fafafa; font-size: 11px; text-transform: uppercase;">
+                <tr class="d-flex gap-3 text-secondary border-bottom">
+
+
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Party Name</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Contains</option>
+                            <option value=""><a href="">Exact Match</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Party Name</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Sale Amount</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Sale Amount</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+                  <th class="d-flex" style="flex: 1; min-width: 150px;">
+                    <p class="pt-1">Purchase Amount</p>
+                    <div class="dropdown ms-3">
+                      <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                          <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                            <option value="" selected>Equal to</option>
+                            <option value=""><a href="">Less Than</a></option>
+                            <option value=""><a href="">Greater Than</a></option>
+
+                          </select>
+                        </li>
+                        <li class="dropdown-item">
+                          <p class="mb-0" style="font-size: 11px;">Purchase Amount</p>
+                          <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                        </li>
+                        <div class="mt-2 ms-3">
+                          <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                              style="color: #71748E;">Clear</span></button>
+                          <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                              class="text-light">Apply</span></button>
+                        </div>
+
+                      </ul>
+                    </div>
+                  </th>
+
+
+                </tr>
+              </thead>
+
+              <tbody style="min-height: 250px;">
+                <tr class="party-row border-bottom d-flex gap-3 align-items-center" style="background-color: #dbeafe;">
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 150px; font-size: 13px;">Group A</td>
+                  <td class="d-flex py-2 px-3 align-middle fw-medium"
+                    style="flex: 1; min-width: 150px; font-size: 13px; color: #10b981;">Rs 0.00</td>
+                  <td class="d-flex py-2 px-3 align-middle text-dark fw-medium"
+                    style="flex: 1; min-width: 150px; font-size: 13px;">Rs 0.00</td>
+                </tr>
+              </tbody>
+              <tfoot
+                style="background-color: #fff; position: sticky; bottom: 0; box-shadow: 0 -1px 0 #e5e7eb, 0 -4px 6px -1px rgba(0,0,0,0.02);">
+                <tr class="text-dark fw-bold border-top d-flex gap-3 align-items-center" style="font-size: 13px;">
+                  <td class="d-flex py-3 px-3 border-end text-start" style="flex: 1; min-width: 150px;">Total:</td>
+                  <td class="d-flex py-3 px-3 border-end text-end" style="flex: 1; min-width: 150px;">Rs 0.00</td>
+                  <td class="d-flex py-3 px-3 text-end" style="flex: 1; min-width: 150px;">Rs 0.00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stock Summary Tab -->
+        <div id="tab-stock summary" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+                <select class="form-select form-select-sm"
+                  style="width: 130px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151; box-shadow: none; outline: none;">
+                  <option selected>All Categories</option>
+                </select>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="showItemsCheck"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="showItemsCheck"
+                    style="color: #374151; font-size: 14px;">Show items in stock</label>
+                </div>
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">STOCK SUMMARY</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale Price</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase Price</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Stock Qty</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Stock Value</th>
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      5</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 1,000.00</td>
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total</td>
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px;"></td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Stock party report Tab -->
+        <div id="tab-party report summary" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Details</h2>
+            <div class="pb-2">
+              <label for="filter" class="me-2">Filter: </label><input type="text" placeholder="Party Filter">
+
+            </div>
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale Quantity</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase Quantity</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Purchase Amount</th>
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      5</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 1,000.00</td>
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total</td>
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px;"></td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+        <!-- Stock partyprofit and loss report Tab -->
+        <div id="tab-item wise profit and loss" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Details</h2>
+            <div class="pb-2">
+              <label for="filter" class="me-2">Filter: </label><input type="text" placeholder="Party Filter">
+
+            </div>
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Cr Note/ Sale Return</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Dr Note/Purchase Return</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Opening Stock</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Closing Stock</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Tax Receivable</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Tax Payable</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Mfg. Cost</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Consumption Cost</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Net Profit/ Loss</th>
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td colspan="8"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total</td>
+
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+        <!-- Stock party category profit and loss report Tab -->
+        <div id="tab-item category wise profit and loss" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Details</h2>
+            <div class="pb-2">
+              <label for="filter" class="me-2">Filter: </label><input type="text" placeholder="Category Filter">
+
+            </div>
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Category Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Cr Note/ Sale Return</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Dr Note/Purchase Return</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Opening Stock</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Closing Stock</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Tax Receivable</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Tax Payable</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Mfg. Cost</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Consumption Cost</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Net Profit/ Loss</th>
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td colspan="8"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total</td>
+
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- low Stock Summary Tab -->
+        <div id="tab-low stock summary" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+                <select class="form-select form-select-sm"
+                  style="width: 130px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151; box-shadow: none; outline: none;">
+                  <option selected>All Categories</option>
+                </select>
+
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="showItemsCheck"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="showItemsCheck"
+                    style="color: #374151; font-size: 14px;">Show items in stock</label>
+                </div>
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Minimum Stock Qty </th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Stock Qty</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Stock Value</th>
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      5</td>
+
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total</td>
+                    <td style="padding: 16px;"></td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- stock details Tab -->
+        <div id="tab-stock details" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+                <select class="form-select form-select-sm"
+                  style="width: 130px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151; box-shadow: none; outline: none;">
+                  <option selected>All Categories</option>
+                </select>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="showItemsCheck"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="showItemsCheck"
+                    style="color: #374151; font-size: 14px;">Show items in stock</label>
+                </div>
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Beginning Qty</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Quantity In</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Quantity Out</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Sale Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Closing Qty</th>
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total</td>
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px;"></td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Stock Summary Tab -->
+        <div id="tab-item details" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+                <select class="form-select form-select-sm"
+                  style="width: 130px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151; box-shadow: none; outline: none;">
+                  <option selected>All Categories</option>
+                </select>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="showItemsCheck"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="showItemsCheck"
+                    style="color: #374151; font-size: 14px;">Show items in stock</label>
+                </div>
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Date</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale Quantity</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase Quantity</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Adjustment Quantity</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Closing Quantity</th>
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      5</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 1,000.00</td>
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total</td>
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px;"></td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- sale purchase report by item category Tab -->
+        <div id="tab-sale purchase report by item category" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+                <select class="form-select form-select-sm"
+                  style="width: 130px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151; box-shadow: none; outline: none;">
+                  <option selected>All Categories</option>
+                </select>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="showItemsCheck"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="showItemsCheck"
+                    style="color: #374151; font-size: 14px;">Show items in stock</label>
+                </div>
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h5 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Sale/Purchase report
+              by item category</h5>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item category</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale quantity</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Total Sale Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase Quantity</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Total Purchase Amount</th>
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      5</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 1,000.00</td>
+                  </tr>
+                </tbody>
+
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- Stock Summary by item category Tab -->
+        <div id="tab-stock summary report by item category" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+
+
+
+
+
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Stock Summary Report
+              By Item Category</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item Category</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Stock Qty</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Stock Value</th>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+
+                  </tr>
+                </tbody>
+
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- item wise discount Tab -->
+        <div id="tab-item wise discount" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span
+                  style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Filters</span>
+
+                <select class="form-select form-select-sm"
+                  style="width: 130px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151; box-shadow: none; outline: none;">
+                  <option selected>All Categories</option>
+                </select>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="showItemsCheck"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="showItemsCheck"
+                    style="color: #374151; font-size: 14px;">Show items in stock</label>
+                </div>
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Item wise Discount
+            </h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Total Qty Sold</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Total Sale Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Total Disc. Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Avg. Disc. (%)</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Details</th>
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      5</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 1,000.00</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 1,000.00</td>
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Sale Amount</td>
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px;"></td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Discount</td>
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px;"></td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- bank statement -->
+        <div id="tab-bank statement" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+                <span style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Bank
+                  Name</span>
+
+                <select class="form-select form-select-sm"
+                  style="width: 130px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151; box-shadow: none; outline: none;">
+                  <option selected>ABC</option>
+                </select>
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Bank Statement</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Date</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Description</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Withdrawal Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Deposit Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">
+                      Balance Amount</th>
+
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #ef4444; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 0.00</td>
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td class="stock-qty-cell"
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      5</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs 1,000.00</td>
+
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Balance</td>
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px;"></td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #ef4444; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">
+                      -1</td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- discount report -->
+        <div id="tab-discount report" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Discount Report</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Party Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale Discount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase / Expense Discount</th>
+
+
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+
+
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Sale Discount</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Purchase Discount</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- tax report -->
+        <div id="tab-tax report" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Tax Report</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Party Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Sale Tax</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Purchase / Expense Tax</th>
+
+
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+
+
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total TAx In</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Tax Out</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- tax rate report -->
+        <div id="tab-tax rate report" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1 d-none"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Tax Rate Report</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Tax Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Tax Percent</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Taxable Sale Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Tax In</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Taxable Purchase/ Expense Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Tax Out</th>
+
+
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+
+
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Tax In</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Tax Out</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- expense report  -->
+        <div id="tab-expense" class="report-tab-content">
+
+          <!-- Header -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-dark mb-0">Expenses</h3>
+            <div class="d-flex gap-2">
+              <button class="btn btn-danger rounded-pill px-4 fw-medium text-white"
+                style="background-color: #ef4444; border: none;">
+                <span class="fs-5 lh-1 me-1">+</span> Add Expense
+              </button>
+              <button class="btn bg-white border border-secondary-subtle text-secondary px-3 py-1 shadow-sm">
+                <i class="fa-solid fa-gear"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-4 py-2 rounded">
+            <div class="d-flex">
+              <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div>
+              <div class="d-flex rounded-pill" style="background-color:#E4F2FF;">
+                <div class="d-flex justify-content-center align-items-center text-center"
+                  style="width: 9rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;"><select
+                    name="" id="" class="bg-transparent border-0" style="outline:none;">
+                    <option value="">All Estimates</option>
+                    <option value="" selected>This Month</option>
+                    <option value="">Last Month</option>
+                    <option value="">This Quarter</option>
+                    <option value="">This Year</option>
+                    <option value="">Custom</option>
+                  </select></div>
+                <div class="d-flex justify-content-center align-items-center" style="width: 16rem; height: 40px;">
+                  01/03/2026
+                  To 31/03/2026</div>
+
+              </div>
+              <div class="d-flex justify-content-center align-items-center rounded-pill ms-4"
+                style="background-color:#E4F2FF; width: 8rem; height: 40px;"><select name="" id=""
+                  class="bg-transparent border-0" style="outline:none;">
+                  <option value="" selected>All Firms</option>
+                  <option value=""><a href="">Firm 1</a></option>
+                  <option value=""><a href="">Firm 2</a></option>
+                  <option value=""><a href="">Firm 3</a></option>
+
+                </select></div>
+
+            </div>
+          </div>
+
+
+
+          <!-- Data Table -->
+          <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
+            <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+              <h5 class="fw-bold mb-0 text-dark fs-5">Transactions</h5>
+              <div class="text-secondary d-flex gap-2">
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Search"><i
+                    class="fa-solid fa-magnifying-glass"></i></button>
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Chart"><i
+                    class="fa-solid fa-chart-simple"></i></button>
+                <button class="btn btn-link text-success p-1 text-decoration-none" title="Excel"><i
+                    class="fa-regular fa-file-excel"></i></button>
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Print"><i
+                    class="fa-solid fa-print"></i></button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 align-middle table-clean">
+                <thead>
+                  <tr class="d-flex gap-3">
+                    <th class="d-flex">
+                      <p class="pt-1">Date</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Equal to</option>
+                              <option value=""><a href="">Less than</a></option>
+                              <option value=""><a href="">Greater than</a></option>
+                              <option value=""><a href="">Range</a></option>
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Date:</p>
+                            <input type="date" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                          </li>
+                          <div class="mt-2 ms-4">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Exp No.</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Contanis</option>
+                              <option value="">Exact Match</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Exp No.</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Party</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Contanis</option>
+                              <option value="">Exact Match</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Party</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Category Name</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Contanis</option>
+                              <option value="">Exact Match</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Category Name</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+                    <th class="d-flex">
+                      <p class="pt-1">Payment Type</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Cash</span>
+                          </li>
+                          <li class="dropdown-item">
+                            <input type="checkbox"><span class="ms-1">Cheque</span>
+                          </li>
+
+                          <div class="mt-2 ms-4">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+                    <th class="d-flex">
+                      <p class="pt-1">Amount</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Equal to</option>
+                              <option value="">Less Than</option>
+                              <option value="">Greater Than</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Amount</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+                    <th class="d-flex">
+                      <p class="pt-1">Balance Due</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Equal to</option>
+                              <option value="">Less Than</option>
+                              <option value="">Greater Than</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Balance Due</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+
+
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                      No estimates yet. Click "New Estimate" to create one.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- expense category report -->
+        <div id="tab-expense category report" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Expense category
+              Report</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Expense Category</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Category Type</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Amount</th>
+
+
+
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+
+
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Expense</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+
+
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- expense item report  -->
+        <div id="tab-expense item report" class="report-tab-content">
+
+          <!-- Header -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-dark mb-0">Expenses item report</h3>
+            <div class="d-flex gap-2">
+              <button class="btn btn-danger rounded-pill px-4 fw-medium text-white"
+                style="background-color: #ef4444; border: none;">
+                <span class="fs-5 lh-1 me-1">+</span> Add Expense
+              </button>
+              <button class="btn bg-white border border-secondary-subtle text-secondary px-3 py-1 shadow-sm">
+                <i class="fa-solid fa-gear"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-4 py-2 rounded">
+            <div class="d-flex">
+              <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div>
+              <div class="d-flex rounded-pill" style="background-color:#E4F2FF;">
+                <div class="d-flex justify-content-center align-items-center text-center"
+                  style="width: 9rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;"><select
+                    name="" id="" class="bg-transparent border-0" style="outline:none;">
+                    <option value="">All Estimates</option>
+                    <option value="" selected>This Month</option>
+                    <option value="">Last Month</option>
+                    <option value="">This Quarter</option>
+                    <option value="">This Year</option>
+                    <option value="">Custom</option>
+                  </select></div>
+                <div class="d-flex justify-content-center align-items-center" style="width: 16rem; height: 40px;">
+                  01/03/2026
+                  To 31/03/2026</div>
+
+              </div>
+              <div class="d-flex justify-content-center align-items-center rounded-pill ms-4"
+                style="background-color:#E4F2FF; width: 8rem; height: 40px;"><select name="" id=""
+                  class="bg-transparent border-0" style="outline:none;">
+                  <option value="" selected>All Firms</option>
+                  <option value=""><a href="">Firm 1</a></option>
+                  <option value=""><a href="">Firm 2</a></option>
+                  <option value=""><a href="">Firm 3</a></option>
+
+                </select></div>
+
+            </div>
+          </div>
+
+
+
+          <!-- Data Table -->
+          <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
+            <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+              <h5 class="fw-bold mb-0 text-dark fs-5">Transactions</h5>
+              <div class="text-secondary d-flex gap-2">
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Search"><i
+                    class="fa-solid fa-magnifying-glass"></i></button>
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Chart"><i
+                    class="fa-solid fa-chart-simple"></i></button>
+                <button class="btn btn-link text-success p-1 text-decoration-none" title="Excel"><i
+                    class="fa-regular fa-file-excel"></i></button>
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" title="Print"><i
+                    class="fa-solid fa-print"></i></button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 align-middle table-clean">
+                <thead>
+                  <tr class="d-flex gap-3">
+
+                    <th class="d-flex">
+                      <p class="pt-1">Expense item</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Contanis</option>
+                              <option value="">Exact Match</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Expense Item</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Party</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Contanis</option>
+                              <option value="">Exact Match</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Party</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+                    <th class="d-flex">
+                      <p class="pt-1">Unit Price</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Equal to</option>
+                              <option value="">Less Than</option>
+                              <option value="">Greater Than</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Category Name</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+
+
+                    <th class="d-flex">
+                      <p class="pt-1">Quantity</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Equal to</option>
+                              <option value="">Less Than</option>
+                              <option value="">Greater Than</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Quantity</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+                    <th class="d-flex">
+                      <p class="pt-1">Amount</p>
+                      <div class="dropdown ms-3">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <i class="fa-solid fa-filter"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Select Category:</p>
+                            <select name="" id="" class="bg-transparent border py-2 rounded w-100"
+                              style="outline:none;">
+                              <option value="" selected>Equal to</option>
+                              <option value="">Less Than</option>
+                              <option value="">Greater Than</option>
+
+                            </select>
+                          </li>
+                          <li class="dropdown-item">
+                            <p class="mb-0" style="font-size: 11px;">Amount</p>
+                            <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
+
+                          </li>
+                          <div class="mt-2 ms-3">
+                            <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
+                                style="color: #71748E;">Clear</span></button>
+                            <button class="btn rounded-pill" style="background-color: #D4112E;"><span
+                                class="text-light">Apply</span></button>
+                          </div>
+
+                        </ul>
+                      </div>
+                    </th>
+
+
+
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                      No estimates yet. Click "New Estimate" to create one.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- sale order-->
+        <div id="tab-sale order" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Sale Order</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Date</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Order No</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Due Date</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Status</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Type</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Total</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Advance</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Balance</th>
+
+
+
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+
+
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Amount</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+
+
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- sale order item -->
+        <div id="tab-sale order item" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Sale Order items</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Item Name</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Quantity</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Amount</th>
+
+
+
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+
+
+                  </tr>
+                </tbody>
+
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- Loan statement -->
+        <div id="tab-loan statement" class="report-tab-content d-none">
+          <div class="d-flex flex-column"
+            style="min-height: 100vh; padding: 24px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+
+            <!-- Filters & Actions -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <!-- Left Side -->
+              <div class="d-flex align-items-center" style="gap: 16px;">
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                   <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Account</label>
+                  <input class="mt-0" type="text"
+                    style="border-color: #d1d5db; box-shadow: none;">
+
+                </div>
+
+
+                <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
+                  <input class="form-check-input mt-0" type="checkbox" id="stockDateFilter"
+                    style="border-color: #d1d5db; box-shadow: none;">
+                  <label class="form-check-label mb-0" for="stockDateFilter"
+                    style="color: #6b7280; font-size: 14px;">Date filter</label>
+                </div>
+
+                <div id="stockDateInput" class="d-flex align-items-center px-2 py-1"
+                  style="border: 1px solid #d1d5db; border-radius: 4px; background-color: #ffffff;">
+                  <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Date</span>
+                  <span style="font-size: 14px; color: #374151; margin-right: 8px; font-weight: 500;">28/03/2026</span>
+                  <i class="fa-regular fa-calendar" style="color: #9ca3af; font-size: 14px;"></i>
+                </div>
+
+
+              </div>
+
+              <!-- Right Side -->
+              <div class="d-flex" style="gap: 8px;">
+                <button id="stockExcelBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
+                </button>
+                <button id="stockPrintBtn" class="btn d-flex align-items-center justify-content-center p-0"
+                  style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb; background-color: #ffffff;">
+                  <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Page Title -->
+            <h2 style="font-weight: 700; color: #1f2937; margin: 24px 0 32px 0; font-size: 24px;">Loan Statement</h2>
+
+            <!-- Data Table Architecture -->
+            <div class="table-responsive">
+              <table class="w-100" style="border-collapse: collapse;">
+                <thead style="background-color: #f3f4f6;">
+                  <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 12px 16px; width: 40px;"></th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">
+                      Date</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Type</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Amount</th>
+                    <th
+                      style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Ending Balance</th>
+
+
+
+                  </tr>
+
+                  </tr>
+                </thead>
+                <tbody style="background-color: #ffffff;">
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">1</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      abc</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 1,111.00</td>
+
+
+                  </tr>
+                  <tr class="stock-row" style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px; font-size: 14px; color: #9ca3af; text-align: left;">2</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: left; border-right: 1px solid #e5e7eb;">
+                      def</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 200.00</td>
+
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+                    <td
+                      style="padding: 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">
+                      Rs 180.00</td>
+
+
+                  </tr>
+                </tbody>
+                <tfoot style="background-color: #ffffff;">
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Opening Balance</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Balance Due</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Principal Paid</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 16px;"></td>
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: left;">
+                      Total Principal due</td>
+                    <td style="padding: 16px;"></td>
+
+
+                    <td style="padding: 16px; font-size: 14px; color: #1f2937; font-weight: 700; text-align: right;">Rs
+                      0.00</td>
+                  </tr>
+
+
+                </tfoot>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Empty State Tab Content Template (Hidden by default) -->
+        <div id="tab-Empty" class="report-tab-content d-none d-flex align-items-center justify-content-center"
+          style="height: 60vh;">
+          <div class="text-center bg-white p-5 rounded-3 border shadow-sm">
+            <h4 class="text-secondary fw-normal empty-title">No view configured</h4>
+            <p class="text-muted mt-2">Switch back to "Sale" to view the functional UI.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/components.js') }}"></script>
+  <script src="{{ asset('js/common.js') }}"></script>
+
+  <!-- Reports Interaction Logic -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const navLinks = document.querySelectorAll('.reports-nav .nav-link');
+      const saleTab = document.getElementById('tab-Sale');
+      const emptyTab = document.getElementById('tab-Empty');
+      const emptyTitle = emptyTab.querySelector('.empty-title');
+
+      navLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+
+          // Remove active class from all nav items
+          navLinks.forEach(l => l.classList.remove('active'));
+
+          // Set current to active
+          this.classList.add('active');
+
+          // Switch view based on clicked item
+          const target = this.getAttribute('data-target');
+
+          // Hide all tabs
+          document.querySelectorAll('.report-tab-content').forEach(tab => {
+            tab.classList.add('d-none');
+          });
+
+          // Show targeted tab, or empty state if it doesn't exist
+          const targetTab = document.getElementById('tab-' + target);
+          if (targetTab) {
+            targetTab.classList.remove('d-none');
+          } else {
+            emptyTab.classList.remove('d-none');
+            emptyTitle.textContent = `No view configured for ${target} yet.`;
+          }
+        });
+      });
+
+      // PnL Interaction Logic
+      const pnlVyaparRadio = document.getElementById("viewVyapar");
+      const pnlAccountingRadio = document.getElementById("viewAccounting");
+      const pnlVyaparView = document.getElementById("pnlVyaparView");
+      const pnlAccountingView = document.getElementById("pnlAccountingView");
+      const pnlExpandAllBtn = document.getElementById("pnlExpandAllBtn");
+
+      if (pnlVyaparRadio && pnlAccountingRadio) {
+        function togglePnlView() {
+          if (pnlVyaparRadio.checked) {
+            pnlVyaparView.classList.remove('d-none');
+            pnlAccountingView.classList.add('d-none');
+            pnlExpandAllBtn.classList.add('d-none');
+          } else {
+            pnlVyaparView.classList.add('d-none');
+            pnlAccountingView.classList.remove('d-none');
+            pnlExpandAllBtn.classList.remove('d-none');
+          }
+        }
+        pnlVyaparRadio.addEventListener("change", togglePnlView);
+        pnlAccountingRadio.addEventListener("change", togglePnlView);
+
+        // Accounting Tree Expansion Logic
+        const pnlRows = document.querySelectorAll(".pnl-row-hover");
+        pnlRows.forEach(row => {
+          row.style.cursor = 'pointer';
+          row.addEventListener("click", function (e) {
+            const icon = this.querySelector('.pnl-chevron i');
+            if (!icon) return; // ignore rows without a chevron
+            const childrenGroup = this.nextElementSibling;
+
+            if (childrenGroup && childrenGroup.classList.contains('pnl-child-group')) {
+              if (childrenGroup.style.display === 'none') {
+                childrenGroup.style.display = 'block';
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+              } else {
+                childrenGroup.style.display = 'none';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+              }
+            }
+          });
+        });
+
+        // Expand all functionality
+        if (pnlExpandAllBtn) {
+          pnlExpandAllBtn.addEventListener("click", function () {
+            const allGroups = pnlAccountingView.querySelectorAll(".pnl-child-group");
+            const allIcons = pnlAccountingView.querySelectorAll(".pnl-chevron i");
+            allGroups.forEach(g => g.style.display = 'block');
+            allIcons.forEach(i => {
+              i.classList.remove('fa-chevron-right');
+              i.classList.add('fa-chevron-down');
+            });
+          });
+        }
+      }
+
+      // Party Statement Toggle Logic
+      const psVyaparRadio = document.getElementById('psVyaparRadio');
+      const psAccountingRadio = document.getElementById('psAccountingRadio');
+      const psVyaparThead = document.getElementById('psVyaparThead');
+      const psAccountingThead = document.getElementById('psAccountingThead');
+      const psAccountingTfoot = document.getElementById('psAccountingTfoot');
+
+      if (psVyaparRadio && psAccountingRadio) {
+        function togglePSView() {
+          if (psVyaparRadio.checked) {
+            psVyaparThead.classList.remove('d-none');
+            psAccountingThead.classList.add('d-none');
+            psAccountingTfoot.classList.add('d-none');
+          } else {
+            psVyaparThead.classList.add('d-none');
+            psAccountingThead.classList.remove('d-none');
+            psAccountingTfoot.classList.remove('d-none');
+          }
+        }
+        psVyaparRadio.addEventListener('change', togglePSView);
+        psAccountingRadio.addEventListener('change', togglePSView);
+      }
+
+      // All Parties Row Selection Logic
+      const selectAllParties = document.getElementById('selectAllParties');
+      const partyCheckboxes = document.querySelectorAll('.party-checkbox');
+      const allPartiesDateCheckbox = document.getElementById('allPartiesDateCheckbox');
+      const allPartiesDateInput = document.getElementById('allPartiesDateInput');
+
+      if (allPartiesDateCheckbox && allPartiesDateInput) {
+        allPartiesDateCheckbox.addEventListener('change', function () {
+          if (this.checked) {
+            allPartiesDateInput.classList.remove('d-none');
+          } else {
+            allPartiesDateInput.classList.add('d-none');
+          }
+        });
+      }
+
+      function updatePartyRowColor(checkbox) {
+        const row = checkbox.closest('tr');
+        if (checkbox.checked) {
+          row.style.backgroundColor = '#dbeafe';
+        } else {
+          row.style.backgroundColor = 'transparent';
+        }
+      }
+
+      if (selectAllParties) {
+        selectAllParties.addEventListener('change', function () {
+          const isChecked = this.checked;
+          partyCheckboxes.forEach(cb => {
+            cb.checked = isChecked;
+            updatePartyRowColor(cb);
+          });
+        });
+
+        partyCheckboxes.forEach(cb => {
+          cb.addEventListener('change', function () {
+            updatePartyRowColor(this);
+            // update master checkbox state
+            const allChecked = Array.from(partyCheckboxes).every(c => c.checked);
+            const someChecked = Array.from(partyCheckboxes).some(c => c.checked);
+            selectAllParties.checked = allChecked;
+            selectAllParties.indeterminate = someChecked && !allChecked;
+          });
+        });
+      }
+
+      // Stock Summary Interactivity
+      const stockDateFilter = document.getElementById('stockDateFilter');
+      const stockDateInput = document.getElementById('stockDateInput');
+      const showItemsCheck = document.getElementById('showItemsCheck');
+      const stockRows = document.querySelectorAll('.stock-row');
+      const stockPrintBtn = document.getElementById('stockPrintBtn');
+      const stockExcelBtn = document.getElementById('stockExcelBtn');
+
+      if (stockDateFilter && stockDateInput) {
+        stockDateFilter.addEventListener('change', function () {
+          if (this.checked) {
+            stockDateInput.classList.remove('d-none');
+          } else {
+            stockDateInput.classList.add('d-none');
+          }
+        });
+      }
+
+      if (showItemsCheck) {
+        showItemsCheck.addEventListener('change', function () {
+          const isChecked = this.checked;
+          stockRows.forEach(row => {
+            const stockQtyElement = row.querySelector('.stock-qty-cell');
+            if (stockQtyElement) {
+              const qty = parseFloat(stockQtyElement.innerText.trim());
+              if (isChecked && qty <= 0) {
+                row.classList.add('d-none');
+              } else {
+                row.classList.remove('d-none');
+              }
+            }
+          });
+        });
+      }
+
+      if (stockPrintBtn) {
+        stockPrintBtn.addEventListener('click', function () {
+          window.print();
+        });
+      }
+
+      if (stockExcelBtn) {
+        stockExcelBtn.addEventListener('click', function () {
+          alert('Excel download functionality would trigger here.');
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>
