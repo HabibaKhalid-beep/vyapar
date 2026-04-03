@@ -469,6 +469,62 @@ function initializeForm(context) {
         toast.show();
     }
 
+    function validateSaleBeforeSubmit(saleData) {
+        if (!saleData.party_id) {
+            showToast('Please select party before saving.', true);
+            return false;
+        }
+
+        const invalidItemRow = Array.from($ctx.find('.item-row')).find(row => {
+            const $row = $(row);
+            const hasContent = Boolean(
+                $row.find('.item-name').val() ||
+                parseFloat($row.find('.item-qty').val() || 0) > 0 ||
+                parseFloat($row.find('.item-price').val() || 0) > 0 ||
+                parseFloat($row.find('.item-amount').val() || 0) > 0
+            );
+
+            return hasContent && !$row.find('.item-name').val();
+        });
+
+        if (invalidItemRow || !saleData.items.length) {
+            showToast('Please select at least one item before saving.', true);
+            return false;
+        }
+
+        if (saleData.type !== 'estimate') {
+            const defaultPaymentType = $ctx.find('.default-payment-type').val() || '';
+            const additionalPaymentTypes = Array.from($ctx.find('.payment-type-entry')).filter(entry => $(entry).val()).length;
+
+            if (!defaultPaymentType && additionalPaymentTypes === 0) {
+                showToast('Please select payment type before saving.', true);
+                return false;
+            }
+
+            if (defaultPaymentType) {
+                const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
+                if (defaultAmount <= 0) {
+                    showToast('Please enter amount for selected payment type.', true);
+                    return false;
+                }
+            }
+
+            const invalidPaymentEntry = Array.from($ctx.find('.payment-entry')).find(entry => {
+                const $entry = $(entry);
+                const type = $entry.find('.payment-type-entry').val() || '';
+                const amount = parseFloat($entry.find('.payment-amount').val() || 0) || 0;
+                return type && amount <= 0;
+            });
+
+            if (invalidPaymentEntry) {
+                showToast('Please enter amount for each selected payment type.', true);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // Update payment summary when default payment type is changed
     $ctx.on('change', '.default-payment-type', function() {
         updatePaymentSummary();
@@ -583,17 +639,23 @@ function initializeForm(context) {
         };
     }
 
-    // Save button
-    $ctx.on('click', '.btn-save', function() {
+    function submitSale(btn, options = {}) {
         const saleData = gatherSaleData();
+        const redirectToShare = Boolean(options.redirectToShare);
+        const idleText = options.idleText || 'Save';
+        const loadingText = options.loadingText || 'Saving...';
+        const successMessage = options.successMessage || 'Sale saved successfully! Redirecting...';
 
         if (!saleData.items.length) {
             alert('Please add at least one item before saving.');
             return;
         }
 
-        const btn = $(this);
-        btn.prop('disabled', true).text('Saving...');
+        if (!validateSaleBeforeSubmit(saleData)) {
+            return;
+        }
+
+        btn.prop('disabled', true).text(loadingText);
 
         fetch(window.saleStoreUrl, {
             method: window.saleMethod || 'POST',
@@ -627,11 +689,13 @@ function initializeForm(context) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
 
-                    showToast('Sale saved successfully! Redirecting...', false);
+                    showToast(successMessage, false);
 
-                    if (data.redirect_url) {
+                    const targetUrl = redirectToShare ? (data.share_url || data.redirect_url) : data.redirect_url;
+
+                    if (targetUrl) {
                         setTimeout(() => {
-                            window.location.href = data.redirect_url;
+                            window.location.href = targetUrl;
                         }, 2000);
                     }
 
@@ -646,8 +710,28 @@ function initializeForm(context) {
                 showToast('Error saving sale. ' + (err.message || ''), true);
             })
             .finally(() => {
-                btn.prop('disabled', false).text('Save');
+                btn.prop('disabled', false).text(idleText);
             });
+    }
+
+    // Save button
+    $ctx.on('click', '.btn-save', function() {
+        submitSale($(this), {
+            redirectToShare: true,
+            idleText: 'Save',
+            loadingText: 'Saving...',
+            successMessage: 'Sale saved successfully! Opening invoice preview...',
+        });
+    });
+
+    // Save & Share button
+    $ctx.on('click', '.btn-share-main', function() {
+        submitSale($(this), {
+            redirectToShare: true,
+            idleText: 'Save & Share',
+            loadingText: 'Saving & Sharing...',
+            successMessage: 'Sale saved successfully! Opening invoice preview...',
+        });
     });
 
     // Add description/image/document actions

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 class SaleController extends Controller
@@ -396,6 +398,7 @@ private function posData(): array
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
+            'share_url' => route('sale.invoice-preview', $sale),
         ]);
     }
 
@@ -588,6 +591,63 @@ private function posData(): array
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
+            'share_url' => route('sale.invoice-preview', $sale),
+        ]);
+    }
+
+    public function invoicePreview(Sale $sale)
+    {
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount']);
+
+        return view('themes.sales_invoice', [
+            'sale' => $sale,
+            'invoicePreviewData' => $this->mapSaleToThemePreviewData($sale),
+            'pageTitle' => 'Preview',
+            'browserTabLabel' => $sale->display_party_name !== '-' ? $sale->display_party_name : ('Invoice #' . ($sale->bill_number ?: $sale->id)),
+            'saveCloseUrl' => route('sale.index'),
+        ]);
+    }
+
+    public function invoicePdf(Request $request, Sale $sale)
+    {
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount']);
+
+        $themeConfig = $this->resolveInvoiceThemeConfig(
+            (string) $request->query('mode', 'regular'),
+            (int) $request->query('theme_id', 1)
+        );
+
+        if ($request->boolean('download')) {
+            $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
+                'invoicePreviewData' => $this->mapSaleToThemePreviewData($sale),
+                'themeConfig' => $themeConfig,
+                'accent' => (string) $request->query('accent', '#1f4e79'),
+                'accent2' => (string) $request->query('accent2', '#ff981f'),
+            ]);
+
+            if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
+                $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+            } else {
+                $pdf->setPaper('a4', 'portrait');
+            }
+
+            return $pdf->download('invoice-' . ($sale->bill_number ?: $sale->id) . '.pdf');
+        }
+
+        return view('themes.sales_invoice_pdf', [
+            'sale' => $sale,
+            'invoicePreviewData' => $this->mapSaleToThemePreviewData($sale),
+            'pageTitle' => 'Invoice PDF',
+            'browserTabLabel' => 'Invoice #' . ($sale->bill_number ?: $sale->id),
+            'saveCloseUrl' => route('sale.invoice-preview', $sale),
+            'pdfMode' => true,
+            'autoDownload' => $request->boolean('download'),
+            'themeConfig' => $themeConfig,
+            'initialMode' => $request->query('mode', 'regular'),
+            'initialRegularThemeId' => (int) $request->query('theme_id', 1),
+            'initialThermalThemeId' => (int) $request->query('theme_id', 1),
+            'initialAccent' => (string) $request->query('accent', '#1f4e79'),
+            'initialAccent2' => (string) $request->query('accent2', '#ff981f'),
         ]);
     }
 
@@ -625,6 +685,141 @@ private function posData(): array
         $sale->load(['items']);
 
         return view('dashboard.sales.estimate-preview', ['sale' => $sale, 'autoPrint' => true]);
+    }
+
+    private function mapSaleToThemePreviewData(Sale $sale): array
+    {
+        $bankAccount = $sale->payments
+            ->pluck('bankAccount')
+            ->filter()
+            ->first();
+
+        if (!$bankAccount) {
+            $bankAccount = BankAccount::where('print_on_invoice', true)
+                ->orderBy('id')
+                ->first();
+        }
+
+        $items = $sale->items->map(function ($item) use ($sale) {
+            $taxPct = $this->formatPercentValue($sale->tax_pct);
+
+            return [
+                'name' => $item->item_name ?: ($item->item?->name ?: 'Item'),
+                'hsn' => (string) ($item->item_code ?: ($item->item?->item_code ?: '')),
+                'qty' => (string) ($item->quantity ?? 0),
+                'unit' => (string) ($item->unit ?: ($item->item?->unit ?: '')),
+                'rate' => (float) ($item->unit_price ?? 0),
+                'disc' => number_format((float) ($item->discount ?? 0), 2, '.', ''),
+                'gst' => $taxPct,
+                'amt' => (float) ($item->amount ?? 0),
+            ];
+        })->values()->all();
+
+        if (empty($items)) {
+            $items[] = [
+                'name' => 'Item',
+                'hsn' => '',
+                'qty' => '0',
+                'unit' => '',
+                'rate' => 0,
+                'disc' => '0.00',
+                'gst' => $this->formatPercentValue($sale->tax_pct),
+                'amt' => 0,
+            ];
+        }
+
+        $invoiceDate = $this->formatPreviewDate($sale->invoice_date ?: $sale->created_at);
+        $dueDate = $this->formatPreviewDate($sale->due_date ?: $sale->invoice_date ?: $sale->created_at);
+        $createdAt = $sale->created_at instanceof Carbon ? $sale->created_at : Carbon::parse($sale->created_at);
+        $businessName = trim((string) config('app.name', 'My Company')) ?: 'My Company';
+        $partyName = $sale->display_party_name !== '-' ? $sale->display_party_name : 'Walk-in Customer';
+
+        return [
+            'title' => $sale->type === 'invoice' ? 'Invoice' : ucwords(str_replace('_', ' ', (string) $sale->type)),
+            'businessName' => $businessName,
+            'phone' => (string) ($sale->phone ?: ($sale->party?->phone ?: '')),
+            'invoiceNo' => (string) ($sale->bill_number ?: $sale->id),
+            'date' => $invoiceDate,
+            'time' => $createdAt->format('h:i A'),
+            'dueDate' => $dueDate,
+            'billTo' => $partyName,
+            'billAddress' => (string) ($sale->billing_address ?: ''),
+            'billPhone' => (string) ($sale->phone ?: ($sale->party?->phone ?: '')),
+            'shipTo' => (string) ($sale->shipping_address ?: $sale->billing_address ?: ''),
+            'items' => $items,
+            'description' => (string) ($sale->description ?: 'Thanks for doing business with us!'),
+            'subtotal' => (float) ($sale->total_amount ?? 0),
+            'discount' => (float) ($sale->discount_rs ?? 0),
+            'taxAmount' => (float) ($sale->tax_amount ?? 0),
+            'total' => (float) ($sale->grand_total ?? 0),
+            'received' => (float) ($sale->received_amount ?? 0),
+            'balance' => (float) ($sale->balance ?? 0),
+            'bankName' => (string) ($bankAccount?->bank_name ?: $bankAccount?->display_name ?: ''),
+            'bankAccountNumber' => (string) ($bankAccount?->account_number ?: ''),
+            'bankAccountHolder' => (string) ($bankAccount?->account_holder_name ?: ''),
+        ];
+    }
+
+    private function formatPreviewDate($value): string
+    {
+        if (empty($value)) {
+            return now()->format('d/m/Y');
+        }
+
+        try {
+            return Carbon::parse($value)->format('d/m/Y');
+        } catch (\Throwable $exception) {
+            return now()->format('d/m/Y');
+        }
+    }
+
+    private function formatPercentValue($value): string
+    {
+        $numeric = (float) ($value ?? 0);
+        $formatted = number_format($numeric, 2, '.', '');
+        $formatted = rtrim(rtrim($formatted, '0'), '.');
+
+        return ($formatted === '' ? '0' : $formatted) . '%';
+    }
+
+    private function resolveInvoiceThemeConfig(string $mode, int $themeId): array
+    {
+        $mode = $mode === 'thermal' ? 'thermal' : 'regular';
+
+        $themes = $mode === 'thermal'
+            ? [
+                1 => ['name' => 'Thermal Theme 1', 'variant' => 'thermal1'],
+                2 => ['name' => 'Thermal Theme 2', 'variant' => 'thermal2'],
+                3 => ['name' => 'Thermal Theme 3', 'variant' => 'thermal3'],
+                4 => ['name' => 'Thermal Theme 4', 'variant' => 'thermal4'],
+                5 => ['name' => 'Thermal Theme 5', 'variant' => 'thermal5'],
+            ]
+            : [
+                1 => ['name' => 'Telly Theme', 'variant' => 'classicA'],
+                2 => ['name' => 'Landscape Theme 1', 'variant' => 'purpleA'],
+                3 => ['name' => 'Landscape Theme 2', 'variant' => 'classicB'],
+                4 => ['name' => 'Tax Theme 1', 'variant' => 'purpleB'],
+                5 => ['name' => 'Tax Theme 2', 'variant' => 'classicC'],
+                6 => ['name' => 'Tax Theme 3', 'variant' => 'modernPurple'],
+                7 => ['name' => 'Tax Theme 4', 'variant' => 'purpleC'],
+                8 => ['name' => 'Tax Theme 5', 'variant' => 'classicSale'],
+                9 => ['name' => 'Tax Theme 6', 'variant' => 'taxTheme6'],
+                10 => ['name' => 'Double Divine', 'variant' => 'doubleDivine'],
+                11 => ['name' => 'French Elite', 'variant' => 'frenchElite'],
+                12 => ['name' => 'Theme 1', 'variant' => 'theme1'],
+                13 => ['name' => 'Theme 2', 'variant' => 'theme2'],
+                14 => ['name' => 'Theme 3', 'variant' => 'theme3'],
+                15 => ['name' => 'Theme 4', 'variant' => 'theme4'],
+            ];
+
+        $theme = $themes[$themeId] ?? reset($themes);
+
+        return [
+            'id' => $themeId,
+            'mode' => $mode,
+            'name' => $theme['name'],
+            'variant' => $theme['variant'],
+        ];
     }
 
     public function pdfEstimate(Sale $sale)

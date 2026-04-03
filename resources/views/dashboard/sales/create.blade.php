@@ -435,7 +435,7 @@
                     <!-- Fixed Action Bar -->
                     <div class="sticky-actions">
                         <div class="btn-share">
-                            <button class="btn-share-main">Share</button>
+                            <button class="btn-share-main" type="button">Save &amp; Share</button>
                             <button class="btn-share-arrow"><i class="fa-solid fa-chevron-down"></i></button>
                         </div>
                         <button class="btn-save" type="button">Save</button>
@@ -836,7 +836,6 @@ else {
 </body>
 
 </html>
-
 
 
 
