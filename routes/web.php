@@ -63,6 +63,10 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::put('/sales/{sale}', [SaleController::class, 'update'])->name('sale.update');
     Route::get('/sales/{sale}/invoice-preview', [SaleController::class, 'invoicePreview'])->name('sale.invoice-preview');
     Route::get('/sales/{sale}/invoice-pdf', [SaleController::class, 'invoicePdf'])->name('sale.invoice-pdf');
+    Route::get('/sales/{sale}/delivery-preview', [SaleController::class, 'deliveryPreview'])->name('sale.delivery-preview');
+    Route::get('/sales/{sale}/payment-history', [SaleController::class, 'paymentHistory'])->name('sale.payment-history');
+    Route::get('/sales/{sale}/bank-history', [SaleController::class, 'bankHistory'])->name('sale.bank-history');
+    Route::post('/sales/{sale}/cancel', [SaleController::class, 'cancel'])->name('sale.cancel');
     Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sale.destroy');
     Route::get('sales/pos', [SaleController::class, 'pos1'])->name('sale.pos');
 

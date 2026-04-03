@@ -133,6 +133,7 @@ function initializeForm(context) {
         $ctx.find('.phone-input').val(saleReturn.phone || '');
         $ctx.find('.billing-address').val(saleReturn.billing_address || '');
         $ctx.find('.shipping-address').val(saleReturn.shipping_address || '');
+        $ctx.find('.source-sale-id').val(saleReturn.source_sale_id || '');
         $ctx.find('.bill-number').val(saleReturn.bill_number || '');
         $ctx.find('.reference-bill-number').val(saleReturn.reference_bill_number || '');
         $ctx.find('.order-date').val(sourceDate);
@@ -365,6 +366,7 @@ function initializeForm(context) {
         return {
             _token: csrfToken,
             type: docType,
+            source_sale_id: $ctx.find('.source-sale-id').val() || null,
             party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
             party_name: ($ctx.find('#partyDropdownBtn').text() || '').trim() === 'Select Party' ? '' : ($ctx.find('#partyDropdownBtn').text() || '').trim(),
             phone: $ctx.find('.phone-input').val() || '',

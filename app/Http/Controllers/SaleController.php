@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\BankAccount;
+use App\Models\BankTransaction;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class SaleController extends Controller
@@ -17,6 +19,7 @@ class SaleController extends Controller
     {
         $sales = Sale::with(['payments', 'bankAccount', 'party'])
             ->where('type', 'invoice')
+            ->whereNotIn('status', ['returned'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -227,6 +230,12 @@ private function posData(): array
 
     public function edit(Sale $sale)
     {
+        if ($sale->type === 'invoice' && strtolower((string) $sale->status) === 'cancelled') {
+            return redirect()
+                ->route('sale.index')
+                ->with('error', 'Cancelled invoice cannot be edited.');
+        }
+
         $bankAccounts = BankAccount::orderBy('display_name')->get();
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
@@ -382,6 +391,22 @@ private function posData(): array
                     if ($bank) {
                         $bank->opening_balance = ($bank->opening_balance ?? 0) + floatval($payment['amount']);
                         $bank->save();
+
+                        BankTransaction::create([
+                            'from_bank_account_id' => $bank->id,
+                            'to_bank_account_id' => null,
+                            'type' => 'sale_payment',
+                            'amount' => (float) ($payment['amount'] ?? 0),
+                            'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
+                            'reference_type' => 'sale',
+                            'reference_id' => $sale->id,
+                            'description' => 'Sale payment received for invoice #' . ($sale->bill_number ?: $sale->id),
+                            'meta' => [
+                                'party_id' => $sale->party_id,
+                                'payment_type' => $payment['payment_type'] ?? null,
+                                'reference' => $payment['reference'] ?? null,
+                            ],
+                        ]);
                     }
                 }
             }
@@ -536,6 +561,22 @@ private function posData(): array
                     if ($bank) {
                         $bank->opening_balance = ($bank->opening_balance ?? 0) + floatval($payment['amount']);
                         $bank->save();
+
+                        BankTransaction::create([
+                            'from_bank_account_id' => $bank->id,
+                            'to_bank_account_id' => null,
+                            'type' => 'sale_payment',
+                            'amount' => (float) ($payment['amount'] ?? 0),
+                            'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
+                            'reference_type' => 'sale',
+                            'reference_id' => $sale->id,
+                            'description' => 'Additional payment received for invoice #' . ($sale->bill_number ?: $sale->id),
+                            'meta' => [
+                                'party_id' => $sale->party_id,
+                                'payment_type' => $payment['payment_type'] ?? null,
+                                'reference' => $payment['reference'] ?? null,
+                            ],
+                        ]);
                     }
                 }
             }
@@ -605,6 +646,11 @@ private function posData(): array
             'pageTitle' => 'Preview',
             'browserTabLabel' => $sale->display_party_name !== '-' ? $sale->display_party_name : ('Invoice #' . ($sale->bill_number ?: $sale->id)),
             'saveCloseUrl' => route('sale.index'),
+            'initialMode' => $sale->type === 'invoice' ? request()->query('mode', 'regular') : 'regular',
+            'initialRegularThemeId' => (int) request()->query('theme_id', 1),
+            'initialThermalThemeId' => (int) request()->query('theme_id', 1),
+            'initialAccent' => (string) request()->query('accent', '#1f4e79'),
+            'initialAccent2' => (string) request()->query('accent2', '#ff981f'),
         ]);
     }
 
@@ -662,6 +708,107 @@ private function posData(): array
         return response()->json([
             'success' => true,
             'message' => 'Sale deleted successfully.',
+        ]);
+    }
+
+    public function deliveryPreview(Sale $sale)
+    {
+        abort_unless($sale->type === 'invoice', 404);
+
+        $sale->loadMissing(['items', 'party']);
+
+        return view('dashboard.delivery.challan-preview', [
+            'sale' => $sale,
+            'previewTitle' => 'Delivery Challan',
+            'documentNumberLabel' => 'Invoice No.',
+            'documentDateLabel' => 'Date',
+            'showRates' => false,
+            'showAmount' => false,
+        ]);
+    }
+
+    public function paymentHistory(Sale $sale)
+    {
+        abort_unless($sale->type === 'invoice', 404);
+
+        $sale->loadMissing(['payments.bankAccount']);
+
+        return response()->json([
+            'sale_id' => $sale->id,
+            'bill_number' => $sale->bill_number ?: $sale->id,
+            'grand_total' => (float) ($sale->grand_total ?? 0),
+            'received_amount' => (float) ($sale->received_amount ?? 0),
+            'balance' => (float) ($sale->balance ?? 0),
+            'payments' => $sale->payments->map(function ($payment) use ($sale) {
+                return [
+                    'payment_type' => $payment->payment_type ?: '-',
+                    'bank_name' => $payment->bankAccount?->display_name ?: '-',
+                    'amount' => (float) ($payment->amount ?? 0),
+                    'reference' => $payment->reference ?: '-',
+                    'date' => $this->formatPreviewDate($sale->invoice_date ?: $sale->created_at),
+                ];
+            })->values(),
+        ]);
+    }
+
+    public function bankHistory(Sale $sale)
+    {
+        abort_unless($sale->type === 'invoice', 404);
+
+        $sale->loadMissing(['payments.bankAccount']);
+
+        $transactions = BankTransaction::with(['fromBankAccount'])
+            ->where('reference_type', 'sale')
+            ->where('reference_id', $sale->id)
+            ->orderByDesc('transaction_date')
+            ->get()
+            ->map(function ($transaction) {
+                return [
+                    'bank_name' => $transaction->fromBankAccount?->display_name ?: '-',
+                    'amount' => (float) ($transaction->amount ?? 0),
+                    'type' => (string) ($transaction->type ?: 'sale_payment'),
+                    'reference' => (string) ($transaction->description ?: '-'),
+                    'date' => $this->formatPreviewDate($transaction->transaction_date),
+                ];
+            });
+
+        if ($transactions->isEmpty()) {
+            $transactions = $sale->payments->map(function ($payment) use ($sale) {
+                return [
+                    'bank_name' => $payment->bankAccount?->display_name ?: '-',
+                    'amount' => (float) ($payment->amount ?? 0),
+                    'type' => 'sale_payment',
+                    'reference' => $payment->reference ?: '-',
+                    'date' => $this->formatPreviewDate($sale->invoice_date ?: $sale->created_at),
+                ];
+            });
+        }
+
+        return response()->json([
+            'sale_id' => $sale->id,
+            'bill_number' => $sale->bill_number ?: $sale->id,
+            'entries' => $transactions->values(),
+        ]);
+    }
+
+    public function cancel(Sale $sale)
+    {
+        abort_unless($sale->type === 'invoice', 404);
+
+        if (strtolower((string) $sale->status) === 'cancelled') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice already cancelled.',
+                'status' => 'Cancelled',
+            ]);
+        }
+
+        $sale->update(['status' => 'Cancelled']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice cancelled successfully.',
+            'status' => 'Cancelled',
         ]);
     }
 

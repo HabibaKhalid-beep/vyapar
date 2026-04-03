@@ -91,6 +91,7 @@
     </ul>
 </div>
 <input type="hidden" class="party-id" name="party_id">
+<input type="hidden" class="source-sale-id" name="source_sale_id" value="{{ $sourceSale->id ?? '' }}">
 
                                 </div>
 
@@ -560,7 +561,7 @@
             window.bankAccounts = @json($bankAccounts ?? []);
             window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
             window.saleReturnMethod = 'POST';
-            window.editSaleReturnData = null;
+            window.editSaleReturnData = @json($prefilledSaleReturnData ?? null);
             window.docType = 'sale_return';
         </script>
     @endif
@@ -718,7 +719,6 @@
 </body>
 
 </html>
-
 
 
 

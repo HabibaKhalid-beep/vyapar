@@ -64,6 +64,19 @@
   font-weight: 500;
 }
 
+.txn-table tbody tr.sale-cancelled {
+  opacity: .72;
+}
+
+.txn-table tbody tr.sale-cancelled td {
+  text-decoration: line-through;
+}
+
+.history-table td,
+.history-table th {
+  vertical-align: middle;
+}
+
 .text-success {
   color: #22c55e !important;
 }
@@ -280,7 +293,7 @@
       <div class="filter-left">
         <select id="salesPeriodSelect" class="filter-select">
           <option value="all">All Sales Invoices</option>
-          <option value="this_month" selected>This Month</option>
+          <option value="this_month">This Month</option>
           <option value="last_month">Last Month</option>
           <option value="this_quarter">This Quarter</option>
           <option value="this_year">This Year</option>
@@ -354,7 +367,7 @@
     <div class="table-responsive table-wrapper">
       <table class="table align-middle custom-table mb-0 txn-table">
         <thead>
-          <tr>
+          <tr class="{{ strtolower((string) ($sale->status ?? '')) === 'cancelled' ? 'sale-cancelled' : '' }}">
             <th>
               <div class="column-filter-header">
                 <span>Date</span>
@@ -510,7 +523,19 @@
               <div class="d-flex align-items-center gap-2">
                 <i class="fa-solid fa-print row-action-print" title="Print" style="cursor:pointer;"></i>
                 <i class="fa-solid fa-share row-action-share" title="Share" style="cursor:pointer;"></i>
-                <div class="dropdown sale-action-menu" data-sale-id="{{ $sale->id }}">
+                <div class="dropdown sale-action-menu"
+                     data-sale-id="{{ $sale->id }}"
+                     data-edit-url="{{ route('sale.edit', $sale) }}"
+                     data-preview-url="{{ route('sale.invoice-preview', $sale) }}"
+                     data-pdf-url="{{ route('sale.invoice-pdf', $sale) }}"
+                     data-print-url="{{ route('sale.invoice-pdf', $sale) }}"
+                     data-delivery-preview-url="{{ route('sale.delivery-preview', $sale) }}"
+                     data-payment-history-url="{{ route('sale.payment-history', $sale) }}"
+                     data-bank-history-url="{{ route('sale.bank-history', $sale) }}"
+                     data-convert-return-url="{{ route('sale-return.create', ['sale_id' => $sale->id]) }}"
+                     data-cancel-url="{{ route('sale.cancel', $sale) }}"
+                     data-is-cancelled="{{ strtolower((string) ($sale->status ?? '')) === 'cancelled' ? '1' : '0' }}"
+                     data-sale-number="{{ $sale->bill_number ?? $sale->id }}">
                   <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                   </button>
@@ -522,7 +547,6 @@
                     <li><a class="dropdown-item" href="#" data-action="cancel">Cancel Invoice</a></li>
                     <li><a class="dropdown-item" href="#" data-action="delete">Delete</a></li>
                     <li><a class="dropdown-item" href="#" data-action="duplicate">Duplicate</a></li>
-                    <li><a class="dropdown-item" href="#" data-action="pdf">View PDF</a></li>
                     <li><a class="dropdown-item" href="#" data-action="preview">Preview</a></li>
                     <li><a class="dropdown-item" href="#" data-action="print">Print</a></li>
                     <li><a class="dropdown-item" href="#" data-action="history">View History</a></li>
@@ -559,6 +583,34 @@
   <!-- ═══════════════════════════════════════════
      SCRIPTS
      ═══════════════════════════════════════════ -->
+  <div class="modal fade" id="salePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="salePreviewModalTitle">Preview</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0" style="min-height:70vh;">
+          <iframe id="salePreviewFrame" title="Preview" style="width:100%; min-height:70vh; border:0;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="saleHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="saleHistoryModalTitle">History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="saleHistoryModalBody">
+          <div class="text-muted">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('js/components.js') }}"></script>

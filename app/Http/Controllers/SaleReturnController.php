@@ -32,9 +32,54 @@ class SaleReturnController extends Controller
         return view('dashboard.sales.sale-return', compact('saleReturns', 'search'));
     }
 
-    public function salereturncreate()
+    public function salereturncreate(Request $request)
     {
-        return $this->renderSaleReturnForm();
+        $sourceSale = null;
+        $prefilledSaleReturnData = null;
+
+        if ($request->filled('sale_id')) {
+            $sourceSale = Sale::with(['items', 'payments', 'party'])
+                ->where('type', 'invoice')
+                ->findOrFail($request->integer('sale_id'));
+
+            $prefilledSaleReturnData = [
+                'source_sale_id' => $sourceSale->id,
+                'party_id' => $sourceSale->party_id,
+                'phone' => $sourceSale->phone,
+                'billing_address' => $sourceSale->billing_address,
+                'shipping_address' => $sourceSale->shipping_address,
+                'bill_number' => null,
+                'reference_bill_number' => $sourceSale->bill_number,
+                'invoice_date' => optional($sourceSale->invoice_date)->format('Y-m-d') ?: now()->toDateString(),
+                'order_date' => optional($sourceSale->invoice_date)->format('Y-m-d') ?: now()->toDateString(),
+                'due_date' => optional($sourceSale->due_date)->format('Y-m-d') ?: now()->toDateString(),
+                'discount_pct' => $sourceSale->discount_pct,
+                'discount_rs' => $sourceSale->discount_rs,
+                'tax_pct' => $sourceSale->tax_pct,
+                'tax_amount' => $sourceSale->tax_amount,
+                'round_off' => $sourceSale->round_off,
+                'grand_total' => $sourceSale->grand_total,
+                'balance' => $sourceSale->grand_total,
+                'description' => $sourceSale->description,
+                'items' => $sourceSale->items->map(function ($item) {
+                    return [
+                        'item_id' => $item->item_id,
+                        'item_name' => $item->item_name,
+                        'item_category' => $item->item_category,
+                        'item_code' => $item->item_code,
+                        'item_description' => $item->item_description,
+                        'quantity' => $item->quantity,
+                        'unit' => $item->unit,
+                        'unit_price' => $item->unit_price,
+                        'discount' => $item->discount,
+                        'amount' => $item->amount,
+                    ];
+                })->values()->all(),
+                'payments' => [],
+            ];
+        }
+
+        return $this->renderSaleReturnForm(null, null, $sourceSale, $prefilledSaleReturnData);
     }
 
     public function edit(Sale $sale)
@@ -71,6 +116,12 @@ class SaleReturnController extends Controller
 
             $this->syncItems($sale, $data['items']);
             $this->syncPayments($sale, $data['payments'] ?? []);
+
+            if (!empty($data['source_sale_id'])) {
+                Sale::whereKey($data['source_sale_id'])
+                    ->where('type', 'invoice')
+                    ->update(['status' => 'returned']);
+            }
 
             return $sale;
         });
@@ -152,7 +203,12 @@ class SaleReturnController extends Controller
         return view('dashboard.sales.sale-return-preview', ['sale' => $sale, 'pdfMode' => true]);
     }
 
-    private function renderSaleReturnForm(?Sale $saleReturn = null, ?Sale $duplicateSaleReturn = null)
+    private function renderSaleReturnForm(
+        ?Sale $saleReturn = null,
+        ?Sale $duplicateSaleReturn = null,
+        ?Sale $sourceSale = null,
+        ?array $prefilledSaleReturnData = null
+    )
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
         $items = Item::orderBy('name')->get();
@@ -166,13 +222,16 @@ class SaleReturnController extends Controller
             'parties',
             'nextInvoiceNumber',
             'saleReturn',
-            'duplicateSaleReturn'
+            'duplicateSaleReturn',
+            'sourceSale',
+            'prefilledSaleReturnData'
         ));
     }
 
     private function validateSaleReturnRequest(Request $request): array
     {
         return $request->validate([
+            'source_sale_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',

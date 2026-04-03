@@ -7,6 +7,15 @@
 $(document).ready(function () {
   const $input = $('#searchTransactionsInput');
   const $dropdowns = $('.sale-dropdown');
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+  const salePreviewModalEl = document.getElementById('salePreviewModal');
+  const salePreviewModal = salePreviewModalEl ? bootstrap.Modal.getOrCreateInstance(salePreviewModalEl) : null;
+  const salePreviewFrame = document.getElementById('salePreviewFrame');
+  const salePreviewModalTitle = document.getElementById('salePreviewModalTitle');
+  const saleHistoryModalEl = document.getElementById('saleHistoryModal');
+  const saleHistoryModal = saleHistoryModalEl ? bootstrap.Modal.getOrCreateInstance(saleHistoryModalEl) : null;
+  const saleHistoryModalTitle = document.getElementById('saleHistoryModalTitle');
+  const saleHistoryModalBody = document.getElementById('saleHistoryModalBody');
 
   // Filter variables
   const $periodSelect = $('#salesPeriodSelect');
@@ -24,6 +33,99 @@ $(document).ready(function () {
   // Global search term and column-specific filters
   let globalSearch = '';
   const columnFilters = {};
+
+  function getInvoiceThemeState(saleId) {
+    if (!saleId) return null;
+
+    try {
+      const raw = window.localStorage.getItem(`saleInvoiceTheme:${saleId}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function buildUrlWithTheme(baseUrl, saleId, extraParams = {}) {
+    if (!baseUrl) return '';
+
+    const url = new URL(baseUrl, window.location.origin);
+    const savedTheme = getInvoiceThemeState(saleId);
+
+    if (savedTheme) {
+      if (savedTheme.mode) url.searchParams.set('mode', savedTheme.mode);
+      if (savedTheme.mode === 'thermal' && savedTheme.thermalThemeId) {
+        url.searchParams.set('theme_id', savedTheme.thermalThemeId);
+      } else if (savedTheme.regularThemeId) {
+        url.searchParams.set('theme_id', savedTheme.regularThemeId);
+      }
+      if (savedTheme.accent) url.searchParams.set('accent', savedTheme.accent);
+      if (savedTheme.accent2) url.searchParams.set('accent2', savedTheme.accent2);
+    }
+
+    Object.entries(extraParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value);
+      }
+    });
+
+    return url.toString();
+  }
+
+  function openPreviewModal(url, title) {
+    if (!salePreviewModal || !salePreviewFrame || !url) {
+      if (url) window.open(url, '_blank');
+      return;
+    }
+
+    salePreviewModalTitle.textContent = title || 'Preview';
+    salePreviewFrame.src = url;
+    salePreviewModal.show();
+  }
+
+  function renderHistoryTable(title, headers, rows, summaryHtml = '') {
+    if (!saleHistoryModal || !saleHistoryModalBody) return;
+
+    saleHistoryModalTitle.textContent = title;
+
+    if (!rows.length) {
+      saleHistoryModalBody.innerHTML = `<div class="text-muted">No records found.</div>`;
+      saleHistoryModal.show();
+      return;
+    }
+
+    const thead = headers.map(header => `<th>${header}</th>`).join('');
+    const tbody = rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('');
+
+    saleHistoryModalBody.innerHTML = `
+      ${summaryHtml}
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm history-table mb-0">
+          <thead class="table-light"><tr>${thead}</tr></thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>
+    `;
+
+    saleHistoryModal.show();
+  }
+
+  async function fetchJson(url, options = {}) {
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        ...(options.headers || {}),
+      },
+      ...options,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.message || 'Request failed.');
+    }
+
+    return data;
+  }
 
   function parseDateDMY(value) {
     const parts = (value || '').split('/');
@@ -74,6 +176,10 @@ $(document).ready(function () {
 
     $('table.txn-table tbody tr').each(function () {
       const $row = $(this);
+      if ($row.find('td[colspan]').length) {
+        $row.show();
+        return;
+      }
       const rowText = $row.text().toLowerCase();
 
       let visible = true;
@@ -199,6 +305,7 @@ $(document).ready(function () {
 
   $periodSelect.on('change', function () {
     periodFilter = $(this).val();
+    const iso = (d) => d.toISOString().split('T')[0];
 
     if (periodFilter === 'custom') {
       $customDateRange.show();
@@ -279,34 +386,97 @@ $(document).ready(function () {
   $(document).on('click', '.sale-action-menu .dropdown-item', function (e) {
     e.preventDefault();
     const action = $(this).data('action');
+    const $menu = $(this).closest('.sale-action-menu');
+    const saleId = $menu.data('sale-id');
+    const isCancelled = String($menu.data('is-cancelled')) === '1';
+    const editUrl = $menu.data('edit-url');
+    const previewUrl = buildUrlWithTheme($menu.data('preview-url'), saleId);
+    const pdfUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
+    const printUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
+    const deliveryPreviewUrl = $menu.data('delivery-preview-url');
+    const paymentHistoryUrl = $menu.data('payment-history-url');
+    const bankHistoryUrl = $menu.data('bank-history-url');
+    const convertReturnUrl = $menu.data('convert-return-url');
+    const cancelUrl = $menu.data('cancel-url');
+    const saleNumber = $menu.data('sale-number');
 
     if (action === 'view') {
-      const saleId = $(this).closest('.sale-action-menu').data('sale-id');
-      if (saleId) {
-        window.location.href = `/dashboard/sales/${saleId}/edit`;
+      if (isCancelled) {
+        alert('Cancelled invoice cannot be edited.');
+        return;
+      }
+
+      if (editUrl) {
+        window.location.href = editUrl;
       }
     } else if (action === 'convert-return') {
-      alert('Convert to Return (placeholder).');
+      if (convertReturnUrl) {
+        window.location.href = convertReturnUrl;
+      }
     } else if (action === 'preview-delivery') {
-      alert('Preview Delivery Challan (placeholder).');
+      openPreviewModal(deliveryPreviewUrl, `Delivery Challan - ${saleNumber}`);
     } else if (action === 'payment-history') {
-      alert('Payment History (placeholder).');
+      if (!paymentHistoryUrl) return;
+
+      fetchJson(paymentHistoryUrl)
+        .then((data) => {
+          const rows = (data.payments || []).map((payment, index) => ([
+            index + 1,
+            payment.payment_type,
+            payment.bank_name,
+            `Rs ${Number(payment.amount || 0).toFixed(2)}`,
+            payment.reference,
+            payment.date,
+          ]));
+
+          const summaryHtml = `
+            <div class="mb-3">
+              <div><strong>Invoice:</strong> ${data.bill_number}</div>
+              <div><strong>Received:</strong> Rs ${Number(data.received_amount || 0).toFixed(2)}</div>
+              <div><strong>Balance:</strong> Rs ${Number(data.balance || 0).toFixed(2)}</div>
+            </div>
+          `;
+
+          renderHistoryTable('Payment History', ['#', 'Payment Type', 'Bank', 'Amount', 'Reference', 'Date'], rows, summaryHtml);
+        })
+        .catch((error) => {
+          alert(error.message || 'Unable to load payment history.');
+        });
     } else if (action === 'cancel') {
-      alert('Cancel Invoice (placeholder).');
+      if (isCancelled) {
+        alert('Invoice already cancelled.');
+        return;
+      }
+
+      if (!cancelUrl || !confirm('Are you sure you want to cancel this invoice?')) {
+        return;
+      }
+
+      fetchJson(cancelUrl, {
+        method: 'POST',
+      })
+        .then((data) => {
+          const $row = $menu.closest('tr');
+          $row.addClass('sale-cancelled');
+          $row.find('.status-text').removeClass('text-success text-warning text-danger').text(data.status || 'Cancelled');
+          $menu.attr('data-is-cancelled', '1').data('is-cancelled', 1);
+          alert(data.message || 'Invoice cancelled successfully.');
+        })
+        .catch((error) => {
+          alert(error.message || 'Unable to cancel invoice.');
+        });
     } else if (action === 'delete') {
-      const saleId = $(this).closest('.sale-action-menu').data('sale-id');
       if (!saleId) return;
 
       if (!confirm('Are you sure you want to delete this sale?')) {
         return;
       }
 
-      const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
       fetch(`/dashboard/sales/${saleId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': token,
+          'X-CSRF-TOKEN': csrfToken,
           'Accept': 'application/json',
         },
       })
@@ -327,13 +497,36 @@ $(document).ready(function () {
     } else if (action === 'duplicate') {
       alert('Duplicate (placeholder).');
     } else if (action === 'pdf') {
-      alert('View PDF (placeholder).');
+      if (pdfUrl) {
+        window.open(pdfUrl, '_blank');
+      }
     } else if (action === 'preview') {
-      alert('Preview (placeholder).');
+      if (previewUrl) {
+        window.open(previewUrl, '_blank');
+      }
     } else if (action === 'print') {
-      window.print();
+      if (printUrl) {
+        window.open(printUrl, '_blank');
+      }
     } else if (action === 'history') {
-      alert('View History (placeholder).');
+      if (!bankHistoryUrl) return;
+
+      fetchJson(bankHistoryUrl)
+        .then((data) => {
+          const rows = (data.entries || []).map((entry, index) => ([
+            index + 1,
+            entry.bank_name,
+            entry.type,
+            `Rs ${Number(entry.amount || 0).toFixed(2)}`,
+            entry.reference,
+            entry.date,
+          ]));
+
+          renderHistoryTable('Bank History', ['#', 'Bank', 'Type', 'Amount', 'Reference', 'Date'], rows, `<div class="mb-3"><strong>Invoice:</strong> ${data.bill_number}</div>`);
+        })
+        .catch((error) => {
+          alert(error.message || 'Unable to load bank history.');
+        });
     }
   });
 
@@ -442,11 +635,18 @@ $(document).ready(function () {
 
   // Row-level action buttons
   $(document).on('click', '.row-action-print', function () {
-    // Print the current page or invoice
-    window.print();
+    const $menu = $(this).closest('td').find('.sale-action-menu');
+    const saleId = $menu.data('sale-id');
+    const printUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
+    if (printUrl) {
+      window.open(printUrl, '_blank');
+    }
   });
 
   $(document).on('click', '.row-action-share', function () {
+    const $menu = $(this).closest('td').find('.sale-action-menu');
+    const saleId = $menu.data('sale-id');
+    const previewUrl = buildUrlWithTheme($menu.data('preview-url'), saleId);
     const rowText = $(this).closest('tr').find('td').map(function () {
       return $(this).text().trim();
     }).get().join(' | ');
@@ -455,6 +655,7 @@ $(document).ready(function () {
       navigator.share({
         title: 'Invoice details',
         text: rowText,
+        url: previewUrl || window.location.href,
       }).catch(() => {
         // ignore
       });
