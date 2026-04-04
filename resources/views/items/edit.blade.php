@@ -336,6 +336,15 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
 @endpush
 
 @section('content')
+@php
+    $existingItemImage = $item->image_path ?? $item->image ?? $item->photo ?? null;
+    $existingItemImageUrl = null;
+    if ($existingItemImage) {
+        $existingItemImageUrl = \Illuminate\Support\Str::startsWith($existingItemImage, ['http://', 'https://', '/', 'storage/'])
+            ? $existingItemImage
+            : asset('storage/' . ltrim($existingItemImage, '/'));
+    }
+@endphp
 
 <div class="vy-page">
 
@@ -406,12 +415,16 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
 
         <div class="vy-img-area" onclick="document.getElementById('img-file').click()">
             <div class="vy-img-icon" id="img-thumb">
+                @if($existingItemImageUrl)
+                    <img src="{{ $existingItemImageUrl }}" alt="Item image" style="width:100%;height:100%;object-fit:cover;border-radius:3px;"/>
+                @else
                 <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                 </svg>
+                @endif
             </div>
-            <span>Add Item Image</span>
+            <span id="img-label">{{ $existingItemImageUrl ? 'Change Item Image' : 'Add Item Image' }}</span>
             <input type="file" id="img-file" accept="image/*" style="display:none;" onchange="previewImg(event);markDirty()"/>
         </div>
     </div>
@@ -682,6 +695,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('unit-trigger-btn');
         btn.textContent = 'Edit Unit';
         btn.classList.add('chosen');
+        document.getElementById('base-unit').value = baseUnit;
+        document.getElementById('ws-unit-label').textContent = baseUnit.match(/\(([^)]+)\)/)?.[1] || baseUnit;
+        onUnitChange();
     }
 });
 
@@ -803,7 +819,12 @@ function onUnitChange() {
     document.getElementById('conv-sec-lbl').textContent  = s.split('(')[0].trim().toUpperCase();
     document.getElementById('conversion-row').style.display = 'block';
 }
-function openUnitModal()  { document.getElementById('unit-overlay').classList.add('open'); onUnitChange(); }
+function openUnitModal()  {
+    document.getElementById('base-unit').value = baseUnit || '';
+    document.getElementById('secondary-unit').value = secUnit || '';
+    document.getElementById('unit-overlay').classList.add('open');
+    onUnitChange();
+}
 function closeUnitModal() { document.getElementById('unit-overlay').classList.remove('open'); }
 function saveUnit() {
     const b = document.getElementById('base-unit').value;
@@ -829,8 +850,33 @@ function saveUnit() {
 function previewImg(e) {
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
-    r.onload = ev => { document.getElementById('img-thumb').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:3px;"/>`; };
+    r.onload = ev => {
+        document.getElementById('img-thumb').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:3px;"/>`;
+        document.getElementById('img-label').textContent = 'Change Item Image';
+    };
     r.readAsDataURL(f);
+}
+
+function buildUpdateFormData() {
+    const fd = new FormData();
+    fd.append('_method', 'PUT');
+    fd.append('type', iType);
+    fd.append('name', document.getElementById('item-name').value.trim());
+    fd.append('category', selCats[0] || '');
+    fd.append('unit', baseUnit || '');
+    fd.append('item_code', document.getElementById('item-code').value);
+    fd.append('sale_price', document.getElementById('sale-price').value);
+    fd.append('purchase_price', document.getElementById('purchase-price').value);
+    fd.append('wholesale_price', document.getElementById('wholesale-price').value);
+    fd.append('min_wholesale_qty', document.getElementById('min-ws-qty').value);
+    fd.append('opening_qty', document.getElementById('opening-qty').value);
+    fd.append('at_price', document.getElementById('at-price').value);
+    fd.append('as_of_date', document.getElementById('as-of-date').value);
+    fd.append('min_stock', document.getElementById('min-stock').value);
+    fd.append('location', document.getElementById('location').value);
+    const imageFile = document.getElementById('img-file').files[0];
+    if (imageFile) fd.append('image', imageFile);
+    return fd;
 }
 
 /* ── Discard dialog ── */
@@ -872,25 +918,11 @@ function confirmDelete() {
 function updateItem() {
     const name = document.getElementById('item-name').value.trim();
     if (!name) { document.getElementById('item-name').focus(); showToast('Item name is required.'); return; }
-    const payload = {
-        _method: 'PUT', type: iType, name,
-        category:        selCats[0]||'',
-        unit:            baseUnit,
-        item_code:       document.getElementById('item-code').value,
-        sale_price:      document.getElementById('sale-price').value,
-        purchase_price:  document.getElementById('purchase-price').value,
-        wholesale_price: document.getElementById('wholesale-price').value,
-        min_wholesale_qty: document.getElementById('min-ws-qty').value,
-        opening_qty:     document.getElementById('opening-qty').value,
-        at_price:        document.getElementById('at-price').value,
-        as_of_date:      document.getElementById('as-of-date').value,
-        min_stock:       document.getElementById('min-stock').value,
-        location:        document.getElementById('location').value,
-    };
+    const payload = buildUpdateFormData();
     fetch(`{{ url("dashboard/items") }}/${ITEM_ID}`, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify(payload)
+        headers: { 'Accept':'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: payload
     })
     .then(async r => {
         if (r.ok) { isDirty=false; showToast('Item updated!'); setTimeout(()=>navigateAway(), 1000); }

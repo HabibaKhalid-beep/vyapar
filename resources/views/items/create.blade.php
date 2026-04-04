@@ -62,6 +62,296 @@
 }
 .vy-icon-btn:hover { background: #f3f4f6; }
 
+.vy-settings-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.24);
+    z-index: 2400;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+}
+.vy-settings-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.vy-settings-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 420px;
+    max-width: 96vw;
+    height: 100%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform .22s ease;
+    box-shadow: -14px 0 40px rgba(15, 23, 42, 0.18);
+}
+.vy-settings-overlay.open .vy-settings-drawer {
+    transform: translateX(0);
+}
+.vy-settings-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 22px 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.vy-settings-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+}
+.vy-settings-body {
+    flex: 1;
+    overflow-y: auto;
+}
+.vy-settings-row {
+    border-bottom: 1px solid #f1f5f9;
+}
+.vy-settings-toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px;
+    cursor: pointer;
+    color: #1f2937;
+    font-size: 17px;
+    text-align: left;
+}
+.vy-settings-toggle small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid #94a3b8;
+    border-radius: 50%;
+    color: #64748b;
+    font-size: 12px;
+    margin-left: 6px;
+}
+.vy-settings-chevron {
+    transition: transform .18s ease;
+    color: #94a3b8;
+}
+.vy-settings-row.open .vy-settings-chevron {
+    transform: rotate(90deg);
+}
+.vy-settings-panel {
+    display: none;
+    padding: 0 22px 22px;
+}
+.vy-settings-row.open .vy-settings-panel {
+    display: block;
+}
+.vy-setting-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 0;
+}
+.vy-setting-item label {
+    font-size: 15px;
+    color: #1f2937;
+}
+.vy-setting-item input[type="text"],
+.vy-setting-item input[type="number"],
+.vy-setting-item input[type="month"],
+.vy-setting-item input[type="date"],
+.vy-setting-item select,
+.vy-custom-name {
+    width: 150px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: #374151;
+    background: #fff;
+    outline: none;
+}
+.vy-setting-item input:disabled,
+.vy-setting-item select:disabled,
+.vy-custom-name:disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+}
+.vy-setting-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+.vy-check {
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    border: 2px solid #94a3b8;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    position: relative;
+}
+.vy-check:checked {
+    background: #1976d2;
+    border-color: #1976d2;
+}
+.vy-check:checked::after {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 3px;
+    width: 6px;
+    height: 12px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.vy-custom-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px 14px;
+    align-items: start;
+    padding: 14px 0;
+}
+.vy-custom-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.vy-custom-meta label {
+    font-size: 15px;
+    color: #64748b;
+}
+.vy-custom-print {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #64748b;
+    font-size: 14px;
+}
+.vy-switch {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    display: inline-block;
+}
+.vy-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.vy-switch-slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #e5e7eb;
+    transition: .18s;
+}
+.vy-switch-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,.18);
+    transition: .18s;
+}
+.vy-switch input:checked + .vy-switch-slider {
+    background: #1976d2;
+}
+.vy-switch input:checked + .vy-switch-slider::before {
+    transform: translateX(16px);
+}
+.vy-settings-footer {
+    border-top: 1px solid #e5e7eb;
+    padding: 14px 22px 18px;
+    text-align: center;
+}
+.vy-more-settings {
+    border: none;
+    background: #1976d2;
+    border-radius: 999px;
+    padding: 10px 18px;
+    color: #1976d2;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.vy-more-settings:hover {
+    background: #1565c0;
+}
+.vy-more-settings,
+.vy-more-settings svg {
+    color: #fff;
+}
+.vy-settings-save {
+    margin-top: 14px;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    background: #1976d2;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px 16px;
+    cursor: pointer;
+}
+.vy-settings-save:hover {
+    background: #1565c0;
+}
+.vy-extra-sec {
+    margin: 0 28px 16px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: none;
+}
+.vy-extra-sec.show {
+    display: block;
+}
+.vy-extra-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 14px;
+}
+.vy-extra-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.vy-extra-grid textarea {
+    min-height: 98px;
+    resize: vertical;
+}
+@media (max-width: 768px) {
+    .vy-settings-drawer {
+        width: 100%;
+        max-width: 100%;
+    }
+    .vy-setting-item {
+        grid-template-columns: 1fr;
+    }
+    .vy-extra-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ── Toggle Switch — ALWAYS BLUE ── */
 .vy-toggle {
     position: relative; display: inline-block;
@@ -229,6 +519,36 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
     transition: background .12s;
 }
 .vy-assign-btn:hover { background: #bfdbfe; }
+.vy-custom-inline {
+    padding: 14px 28px 0;
+    display: none;
+}
+.vy-custom-inline.show {
+    display: block;
+}
+.vy-custom-inline-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 240px));
+    gap: 14px;
+}
+.vy-custom-inline-item {
+    display: none;
+}
+.vy-custom-inline-item.show {
+    display: block;
+}
+.vy-custom-inline-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+@media (max-width: 900px) {
+    .vy-custom-inline-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
 
 /* ── Tabs ── */
 .vy-tabs {
@@ -420,7 +740,7 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
             </div>
         </div>
         <div class="vy-header-right">
-            <button class="vy-icon-btn" title="Settings">
+            <button class="vy-icon-btn" title="Settings" onclick="openSettingsDrawer()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -481,7 +801,7 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
                 </svg>
             </div>
             <span>Add Item Image</span>
-            <input type="file" id="img-file" accept="image/*" style="display:none;" onchange="previewImg(event)"/>
+            <input type="file" id="img-file" name="image" accept="image/*" style="display:none;" onchange="previewImg(event)"/>
         </div>
 
     </div>
@@ -491,6 +811,17 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
         <div class="vy-code-wrap">
             <input type="text" id="item-code" placeholder="Item Code"/>
             <button type="button" class="vy-assign-btn" onclick="assignCode()">Assign Code</button>
+        </div>
+    </div>
+
+    <div id="custom-inline-fields" class="vy-custom-inline">
+        <div class="vy-custom-inline-grid">
+            @for ($i = 1; $i <= 6; $i++)
+                <div id="custom-inline-item-{{ $i }}" class="vy-custom-inline-item">
+                    <label id="custom-inline-label-{{ $i }}" class="vy-custom-inline-label">Custom Field {{ $i }}</label>
+                    <input type="text" id="custom-inline-value-{{ $i }}" class="vy-price-input" placeholder="Custom Field {{ $i }}">
+                </div>
+            @endfor
         </div>
     </div>
 
@@ -551,6 +882,58 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
             <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;">
                 <input type="text" id="min-stock"  placeholder="Min Stock To Maintain" class="vy-price-input"/>
                 <input type="text" id="location"   placeholder="Location"              class="vy-price-input"/>
+            </div>
+        </div>
+
+        <div id="mrp-sec" class="vy-extra-sec">
+            <div class="vy-extra-title">MRP / Price</div>
+            <div class="vy-extra-grid">
+                <input type="text" id="mrp-label" value="MRP" class="vy-price-input" placeholder="MRP Label"/>
+                <input type="number" id="mrp-value" class="vy-price-input" placeholder="MRP" min="0" step="0.01"/>
+            </div>
+        </div>
+
+        <div id="barcode-sec" class="vy-extra-sec">
+            <div class="vy-extra-title">Barcode Scan</div>
+            <div class="vy-extra-grid">
+                <input type="text" id="barcode-value" class="vy-price-input" placeholder="Barcode Value"/>
+            </div>
+        </div>
+
+        <div id="description-sec" class="vy-extra-sec">
+            <div class="vy-extra-title">Description</div>
+            <div class="vy-extra-grid">
+                <textarea id="item-description" class="vy-price-input" placeholder="Description"></textarea>
+            </div>
+        </div>
+
+        <div id="serial-sec" class="vy-extra-sec">
+            <div class="vy-extra-title">Serial No. Tracking</div>
+            <div class="vy-extra-grid">
+                <input type="text" id="serial-label" class="vy-price-input" placeholder="Serial No. / IMEI etc."/>
+            </div>
+        </div>
+
+        <div id="batch-sec" class="vy-extra-sec">
+            <div class="vy-extra-title">Batch Tracking</div>
+            <div class="vy-extra-grid">
+                <input type="text" id="batch-label" class="vy-price-input" placeholder="Batch No."/>
+                <input type="month" id="batch-exp-date" class="vy-price-input" placeholder="Exp. Date"/>
+                <input type="date" id="batch-mfg-date" class="vy-price-input" placeholder="Mfg. Date"/>
+                <input type="text" id="model-no" class="vy-price-input" placeholder="Model No."/>
+                <input type="text" id="size-value" class="vy-price-input" placeholder="Size"/>
+            </div>
+        </div>
+
+        <div id="custom-fields-sec" class="vy-extra-sec">
+            <div class="vy-extra-title">Item Custom Fields</div>
+            <div class="vy-extra-grid">
+                <input type="text" id="custom-preview-1" class="vy-price-input" placeholder="Custom Field 1" readonly/>
+                <input type="text" id="custom-preview-2" class="vy-price-input" placeholder="Custom Field 2" readonly/>
+                <input type="text" id="custom-preview-3" class="vy-price-input" placeholder="Custom Field 3" readonly/>
+                <input type="text" id="custom-preview-4" class="vy-price-input" placeholder="Custom Field 4" readonly/>
+                <input type="text" id="custom-preview-5" class="vy-price-input" placeholder="Custom Field 5" readonly/>
+                <input type="text" id="custom-preview-6" class="vy-price-input" placeholder="Custom Field 6" readonly/>
             </div>
         </div>
 
@@ -658,6 +1041,142 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
         </div>
     </div>
 </div>
+
+<div id="settings-overlay" class="vy-settings-overlay" onclick="if(event.target.id==='settings-overlay')closeSettingsDrawer()">
+    <div class="vy-settings-drawer" onclick="event.stopPropagation()">
+        <div class="vy-settings-head">
+            <span class="vy-settings-title">Item Settings</span>
+            <button class="vy-icon-btn" type="button" onclick="closeSettingsDrawer()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="vy-settings-body">
+            <div class="vy-settings-row" id="additional-fields-row">
+                <button class="vy-settings-toggle" type="button" onclick="toggleSettingsSection('additional-fields-row')">
+                    <span>Additional Item Fields</span>
+                    <svg class="vy-settings-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><polyline points="9 6 15 12 9 18"/></svg>
+                </button>
+                <div class="vy-settings-panel">
+                    <div class="vy-setting-item">
+                        <label for="setting-mrp-enabled">MRP</label>
+                        <input type="text" id="setting-mrp-text" value="MRP" oninput="syncSettingsText('setting-mrp-text','mrp-label')">
+                        <input type="checkbox" id="setting-mrp-enabled" class="vy-check" onchange="toggleSettingField('mrp-sec', this.checked)">
+                    </div>
+                    <div class="vy-setting-item">
+                        <label for="setting-mrp-calc">Calculate Sale Price From MRP &amp; Disc.</label>
+                        <span></span>
+                        <input type="checkbox" id="setting-mrp-calc" class="vy-check">
+                    </div>
+                    <div class="vy-setting-item">
+                        <label for="setting-batch-mrp">Use MRP For Batch Tracking</label>
+                        <span></span>
+                        <input type="checkbox" id="setting-batch-mrp" class="vy-check">
+                    </div>
+
+                    <div class="vy-setting-section-title">Serial No. Tracking</div>
+                    <div class="vy-setting-item">
+                        <label for="setting-serial-enabled">Serial No. / IMEI etc.</label>
+                        <input type="text" id="setting-serial-text" value="Serial No." oninput="syncSettingsText('setting-serial-text','serial-label')">
+                        <input type="checkbox" id="setting-serial-enabled" class="vy-check" onchange="toggleSettingField('serial-sec', this.checked)">
+                    </div>
+
+                    <div class="vy-setting-section-title">Batch Tracking</div>
+                    <div class="vy-setting-item">
+                        <label for="setting-batch-enabled">Batch No.</label>
+                        <input type="text" id="setting-batch-text" value="Batch No." oninput="syncSettingsText('setting-batch-text','batch-label')">
+                        <input type="checkbox" id="setting-batch-enabled" class="vy-check" onchange="toggleSettingField('batch-sec', this.checked)">
+                    </div>
+                    <div class="vy-setting-item">
+                        <label for="setting-exp-enabled">Exp Date</label>
+                        <select id="setting-exp-format">
+                            <option value="month">mm/yy</option>
+                            <option value="date">dd/mm/yy</option>
+                        </select>
+                        <input type="checkbox" id="setting-exp-enabled" class="vy-check" onchange="toggleBatchField('batch-exp-date', this.checked)">
+                    </div>
+                    <div class="vy-setting-item">
+                        <label for="setting-mfg-enabled">Mfg Date</label>
+                        <select id="setting-mfg-format">
+                            <option value="date">dd/mm/yy</option>
+                            <option value="month">mm/yy</option>
+                        </select>
+                        <input type="checkbox" id="setting-mfg-enabled" class="vy-check" onchange="toggleBatchField('batch-mfg-date', this.checked)">
+                    </div>
+                    <div class="vy-setting-item">
+                        <label for="setting-model-enabled">Model No.</label>
+                        <input type="text" id="setting-model-text" value="Model No." oninput="syncSettingsText('setting-model-text','model-no')">
+                        <input type="checkbox" id="setting-model-enabled" class="vy-check" onchange="toggleBatchField('model-no', this.checked)">
+                    </div>
+                    <div class="vy-setting-item">
+                        <label for="setting-size-enabled">Size</label>
+                        <input type="text" id="setting-size-text" value="Size" oninput="syncSettingsText('setting-size-text','size-value')">
+                        <input type="checkbox" id="setting-size-enabled" class="vy-check" onchange="toggleBatchField('size-value', this.checked)">
+                    </div>
+                    <button type="button" class="vy-settings-save" onclick="saveAdditionalFieldsSettings()">Save</button>
+                </div>
+            </div>
+
+            <div class="vy-settings-row" id="custom-fields-row">
+                <button class="vy-settings-toggle" type="button" onclick="toggleSettingsSection('custom-fields-row')">
+                    <span>Item Custom Fields <small>i</small></span>
+                    <svg class="vy-settings-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><polyline points="9 6 15 12 9 18"/></svg>
+                </button>
+                <div class="vy-settings-panel">
+                    @for ($i = 1; $i <= 6; $i++)
+                        <div class="vy-custom-item">
+                            <input type="checkbox" id="custom-field-enabled-{{ $i }}" class="vy-check" onchange="syncCustomField({{ $i }})">
+                            <div class="vy-custom-meta">
+                                <label for="custom-field-name-{{ $i }}">Custom Field {{ $i }} <span style="color:#ef4444">*</span></label>
+                                <input type="text" id="custom-field-name-{{ $i }}" class="vy-custom-name" placeholder="{{ [1 => 'E.g: Colour', 2 => 'E.g: Material', 3 => 'E.g: Mfg. Date', 4 => 'E.g: Exp. Date', 5 => 'E.g: Size', 6 => 'E.g: Brand'][$i] ?? 'E.g: Custom Field' }}" oninput="syncCustomField({{ $i }})">
+                                <label class="vy-custom-print">
+                                    <span class="vy-switch">
+                                        <input type="checkbox" id="custom-field-print-{{ $i }}">
+                                        <span class="vy-switch-slider"></span>
+                                    </span>
+                                    <span>Show in print</span>
+                                </label>
+                            </div>
+                        </div>
+                    @endfor
+                    <button type="button" class="vy-settings-save" onclick="saveCustomFieldsSettings()">Save</button>
+                </div>
+            </div>
+
+            <div class="vy-settings-row">
+                <div class="vy-setting-item" style="padding:22px;">
+                    <label for="setting-wholesale-toggle">Wholesale Price</label>
+                    <span></span>
+                    <input type="checkbox" id="setting-wholesale-toggle" class="vy-check" checked onchange="toggleSettingField('wholesale-row', this.checked, true)">
+                </div>
+                <div class="vy-setting-item" style="padding:0 22px 22px;">
+                    <label for="setting-barcode-toggle">Barcode Scan</label>
+                    <span></span>
+                    <input type="checkbox" id="setting-barcode-toggle" class="vy-check" onchange="saveAdditionalFieldsSettings()">
+                </div>
+                <div class="vy-setting-item" style="padding:0 22px 22px;">
+                    <label for="setting-category-toggle">Item Category</label>
+                    <span></span>
+                    <input type="checkbox" id="setting-category-toggle" class="vy-check" checked onchange="toggleCategoryField(this.checked)">
+                </div>
+                <div class="vy-setting-item" style="padding:0 22px 22px;">
+                    <label for="setting-description-toggle">Description</label>
+                    <span></span>
+                    <input type="checkbox" id="setting-description-toggle" class="vy-check" onchange="saveAdditionalFieldsSettings()">
+                </div>
+            </div>
+        </div>
+        <div class="vy-settings-footer">
+            <button type="button" class="vy-more-settings" onclick="closeSettingsDrawer()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/>
+                </svg>
+                More Options
+            </button>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -665,6 +1184,15 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
 <script>
 /* ─── State ─────────────────────────────── */
 let cats=[], selCats=[], baseUnit='', secUnit='';
+let settingsState = {
+    wholesale: true,
+    category: true,
+    mrp: false,
+    barcode: false,
+    description: false,
+    serial: false,
+    batch: false
+};
 
 function loadCats(){
     fetch('{{ route("items.category.list") }}', { headers: { 'Accept': 'application/json' } })
@@ -684,6 +1212,104 @@ function showToast(msg){
     t.innerHTML = `<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>${msg}`;
     document.body.appendChild(t);
     setTimeout(()=>t.remove(), 3000);
+}
+
+function openSettingsDrawer(){
+    document.getElementById('settings-overlay').classList.add('open');
+}
+
+function closeSettingsDrawer(){
+    document.getElementById('settings-overlay').classList.remove('open');
+}
+
+function toggleSettingsSection(id){
+    document.getElementById(id).classList.toggle('open');
+}
+
+function toggleSettingField(id, enabled, isWholesale = false){
+    return;
+}
+
+function toggleCategoryField(enabled){
+    return;
+}
+
+function toggleBatchField(id, enabled){
+    return;
+}
+
+function syncSettingsText(sourceId, targetId){
+    return;
+}
+
+function syncCustomField(index){
+    return;
+}
+
+function saveAdditionalFieldsSettings(silent = false){
+    settingsState.wholesale = !!document.getElementById('setting-wholesale-toggle')?.checked;
+    settingsState.category = !!document.getElementById('setting-category-toggle')?.checked;
+    settingsState.mrp = !!document.getElementById('setting-mrp-enabled')?.checked;
+    settingsState.barcode = !!document.getElementById('setting-barcode-toggle')?.checked;
+    settingsState.description = !!document.getElementById('setting-description-toggle')?.checked;
+    settingsState.serial = !!document.getElementById('setting-serial-enabled')?.checked;
+    settingsState.batch = !!document.getElementById('setting-batch-enabled')?.checked;
+
+    wsOpen = settingsState.wholesale;
+    document.getElementById('wholesale-row').style.display = settingsState.wholesale ? 'block' : 'none';
+    document.getElementById('ws-icon').textContent = settingsState.wholesale ? '−' : '+';
+    document.getElementById('ws-label').textContent = settingsState.wholesale ? 'Remove Wholesale Price' : 'Add Wholesale Price';
+
+    document.getElementById('cat-wrapper').style.display = settingsState.category ? '' : 'none';
+    document.getElementById('mrp-sec').classList.toggle('show', settingsState.mrp);
+    document.getElementById('barcode-sec').classList.toggle('show', settingsState.barcode);
+    document.getElementById('description-sec').classList.toggle('show', settingsState.description);
+    document.getElementById('serial-sec').classList.toggle('show', settingsState.serial);
+    document.getElementById('batch-sec').classList.toggle('show', settingsState.batch);
+
+    document.getElementById('mrp-label').value = document.getElementById('setting-mrp-text')?.value || 'MRP';
+    document.getElementById('mrp-label').placeholder = document.getElementById('setting-mrp-text')?.value || 'MRP';
+    document.getElementById('serial-label').placeholder = document.getElementById('setting-serial-text')?.value || 'Serial No.';
+    document.getElementById('batch-label').placeholder = document.getElementById('setting-batch-text')?.value || 'Batch No.';
+    document.getElementById('model-no').placeholder = document.getElementById('setting-model-text')?.value || 'Model No.';
+    document.getElementById('size-value').placeholder = document.getElementById('setting-size-text')?.value || 'Size';
+
+    document.getElementById('batch-exp-date').style.display = document.getElementById('setting-exp-enabled')?.checked ? '' : 'none';
+    document.getElementById('batch-mfg-date').style.display = document.getElementById('setting-mfg-enabled')?.checked ? '' : 'none';
+    document.getElementById('model-no').style.display = document.getElementById('setting-model-enabled')?.checked ? '' : 'none';
+    document.getElementById('size-value').style.display = document.getElementById('setting-size-enabled')?.checked ? '' : 'none';
+
+    if (!silent) showToast('Additional item fields saved');
+}
+
+function saveCustomFieldsSettings(silent = false){
+    const inlineWrap = document.getElementById('custom-inline-fields');
+    let hasActiveFields = false;
+
+    for (let idx = 1; idx <= 6; idx++) {
+        const rowEnabled = document.getElementById(`custom-field-enabled-${idx}`)?.checked;
+        const rowName = document.getElementById(`custom-field-name-${idx}`)?.value.trim() || `Custom Field ${idx}`;
+        const preview = document.getElementById(`custom-preview-${idx}`);
+        const inlineItem = document.getElementById(`custom-inline-item-${idx}`);
+        const inlineLabel = document.getElementById(`custom-inline-label-${idx}`);
+        const inlineInput = document.getElementById(`custom-inline-value-${idx}`);
+
+        if (preview) {
+            preview.value = rowEnabled ? rowName : '';
+        }
+        if (inlineItem && inlineLabel && inlineInput) {
+            const shouldShow = !!rowEnabled;
+            inlineItem.classList.toggle('show', shouldShow);
+            inlineLabel.textContent = rowName || `Custom Field ${idx}`;
+            inlineInput.placeholder = rowName || `Custom Field ${idx}`;
+            if (!shouldShow) inlineInput.value = '';
+            if (shouldShow) hasActiveFields = true;
+        }
+    }
+
+    document.getElementById('custom-fields-sec').classList.toggle('show', hasActiveFields);
+    if (inlineWrap) inlineWrap.classList.toggle('show', hasActiveFields);
+    if (!silent) showToast('Custom fields saved');
 }
 
 /* ─── Save button state ──────────────────── */
@@ -707,6 +1333,9 @@ function applyTypeUI(isService) {
     document.getElementById('item-code').placeholder = isService ? 'Service Code' : 'Item Code';
     document.getElementById('tab-stock').style.display = isService ? 'none' : '';
     document.getElementById('purchase-sec').style.display = isService ? 'none' : '';
+    document.getElementById('setting-batch-mrp').disabled = isService;
+    document.getElementById('setting-exp-enabled').disabled = isService;
+    document.getElementById('setting-mfg-enabled').disabled = isService;
     if (isService) switchTab('pricing');
 }
 
@@ -805,6 +1434,8 @@ function toggleWholesale(){
     document.getElementById('wholesale-row').style.display = wsOpen ? 'block' : 'none';
     document.getElementById('ws-icon').textContent = wsOpen ? '−' : '+';
     document.getElementById('ws-label').textContent = wsOpen ? 'Remove Wholesale Price' : 'Add Wholesale Price';
+    const wholesaleToggle = document.getElementById('setting-wholesale-toggle');
+    if (wholesaleToggle) wholesaleToggle.checked = wsOpen;
 }
 
 /* ─── Unit Modal ─────────────────────────── */
@@ -887,16 +1518,55 @@ function collectData(){
     return {
         type:           iType,
         name:           document.getElementById('item-name').value.trim(),
-        category:       selCats[0]||'',
+        category:       settingsState.category ? (selCats[0]||'') : '',
         unit:           baseUnit,
         sale_price:     document.getElementById('sale-price').value,
         purchase_price: document.getElementById('purchase-price').value,
         opening_qty:    document.getElementById('opening-qty').value,
     };
 }
+function buildItemFormData(){
+    const d = collectData();
+    const fd = new FormData();
+    const getVal = (id) => document.getElementById(id)?.value ?? '';
+    Object.entries(d).forEach(([key, value]) => fd.append(key, value ?? ''));
+    fd.append('item_code', getVal('item-code'));
+    fd.append('wholesale_price', getVal('wholesale-price'));
+    fd.append('min_wholesale_qty', getVal('min-wholesale-qty'));
+    fd.append('at_price', getVal('at-price'));
+    fd.append('as_of_date', getVal('as-of-date'));
+    fd.append('min_stock', getVal('min-stock'));
+    fd.append('location', getVal('location'));
+    fd.append('mrp_label', getVal('mrp-label'));
+    fd.append('mrp_value', getVal('mrp-value'));
+    fd.append('barcode_value', getVal('barcode-value'));
+    fd.append('description', getVal('item-description'));
+    fd.append('serial_label', getVal('serial-label'));
+    fd.append('batch_label', getVal('batch-label'));
+    fd.append('batch_exp_date', getVal('batch-exp-date'));
+    fd.append('batch_mfg_date', getVal('batch-mfg-date'));
+    fd.append('model_no', getVal('model-no'));
+    fd.append('size_value', getVal('size-value'));
+    fd.append('mrp_enabled', document.getElementById('setting-mrp-enabled')?.checked ? '1' : '0');
+    fd.append('barcode_enabled', document.getElementById('setting-barcode-toggle')?.checked ? '1' : '0');
+    fd.append('description_enabled', document.getElementById('setting-description-toggle')?.checked ? '1' : '0');
+    fd.append('serial_enabled', document.getElementById('setting-serial-enabled')?.checked ? '1' : '0');
+    fd.append('batch_enabled', document.getElementById('setting-batch-enabled')?.checked ? '1' : '0');
+    for (let index = 1; index <= 6; index++) {
+        fd.append(`custom_field_${index}_enabled`, document.getElementById(`custom-field-enabled-${index}`)?.checked ? '1' : '0');
+        fd.append(`custom_field_${index}_name`, getVal(`custom-field-name-${index}`));
+        fd.append(`custom_field_${index}_print`, document.getElementById(`custom-field-print-${index}`)?.checked ? '1' : '0');
+        fd.append(`custom_field_${index}_value`, getVal(`custom-inline-value-${index}`));
+    }
+    const imageFile = document.getElementById('img-file').files[0];
+    if (imageFile) fd.append('image', imageFile);
+    return fd;
+}
 function resetForm(){
     ['item-name','item-code','sale-price','purchase-price','wholesale-price',
-     'opening-qty','at-price','min-stock','location'].forEach(id=>{
+     'opening-qty','at-price','min-stock','location','mrp-label','mrp-value',
+     'barcode-value','item-description','serial-label','batch-label','batch-exp-date',
+     'batch-mfg-date','model-no','size-value','min-wholesale-qty'].forEach(id=>{
         const el=document.getElementById(id); if(el) el.value='';
     });
     selCats=[]; baseUnit=''; secUnit=''; wsOpen=false;
@@ -914,50 +1584,89 @@ function resetForm(){
     document.getElementById('type-toggle').checked=false;
     iType='product';
     applyTypeUI(false);
+    settingsState = { wholesale: true, category: true, mrp: false, barcode: false, description: false, serial: false, batch: false };
+    document.getElementById('setting-wholesale-toggle').checked = true;
+    document.getElementById('setting-category-toggle').checked = true;
+    document.getElementById('setting-mrp-enabled').checked = false;
+    ['setting-barcode-toggle','setting-description-toggle','setting-serial-enabled','setting-batch-enabled','setting-exp-enabled','setting-mfg-enabled','setting-model-enabled','setting-size-enabled'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = false;
+    });
+    for (let index = 1; index <= 6; index++) {
+        const enabled = document.getElementById(`custom-field-enabled-${index}`);
+        const name = document.getElementById(`custom-field-name-${index}`);
+        const print = document.getElementById(`custom-field-print-${index}`);
+        const preview = document.getElementById(`custom-preview-${index}`);
+        const inlineItem = document.getElementById(`custom-inline-item-${index}`);
+        const inlineInput = document.getElementById(`custom-inline-value-${index}`);
+        if (enabled) enabled.checked = false;
+        if (name) name.value = '';
+        if (print) print.checked = false;
+        if (preview) preview.value = '';
+        if (inlineInput) inlineInput.value = '';
+        if (inlineItem) inlineItem.classList.remove('show');
+    }
+    document.getElementById('custom-fields-sec').classList.remove('show');
+    document.getElementById('custom-inline-fields').classList.remove('show');
+    saveAdditionalFieldsSettings(true);
+    saveCustomFieldsSettings(true);
     switchTab('pricing'); renderCats(); updateSaveBtn();
 }
 
 /* ─── SAVE ITEM (go to list after) ──────── */
 function saveItem(){
     if(!validate()) return;
-    const d = collectData();
-    fetch('{{ route("items.store") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify(d)
-    })
-    .then(res => {
-        if(!res.ok) throw new Error('Server error: ' + res.status);
-        return res.json();
-    })
-    .then(data => {
-        if(data.redirect) window.location.href = data.redirect;
-        else showToast('Saved!');
-    })
-    .catch(err => {
-        showToast('Error: ' + err.message);
-        console.error(err);
-    });
+    const formData = buildItemFormData();
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ route("items.store") }}';
+    form.enctype = 'multipart/form-data';
+    form.style.display = 'none';
+
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = '_token';
+    csrf.value = document.querySelector('meta[name="csrf-token"]').content;
+    form.appendChild(csrf);
+
+    for (const [key, value] of formData.entries()) {
+        if (key === 'image') continue;
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value ?? '';
+        form.appendChild(input);
+    }
+
+    const imageInput = document.getElementById('img-file');
+    if (imageInput && imageInput.files && imageInput.files.length) {
+        form.appendChild(imageInput);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
 }
 
 /* ─── SAVE & NEW (stay on form) ─────────── */
 function saveAndNew(){
     if(!validate()) return;
-    const d = collectData();
+    const formData = buildItemFormData();
     fetch('{{ route("items.store") }}', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify(d)
+        body: formData
     })
-    .then(res => {
-        if(!res.ok) throw new Error('Server error: ' + res.status);
-        return res.json();
+    .then(async res => {
+        const raw = await res.text();
+        let data = {};
+        try { data = raw ? JSON.parse(raw) : {}; } catch (e) {}
+        if(!res.ok) throw new Error(data.message || ('Server error: ' + res.status));
+        return data;
     })
     .then(() => {
         resetForm();
@@ -979,7 +1688,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const asOf = document.getElementById('as-of-date');
     if(asOf) asOf.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     updateSaveBtn();
-loadCats();
+    loadCats();
+    saveAdditionalFieldsSettings(true);
+    saveCustomFieldsSettings(true);
 
     // Auto-switch to service tab if ?type=service in URL
     const params = new URLSearchParams(window.location.search);

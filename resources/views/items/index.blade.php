@@ -64,6 +64,65 @@
 }
 .del-btn-no:hover { background: #3a7bbf; }
 
+/* BULK ACTION MODAL */
+.bulk-overlay {
+    position: fixed; inset: 0; z-index: 2100;
+    background: rgba(0,0,0,.45);
+    display: none; align-items: center; justify-content: center;
+}
+.bulk-overlay.open { display: flex; }
+.bulk-modal {
+    background: #fff; border-radius: 10px;
+    box-shadow: 0 12px 42px rgba(0,0,0,.22);
+    width: 760px; max-width: 96vw;
+    animation: popIn .15s ease-out;
+}
+.bulk-modal-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.bulk-modal-title {
+    font-size: 17px; font-weight: 700; color: #111827;
+}
+.bulk-modal-close {
+    background: none; border: none; cursor: pointer;
+    color: #6b7280; font-size: 18px; line-height: 1;
+}
+.bulk-modal-search {
+    width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px;
+    padding: 10px 12px; font-size: 13px; color: #374151; outline: none;
+}
+.bulk-modal-search:focus { border-color: #2563eb; }
+.bulk-info-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 24px; background: #eff6ff; color: #2563eb;
+    font-size: 13px; font-weight: 500; border-top: 1px solid #dbeafe;
+}
+.bulk-empty {
+    text-align: center; padding: 46px 20px; color: #9ca3af; font-size: 14px;
+}
+.bulk-table th, .bulk-table td { border-bottom: 1px solid #f3f4f6; }
+.bulk-table tbody tr:last-child td { border-bottom: none; }
+
+/* BULK UPDATE MODAL STYLES */
+.bulk-edit-field {
+    border: 1.5px solid #d1d5db; border-radius: 6px;
+    padding: 8px 10px; font-size: 13px; color: #374151;
+    outline: none; background: #fff; transition: border-color .15s;
+    width: 100%;
+}
+.bulk-edit-field:focus { border-color: #2563eb; }
+.bulk-edit-field::placeholder { color: #9ca3af; }
+.bulk-row-editor {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-bottom: 1px solid #f3f4f6;
+}
+.bulk-row-editor input { flex: 1; }
+.bulk-col-item { flex: 2; }
+.bulk-col-price { flex: 1; }
+.bulk-col-unit { flex: 1; }
+
 /* ── TOP TABS ── */
 .il-tabs {
     display: flex; border-bottom: 1px solid #e5e7eb;
@@ -634,8 +693,6 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
                     <div class="il-bulk-dd" id="bulk-dd">
                         <div class="il-bulk-dd-item" onclick="bulkAction('bulk-inactive')">Bulk Inactive</div>
                         <div class="il-bulk-dd-item" onclick="bulkAction('bulk-active')">Bulk Active</div>
-                        <div class="il-bulk-dd-item" onclick="bulkAction('bulk-assign-code')">Bulk Assign Code</div>
-                        <div class="il-bulk-dd-item" onclick="bulkAction('assign-units')">Assign Units</div>
                         <div class="il-bulk-dd-item" onclick="bulkAction('bulk-update')">Bulk Update Items</div>
                     </div>
                 </div>
@@ -903,6 +960,66 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
     </div>
 </div>
 
+{{-- BULK ACTION MODAL --}}
+<div class="bulk-overlay" id="bulk-overlay" onclick="if(event.target===this)closeBulkModal()">
+    <div class="bulk-modal" onclick="event.stopPropagation()">
+        <div class="bulk-modal-hdr">
+            <span class="bulk-modal-title" id="bulk-modal-title">Bulk Action</span>
+            <button class="bulk-modal-close" onclick="closeBulkModal()">✕</button>
+        </div>
+
+        <!-- STATUS/INACTIVE MODAL VIEW -->
+        <div id="bulk-status-view" style="display:none;">
+            <div style="padding:14px 24px;">
+                <input
+                    class="bulk-modal-search"
+                    id="bulk-search"
+                    placeholder="Search items..."
+                    oninput="renderBulkRows()"
+                />
+            </div>
+            <div style="max-height:320px;overflow-y:auto;border-top:1px solid #f3f4f6;">
+                <table class="bulk-table" style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th style="width:44px;padding:10px 16px;">
+                                <input type="checkbox" id="bulk-check-all" style="width:15px;height:15px;accent-color:#2563eb;" onchange="toggleAllBulk(this)">
+                            </th>
+                            <th style="padding:10px 16px;font-size:11px;color:#9ca3af;text-align:left;font-weight:700;letter-spacing:.06em;">ITEM</th>
+                            <th style="width:120px;padding:10px 16px;font-size:11px;color:#9ca3af;text-align:right;font-weight:700;letter-spacing:.06em;">QUANTITY</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bulk-tbody"></tbody>
+                </table>
+            </div>
+            <div class="bulk-info-bar">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
+                <span id="bulk-info-text">Showing only active items</span>
+            </div>
+        </div>
+
+        <!-- BULK UPDATE MODAL VIEW -->
+        <div id="bulk-update-view" style="display:none;">
+            <div style="padding:14px 24px;border-bottom:1px solid #f3f4f6;">
+                <input
+                    class="bulk-modal-search"
+                    id="bulk-update-search"
+                    placeholder="Search items..."
+                    oninput="renderBulkEditRows()"
+                />
+            </div>
+            <div style="max-height:400px;overflow-y:auto;">
+                <div id="bulk-edit-tbody"></div>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid #f3f4f6;">
+            <button onclick="closeBulkModal()" style="background:#f3f4f6;border:none;border-radius:7px;padding:10px 24px;font-size:13px;font-weight:600;cursor:pointer;color:#374151;">Cancel</button>
+            <button id="bulk-action-btn" style="background:#e53e3e;color:#fff;border:none;border-radius:7px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;" onclick="applyBulkAction()">Apply</button>
+        </div>
+    </div>
+</div>
+
 {{-- STOCK ADJUSTMENT MODAL --}}
 <div id="adj-overlay" onclick="if(event.target.id==='adj-overlay')closeAdjModal()">
     <div id="adj-modal" onclick="event.stopPropagation()">
@@ -970,6 +1087,9 @@ let allItems     = @json($products ?? []);
 let transactions = {};
 let selectedIdx  = null;
 let sortAsc      = true;
+let bulkModalType = null;
+const BULK_STATUS_KEY = 'vyapar-product-inactive-items';
+let inactiveItemIds = loadInactiveItemIds();
 
 /* ── Sort state for transactions table ── */
 let txnSortCol = null;
@@ -1013,8 +1133,8 @@ function updateSortArrows(col, asc) {
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
-    renderList(allItems);
-    if (allItems.length > 0) selectItem(0);
+    renderList();
+    ensureValidSelection();
     const d = new Date();
     const adjDate = document.getElementById('adj-date');
     if (adjDate) adjDate.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -1055,38 +1175,38 @@ function toggleSearch() {
     if (w.classList.contains('open')) document.getElementById('search-input').focus();
 }
 function filterItems() {
-    const q = document.getElementById('search-input').value.toLowerCase();
-    renderList(allItems.filter(i => i.name.toLowerCase().includes(q)));
+    renderList();
 }
 
 /* ── Render list ── */
-function renderList(items) {
+function renderList(items = getFilteredItems()) {
     const c = document.getElementById('items-list');
     if (!c) return;
     if (!items.length) {
         c.innerHTML = `<div style="padding:32px 16px;text-align:center;color:#9ca3af;font-size:13px;">No items found</div>`;
+        syncSelectionWithVisibleItems(items);
         return;
     }
-    c.innerHTML = items.map((item, i) => `
-        <div class="il-item-row ${selectedIdx === i ? 'active' : ''}" onclick="selectItem(${i})">
+    c.innerHTML = items.map(({ item, index }) => `
+        <div class="il-item-row ${selectedIdx === index ? 'active' : ''}" onclick="selectItem(${index})">
             <span class="il-item-dot"></span>
             <span class="il-item-name">${esc(item.name)}</span>
-            <span class="il-item-qty">${getTotalQty(i)}</span>
+            <span class="il-item-qty">${getTotalQty(index)}</span>
             <div class="il-item-more-wrap" onclick="event.stopPropagation()">
-                <button class="il-item-more-btn" onclick="toggleItemDD(event,${i})" title="Options">
+                <button class="il-item-more-btn" onclick="toggleItemDD(event,${index})" title="Options">
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
                     </svg>
                 </button>
-                <div class="il-item-dd" id="item-dd-${i}">
-                    <div class="il-item-dd-item" onclick="editItemNav(${i})">View/Edit</div>
-                    <div class="il-item-dd-item danger" onclick="deleteItem(${i})">Delete</div>
+                <div class="il-item-dd" id="item-dd-${index}">
+                    <div class="il-item-dd-item" onclick="editItemNav(${index})">View/Edit</div>
+                    <div class="il-item-dd-item danger" onclick="deleteItem(${index})">Delete</div>
                 </div>
             </div>
         </div>
     `).join('');
+    syncSelectionWithVisibleItems(items);
 }
-
 function toggleItemDD(e, i) {
     e.stopPropagation();
     document.querySelectorAll('.il-item-dd.open').forEach(d => d.classList.remove('open'));
@@ -1130,12 +1250,16 @@ function confirmDelete() {
     })
     .then(async r => {
         if (r.ok) {
+            const deletedId = getItemId(item, i);
             allItems.splice(i, 1);
+            inactiveItemIds = inactiveItemIds.filter(id => id !== deletedId);
+            saveInactiveItemIds();
             delete transactions[i];
             selectedIdx = null;
             document.getElementById('no-selection').style.display = 'flex';
             document.getElementById('item-detail').style.display  = 'none';
-            renderList(allItems);
+            renderList();
+            ensureValidSelection();
             showToast('Item deleted successfully');
         } else {
             // Show the actual error message from server if available
@@ -1154,11 +1278,81 @@ function getTotalQty(idx) {
     return parseFloat(allItems[idx]?.stock_qty ?? allItems[idx]?.opening_qty ?? 0);
 }
 
+function getItemId(item, idx) {
+    return String(item?.id ?? `idx-${idx}`);
+}
+
+function loadInactiveItemIds() {
+    try {
+        return JSON.parse(localStorage.getItem(BULK_STATUS_KEY) || '[]');
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveInactiveItemIds() {
+    localStorage.setItem(BULK_STATUS_KEY, JSON.stringify(inactiveItemIds));
+}
+
+function isItemInactive(item, idx) {
+    return inactiveItemIds.includes(getItemId(item, idx));
+}
+
+function setItemInactive(item, idx, inactive) {
+    const itemId = getItemId(item, idx);
+    inactiveItemIds = inactive
+        ? Array.from(new Set([...inactiveItemIds, itemId]))
+        : inactiveItemIds.filter(id => id !== itemId);
+    saveInactiveItemIds();
+}
+
+function getFilteredItems() {
+    const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const showActive = document.getElementById('filter-active')?.checked ?? true;
+    const showInactive = document.getElementById('filter-inactive')?.checked ?? false;
+
+    return allItems
+        .map((item, index) => ({ item, index }))
+        .filter(({ item, index }) => {
+            const inactive = isItemInactive(item, index);
+            const nameMatch = (item.name || '').toLowerCase().includes(q);
+            const statusMatch = (!inactive && showActive) || (inactive && showInactive);
+            return nameMatch && statusMatch;
+        });
+}
+
+function syncSelectionWithVisibleItems(visibleItems) {
+    if (visibleItems.some(({ index }) => index === selectedIdx)) return;
+
+    if (!visibleItems.length) {
+        selectedIdx = null;
+        document.getElementById('no-selection').style.display = 'flex';
+        document.getElementById('item-detail').style.display  = 'none';
+        return;
+    }
+
+    selectItem(visibleItems[0].index);
+}
+
+function ensureValidSelection() {
+    const visibleItems = getFilteredItems();
+    if (!visibleItems.length) {
+        selectedIdx = null;
+        document.getElementById('no-selection').style.display = 'flex';
+        document.getElementById('item-detail').style.display  = 'none';
+        return;
+    }
+
+    if (selectedIdx === null || !visibleItems.some(({ index }) => index === selectedIdx)) {
+        selectItem(visibleItems[0].index);
+    }
+}
+
 /* ── Select item ── */
 function selectItem(idx) {
     selectedIdx = idx;
     const item = allItems[idx];
-    document.querySelectorAll('.il-item-row').forEach((r, i) => r.classList.toggle('active', i === idx));
+    renderList();
     document.getElementById('no-selection').style.display = 'none';
     const detail = document.getElementById('item-detail');
     detail.style.display = 'flex';
@@ -1222,7 +1416,14 @@ function renderTxns(idx) {
                 <div class="il-row-menu-wrap">
                     <button class="il-row-menu-btn" onclick="toggleRowMenu(event,'row-menu-${idx}-${ti}')">⋮</button>
                     <div class="il-row-menu" id="row-menu-${idx}-${ti}">
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'edit')">View/Edit</div>
                         <div class="il-row-menu-item danger" onclick="deleteTxn(${idx},${ti})">Delete</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'duplicate')">Duplicate</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'pdf')">Open PDF</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'preview')">Preview</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'print')">Print</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'payment')">Receive Payment</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'history')">View History</div>
                     </div>
                 </div>
             </td>
@@ -1333,24 +1534,33 @@ function renderFilteredTxns(txns) {
     const idx = selectedIdx;
     const tbody = document.getElementById('txn-tbody');
     if (!txns.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions found</td></tr>`; return; }
-    tbody.innerHTML = txns.map((t, ti) => `
-        <tr style="cursor:pointer;user-select:none;" onclick="selectTxnRow(${idx},${ti})">
+    tbody.innerHTML = txns.map((t, ti) => {
+        const originalTi = getTransactionIndex(idx, t);
+        return `
+        <tr style="cursor:pointer;user-select:none;" onclick="selectTxnRow(${idx},${originalTi})">
             <td class="td-dot"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#111111;"></span></td>
-            <td>${esc(t.type)}</td><td></td><td>${esc(t.details||'')}</td><td>${esc(t.date)}</td>
+            <td>${esc(t.type)}</td><td></td><td>${esc(t.details || '')}</td><td>${esc(t.date)}</td>
             <td>${t.qty} ${esc(t.unit)}</td>
-            <td class="td-price">${t.price?'Rs '+parseFloat(t.price).toFixed(2):'—'}</td>
+            <td class="td-price">${t.price ? 'Rs ' + parseFloat(t.price).toFixed(2) : '—'}</td>
             <td class="td-status">—</td>
             <td class="td-actions">
                 <div class="il-row-menu-wrap">
                     <button class="il-row-menu-btn" onclick="toggleRowMenu(event,'row-menu-f-${ti}')">⋮</button>
                     <div class="il-row-menu" id="row-menu-f-${ti}">
-                        <div class="il-row-menu-item" onclick="openAdjModalForTxn(${idx},${ti})">View/Edit</div>
-                        <div class="il-row-menu-item danger" onclick="deleteTxn(${idx},${ti})">Delete</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${originalTi},'edit')">View/Edit</div>
+                        <div class="il-row-menu-item danger" onclick="deleteTxn(${idx},${originalTi})">Delete</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${originalTi},'duplicate')">Duplicate</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${originalTi},'pdf')">Open PDF</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${originalTi},'preview')">Preview</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${originalTi},'print')">Print</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${originalTi},'payment')">Receive Payment</div>
+                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${originalTi},'history')">View History</div>
                     </div>
                 </div>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 /* ── Sort ── */
@@ -1383,32 +1593,422 @@ function toggleRowMenu(e, id) {
 }
 function deleteTxn(idx, ti) {
     if (!confirm('Delete this transaction?')) return;
-    transactions[idx].splice(ti, 1); selectItem(idx); renderList(allItems); showToast('Transaction deleted');
+
+    const txn = getTxn(idx, ti);
+    if (!txn) {
+        showToast('Transaction not found.');
+        return;
+    }
+
+    const links = getTxnActionLinks(txn);
+    if (!links.delete) {
+        showToast('Delete is not available for this transaction.');
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (!csrfToken) {
+        showToast('CSRF token missing.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('_method', 'DELETE');
+
+    fetch(links.delete, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to delete transaction.');
+        }
+
+        transactions[idx].splice(ti, 1);
+        selectItem(idx);
+        renderList();
+        showToast(data.message || 'Transaction deleted successfully.');
+    })
+    .catch(error => {
+        showToast(error.message || 'Failed to delete transaction.');
+    });
 }
-function viewHistory(idx, ti) { alert('View History for transaction ' + (ti+1)); }
+function getTransactionIndex(idx, txn) {
+    return (transactions[idx] || []).findIndex(t =>
+        String(t.id ?? '') === String(txn.id ?? '') &&
+        String(t.invoice ?? '') === String(txn.invoice ?? '') &&
+        String(t.date ?? '') === String(txn.date ?? '') &&
+        String(t.qty ?? '') === String(txn.qty ?? '')
+    );
+}
+function getTxn(idx, ti) {
+    return transactions[idx]?.[ti] || null;
+}
+function getTxnActionLinks(txn) {
+    if (!txn || !txn.id) return {};
+    const base = `{{ url('dashboard') }}`;
+    const type = String(txn.raw_type || '').toLowerCase();
+    const id = encodeURIComponent(txn.id);
+    const links = {
+        edit: null,
+        delete: null,
+        duplicate: null,
+        pdf: null,
+        preview: null,
+        print: null,
+        payment: null,
+        history: null
+    };
+    if (type === 'invoice' || type === 'pos') {
+        links.edit = `${base}/sales/${id}/edit`;
+        links.delete = `${base}/sales/${id}`;
+        links.duplicate = `${base}/sales/${id}/duplicate`;
+        links.pdf = `${base}/sales/${id}/invoice-pdf`;
+        links.preview = `${base}/sales/${id}/invoice-preview`;
+        links.print = `${base}/sales/${id}/invoice-preview`;
+        links.payment = `${base}/payment-in?sale_id=${id}`;
+        links.history = `${base}/sales/${id}/payment-history`;
+        return links;
+    }
+    if (type === 'estimate') {
+        links.edit = `${base}/estimates/${id}/edit`;
+        links.delete = `${base}/estimates/${id}`;
+        links.duplicate = `${base}/estimates/${id}/convert-to-sale`;
+        links.pdf = `${base}/estimates/${id}/pdf`;
+        links.preview = `${base}/estimates/${id}/preview`;
+        links.print = `${base}/estimates/${id}/print`;
+        return links;
+    }
+    if (type === 'proforma') {
+        links.edit = `${base}/proforma-invoice/${id}/edit`;
+        links.delete = `${base}/proforma-invoice/${id}`;
+        links.duplicate = `${base}/proforma-invoice/${id}/convert-to-sale`;
+        links.pdf = `${base}/proforma-invoice/${id}/pdf`;
+        links.preview = `${base}/proforma-invoice/${id}/preview`;
+        links.print = `${base}/proforma-invoice/${id}/print`;
+        return links;
+    }
+    if (type === 'sale_return') {
+        links.edit = `${base}/sale-return/${id}/edit`;
+        links.delete = `${base}/sale-return/${id}`;
+        links.duplicate = `${base}/sale-return/${id}/duplicate`;
+        links.pdf = `${base}/sale-return/${id}/pdf`;
+        links.preview = `${base}/sale-return/${id}/preview`;
+        links.print = `${base}/sale-return/${id}/print`;
+        return links;
+    }
+    if (type === 'delivery_challan') {
+        links.edit = `${base}/delivery-challan/${id}/edit`;
+        links.delete = `${base}/delivery-challan/${id}`;
+        links.duplicate = `${base}/delivery-challans/${id}/convert-to-sale`;
+        links.pdf = `${base}/delivery-challan/${id}/pdf`;
+        links.preview = `${base}/delivery-challan/${id}/preview`;
+        links.print = `${base}/delivery-challan/${id}/print`;
+        return links;
+    }
+    if (type === 'sale_order') {
+        links.duplicate = `${base}/sale-orders/${id}/convert-to-sale`;
+        links.pdf = `${base}/sale-orders/${id}/pdf`;
+        links.preview = `${base}/sale-orders/${id}/preview`;
+        links.print = `${base}/sale-orders/${id}/print`;
+        return links;
+    }
+    return links;
+}
+function openUrlInNewTab(url) {
+    const win = window.open(url, '_blank', 'noopener');
+    if (!win) showToast('Please allow popups for this action.');
+}
+function openPrintView(url) {
+    const existingFrame = document.getElementById('txn-print-frame');
+    if (existingFrame) existingFrame.remove();
+
+    const frame = document.createElement('iframe');
+    frame.id = 'txn-print-frame';
+    frame.style.position = 'fixed';
+    frame.style.right = '0';
+    frame.style.bottom = '0';
+    frame.style.width = '0';
+    frame.style.height = '0';
+    frame.style.border = '0';
+    frame.style.visibility = 'hidden';
+
+    frame.onload = () => {
+        const doPrint = () => {
+            try {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+            } catch (error) {
+                showToast('Unable to open print dialog.');
+            }
+        };
+
+        setTimeout(doPrint, 400);
+        setTimeout(doPrint, 1200);
+    };
+
+    frame.src = url;
+    document.body.appendChild(frame);
+}
+function openTxnAction(idx, ti, action) {
+    const txn = getTxn(idx, ti);
+    if (!txn) {
+        showToast('Transaction not found.');
+        return;
+    }
+    document.querySelectorAll('.il-row-menu.open').forEach(menu => menu.classList.remove('open'));
+    const links = getTxnActionLinks(txn);
+    const url = links[action];
+    if (!url) {
+        showToast('This action is not available for this transaction.');
+        return;
+    }
+    if (action === 'edit' || action === 'payment' || action === 'history' || action === 'duplicate') {
+        window.location.href = url;
+        return;
+    }
+    if (action === 'pdf') {
+        window.location.href = url;
+        return;
+    }
+    if (action === 'print') {
+        openPrintView(url);
+        return;
+    }
+    openUrlInNewTab(url);
+}
+function viewHistory(idx, ti) {
+    openTxnAction(idx, ti, 'history');
+}
 
 /* ── Dropdowns ── */
 function toggleAddDD(e) { e.stopPropagation(); document.getElementById('add-dd').classList.toggle('open'); closeBulkDD(); }
 function closeAddDD()   { document.getElementById('add-dd')?.classList.remove('open'); }
 function toggleBulkDD(e) { e.stopPropagation(); document.getElementById('bulk-dd').classList.toggle('open'); closeAddDD(); }
 function closeBulkDD()   { document.getElementById('bulk-dd')?.classList.remove('open'); }
-function bulkAction(action) { closeBulkDD(); alert('Bulk action: ' + action); }
+const bulkConfig = {
+    'bulk-inactive': { title: 'Bulk Inactive', btnLabel: 'Mark as Inactive', info: 'Showing only active items' },
+    'bulk-active': { title: 'Bulk Active', btnLabel: 'Mark as Active', info: 'Showing only inactive items' },
+    'bulk-update': { title: 'Bulk Update Items', btnLabel: 'Save Changes', info: '' }
+};
+function bulkAction(action) {
+    closeBulkDD();
+    if (bulkConfig[action]) {
+        openBulkModal(action);
+        return;
+    }
+    alert('Bulk action: ' + action);
+}
 function toggleFilterDD(e) { e.stopPropagation(); document.getElementById('filter-dd').classList.toggle('open'); }
 function closeFilterDD()   { document.getElementById('filter-dd')?.classList.remove('open'); }
-function applyFilter()     { renderList(allItems); }
+function applyFilter()     { renderList(); }
 function clearFilter()     {
     document.getElementById('filter-active').checked   = true;
     document.getElementById('filter-inactive').checked = false;
-    renderList(allItems);
+    renderList();
 }
 function sortByQty() {
+    const arrow = document.getElementById('qty-sort-arrow');
     sortAsc = !sortAsc;
    allItems.sort((a, b) => sortAsc ? parseFloat(a.stock_qty||0)-parseFloat(b.stock_qty||0) : parseFloat(b.stock_qty||0)-parseFloat(a.stock_qty||0));
     if (arrow) arrow.textContent = sortAsc ? '↑' : '↓';
-    renderList(allItems);
+    renderList();
 }
 function goToAddItem() { window.location.href = '{{ route('items.create') }}'; }
 
+function getBulkItems() {
+    return allItems
+        .map((item, index) => ({ item, index }))
+        .filter(({ item, index }) => {
+            if (bulkModalType === 'bulk-inactive') return !isItemInactive(item, index);
+            if (bulkModalType === 'bulk-active') return isItemInactive(item, index);
+            return true;
+        });
+}
+
+function openBulkModal(type) {
+    bulkModalType = type;
+    const cfg = bulkConfig[type] || { title: 'Bulk Action', btnLabel: 'Apply', info: 'Showing all items' };
+    document.getElementById('bulk-modal-title').textContent = cfg.title;
+    document.getElementById('bulk-action-btn').textContent  = cfg.btnLabel;
+
+    // Show appropriate view
+    const statusView = document.getElementById('bulk-status-view');
+    const updateView = document.getElementById('bulk-update-view');
+
+    if (type === 'bulk-update') {
+        statusView.style.display = 'none';
+        updateView.style.display = 'block';
+        renderBulkEditRows();
+    } else {
+        statusView.style.display = 'block';
+        updateView.style.display = 'none';
+        document.getElementById('bulk-info-text').textContent = cfg.info;
+        document.getElementById('bulk-search').value = '';
+        document.getElementById('bulk-check-all').checked = false;
+        renderBulkRows();
+    }
+
+    document.getElementById('bulk-overlay').classList.add('open');
+}
+
+function closeBulkModal() {
+    document.getElementById('bulk-overlay').classList.remove('open');
+    bulkModalType = null;
+}
+
+function renderBulkRows() {
+    const tbody = document.getElementById('bulk-tbody');
+    if (!tbody) return;
+
+    const search = (document.getElementById('bulk-search')?.value || '').toLowerCase();
+    const rows = getBulkItems().filter(({ item }) => (item.name || '').toLowerCase().includes(search));
+
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="3" class="bulk-empty">No items to show</td></tr>`;
+        document.getElementById('bulk-check-all').checked = false;
+        return;
+    }
+
+    tbody.innerHTML = rows.map(({ item, index }) => `
+        <tr>
+            <td style="width:44px;padding:10px 16px;">
+                <input type="checkbox" data-idx="${index}" style="width:15px;height:15px;accent-color:#2563eb;">
+            </td>
+            <td style="font-size:14px;color:#111827;padding:10px 16px;">${esc(item.name)}</td>
+            <td style="width:120px;text-align:right;font-size:14px;color:#16a34a;padding:10px 16px;">${getTotalQty(index)}</td>
+        </tr>
+    `).join('');
+}
+
+function toggleAllBulk(el) {
+    document.querySelectorAll('#bulk-tbody input[type=checkbox]').forEach(cb => cb.checked = el.checked);
+}
+
+function applyBulkAction() {
+    if (bulkModalType === 'bulk-update') {
+        applyBulkUpdate();
+        return;
+    }
+
+    const selectedIndexes = [...document.querySelectorAll('#bulk-tbody input[type=checkbox]:checked')]
+        .map(cb => Number(cb.dataset.idx))
+        .filter(idx => !Number.isNaN(idx));
+
+    if (!selectedIndexes.length) {
+        showToast('Please select at least one item.');
+        return;
+    }
+
+    if (bulkModalType !== 'bulk-inactive' && bulkModalType !== 'bulk-active') {
+        showToast('This bulk action is not available yet.');
+        return;
+    }
+
+    const makeInactive = bulkModalType === 'bulk-inactive';
+    selectedIndexes.forEach(idx => setItemInactive(allItems[idx], idx, makeInactive));
+    renderBulkRows();
+    renderList();
+    ensureValidSelection();
+    showToast(makeInactive ? 'Selected items marked inactive.' : 'Selected items marked active.');
+}
+
+function renderBulkEditRows() {
+    const tbody = document.getElementById('bulk-edit-tbody');
+    if (!tbody) return;
+
+    const search = (document.getElementById('bulk-update-search')?.value || '').toLowerCase();
+    const rows = allItems.map((item, index) => ({ item, index }))
+        .filter(({ item }) => (item.name || '').toLowerCase().includes(search));
+
+    if (!rows.length) {
+        tbody.innerHTML = `<div style="text-align:center;padding:46px 20px;color:#9ca3af;font-size:14px;">No items to show</div>`;
+        return;
+    }
+
+    tbody.innerHTML = rows.map(({ item, index }) => {
+        const itemId = item.id || index;
+        return `
+        <div class="bulk-row-editor">
+            <input type="text" class="bulk-edit-field bulk-col-item" placeholder="Item Name" value="${esc(item.name)}" data-item-id="${itemId}" data-field="name"/>
+            <input type="text" class="bulk-edit-field" placeholder="Unit" value="${esc(item.unit || '')}" data-item-id="${itemId}" data-field="unit"/>
+            <input type="text" class="bulk-edit-field" placeholder="Item Code" value="${esc(item.item_code || '')}" data-item-id="${itemId}" data-field="item_code"/>
+            <input type="number" class="bulk-edit-field bulk-col-price" placeholder="Sale Price" value="${item.sale_price || ''}" data-item-id="${itemId}" data-field="sale_price" step="0.01" min="0"/>
+            <input type="number" class="bulk-edit-field bulk-col-price" placeholder="Purchase Price" value="${item.purchase_price || ''}" data-item-id="${itemId}" data-field="purchase_price" step="0.01" min="0"/>
+            <input type="number" class="bulk-edit-field bulk-col-price" placeholder="Opening Qty" value="${item.opening_qty || ''}" data-item-id="${itemId}" data-field="opening_qty" step="0.01" min="0"/>
+            <input type="number" class="bulk-edit-field bulk-col-price" placeholder="Min Stock" value="${item.min_stock || ''}" data-item-id="${itemId}" data-field="min_stock" step="0.01" min="0"/>
+            <input type="text" class="bulk-edit-field" placeholder="Location" value="${esc(item.location || '')}" data-item-id="${itemId}" data-field="location"/>
+        </div>
+    `;
+    }).join('');
+}
+
+function applyBulkUpdate() {
+    const updates = {};
+    document.querySelectorAll('#bulk-edit-tbody input[data-field]').forEach(input => {
+        const itemId = input.dataset.itemId;
+        const field = input.dataset.field;
+        const value = input.value;
+
+        if (!itemId) return;
+        if (!updates[itemId]) updates[itemId] = {};
+        updates[itemId][field] = value === '' ? null : value;
+    });
+
+    if (!Object.keys(updates).length) {
+        showToast('No changes to save.');
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (!csrfToken) { showToast('CSRF token missing.'); return; }
+
+    const saveBtn = document.getElementById('bulk-action-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    const requests = Object.entries(updates).map(([itemId, fields]) =>
+        fetch(`{{ url('dashboard/items') }}/${itemId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({ ...fields, _method: 'PUT' })
+        }).then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.success === false) {
+                throw new Error(data.message || `Failed to update item ${itemId}.`);
+            }
+            return { itemId, fields, item: data.item || null };
+        })
+    );
+
+    Promise.all(requests)
+    .then(results => {
+        results.forEach(({ itemId, fields, item }) => {
+            const idx = allItems.findIndex(entry => String(entry.id) === String(itemId));
+            if (idx >= 0) {
+                allItems[idx] = { ...allItems[idx], ...fields, ...(item || {}) };
+            }
+        });
+        showToast('Items updated successfully!');
+        closeBulkModal();
+        renderList();
+        ensureValidSelection();
+    })
+    .catch(error => showToast(error.message || 'Failed to update items.'))
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+    });
+}
 /* ── Excel Export ── */
 function exportToExcel() {
     if (selectedIdx === null) { showToast('Please select an item first.'); return; }
@@ -1522,7 +2122,7 @@ fetch(`/dashboard/items/${item.id}/adjust`, {
                 'Rs ' + (parseFloat(item.purchase_price || 0) * parseFloat(data.stock_qty)).toFixed(2);
 
             renderTxns(selectedIdx);
-            renderList(allItems);
+            renderList();
         } else {
             showToast(data.message || 'Failed to save adjustment.');
         }
@@ -1537,3 +2137,7 @@ function formatDate(d) { if(!d)return''; const[y,m,day]=d.split('-'); return day
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 @endpush
+
+
+
+

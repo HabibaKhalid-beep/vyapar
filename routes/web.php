@@ -315,5 +315,9 @@ Route::post('/payments-in', [BankAccountController::class, 'paymentIn'])->name('
 
 });
 
+ Route::get('/sales/{sale}/duplicate', [SaleController::class, 'duplicate'])->name('sale.duplicate');
+
+
+ Route::post('/items/bulk-update', [ItemController::class, 'bulkUpdate'])->name('items.bulk-update');
 
 require __DIR__.'/auth.php';

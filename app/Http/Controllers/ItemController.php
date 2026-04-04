@@ -7,6 +7,7 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Models\SaleItem;
 use App\Models\Sale;
+use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
@@ -55,6 +56,7 @@ class ItemController extends Controller
     {
         $data = $request->isJson() ? $request->json()->all() : $request->all();
         $type = $data['type'] ?? 'product';
+        $expectsJson = $request->expectsJson() || $request->wantsJson() || $request->ajax();
 
         $categoryId = null;
         if (!empty($data['category_id'])) {
@@ -62,6 +64,11 @@ class ItemController extends Controller
         } elseif (!empty($data['category'])) {
             $cat = Category::where('name', $data['category'])->first();
             $categoryId = $cat?->id;
+        }
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('items', 'public');
         }
 
         $item = Item::create([
@@ -75,10 +82,11 @@ class ItemController extends Controller
             'opening_qty'     => $data['opening_qty']     ?? 0,
             'item_code'       => $data['item_code']       ?? null,
             'location'        => $data['location']        ?? null,
+            'image_path'      => $imagePath,
             'min_stock'       => $data['min_stock']       ?? 0,
         ]);
 
-        if ($request->isJson()) {
+        if ($expectsJson) {
             return response()->json([
                 'redirect' => $type === 'service' ? route('items.services') : route('items'),
                 'item'     => $item,
@@ -103,6 +111,7 @@ class ItemController extends Controller
     {
         $item = Item::findOrFail($id);
         $data = $request->isJson() ? $request->json()->all() : $request->all();
+        $expectsJson = $request->expectsJson() || $request->wantsJson() || $request->ajax();
 
         $categoryId = $item->category_id;
         if (!empty($data['category_id'])) {
@@ -110,6 +119,14 @@ class ItemController extends Controller
         } elseif (!empty($data['category'])) {
             $cat = Category::where('name', $data['category'])->first();
             $categoryId = $cat?->id;
+        }
+
+        $imagePath = $item->image_path;
+        if ($request->hasFile('image')) {
+            if ($item->image_path) {
+                Storage::disk('public')->delete($item->image_path);
+            }
+            $imagePath = $request->file('image')->store('items', 'public');
         }
 
         $item->update([
@@ -122,10 +139,11 @@ class ItemController extends Controller
             'opening_qty'     => $data['opening_qty']      ?? $item->opening_qty,
             'item_code'       => $data['item_code']        ?? $item->item_code,
             'location'        => $data['location']         ?? $item->location,
+            'image_path'      => $imagePath,
             'min_stock'       => $data['min_stock']        ?? $item->min_stock,
         ]);
 
-        if ($request->isJson()) {
+        if ($expectsJson) {
             return response()->json(['success' => true, 'item' => $item]);
         }
 
@@ -241,6 +259,7 @@ class ItemController extends Controller
             return [
                 'id'      => $sale->id,
                 'type'    => $typeMap[$sale->type] ?? ucfirst($sale->type),
+                'raw_type'=> $sale->type,
                 'invoice' => $sale->bill_number ?? $sale->id,
                 'name'    => $sale->party?->name ?? 'Walk-in Customer',
                 'date'    => $sale->invoice_date
@@ -291,5 +310,50 @@ return response()->json($transactions);
             'opening_qty' => $item->opening_qty,
             'stock_qty'   => $item->stock_qty,
         ]);
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        $updates = $request->input('updates', []);
+
+        if (empty($updates)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No updates provided'
+            ], 422);
+        }
+
+        try {
+            foreach ($updates as $itemId => $fields) {
+                $item = Item::find($itemId);
+                if (!$item) {
+                    continue;
+                }
+
+                // Update name
+                if (isset($fields['name']) && $fields['name'] !== null && $fields['name'] !== '') {
+                    $item->name = $fields['name'];
+                }
+                // Update only provided price fields
+                if (isset($fields['sale_price']) && $fields['sale_price'] !== null && $fields['sale_price'] !== '') {
+                    $item->sale_price = floatval($fields['sale_price']);
+                }
+                if (isset($fields['purchase_price']) && $fields['purchase_price'] !== null && $fields['purchase_price'] !== '') {
+                    $item->purchase_price = floatval($fields['purchase_price']);
+                }
+
+                $item->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Items updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating items: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

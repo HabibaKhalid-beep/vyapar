@@ -9,7 +9,7 @@ class Item extends Model
     protected $fillable = [
         'type', 'name', 'category_id', 'unit',
         'sale_price', 'wholesale_price', 'purchase_price',
-        'opening_qty', 'item_code', 'location', 'min_stock',
+        'opening_qty', 'item_code', 'location', 'image_path', 'min_stock',
     ];
 
     protected $appends = ['stock_qty'];

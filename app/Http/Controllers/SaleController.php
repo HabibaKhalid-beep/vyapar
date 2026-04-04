@@ -145,7 +145,7 @@ class SaleController extends Controller
             'type'
         ));
     }
-public function createFromProforma(Sale $sale)
+    public function createFromProforma(Sale $sale)
     {
         if ($sale->type !== 'proforma') {
             abort(404);
@@ -167,6 +167,34 @@ public function createFromProforma(Sale $sale)
         $nextInvoiceNumber = (string) $nextSaleId;
         $convertedSaleData = $this->mapProformaToSaleDraft($sale, $nextInvoiceNumber);
         $type = 'invoice';
+
+        return view('dashboard.sales.create', compact(
+            'bankAccounts',
+            'items',
+            'parties',
+            'nextInvoiceNumber',
+            'convertedSaleData',
+            'type'
+        ));
+    }
+
+    public function duplicate(Sale $sale)
+    {
+        if (!in_array($sale->type, ['invoice', 'pos'], true)) {
+            abort(404);
+        }
+
+        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $items = Item::orderBy('name')->get();
+        $parties = Party::orderBy('name')->get();
+
+        $sale->load(['items']);
+
+        $nextSaleId = (Sale::max('id') ?? 0) + 1;
+        $prefix = $sale->type === 'pos' ? 'POS-' : '';
+        $nextInvoiceNumber = $prefix . $nextSaleId;
+        $convertedSaleData = $this->mapInvoiceToSaleDraft($sale, $nextInvoiceNumber);
+        $type = $sale->type === 'pos' ? 'pos' : 'invoice';
 
         return view('dashboard.sales.create', compact(
             'bankAccounts',
@@ -1041,6 +1069,47 @@ private function posData(): array
             'description' => $estimate->description,
             'image_path' => $estimate->image_path,
             'items' => $estimate->items->map(function ($item) {
+                return [
+                    'item_name' => $item->item_name,
+                    'item_category' => $item->item_category,
+                    'item_code' => $item->item_code,
+                    'item_description' => $item->item_description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'unit_price' => $item->unit_price,
+                    'discount' => $item->discount,
+                    'amount' => $item->amount,
+                ];
+            })->values()->all(),
+            'payments' => [],
+        ];
+    }
+
+    private function mapInvoiceToSaleDraft(Sale $sale, string $nextInvoiceNumber): array
+    {
+        return [
+            'source_type' => $sale->type,
+            'party_id' => $sale->party_id,
+            'party_name' => $sale->display_party_name,
+            'phone' => $sale->phone,
+            'billing_address' => $sale->billing_address,
+            'shipping_address' => $sale->shipping_address,
+            'bill_number' => $nextInvoiceNumber,
+            'invoice_date' => now()->format('Y-m-d'),
+            'total_qty' => $sale->total_qty,
+            'total_amount' => $sale->total_amount,
+            'discount_pct' => $sale->discount_pct,
+            'discount_rs' => $sale->discount_rs,
+            'tax_pct' => $sale->tax_pct,
+            'tax_amount' => $sale->tax_amount,
+            'round_off' => $sale->round_off,
+            'grand_total' => $sale->grand_total,
+            'received_amount' => 0,
+            'balance' => $sale->grand_total,
+            'status' => 'Unpaid',
+            'description' => $sale->description,
+            'image_path' => $sale->image_path,
+            'items' => $sale->items->map(function ($item) {
                 return [
                     'item_name' => $item->item_name,
                     'item_category' => $item->item_category,
