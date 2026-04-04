@@ -15,6 +15,119 @@
   @endif
 
   <script>
+    function removePaymentRow(i) {
+  paymentRows.splice(i, 1);
+  renderPaymentCard();
+}
+
+function openAddBankModal() {
+  let m = document.getElementById('addBankModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'addBankModal';
+    m.className = 'modal-overlay';
+    m.style.zIndex = '1200';
+    m.innerHTML = `
+      <div class="modal-box" style="width:780px;max-width:96vw;padding:32px 36px 28px;border-radius:12px;">
+        <button onclick="closeModal('addBankModal')" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">&#x2715;</button>
+        <div style="font-size:17px;font-weight:700;color:#1a1f36;margin-bottom:28px;">Add Bank Account</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px;">
+          <div style="position:relative;">
+            <label style="position:absolute;top:-9px;left:12px;background:#fff;font-size:10px;color:#e53935;padding:0 4px;z-index:1;font-weight:600;">Account Display Name *</label>
+            <input id="bankAccName" type="text" placeholder="Enter Account Display Name"
+              style="width:100%;border:1.5px solid #ccc;border-radius:8px;padding:14px 12px 10px;font-size:13px;outline:none;">
+          </div>
+          <div style="position:relative;">
+            <label style="position:absolute;top:-9px;left:12px;background:#fff;font-size:10px;color:#888;padding:0 4px;z-index:1;">Opening Balance</label>
+            <input id="bankOpenBal" type="number" placeholder="Enter Opening Balance"
+              style="width:100%;border:1px solid #ccc;border-radius:8px;padding:14px 12px 10px;font-size:13px;outline:none;">
+          </div>
+          <div style="position:relative;">
+            <label style="position:absolute;top:-9px;left:12px;background:#fff;font-size:10px;color:#888;padding:0 4px;z-index:1;">As of Date</label>
+            <input id="bankAsOfDate" type="text" value="${new Date().toLocaleDateString('en-GB')}"
+              style="width:100%;border:1px solid #ccc;border-radius:8px;padding:14px 12px 10px;font-size:13px;outline:none;">
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <button onclick="toggleBankMoreFields()" id="bankMoreFieldsBtn"
+            style="background:none;border:none;color:#2563eb;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0;">
+            <span style="font-size:18px;font-weight:300;line-height:1;">+</span> Add more fields
+          </button>
+          <div id="bankMoreFields" style="display:none;margin-top:20px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px;">
+              <div style="position:relative;">
+                <label style="position:absolute;top:-9px;left:12px;background:#fff;font-size:10px;color:#e53935;padding:0 4px;z-index:1;font-weight:600;">Account Number *</label>
+                <input id="bankAccNo" type="text" placeholder="Enter Account Number"
+                  style="width:100%;border:1.5px solid #ccc;border-radius:8px;padding:14px 12px 10px;font-size:13px;outline:none;">
+              </div>
+              <div style="position:relative;">
+                <label style="position:absolute;top:-9px;left:12px;background:#fff;font-size:10px;color:#888;padding:0 4px;z-index:1;">SWIFT Code</label>
+                <input id="bankSwift" type="text" placeholder="Enter SWIFT"
+                  style="width:100%;border:1px solid #ccc;border-radius:8px;padding:14px 12px 10px;font-size:13px;outline:none;">
+              </div>
+              <div style="position:relative;">
+                <label style="position:absolute;top:-9px;left:12px;background:#fff;font-size:10px;color:#888;padding:0 4px;z-index:1;">IBAN</label>
+                <input id="bankIban" type="text" placeholder="Enter IBAN"
+                  style="width:100%;border:1px solid #ccc;border-radius:8px;padding:14px 12px 10px;font-size:13px;outline:none;">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+              <div style="position:relative;">
+                <label style="position:absolute;top:-9px;left:12px;background:#fff;font-size:10px;color:#888;padding:0 4px;z-index:1;">Bank Name</label>
+                <input id="bankName" type="text" placeholder="Enter Bank Name"
+                  style="width:100%;border:1px solid #ccc;border-radius:8px;padding:14px 12px 10px;font-size:13px;outline:none;">
+              </div>
+              <div style="position:relative;">
+                <label style="position:absolute;top:-9px;left:12px;background:#fff;font-size:10px;color:#888;padding:0 4px;z-index:1;">Account Holder Name</label>
+                <input id="bankHolder" type="text" placeholder="Enter Account Holder Name"
+                  style="width:100%;border:1px solid #ccc;border-radius:8px;padding:14px 12px 10px;font-size:13px;outline:none;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:28px;color:#333;">
+          <input type="checkbox" id="bankPrintDetails" style="accent-color:#2563eb;width:16px;height:16px;">
+          Print Bank Details on Invoices
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid #aaa;color:#888;font-size:10px;cursor:help;" title="Bank details will be printed on invoice">&#9432;</span>
+        </label>
+
+        <div style="border-top:1px solid #f0f0f0;padding-top:20px;display:flex;justify-content:flex-end;gap:12px;">
+          <button onclick="closeModal('addBankModal')"
+            style="border:1px solid #ccc;background:#fff;border-radius:25px;padding:10px 28px;font-size:13px;cursor:pointer;color:#555;font-weight:500;">
+            Cancel
+          </button>
+          <button onclick="saveAddBank()"
+            style="border:none;background:#D4112E;color:#fff;border-radius:25px;padding:10px 28px;font-size:13px;font-weight:600;cursor:pointer;">
+            Save Details
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+  }
+  openModal('addBankModal');
+}
+
+function toggleBankMoreFields() {
+  const el = document.getElementById('bankMoreFields');
+  const btn = document.getElementById('bankMoreFieldsBtn');
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    btn.innerHTML = '<span style="font-size:18px;font-weight:300;line-height:1;">−</span> Hide extra fields';
+  } else {
+    el.style.display = 'none';
+    btn.innerHTML = '<span style="font-size:18px;font-weight:300;line-height:1;">+</span> Add more fields';
+  }
+}
+
+function saveAddBank() {
+  const name = document.getElementById('bankAccName')?.value.trim();
+  if (!name) { showToast('Account Display Name is required.', 'red'); return; }
+  showToast('Bank account added successfully.', 'green');
+  closeModal('addBankModal');
+}
     const authUser = @json(Auth::user());
     window.App = window.App || {
       isAuthenticated: @json(Auth::check()),
@@ -138,8 +251,22 @@
     .td-row-menu-item:hover { background: #f5f5f5; }
     .td-row-menu-item.danger { color: #D4112E; }
 
-    /* EXPENSE FORM */
-    #expenseFormPage { display: none; flex-direction: column; flex: 1; overflow: hidden; background: #f5f5f5; }
+    /* ═══════════════════════════════════════════
+       EXPENSE FORM — FULL SCREEN OVERLAY
+       ═══════════════════════════════════════════ */
+  #expenseFormPage {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  flex-direction: column;
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
     .form-tabs-bar { background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; padding: 0 16px; flex-shrink: 0; min-height: 40px; }
     .form-tab { display: flex; align-items: center; gap: 6px; padding: 10px 12px; font-size: 13px; color: #555; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; margin-bottom: -1px; }
     .form-tab.active { color: #1a1f36; border-bottom-color: #1a1f36; font-weight: 600; }
@@ -153,7 +280,7 @@
     /* ── FORM TOP ROW ── */
     .form-top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; gap: 16px; }
 
-    /* ── CATEGORY SELECT (Image 2 style: outlined box with floating label) ── */
+    /* ── CATEGORY SELECT ── */
     .form-cat-wrap { position: relative; display: inline-block; }
     .form-cat-select {
       border: 1px solid #aaa;
@@ -173,16 +300,16 @@
     }
     .form-cat-select.filled { color: #1a1f36; border-color: #aaa; }
     .form-cat-label {
-      position: absolute;
-      top: 6px;
-      left: 12px;
-      background: #f5f5f5;
-      font-size: 10px;
-      color: #e53935;
-      padding: 0 2px;
-      pointer-events: none;
-      font-weight: 500;
-    }
+  position: absolute;
+  top: 6px;
+  left: 12px;
+  background: #fff;
+  font-size: 10px;
+  color: #e53935;
+  padding: 0 2px;
+  pointer-events: none;
+  font-weight: 500;
+}
     .form-cat-dropdown { position: absolute; top: 58px; left: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.12); z-index: 200; min-width: 220px; display: none; }
     .form-cat-dropdown.open { display: block; }
     .cat-dd-add-row { display: flex; align-items: center; gap: 6px; padding: 10px 14px; color: #2563eb; font-size: 13px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
@@ -190,7 +317,7 @@
     .cat-option { padding: 9px 14px; font-size: 13px; cursor: pointer; color: #333; }
     .cat-option:hover { background: #f5f5f5; }
 
-    /* ── DATE WRAP (Image 2: Expense No as full input box, Date plain with icon) ── */
+    /* ── DATE WRAP ── */
     .form-date-wrap { position: relative; text-align: right; }
     .form-exp-no-row {
       display: flex;
@@ -228,7 +355,7 @@
     .cal-day.selected { background: #2563eb; color: #fff; }
     .cal-day.other-month { color: #ccc; }
 
-    /* ── ITEMS TABLE (Image 2: full borders, proper layout) ── */
+    /* ── ITEMS TABLE ── */
     .form-items-wrap { border: 1px solid #e0e0e0; border-radius: 6px 6px 0 0; overflow: hidden; }
     .form-items-table { width: 100%; border-collapse: collapse; background: #fff; }
     .form-items-table th { background: #f5f5f5; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #555; border-bottom: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0; text-transform: uppercase; letter-spacing: .3px; }
@@ -240,7 +367,7 @@
     .form-items-table td input[readonly] { background: transparent; color: #555; }
     .col-hash { width: 50px; } .col-item { } .col-qty { width: 120px; } .col-price { width: 160px; } .col-amount { width: 140px; }
 
-    /* ── ITEMS FOOTER (Image 2: TOTAL inline in same bar as ADD ROW) ── */
+    /* ── ITEMS FOOTER ── */
     .items-footer-bar {
       display: flex;
       justify-content: space-between;
@@ -266,13 +393,11 @@
     .item-option:hover { background: #f5f5f5; }
     .item-option .item-price { color: #888; font-size: 12px; }
 
-    /* ── PAYMENT SECTION (Image 2: Payment Type only dropdown with floating label, Reference No below) ── */
+    /* ── PAYMENT SECTION ── */
     .payment-section { display: flex; align-items: flex-start; justify-content: space-between; margin-top: 24px; gap: 16px; flex-wrap: wrap; }
     .payment-card { border: none; border-radius: 0; padding: 0; background: transparent; min-width: 240px; }
     .payment-row-wrap { margin-bottom: 10px; }
     .payment-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0; }
-
-    /* Payment Type — outlined with floating label (Image 2 style) */
     .payment-field { position: relative; flex: 1; }
     .payment-field-label {
       position: absolute;
@@ -299,10 +424,8 @@
       appearance: none;
       width: 100%;
     }
-    .payment-amount-input { display: none; } /* Hidden — not shown in Image 2 */
-    .btn-payment-del { display: none; } /* Hidden — not shown in Image 2 */
-
-    /* Reference No — outlined below payment type */
+    .payment-amount-input { display: none; }
+    .btn-payment-del { display: none; }
     .ref-no-input {
       border: 1px solid #bbb;
       border-radius: 6px;
@@ -318,9 +441,9 @@
     .ref-no-input::placeholder { color: #bbb; }
     .btn-add-payment-type { background: none; border: none; color: #2563eb; font-size: 13px; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; margin-top: 10px; }
     .payment-card-footer { display: flex; align-items: center; justify-content: flex-start; margin-top: 8px; padding-top: 0; border-top: none; }
-    .payment-total-text { display: none; } /* Hidden — not shown in Image 2 */
+    .payment-total-text { display: none; }
 
-    /* ── TOTAL BLOCK (Image 2: Round Off checkbox + input + Total label + wide input box) ── */
+    /* ── TOTAL BLOCK ── */
     .total-block { display: flex; align-items: center; gap: 14px; }
     .round-off-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     .round-val {
@@ -333,33 +456,33 @@
       outline: none;
       background: #fff;
     }
-   .total-label-text { display: none; }
-.total-field-wrap { position: relative; display: inline-block; min-width: 200px; }
-.total-field-label {
-  position: absolute;
-  top: -8px; left: 10px;
-  background: #f5f5f5;
-  font-size: 10px; color: #555;
-  padding: 0 4px; z-index: 1;
-  pointer-events: none;
-}
-.total-box {
-  border: 1px solid #aaa;
-  border-radius: 6px;
-  padding: 14px 14px 10px 12px;
-  min-width: 200px; min-height: 48px;
-  text-align: right;
-  font-size: 14px; font-weight: 600;
-  background: #fff;
-  display: flex; align-items: center; justify-content: flex-end;
-  color: #1a1f36;
-}
+    .total-label-text { display: none; }
+    .total-field-wrap { position: relative; display: inline-block; min-width: 200px; }
+    .total-field-label {
+      position: absolute;
+      top: -8px; left: 10px;
+      background: #f5f5f5;
+      font-size: 10px; color: #555;
+      padding: 0 4px; z-index: 1;
+      pointer-events: none;
+    }
+    .total-box {
+      border: 1px solid #aaa;
+      border-radius: 6px;
+      padding: 14px 14px 10px 12px;
+      min-width: 200px; min-height: 48px;
+      text-align: right;
+      font-size: 14px; font-weight: 600;
+      background: #fff;
+      display: flex; align-items: center; justify-content: flex-end;
+      color: #1a1f36;
+    }
 
-    /* ── FORM EXTRA BTNS (Image 2: only ADD DESCRIPTION, no ADD IMAGE) ── */
+    /* ── FORM EXTRA BTNS ── */
     .form-extra-btns { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
     .form-extra-btn { background: none; border: none; color: #777; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; text-align: left; }
     .form-extra-btn:hover { color: #333; }
-    .form-extra-btn.hide-btn { display: none; } /* Used to hide ADD IMAGE */
+    .form-extra-btn.hide-btn { display: none; }
 
     /* ── FORM FOOTER ── */
     .form-footer { background: #fff; border-top: 1px solid #e0e0e0; padding: 10px 24px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-shrink: 0; position: relative; }
@@ -377,7 +500,7 @@
     .share-dd-item:hover { background: #f5f5f5; }
 
     /* MODALS */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 900; align-items: center; justify-content: center; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1100; align-items: center; justify-content: center; }
     .modal-overlay.open { display: flex; }
     .modal-box { background: #fff; border-radius: 10px; padding: 28px 28px 24px; width: 400px; max-width: 95vw; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
     .modal-title { font-size: 16px; font-weight: 700; color: #1a1f36; margin-bottom: 20px; }
@@ -401,7 +524,7 @@
     .btn-delete-modal:hover { background: #fff5f5; }
 
     /* CONFIRM */
-    .confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 950; align-items: center; justify-content: center; }
+    .confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 1150; align-items: center; justify-content: center; }
     .confirm-overlay.open { display: flex; }
     .confirm-box { background: #fff; border-radius: 8px; padding: 20px 24px; width: 360px; max-width: 90vw; box-shadow: 0 4px 24px rgba(0,0,0,.15); }
     .confirm-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #333; }
@@ -423,7 +546,7 @@
     .toast-close-btn { cursor: pointer; font-size: 16px; line-height: 1; margin-left: 4px; flex-shrink: 0; }
 
     /* Close Expense confirm */
-    .close-expense-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 960; align-items: center; justify-content: center; }
+  .close-expense-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1160; align-items: center; justify-content: center; }
     .close-expense-overlay.open { display: flex; }
     .close-expense-box { background: #fff; border-radius: 10px; padding: 28px 28px 24px; width: 420px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
     .close-expense-title { font-size: 16px; font-weight: 700; color: #1a1f36; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
@@ -431,6 +554,88 @@
     .close-expense-actions { display: flex; justify-content: flex-end; gap: 10px; }
     .btn-cancel-close { background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 8px 20px; font-size: 13px; cursor: pointer; color: #555; }
     .btn-confirm-close { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 8px 24px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+    /* ═══════════════════════════════════════════
+       PRINT STYLES — full-screen print view
+       ═══════════════════════════════════════════ */
+    #printViewOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 850;
+      background: #525659;
+      flex-direction: column;
+    }
+    #printViewOverlay.open { display: flex; }
+    .print-view-toolbar {
+      background: #3c3f41;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .print-view-toolbar-left { display: flex; align-items: center; gap: 12px; color: #ccc; font-size: 13px; }
+    .print-view-toolbar-right { display: flex; align-items: center; gap: 8px; }
+    .print-toolbar-btn {
+      background: none;
+      border: 1px solid #666;
+      color: #ccc;
+      border-radius: 4px;
+      padding: 5px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .print-toolbar-btn:hover { background: #555; }
+    .print-toolbar-btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .print-toolbar-btn.primary:hover { background: #1d4ed8; }
+    .print-view-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 30px 20px;
+    }
+    .print-page {
+      background: #fff;
+      width: 794px;
+      min-height: 1123px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.4);
+      padding: 48px 56px;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #1a1f36;
+    }
+    .print-page h2 { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 28px; }
+    .print-company-box { border: 1px solid #ccc; padding: 16px 20px; margin-bottom: 0; }
+    .print-company-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .print-company-meta { font-size: 12px; color: #555; display: flex; gap: 32px; }
+    .print-info-table { width: 100%; border-collapse: collapse; border: 1px solid #ccc; border-top: none; }
+    .print-info-table td { padding: 10px 16px; border: 1px solid #ccc; vertical-align: top; font-size: 12px; }
+    .print-info-table td strong { display: block; margin-bottom: 4px; font-size: 11px; color: #555; text-transform: uppercase; }
+    .print-items-table { width: 100%; border-collapse: collapse; border: 1px solid #ccc; margin-top: 0; }
+    .print-items-table th { background: #f5f5f5; padding: 9px 12px; font-size: 11px; font-weight: 700; text-align: left; border: 1px solid #ccc; }
+    .print-items-table th:last-child, .print-items-table td:last-child { text-align: right; }
+    .print-items-table td { padding: 9px 12px; border: 1px solid #ccc; font-size: 12px; }
+    .print-items-table tr.total-row td { font-weight: 700; background: #f9f9f9; }
+    .print-summary-table { width: 100%; border-collapse: collapse; border: 1px solid #ccc; border-top: none; }
+    .print-summary-table td { padding: 9px 16px; border: 1px solid #ccc; font-size: 12px; }
+    .print-summary-table td:last-child { text-align: right; font-weight: 500; }
+    .print-summary-table tr.total-row td { font-weight: 700; background: #f9f9f9; }
+    .print-words-row td { font-style: italic; color: #555; }
+    .print-signatory { margin-top: 40px; display: flex; justify-content: flex-end; }
+    .print-signatory-box { border: 1px solid #ccc; padding: 14px 24px; min-width: 220px; min-height: 80px; text-align: center; }
+    .print-signatory-box .sig-for { font-size: 12px; color: #555; margin-bottom: 36px; }
+    .print-signatory-box .sig-line { border-top: 1px solid #ccc; padding-top: 6px; font-size: 11px; color: #888; }
+
+    @media print {
+      body > * { display: none !important; }
+      #printViewOverlay { display: flex !important; position: fixed; inset: 0; }
+      .print-view-toolbar { display: none; }
+      .print-view-body { padding: 0; background: #fff; }
+      .print-page { box-shadow: none; width: 100%; min-height: auto; }
+    }
   </style>
 </head>
 <body data-page="expenses">
@@ -517,9 +722,7 @@
                       </div>
                       <div class="filter-pop-body">
                         <select class="filter-pop-select" id="fpop_date_cat">
-                          <option>Equal To</option>
-                          <option>Less Than</option>
-                          <option>Greater Than</option>
+                          <option>Equal To</option><option>Less Than</option><option>Greater Than</option>
                         </select>
                         <div style="font-size:12px;color:#555;margin-bottom:4px;">Select Date</div>
                         <input type="text" class="filter-pop-input" id="fpop_date_val" placeholder="DD/MM/YYYY">
@@ -547,9 +750,7 @@
                       </div>
                       <div class="filter-pop-body">
                         <select class="filter-pop-select" id="fpop_expNo_cat">
-                          <option>Equal To</option>
-                          <option>Less Than</option>
-                          <option>Greater Than</option>
+                          <option>Equal To</option><option>Less Than</option><option>Greater Than</option>
                         </select>
                         <div style="font-size:12px;color:#555;margin-bottom:4px;">Select Date</div>
                         <input type="text" class="filter-pop-input" id="fpop_expNo_val" placeholder="DD/MM/YYYY">
@@ -577,8 +778,7 @@
                       </div>
                       <div class="filter-pop-body">
                         <select class="filter-pop-select" id="fpop_party_cat">
-                          <option>Contains</option>
-                          <option>Exact match</option>
+                          <option>Contains</option><option>Exact match</option>
                         </select>
                         <div style="font-size:12px;color:#555;margin-bottom:4px;">PARTY</div>
                         <input type="text" class="filter-pop-input" id="fpop_party_val" placeholder="">
@@ -633,9 +833,7 @@
                       </div>
                       <div class="filter-pop-body">
                         <select class="filter-pop-select" id="fpop_amount_cat">
-                          <option>Equal to</option>
-                          <option>Less Than</option>
-                          <option>Greater Than</option>
+                          <option>Equal to</option><option>Less Than</option><option>Greater Than</option>
                         </select>
                         <input type="number" class="filter-pop-input" id="fpop_amount_val" placeholder="0">
                       </div>
@@ -662,9 +860,7 @@
                       </div>
                       <div class="filter-pop-body">
                         <select class="filter-pop-select" id="fpop_balance_cat">
-                          <option>Equal to</option>
-                          <option>Less Than</option>
-                          <option>Greater Than</option>
+                          <option>Equal to</option><option>Less Than</option><option>Greater Than</option>
                         </select>
                         <input type="number" class="filter-pop-input" id="fpop_balance_val" placeholder="0">
                       </div>
@@ -700,150 +896,12 @@
           <div class="detail-table-wrap">
             <table class="detail-table">
               <thead><tr>
-                <th>
-                  <span class="th-wrap">
-                    DATE
-                    <span class="th-sort" onclick="sortItemsTable('date')" id="isort_date">
-                      <span class="sa-up" id="isort_date_up">&#9650;</span>
-                      <span class="sa-dn" id="isort_date_dn">&#9660;</span>
-                    </span>
-                    <span class="th-filter" onclick="toggleFilterPop(event,'ifpop_date')"><i class="fa-solid fa-filter" style="font-size:9px;color:#bbb;"></i></span>
-                    <div class="filter-popover" id="ifpop_date">
-                      <div class="filter-pop-header">
-                        <span class="filter-pop-title">Select Category</span>
-                        <button class="filter-pop-close" onclick="closeFilterPop('ifpop_date')">&#x2715;</button>
-                      </div>
-                      <div class="filter-pop-body">
-                        <select class="filter-pop-select"><option>Equal To</option><option>Less Than</option><option>Greater Than</option></select>
-                        <input type="text" class="filter-pop-input" placeholder="DD/MM/YYYY">
-                      </div>
-                      <div class="filter-pop-footer">
-                        <button class="filter-pop-clear" onclick="closeFilterPop('ifpop_date')">Clear</button>
-                        <button class="filter-pop-apply" onclick="closeFilterPop('ifpop_date')">Apply</button>
-                      </div>
-                    </div>
-                  </span>
-                </th>
-                <th>
-                  <span class="th-wrap">
-                    EXP NO.
-                    <span class="th-sort" onclick="sortItemsTable('expNo')" id="isort_expNo">
-                      <span class="sa-up" id="isort_expNo_up">&#9650;</span>
-                      <span class="sa-dn" id="isort_expNo_dn">&#9660;</span>
-                    </span>
-                    <span class="th-filter" onclick="toggleFilterPop(event,'ifpop_expNo')"><i class="fa-solid fa-filter" style="font-size:9px;color:#bbb;"></i></span>
-                    <div class="filter-popover" id="ifpop_expNo">
-                      <div class="filter-pop-header">
-                        <span class="filter-pop-title">Select Category</span>
-                        <button class="filter-pop-close" onclick="closeFilterPop('ifpop_expNo')">&#x2715;</button>
-                      </div>
-                      <div class="filter-pop-body">
-                        <select class="filter-pop-select"><option>Equal To</option><option>Less Than</option><option>Greater Than</option></select>
-                        <input type="text" class="filter-pop-input" placeholder="DD/MM/YYYY">
-                      </div>
-                      <div class="filter-pop-footer">
-                        <button class="filter-pop-clear" onclick="closeFilterPop('ifpop_expNo')">Clear</button>
-                        <button class="filter-pop-apply" onclick="closeFilterPop('ifpop_expNo')">Apply</button>
-                      </div>
-                    </div>
-                  </span>
-                </th>
-                <th>
-                  <span class="th-wrap">
-                    PARTY
-                    <span class="th-sort" onclick="sortItemsTable('party')" id="isort_party">
-                      <span class="sa-up" id="isort_party_up">&#9650;</span>
-                      <span class="sa-dn" id="isort_party_dn">&#9660;</span>
-                    </span>
-                    <span class="th-filter" onclick="toggleFilterPop(event,'ifpop_party')"><i class="fa-solid fa-filter" style="font-size:9px;color:#bbb;"></i></span>
-                    <div class="filter-popover" id="ifpop_party">
-                      <div class="filter-pop-header">
-                        <span class="filter-pop-title">Select Category</span>
-                        <button class="filter-pop-close" onclick="closeFilterPop('ifpop_party')">&#x2715;</button>
-                      </div>
-                      <div class="filter-pop-body">
-                        <select class="filter-pop-select"><option>Contains</option><option>Exact match</option></select>
-                        <input type="text" class="filter-pop-input" placeholder="">
-                      </div>
-                      <div class="filter-pop-footer">
-                        <button class="filter-pop-clear" onclick="closeFilterPop('ifpop_party')">Clear</button>
-                        <button class="filter-pop-apply" onclick="closeFilterPop('ifpop_party')">Apply</button>
-                      </div>
-                    </div>
-                  </span>
-                </th>
-                <th>
-                  <span class="th-wrap">
-                    PAYMENT TYPE
-                    <span class="th-sort" onclick="sortItemsTable('paymentType')" id="isort_paymentType">
-                      <span class="sa-up" id="isort_paymentType_up">&#9650;</span>
-                      <span class="sa-dn" id="isort_paymentType_dn">&#9660;</span>
-                    </span>
-                    <span class="th-filter" onclick="toggleFilterPop(event,'ifpop_payType')"><i class="fa-solid fa-filter" style="font-size:9px;color:#bbb;"></i></span>
-                    <div class="filter-popover" id="ifpop_payType">
-                      <div class="filter-pop-header">
-                        <span class="filter-pop-title">Select Category</span>
-                        <button class="filter-pop-close" onclick="closeFilterPop('ifpop_payType')">&#x2715;</button>
-                      </div>
-                      <div class="filter-pop-body">
-                        <label class="filter-pop-checkbox-row"><input type="checkbox"> Cash</label>
-                        <label class="filter-pop-checkbox-row"><input type="checkbox"> Cheque</label>
-                      </div>
-                      <div class="filter-pop-footer">
-                        <button class="filter-pop-clear" onclick="closeFilterPop('ifpop_payType')">Clear</button>
-                        <button class="filter-pop-apply" onclick="closeFilterPop('ifpop_payType')">Apply</button>
-                      </div>
-                    </div>
-                  </span>
-                </th>
-                <th>
-                  <span class="th-wrap">
-                    AMOUNT
-                    <span class="th-sort" onclick="sortItemsTable('amount')" id="isort_amount">
-                      <span class="sa-up" id="isort_amount_up">&#9650;</span>
-                      <span class="sa-dn" id="isort_amount_dn">&#9660;</span>
-                    </span>
-                    <span class="th-filter" onclick="toggleFilterPop(event,'ifpop_amount')"><i class="fa-solid fa-filter" style="font-size:9px;color:#bbb;"></i></span>
-                    <div class="filter-popover" id="ifpop_amount">
-                      <div class="filter-pop-header">
-                        <span class="filter-pop-title">Select Category</span>
-                        <button class="filter-pop-close" onclick="closeFilterPop('ifpop_amount')">&#x2715;</button>
-                      </div>
-                      <div class="filter-pop-body">
-                        <select class="filter-pop-select"><option>Equal to</option><option>Less Than</option><option>Greater Than</option></select>
-                        <input type="number" class="filter-pop-input" placeholder="0">
-                      </div>
-                      <div class="filter-pop-footer">
-                        <button class="filter-pop-clear" onclick="closeFilterPop('ifpop_amount')">Clear</button>
-                        <button class="filter-pop-apply" onclick="closeFilterPop('ifpop_amount')">Apply</button>
-                      </div>
-                    </div>
-                  </span>
-                </th>
-                <th>
-                  <span class="th-wrap">
-                    BALANCE
-                    <span class="th-sort" onclick="sortItemsTable('balance')" id="isort_balance">
-                      <span class="sa-up" id="isort_balance_up">&#9650;</span>
-                      <span class="sa-dn" id="isort_balance_dn">&#9660;</span>
-                    </span>
-                    <span class="th-filter" onclick="toggleFilterPop(event,'ifpop_balance')"><i class="fa-solid fa-filter" style="font-size:9px;color:#bbb;"></i></span>
-                    <div class="filter-popover" id="ifpop_balance">
-                      <div class="filter-pop-header">
-                        <span class="filter-pop-title">Select Category</span>
-                        <button class="filter-pop-close" onclick="closeFilterPop('ifpop_balance')">&#x2715;</button>
-                      </div>
-                      <div class="filter-pop-body">
-                        <select class="filter-pop-select"><option>Equal to</option><option>Less Than</option><option>Greater Than</option></select>
-                        <input type="number" class="filter-pop-input" placeholder="0">
-                      </div>
-                      <div class="filter-pop-footer">
-                        <button class="filter-pop-clear" onclick="closeFilterPop('ifpop_balance')">Clear</button>
-                        <button class="filter-pop-apply" onclick="closeFilterPop('ifpop_balance')">Apply</button>
-                      </div>
-                    </div>
-                  </span>
-                </th>
+                <th><span class="th-wrap">DATE<span class="th-sort" onclick="sortItemsTable('date')" id="isort_date"><span class="sa-up" id="isort_date_up">&#9650;</span><span class="sa-dn" id="isort_date_dn">&#9660;</span></span></span></th>
+                <th><span class="th-wrap">EXP NO.<span class="th-sort" onclick="sortItemsTable('expNo')" id="isort_expNo"><span class="sa-up" id="isort_expNo_up">&#9650;</span><span class="sa-dn" id="isort_expNo_dn">&#9660;</span></span></span></th>
+                <th><span class="th-wrap">PARTY<span class="th-sort" onclick="sortItemsTable('party')" id="isort_party"><span class="sa-up" id="isort_party_up">&#9650;</span><span class="sa-dn" id="isort_party_dn">&#9660;</span></span></span></th>
+                <th><span class="th-wrap">PAYMENT TYPE<span class="th-sort" onclick="sortItemsTable('paymentType')" id="isort_paymentType"><span class="sa-up" id="isort_paymentType_up">&#9650;</span><span class="sa-dn" id="isort_paymentType_dn">&#9660;</span></span></span></th>
+                <th><span class="th-wrap">AMOUNT<span class="th-sort" onclick="sortItemsTable('amount')" id="isort_amount"><span class="sa-up" id="isort_amount_up">&#9650;</span><span class="sa-dn" id="isort_amount_dn">&#9660;</span></span></span></th>
+                <th><span class="th-wrap">BALANCE<span class="th-sort" onclick="sortItemsTable('balance')" id="isort_balance"><span class="sa-up" id="isort_balance_up">&#9650;</span><span class="sa-dn" id="isort_balance_dn">&#9660;</span></span></span></th>
                 <th></th>
               </tr></thead>
               <tbody id="itemsDetailTableBody">
@@ -855,12 +913,12 @@
       </div>
     </div>
 
-    {{-- EXPENSE FORM --}}
-   <div id="expenseFormPage">
-  <div style="display:flex; align-items:center; background:#fff; border-bottom:1px solid #e0e0e0; flex-shrink:0;">
-    <div class="form-tabs-bar" id="formTabsBar" style="flex:1; border-bottom:none;"></div>
-    <button onclick="tryCloseEntireForm()" style="background:none; border:none; cursor:pointer; color:#555; font-size:20px; padding:0 16px; line-height:1; flex-shrink:0; margin-left:auto;" title="Close">&#x2715;</button>
-  </div>
+    {{-- EXPENSE FORM — now full-screen fixed overlay --}}
+    <div id="expenseFormPage">
+      <div style="display:flex; align-items:center; background:#fff; border-bottom:1px solid #e0e0e0; flex-shrink:0;">
+        <div class="form-tabs-bar" id="formTabsBar" style="flex:1; border-bottom:none;"></div>
+        <button onclick="tryCloseEntireForm()" style="background:none; border:none; cursor:pointer; color:#555; font-size:20px; padding:0 16px; line-height:1; flex-shrink:0; margin-left:auto;" title="Close">&#x2715;</button>
+      </div>
       <div class="form-body">
         <div class="form-title">Expense</div>
         <div class="form-top-row">
@@ -926,30 +984,53 @@
               <input type="text" class="round-val" id="roundOffVal" value="0" readonly>
             </div>
             <div class="total-field-wrap">
-  <span class="total-field-label">Total</span>
-  <div class="total-box" id="formTotalBox"></div>
-</div>
+              <span class="total-field-label">Total</span>
+              <div class="total-box" id="formTotalBox"></div>
+            </div>
           </div>
         </div>
         <div class="form-extra-btns">
           <button class="form-extra-btn"><i class="bi bi-file-earmark-text"></i> ADD DESCRIPTION</button>
-          {{-- ADD IMAGE hidden to match Image 2 --}}
         </div>
       </div>
-     <div class="form-footer">
-  <div class="share-btn-group">
-    <button class="btn-share-main" onclick="toggleShareDropdown()">Share</button>
-    <button class="btn-share-caret" onclick="toggleShareDropdown()"><i class="bi bi-chevron-down"></i></button>
-  </div>
-  <button class="btn-save" id="btnSaveExpense" onclick="saveExpense()">Save</button>
-  <div class="share-dropdown" id="shareDropdown">
-    <div class="share-dd-item"><i class="bi bi-share"></i> Share</div>
-    <div class="share-dd-item"><i class="bi bi-printer"></i> Print</div>
-    <div class="share-dd-item"><i class="bi bi-plus-square"></i> Save &amp; New</div>
-  </div>
-</div>
+      <div class="form-footer">
+        <div class="share-btn-group">
+          <button class="btn-share-main" onclick="toggleShareDropdown()">Share</button>
+          <button class="btn-share-caret" onclick="toggleShareDropdown()"><i class="bi bi-chevron-down"></i></button>
+        </div>
+        <button class="btn-save" id="btnSaveExpense" onclick="saveExpense()">Save</button>
+        <div class="share-dropdown" id="shareDropdown">
+          <div class="share-dd-item"><i class="bi bi-share"></i> Share</div>
+          <div class="share-dd-item"><i class="bi bi-printer"></i> Print</div>
+          <div class="share-dd-item"><i class="bi bi-plus-square"></i> Save &amp; New</div>
+        </div>
+      </div>
+    </div>
 
   </main>
+
+  {{-- ═══════════════════════════════════════════
+       PRINT VIEW OVERLAY (full screen, like Image 4)
+       ═══════════════════════════════════════════ --}}
+  <div id="printViewOverlay">
+    <div class="print-view-toolbar">
+      <div class="print-view-toolbar-left">
+        <span id="printViewFilename">print.html</span>
+        <span style="color:#888;">|</span>
+        <span>1 / 1</span>
+        <button class="print-toolbar-btn" onclick="changePrintZoom(-10)">−</button>
+        <span id="printZoomLabel" style="color:#ccc;font-size:12px;">100%</span>
+        <button class="print-toolbar-btn" onclick="changePrintZoom(10)">+</button>
+      </div>
+      <div class="print-view-toolbar-right">
+        <button class="print-toolbar-btn" onclick="closePrintView()">Close</button>
+        <button class="print-toolbar-btn primary" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+      </div>
+    </div>
+    <div class="print-view-body" id="printViewBody">
+      <div class="print-page" id="printPageContent"></div>
+    </div>
+  </div>
 
   {{-- MODAL: Edit Category --}}
   <div class="modal-overlay" id="editCatModal">
@@ -1069,17 +1150,17 @@
     <span class="toast-close-btn" onclick="hideToast()">&#x2715;</span>
   </div>
 
-  {{-- PREVIEW MODAL --}}
+  {{-- PREVIEW MODAL (like Image 3) --}}
   <div class="modal-overlay" id="previewModal" style="z-index:970;">
-    <div class="modal-box" style="width:700px;max-width:96vw;padding:0;border-radius:10px;overflow:hidden;">
+    <div class="modal-box" style="width:780px;max-width:96vw;padding:0;border-radius:10px;overflow:hidden;">
       <div style="background:#fff;padding:16px 24px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:15px;font-weight:700;color:#1a1f36;">Preview</span>
         <button class="modal-close" style="position:static;" onclick="closeModal('previewModal')">&#x2715;</button>
       </div>
-      <div style="padding:24px 32px;overflow-y:auto;max-height:70vh;" id="previewContent"></div>
+      <div style="padding:24px 32px;overflow-y:auto;max-height:72vh;" id="previewContent"></div>
       <div style="background:#fff;border-top:1px solid #e0e0e0;padding:14px 24px;display:flex;justify-content:flex-end;gap:10px;">
         <button onclick="previewOpenPDF()" style="border:1.5px solid #D4112E;color:#D4112E;background:#fff;border-radius:20px;padding:8px 18px;font-size:13px;cursor:pointer;">Open PDF</button>
-        <button onclick="window.print()" style="border:1.5px solid #D4112E;color:#D4112E;background:#fff;border-radius:20px;padding:8px 18px;font-size:13px;cursor:pointer;">Print</button>
+        <button onclick="previewDoPrint()" style="border:1.5px solid #D4112E;color:#D4112E;background:#fff;border-radius:20px;padding:8px 18px;font-size:13px;cursor:pointer;">Print</button>
         <button onclick="previewSavePDF()" style="border:1.5px solid #D4112E;color:#D4112E;background:#fff;border-radius:20px;padding:8px 18px;font-size:13px;cursor:pointer;">Save PDF</button>
         <button onclick="previewEmailPDF()" style="border:1.5px solid #D4112E;color:#D4112E;background:#fff;border-radius:20px;padding:8px 18px;font-size:13px;cursor:pointer;">Email PDF</button>
         <button onclick="closeModal('previewModal')" style="border:none;background:#D4112E;color:#fff;border-radius:20px;padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;">Close</button>
@@ -1087,20 +1168,15 @@
     </div>
   </div>
 
-  {{-- VIEW HISTORY MODAL --}}
+  {{-- VIEW HISTORY MODAL (like Image 1) --}}
   <div class="modal-overlay" id="viewHistoryModal" style="z-index:970;">
-    <div class="modal-box" style="width:600px;max-width:96vw;padding:0;border-radius:10px;overflow:hidden;">
+    <div class="modal-box" style="width:760px;max-width:96vw;padding:0;border-radius:10px;overflow:hidden;">
       <div style="background:#fff;padding:16px 24px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:15px;font-weight:700;color:#1a1f36;">Edit History for Expense</span>
         <button class="modal-close" style="position:static;" onclick="closeModal('viewHistoryModal')">&#x2715;</button>
       </div>
-      <div style="padding:40px 24px;text-align:center;min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <svg width="90" height="90" viewBox="0 0 90 90" fill="none" style="margin-bottom:16px;opacity:0.25;">
-          <rect x="10" y="15" width="50" height="65" rx="4" fill="#9ca3af"/>
-          <rect x="20" y="5" width="50" height="65" rx="4" fill="#d1d5db"/>
-          <rect x="25" y="35" width="30" height="3" rx="1" fill="#2563eb"/>
-        </svg>
-        <p style="color:#9ca3af;font-size:13px;margin:0;">No edits have been made to this transaction.</p>
+      <div id="historyContent" style="padding:40px 24px;text-align:center;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        {{-- Content injected by JS --}}
       </div>
     </div>
   </div>
@@ -1128,25 +1204,33 @@
   let calViewDate = new Date();
   let calSelDate  = new Date();
   let closingTabN = null;
-// ── Per-tab state storage ──
-const tabStates = {};
-let activeTabN  = null;
 
-function defaultTabState() {
-  return {
-    catName  : '',
-    expNo    : '',
-    date     : new Date(),
-    items    : [],          // [{rk, name, qty, price}]
-    payments : [{ type: 'Cheque', ref: '' }],
-    roundOff : false,
-    editingExpenseId : null,
-    editingCatIdx    : null,
-  };
+  // ── Per-tab state storage ──
+  const tabStates = {};
+  let activeTabN  = null;
+
+  function defaultTabState() {
+    return {
+      catName  : '',
+      expNo    : '',
+      date     : new Date(),
+      items    : [],
+      payments : [{ type: 'Cheque', ref: '' }],
+      roundOff : false,
+      editingExpenseId : null,
+      editingCatIdx    : null,
+    };
+  }
+  function openDirectPDF(expId, catIdx) {
+  document.querySelectorAll('.td-row-menu').forEach(m => m.classList.remove('open'));
+  window._previewExpId  = expId;
+  window._previewCatIdx = catIdx;
+  previewOpenPDF();
 }
+
   // ── Sort state ──
   let detailSortCol = 'amount';
-  let detailSortDir = 'desc'; // 'asc' | 'desc'
+  let detailSortDir = 'desc';
 
   const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
@@ -1158,10 +1242,11 @@ function defaultTabState() {
       body: data ? JSON.stringify(data) : undefined,
     }).then(r => r.json());
   }
+
   function tryCloseEntireForm() {
-  closingTabN = 'all';
-  document.getElementById('closeExpenseOverlay').classList.add('open');
-}
+    closingTabN = 'all';
+    document.getElementById('closeExpenseOverlay').classList.add('open');
+  }
 
   // ═══════════════════════════════════════════════════════
   //  INIT
@@ -1177,10 +1262,22 @@ function defaultTabState() {
   //  PAGE SWITCH
   // ═══════════════════════════════════════════════════════
   function showPage(id) {
-    ['emptyState','splitPane','expenseFormPage'].forEach(p => {
+    ['emptyState','splitPane'].forEach(p => {
       const el = document.getElementById(p);
       if (el) el.style.display = 'none';
     });
+
+    // The expense form is a fixed overlay — show/hide independently
+    const formEl = document.getElementById('expenseFormPage');
+
+    if (id === 'expenseFormPage') {
+      formEl.style.display = 'flex';
+      return;
+    }
+
+    // Hide form overlay when going back to list
+    formEl.style.display = 'none';
+
     const target = document.getElementById(id);
     if (!target) return;
     if (id === 'emptyState') {
@@ -1190,8 +1287,6 @@ function defaultTabState() {
       renderCategoryList();
       if (currentTab === 'category') renderDetailPanel();
       else renderItemsList();
-    } else if (id === 'expenseFormPage') {
-      target.style.display = 'flex';
     }
   }
 
@@ -1218,7 +1313,7 @@ function defaultTabState() {
   }
 
   // ═══════════════════════════════════════════════════════
-  //  SORT — detail table (category view)
+  //  SORT — detail table
   // ═══════════════════════════════════════════════════════
   function sortDetailTable(col) {
     if (detailSortCol === col) {
@@ -1261,9 +1356,6 @@ function defaultTabState() {
     });
   }
 
-  // ═══════════════════════════════════════════════════════
-  //  SORT — items table
-  // ═══════════════════════════════════════════════════════
   function sortItemsTable(col) {
     ['date','expNo','party','paymentType','amount','balance'].forEach(c => {
       const upEl = document.getElementById('isort_'+c+'_up');
@@ -1288,9 +1380,7 @@ function defaultTabState() {
     document.querySelectorAll('.filter-popover').forEach(p => p.classList.remove('open'));
     if (!wasOpen) pop.classList.add('open');
   }
-  function closeFilterPop(id) {
-    document.getElementById(id)?.classList.remove('open');
-  }
+  function closeFilterPop(id) { document.getElementById(id)?.classList.remove('open'); }
   function clearFilterPop(id, col) {
     const pop = document.getElementById(id);
     if (pop) {
@@ -1301,10 +1391,7 @@ function defaultTabState() {
     closeFilterPop(id);
     renderDetailPanel();
   }
-  function applyFilterPop(id, col) {
-    closeFilterPop(id);
-    renderDetailPanel();
-  }
+  function applyFilterPop(id, col) { closeFilterPop(id); renderDetailPanel(); }
 
   // ═══════════════════════════════════════════════════════
   //  CATEGORY LIST
@@ -1414,10 +1501,10 @@ function defaultTabState() {
                   <div class="td-row-menu-item" onclick="openViewEdit(${e.id},${selectedCatIdx})">View/Edit</div>
                   <div class="td-row-menu-item danger" onclick="deleteExpenseRow(${e.id},${selectedCatIdx})">Delete</div>
                   <div class="td-row-menu-item" onclick="duplicateExpenseRow(${e.id},${selectedCatIdx})">Duplicate</div>
-                  <div class="td-row-menu-item">Open PDF</div>
+                  <div class="td-row-menu-item" onclick="openPrintView(${e.id},${selectedCatIdx})">Print</div>
                   <div class="td-row-menu-item" onclick="openPreview(${e.id},${selectedCatIdx})">Preview</div>
-                  <div class="td-row-menu-item">Print</div>
-                  <div class="td-row-menu-item" onclick="openViewHistory(${e.id})">View History</div>
+                  <div class="td-row-menu-item" onclick="openDirectPDF(${e.id},${selectedCatIdx})">Open PDF</div>
+                  <div class="td-row-menu-item" onclick="openViewHistory(${e.id},${selectedCatIdx})">View History</div>
               </div>
           </td>`;
       tbody.appendChild(tr);
@@ -1453,31 +1540,434 @@ function defaultTabState() {
     });
   }
 
+  // ═══════════════════════════════════════════════════════
+  //  DUPLICATE — opens expense form pre-filled
+  //  User edits and saves → creates a NEW expense (duplicate)
+  // ═══════════════════════════════════════════════════════
   function duplicateExpenseRow(expId, catIdx) {
     document.querySelectorAll('.td-row-menu').forEach(m => m.classList.remove('open'));
-    const cat = categories[catIdx];
-    const entry = cat.entries.find(e => e.id === expId);
+    const cat   = categories[catIdx];
+    const entry = cat ? cat.entries.find(e => e.id === expId) : null;
     if (!entry) return;
-    showConfirm('Duplicate Expense', 'This expense will be duplicated.', () => {
-        ajax('POST', window.expenseRoutes.expenseSave, {
-            expense_category_id: cat.id,
-            expense_no:   '',
-            expense_date: entry.date,
-            total_amount: entry.amount,
-            payment_type: entry.paymentType,
-            reference_no: '',
-        }).then(res => {
-            if (res.success) {
-                cat.amount = parseFloat(cat.amount) + parseFloat(res.expense.amount);
-                cat.entries.unshift(res.expense);
-                renderCategoryList();
-                renderDetailPanel();
-                showToast('Expense duplicated.', 'green');
-            } else {
-                showToast(res.message || 'Duplicate failed.', 'red');
-            }
-        }).catch(() => showToast('Duplicate failed.', 'red'));
+
+    // Open the expense form pre-filled with the entry data
+    // but WITHOUT _editingExpenseId so Save creates a new record
+    resetForm();
+    showPage('expenseFormPage');
+
+    // Pre-fill category
+    document.getElementById('formCatLabel').textContent = cat.name;
+    document.getElementById('formCatSelectBtn').classList.add('filled');
+
+    // Pre-fill expense no (blank — user can set their own)
+    document.getElementById('formExpNoInput').value = '';
+
+    // Pre-fill date from original entry
+    if (entry.date) {
+      const parts = entry.date.split('-');
+      if (parts.length === 3) {
+        calSelDate  = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        calViewDate = new Date(calSelDate);
+        setDateDisplay(calSelDate);
+        buildCalendar();
+      }
+    }
+
+    // Pre-fill payment
+    paymentRows = [{ type: entry.paymentType || 'Cheque', amount: '', ref: entry.reference_no || '' }];}
+  function renderPaymentCard() {
+    const card = document.getElementById('paymentCard'); card.innerHTML = '';
+    paymentRows.forEach((row, i) => {
+      const wrap = document.createElement('div'); wrap.className = 'payment-row-wrap';
+      const pr = document.createElement('div'); pr.className = 'payment-row';
+      pr.innerHTML = `
+        <div class="payment-field" style="position:relative;">
+          <span class="payment-field-label" style="position:absolute;top:6px;left:12px;font-size:10px;color:#555;z-index:1;">Payment Type</span>
+          <select class="payment-type-select" onchange="payRowChange(${i},'type',this.value)" style="border:1px solid #aaa;border-radius:6px;padding:20px 30px 8px 12px;font-size:13px;min-width:200px;min-height:54px;cursor:pointer;color:#1a1f36;background:#fff;outline:none;appearance:none;width:100%;">
+            <option value="add_bank" style="color:#2563eb;">+ Add Bank A/C</option>
+            <option value="" ${!row.type?'selected':''}>Select Type</option>
+            <option value="Cash" ${row.type==='Cash'?'selected':''}>Cash</option>
+            <option value="Cheque" ${row.type==='Cheque'?'selected':''}>Cheque</option>
+            <option value="UPI" ${row.type==='UPI'?'selected':''}>UPI</option>
+            <option value="Card" ${row.type==='Card'?'selected':''}>Card</option>
+            <option value="add_bank" style="color:#2563eb;">+ Add Bank A/C</option>
+          </select>
+        </div>
+        <div style="position:relative;">
+          <span style="position:absolute;top:6px;left:12px;font-size:10px;color:#555;z-index:1;background:#fff;padding:0 2px;">Amount</span>
+          <input type="number" value="${row.amount||0}" oninput="payRowChange(${i},'amount',this.value)" style="border:1px solid #aaa;border-radius:6px;padding:20px 12px 8px 12px;font-size:13px;width:120px;min-height:54px;outline:none;color:#1a1f36;background:#fff;">
+        </div>
+        ${i > 0 ? `<button onclick="removePaymentRow(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;padding:4px 8px;" title="Delete">🗑</button>` : '<div style="width:34px;"></div>'}`;
+      wrap.appendChild(pr);
+      const ref = document.createElement('input');
+      ref.type='text'; ref.placeholder='Reference No.'; ref.value=row.ref||'';
+      ref.style.cssText='border:1px solid #bbb;border-radius:6px;padding:10px 12px;font-size:13px;width:200px;outline:none;margin-top:8px;display:block;background:#fff;';
+      ref.oninput = ev => payRowChange(i, 'ref', ev.target.value);
+      wrap.appendChild(ref);
+      card.appendChild(wrap);
+
+      // detect "Add Bank A/C" selection
+      const sel = pr.querySelector('select');
+      sel.addEventListener('change', function() {
+        if (this.value === 'add_bank') {
+          this.value = row.type || '';
+          openAddBankModal();
+        }
+      });
     });
+
+    const footer = document.createElement('div');
+    footer.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-top:10px;';
+    const total = paymentRows.reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
+    const grandTotal = parseFloat(document.getElementById('formAmtTotal')?.textContent) || 0;
+    footer.innerHTML = `
+      <button onclick="addPaymentRow()" style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;">+ Add Payment type</button>
+      <span style="font-size:13px;font-weight:600;color:#555;" id="payTotalText">Total payment: ${total}/${grandTotal}</span>`;
+    card.appendChild(footer);
+  }
+  // ═══════════════════════════════════════════════════════
+  //  PRINT VIEW (full-screen, like Image 4)
+  // ═══════════════════════════════════════════════════════
+  let printZoom = 100;
+
+  function openPrintView(expId, catIdx) {
+    document.querySelectorAll('.td-row-menu').forEach(m => m.classList.remove('open'));
+    const cat   = categories[catIdx];
+    const entry = cat ? cat.entries.find(e => e.id === expId) : null;
+    if (!entry) return;
+
+    const userName  = window.App?.user?.name || 'Company';
+    const userPhone = window.App?.user?.phone || '';
+    const userEmail = window.App?.user?.email || '';
+
+    // Build items rows — if entry has items use them, else show generic row
+    const itemRows = (entry.items && entry.items.length)
+      ? entry.items.map((it, idx) => `
+          <tr>
+            <td>${idx+1}</td>
+            <td>${escHtml(it.name||'')}</td>
+            <td style="text-align:right;">${parseFloat(it.qty||1)}</td>
+            <td style="text-align:right;">Rs ${parseFloat(it.price||0).toFixed(2)}</td>
+            <td style="text-align:right;">Rs ${parseFloat(it.amount||0).toFixed(2)}</td>
+          </tr>`).join('')
+      : `<tr>
+          <td>1</td>
+          <td>${escHtml(cat.name)}</td>
+          <td style="text-align:right;">1</td>
+          <td style="text-align:right;">Rs 0.00</td>
+          <td style="text-align:right;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td>
+        </tr>`;
+
+    const totalQty = (entry.items && entry.items.length)
+      ? entry.items.reduce((s, it) => s + parseFloat(it.qty||1), 0)
+      : 1;
+
+    document.getElementById('printPageContent').innerHTML = `
+      <h2>Expense</h2>
+      <div class="print-company-box">
+        <div class="print-company-name">${escHtml(userName)}</div>
+        <div class="print-company-meta">
+          ${userPhone ? '<span>Phone: <strong>' + escHtml(userPhone) + '</strong></span>' : ''}
+          ${userEmail ? '<span>Email: <strong>' + escHtml(userEmail) + '</strong></span>' : ''}
+        </div>
+      </div>
+      <table class="print-info-table">
+        <tr>
+          <td style="width:50%;"><strong>Expense For:</strong>${escHtml(cat.name)}</td>
+          <td><strong>Expense Details:</strong>Date: ${escHtml(formatDisplayDate(entry.date))}${entry.expNo ? '<br>Exp No: ' + escHtml(entry.expNo) : ''}</td>
+        </tr>
+      </table>
+      <table class="print-items-table" style="margin-top:0;border-top:none;">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item name</th>
+            <th style="text-align:right;">Quantity</th>
+            <th style="text-align:right;">Price/ Unit(Rs)</th>
+            <th style="text-align:right;">Amount(Rs)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRows}
+          <tr class="total-row">
+            <td></td>
+            <td><strong>Total</strong></td>
+            <td style="text-align:right;"><strong>${totalQty}</strong></td>
+            <td></td>
+            <td style="text-align:right;"><strong>Rs ${parseFloat(entry.amount||0).toFixed(2)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="print-summary-table" style="border-top:none;">
+        <tr class="total-row">
+          <td><strong>Total</strong></td>
+          <td>:</td>
+          <td><strong>Rs ${parseFloat(entry.amount||0).toFixed(2)}</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Amount in Words:</strong></td>
+          <td colspan="2"></td>
+        </tr>
+        <tr class="print-words-row">
+          <td colspan="3" style="padding-left:16px;">${numberToWords(parseFloat(entry.amount||0))}</td>
+        </tr>
+        <tr>
+          <td>Paid</td>
+          <td>:</td>
+          <td>Rs ${parseFloat(entry.amount||0).toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td>Balance</td>
+          <td>:</td>
+          <td>Rs ${parseFloat(entry.balance||0).toFixed(2)}</td>
+        </tr>
+      </table>
+      <div class="print-signatory">
+        <div class="print-signatory-box">
+          <div class="sig-for">For ${escHtml(userName)}:</div>
+          <div class="sig-line">Authorized Signatory</div>
+        </div>
+      </div>`;
+
+    printZoom = 100;
+    document.getElementById('printZoomLabel').textContent = '100%';
+    document.getElementById('printPageContent').style.transform = 'scale(1)';
+    document.getElementById('printPageContent').style.transformOrigin = 'top center';
+    document.getElementById('printViewOverlay').classList.add('open');
+  }
+
+  function closePrintView() {
+    document.getElementById('printViewOverlay').classList.remove('open');
+  }
+
+  function changePrintZoom(delta) {
+    printZoom = Math.max(50, Math.min(200, printZoom + delta));
+    document.getElementById('printZoomLabel').textContent = printZoom + '%';
+    document.getElementById('printPageContent').style.transform = 'scale(' + (printZoom/100) + ')';
+    document.getElementById('printPageContent').style.transformOrigin = 'top center';
+  }
+
+  function formatDisplayDate(dateStr) {
+    if (!dateStr) return '';
+    // Convert YYYY-MM-DD to MM/DD/YYYY or DD/MM/YYYY
+    const parts = dateStr.split('-');
+    if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
+    return dateStr;
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  PREVIEW MODAL (like Image 3)
+  // ═══════════════════════════════════════════════════════
+  function openPreview(expId, catIdx) {
+    document.querySelectorAll('.td-row-menu').forEach(m => m.classList.remove('open'));
+    const cat   = categories[catIdx];
+    const entry = cat ? cat.entries.find(e => e.id === expId) : null;
+    if (!entry) return;
+
+    const userName  = window.App?.user?.name || 'Company';
+    const userPhone = window.App?.user?.phone || '';
+    const userEmail = window.App?.user?.email || '';
+
+    const itemRows = (entry.items && entry.items.length)
+      ? entry.items.map((it, idx) => `
+          <tr style="border-bottom:1px solid #e0e0e0;">
+            <td style="padding:8px 12px;">${idx+1}</td>
+            <td style="padding:8px 12px;">${escHtml(it.name||'')}</td>
+            <td style="padding:8px 12px;text-align:right;">${parseFloat(it.qty||1)}</td>
+            <td style="padding:8px 12px;text-align:right;">Rs ${parseFloat(it.price||0).toFixed(2)}</td>
+            <td style="padding:8px 12px;text-align:right;">Rs ${parseFloat(it.amount||0).toFixed(2)}</td>
+          </tr>`).join('')
+      : `<tr style="border-bottom:1px solid #e0e0e0;">
+          <td style="padding:8px 12px;">1</td>
+          <td style="padding:8px 12px;">${escHtml(cat.name)}</td>
+          <td style="padding:8px 12px;text-align:right;">1</td>
+          <td style="padding:8px 12px;text-align:right;">Rs 0.00</td>
+          <td style="padding:8px 12px;text-align:right;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td>
+        </tr>`;
+
+    const totalQty = (entry.items && entry.items.length)
+      ? entry.items.reduce((s, it) => s + parseFloat(it.qty||1), 0)
+      : 1;
+
+    document.getElementById('previewContent').innerHTML = `
+      <div style="font-family:'Segoe UI',sans-serif;">
+        <h2 style="text-align:center;font-size:18px;font-weight:700;margin-bottom:20px;color:#1a1f36;">Expense</h2>
+        <div style="border:1px solid #ccc;padding:14px 18px;margin-bottom:0;">
+          <div style="font-size:20px;font-weight:700;color:#1a1f36;margin-bottom:4px;">${escHtml(userName)}</div>
+          <div style="font-size:12px;color:#555;display:flex;gap:28px;">
+            ${userPhone ? '<span>Phone: <strong>' + escHtml(userPhone) + '</strong></span>' : ''}
+            ${userEmail ? '<span>Email: <strong>' + escHtml(userEmail) + '</strong></span>' : ''}
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #ccc;border-top:none;">
+          <tr>
+            <td style="padding:10px 16px;border-right:1px solid #ccc;width:50%;font-size:12px;vertical-align:top;">
+              <strong style="display:block;margin-bottom:4px;color:#555;">Expense For:</strong>
+              ${escHtml(cat.name)}
+            </td>
+            <td style="padding:10px 16px;font-size:12px;vertical-align:top;">
+              <strong style="display:block;margin-bottom:4px;color:#555;">Expense Details:</strong>
+              Date: &nbsp;<strong>${escHtml(formatDisplayDate(entry.date))}</strong>
+              ${entry.expNo ? '<br>Exp No: ' + escHtml(entry.expNo) : ''}
+            </td>
+          </tr>
+        </table>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #ccc;border-top:none;">
+          <thead>
+            <tr style="background:#f5f5f5;">
+              <th style="padding:9px 12px;border:1px solid #ccc;font-size:11px;text-align:left;">#</th>
+              <th style="padding:9px 12px;border:1px solid #ccc;font-size:11px;text-align:left;">Item name</th>
+              <th style="padding:9px 12px;border:1px solid #ccc;font-size:11px;text-align:right;">Quantity</th>
+              <th style="padding:9px 12px;border:1px solid #ccc;font-size:11px;text-align:right;">Price/ Unit(Rs)</th>
+              <th style="padding:9px 12px;border:1px solid #ccc;font-size:11px;text-align:right;">Amount(Rs)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemRows}
+            <tr style="background:#f9f9f9;font-weight:700;border-top:1px solid #ccc;">
+              <td style="padding:9px 12px;border:1px solid #ccc;"></td>
+              <td style="padding:9px 12px;border:1px solid #ccc;">Total</td>
+              <td style="padding:9px 12px;border:1px solid #ccc;text-align:right;">${totalQty}</td>
+              <td style="padding:9px 12px;border:1px solid #ccc;"></td>
+              <td style="padding:9px 12px;border:1px solid #ccc;text-align:right;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #ccc;border-top:none;">
+          <tr style="background:#f9f9f9;font-weight:700;">
+            <td style="padding:10px 16px;border:1px solid #ccc;">Total</td>
+            <td style="padding:10px 16px;border:1px solid #ccc;">:</td>
+            <td style="padding:10px 16px;border:1px solid #ccc;text-align:right;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="padding:10px 16px;border:1px solid #ccc;border-top:none;font-weight:600;font-size:12px;">Amount in Words:</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="padding:6px 16px 10px;border:1px solid #ccc;border-top:none;font-style:italic;font-size:12px;color:#555;">
+              ${numberToWords(parseFloat(entry.amount||0))}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:9px 16px;border:1px solid #ccc;font-size:12px;">Paid</td>
+            <td style="padding:9px 16px;border:1px solid #ccc;font-size:12px;">:</td>
+            <td style="padding:9px 16px;border:1px solid #ccc;text-align:right;font-size:12px;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding:9px 16px;border:1px solid #ccc;font-size:12px;">Balance</td>
+            <td style="padding:9px 16px;border:1px solid #ccc;font-size:12px;">:</td>
+            <td style="padding:9px 16px;border:1px solid #ccc;text-align:right;font-size:12px;">Rs ${parseFloat(entry.balance||0).toFixed(2)}</td>
+          </tr>
+        </table>
+        <div style="display:flex;justify-content:flex-end;margin-top:24px;">
+          <div style="border:1px solid #ccc;padding:14px 24px;min-width:220px;min-height:80px;text-align:center;">
+            <div style="font-size:12px;color:#555;margin-bottom:36px;">For ${escHtml(userName)}:</div>
+            <div style="border-top:1px solid #ccc;padding-top:6px;font-size:11px;color:#888;">Authorized Signatory</div>
+          </div>
+        </div>
+      </div>`;
+
+    // Store ref for Print button inside Preview
+    window._previewExpId  = expId;
+    window._previewCatIdx = catIdx;
+    openModal('previewModal');
+  }
+
+  function previewDoPrint() {
+    closeModal('previewModal');
+    if (window._previewExpId != null) {
+      openPrintView(window._previewExpId, window._previewCatIdx);
+      setTimeout(() => window.print(), 300);
+    }
+  }
+  function previewOpenPDF() {
+  closeModal('previewModal');
+  if (window._previewExpId == null) return;
+  const cat   = categories[window._previewCatIdx];
+  const entry = cat ? cat.entries.find(e => e.id === window._previewExpId) : null;
+  if (!entry) return;
+
+  const userName  = window.App?.user?.name || 'Company';
+  const userPhone = window.App?.user?.phone || '';
+  const userEmail = window.App?.user?.email || '';
+
+  const itemRows = (entry.items && entry.items.length)
+    ? entry.items.map((it, idx) => `<tr><td>${idx+1}</td><td>${escHtml(it.name||'')}</td><td style="text-align:right;">${parseFloat(it.qty||1)}</td><td style="text-align:right;">Rs ${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right;">Rs ${parseFloat(it.amount||0).toFixed(2)}</td></tr>`).join('')
+    : `<tr><td>1</td><td>${escHtml(cat.name)}</td><td style="text-align:right;">1</td><td style="text-align:right;">Rs 0.00</td><td style="text-align:right;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td></tr>`;
+
+  const totalQty = (entry.items && entry.items.length)
+    ? entry.items.reduce((s, it) => s + parseFloat(it.qty||1), 0) : 1;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expense</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; font-size: 13px; color: #1a1f36; padding: 48px 56px; }
+    h2 { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 28px; }
+    .company-box { border: 1px solid #ccc; padding: 16px 20px; margin-bottom: 0; }
+    .company-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .company-meta { font-size: 12px; color: #555; display: flex; gap: 32px; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid #ccc; }
+    th { background: #f5f5f5; padding: 9px 12px; font-size: 11px; font-weight: 700; text-align: left; border: 1px solid #ccc; }
+    td { padding: 9px 12px; border: 1px solid #ccc; font-size: 12px; }
+    td:last-child, th:last-child { text-align: right; }
+    .total-row td { font-weight: 700; background: #f9f9f9; }
+    .signatory { margin-top: 40px; display: flex; justify-content: flex-end; }
+    .signatory-box { border: 1px solid #ccc; padding: 14px 24px; min-width: 220px; min-height: 80px; text-align: center; }
+  </style></head><body>
+  <h2>Expense</h2>
+  <div class="company-box">
+    <div class="company-name">${escHtml(userName)}</div>
+    <div class="company-meta">
+      ${userPhone ? '<span>Phone: <strong>' + escHtml(userPhone) + '</strong></span>' : ''}
+      ${userEmail ? '<span>Email: <strong>' + escHtml(userEmail) + '</strong></span>' : ''}
+    </div>
+  </div>
+  <table style="border-top:none;"><tr>
+    <td style="width:50%;"><strong style="display:block;color:#555;font-size:11px;">EXPENSE FOR:</strong>${escHtml(cat.name)}</td>
+    <td><strong style="display:block;color:#555;font-size:11px;">EXPENSE DETAILS:</strong>Date: ${escHtml(formatDisplayDate(entry.date))}${entry.expNo ? '<br>Exp No: ' + escHtml(entry.expNo) : ''}</td>
+  </tr></table>
+  <table style="border-top:none;"><thead><tr>
+    <th>#</th><th>Item name</th><th style="text-align:right;">Quantity</th><th style="text-align:right;">Price/Unit(Rs)</th><th style="text-align:right;">Amount(Rs)</th>
+  </tr></thead><tbody>
+    ${itemRows}
+    <tr class="total-row"><td></td><td>Total</td><td style="text-align:right;">${totalQty}</td><td></td><td style="text-align:right;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td></tr>
+  </tbody></table>
+  <table style="border-top:none;">
+    <tr class="total-row"><td>Total</td><td>:</td><td>Rs ${parseFloat(entry.amount||0).toFixed(2)}</td></tr>
+    <tr><td colspan="3"><em>${numberToWords(parseFloat(entry.amount||0))}</em></td></tr>
+    <tr><td>Paid</td><td>:</td><td>Rs ${parseFloat(entry.amount||0).toFixed(2)}</td></tr>
+    <tr><td>Balance</td><td>:</td><td>Rs ${parseFloat(entry.balance||0).toFixed(2)}</td></tr>
+  </table>
+  <div class="signatory"><div class="signatory-box">
+    <div style="font-size:12px;color:#555;margin-bottom:36px;">For ${escHtml(userName)}:</div>
+    <div style="border-top:1px solid #ccc;padding-top:6px;font-size:11px;color:#888;">Authorized Signatory</div>
+  </div></div>
+  <script>window.onload = function() { window.print(); }<\/script>
+  </body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+  function previewSavePDF()  { showToast('Save PDF feature coming soon.', 'red'); }
+  function previewEmailPDF() { showToast('Email PDF feature coming soon.', 'red'); }
+
+  // ═══════════════════════════════════════════════════════
+  //  VIEW HISTORY MODAL (like Image 1)
+  // ═══════════════════════════════════════════════════════
+  function openViewHistory(expId, catIdx) {
+    document.querySelectorAll('.td-row-menu').forEach(m => m.classList.remove('open'));
+
+    // In a real app you'd fetch history from the server.
+    // For now show the same empty state as Image 1.
+    document.getElementById('historyContent').innerHTML = `
+      <svg width="100" height="100" viewBox="0 0 120 120" fill="none" style="margin-bottom:20px;opacity:0.3;">
+        <rect x="18" y="10" width="60" height="80" rx="6" fill="#9ca3af"/>
+        <rect x="28" y="5"  width="60" height="80" rx="6" fill="#d1d5db"/>
+        <rect x="38" y="42" width="32" height="4" rx="2" fill="#2563eb"/>
+        <rect x="38" y="52" width="24" height="4" rx="2" fill="#2563eb" opacity=".5"/>
+      </svg>
+      <p style="color:#9ca3af;font-size:13px;margin:0;">No edits have been made to this transaction.</p>`;
+
+    openModal('viewHistoryModal');
   }
 
   // ═══════════════════════════════════════════════════════
@@ -1563,7 +2053,6 @@ function defaultTabState() {
     }).catch(() => showToast('Update failed.', 'red'));
   }
 
-  // ─── DELETE CATEGORY ───
   function deleteCategoryPrompt(i) {
     closeAllCatMenus(-1);
     const c = categories[i];
@@ -1592,7 +2081,6 @@ function defaultTabState() {
   function openExpenseForm() { resetForm(); showPage('expenseFormPage'); }
 
   function resetForm() {
-    // Reset category label
     document.getElementById('formCatLabel').textContent = '';
     document.getElementById('formCatSelectBtn').classList.remove('filled');
     calSelDate = new Date(); setDateDisplay(calSelDate); calViewDate = new Date(); buildCalendar();
@@ -1603,104 +2091,117 @@ function defaultTabState() {
     paymentRows = [{ type: 'Cheque', amount: '', ref: '' }];
     renderPaymentCard();
     tabCounter = 1; renderFormTabs(1); renderFormCatOptions();
+    window._editingExpenseId = null;
+    window._editingCatIdx    = null;
   }
-function saveTabState() {
-  if (!activeTabN) return;
-  const s = tabStates[activeTabN] || defaultTabState();
 
-  s.catName  = document.getElementById('formCatLabel')?.textContent?.trim() || '';
-  s.expNo    = document.getElementById('formExpNoInput')?.value || '';
-  s.date     = calSelDate ? new Date(calSelDate) : new Date();
-  s.roundOff = document.getElementById('roundOffChk')?.checked || false;
-  s.editingExpenseId = window._editingExpenseId || null;
-  s.editingCatIdx    = window._editingCatIdx    || null;
-
-  // Save all item rows
-  s.items = [];
-  document.querySelectorAll('[id^="itemRow_"]').forEach(tr => {
-    const rk = tr.id.replace('itemRow_', '');
-    s.items.push({
-      rk,
-      name  : document.getElementById('itemName_'  + rk)?.value || '',
-      qty   : document.getElementById('itemQty_'   + rk)?.value || '',
-      price : document.getElementById('itemPrice_' + rk)?.value || '',
+  function saveTabState() {
+    if (!activeTabN) return;
+    const s = tabStates[activeTabN] || defaultTabState();
+    s.catName  = document.getElementById('formCatLabel')?.textContent?.trim() || '';
+    s.expNo    = document.getElementById('formExpNoInput')?.value || '';
+    s.date     = calSelDate ? new Date(calSelDate) : new Date();
+    s.roundOff = document.getElementById('roundOffChk')?.checked || false;
+    s.editingExpenseId = window._editingExpenseId || null;
+    s.editingCatIdx    = window._editingCatIdx    || null;
+    s.items = [];
+    document.querySelectorAll('[id^="itemRow_"]').forEach(tr => {
+      const rk = tr.id.replace('itemRow_', '');
+      s.items.push({
+        rk,
+        name  : document.getElementById('itemName_'  + rk)?.value || '',
+        qty   : document.getElementById('itemQty_'   + rk)?.value || '',
+        price : document.getElementById('itemPrice_' + rk)?.value || '',
+      });
     });
-  });
-
-  // Save payment rows
-  s.payments = paymentRows.map(p => ({ type: p.type || '', ref: p.ref || '' }));
-
-  tabStates[activeTabN] = s;
-}
-
-function restoreTabState(tabN) {
-  const s = tabStates[tabN] || defaultTabState();
-
-  // Category
-  const catLbl = document.getElementById('formCatLabel');
-  const catBtn = document.getElementById('formCatSelectBtn');
-  if (catLbl) catLbl.textContent = s.catName || '';
-  if (catBtn) catBtn.classList.toggle('filled', !!(s.catName));
-
-  // Expense No
-  const expNoEl = document.getElementById('formExpNoInput');
-  if (expNoEl) expNoEl.value = s.expNo || '';
-
-  // Date
-  calSelDate  = s.date ? new Date(s.date) : new Date();
-  calViewDate = new Date(calSelDate);
-  setDateDisplay(calSelDate);
-  buildCalendar();
-
-  // Round Off
-  const chkEl = document.getElementById('roundOffChk');
-  if (chkEl) chkEl.checked = !!s.roundOff;
-
-  // Items — rebuild rows from saved state
-  rowKey = 0;
-  document.getElementById('formItemsBody').innerHTML = '';
-
-  if (s.items && s.items.length > 0) {
-    s.items.forEach(it => {
-      addItemRow();                          // increments rowKey
-      const rk = rowKey;
-      const nameEl  = document.getElementById('itemName_'  + rk);
-      const qtyEl   = document.getElementById('itemQty_'   + rk);
-      const priceEl = document.getElementById('itemPrice_' + rk);
-      if (nameEl)  nameEl.value  = it.name  || '';
-      if (qtyEl)   qtyEl.value   = it.qty   || '';
-      if (priceEl) priceEl.value = it.price || '';
-      calcRow(rk);
-    });
-  } else {
-    addItemRow();                            // always at least 1 row
+    s.payments = paymentRows.map(p => ({ type: p.type || '', ref: p.ref || '' }));
+    tabStates[activeTabN] = s;
   }
-  appendStaticRow();
 
-  // Payments
-  paymentRows = (s.payments && s.payments.length)
-    ? s.payments.map(p => ({ type: p.type || 'Cheque', ref: p.ref || '', amount: '' }))
-    : [{ type: 'Cheque', ref: '', amount: '' }];
-  renderPaymentCard();
+  function restoreTabState(tabN) {
+    const s = tabStates[tabN] || defaultTabState();
+    const catLbl = document.getElementById('formCatLabel');
+    const catBtn = document.getElementById('formCatSelectBtn');
+    if (catLbl) catLbl.textContent = s.catName || '';
+    if (catBtn) catBtn.classList.toggle('filled', !!(s.catName));
+    const expNoEl = document.getElementById('formExpNoInput');
+    if (expNoEl) expNoEl.value = s.expNo || '';
+    calSelDate  = s.date ? new Date(s.date) : new Date();
+    calViewDate = new Date(calSelDate);
+    setDateDisplay(calSelDate);
+    buildCalendar();
+    const chkEl = document.getElementById('roundOffChk');
+    if (chkEl) chkEl.checked = !!s.roundOff;
+    rowKey = 0;
+    document.getElementById('formItemsBody').innerHTML = '';
+    if (s.items && s.items.length > 0) {
+      s.items.forEach(it => {
+        addItemRow();
+        const rk = rowKey;
+        const nameEl  = document.getElementById('itemName_'  + rk);
+        const qtyEl   = document.getElementById('itemQty_'   + rk);
+        const priceEl = document.getElementById('itemPrice_' + rk);
+        if (nameEl)  nameEl.value  = it.name  || '';
+        if (qtyEl)   qtyEl.value   = it.qty   || '';
+        if (priceEl) priceEl.value = it.price || '';
+        calcRow(rk);
+      });
+    } else {
+      addItemRow();
+    }
+    appendStaticRow();
+    paymentRows = (s.payments && s.payments.length)
+      ? s.payments.map(p => ({ type: p.type || 'Cheque', ref: p.ref || '', amount: '' }))
+      : [{ type: 'Cheque', ref: '', amount: '' }];
+    renderPaymentCard();
+    window._editingExpenseId = s.editingExpenseId || null;
+    window._editingCatIdx    = s.editingCatIdx    || null;
+    calcTotals();
+    activeTabN = tabN;
+  }
 
-  // Editing IDs
-  window._editingExpenseId = s.editingExpenseId || null;
-  window._editingCatIdx    = s.editingCatIdx    || null;
-
-  calcTotals();
-  activeTabN = tabN;
-}
   // ─── FORM TABS ───
   function renderFormTabs(activeN) {
-  const bar = document.getElementById('formTabsBar');
-  bar.innerHTML = '';
-  for (let i = 1; i <= tabCounter; i++) {
+    const bar = document.getElementById('formTabsBar');
+    bar.innerHTML = '';
+    for (let i = 1; i <= tabCounter; i++) {
+      const div = document.createElement('div');
+      div.className = 'form-tab' + (i === activeN ? ' active' : '');
+      div.id = 'formTab_' + i;
+      const n = i;
+      const label = document.createElement('span');
+      label.textContent = 'Expense #' + i;
+      label.style.pointerEvents = 'none';
+      const x = document.createElement('span');
+      x.className = 'form-tab-close';
+      x.innerHTML = '&#x2715;';
+      x.addEventListener('click', function(ev) { ev.stopPropagation(); tryCloseFormTab(n); });
+      div.appendChild(label);
+      div.appendChild(x);
+      div.addEventListener('click', () => activateFormTab(n));
+      bar.appendChild(div);
+    }
+    const addBtn = document.createElement('div');
+    addBtn.className = 'form-tab-add';
+    addBtn.textContent = '+';
+    addBtn.onclick = addFormTab;
+    bar.appendChild(addBtn);
+    if (!tabStates[activeN]) tabStates[activeN] = defaultTabState();
+    activeTabN = activeN;
+  }
+
+  function addFormTab() {
+    saveTabState();
+    tabCounter++;
+    tabStates[tabCounter] = defaultTabState();
+    const bar = document.getElementById('formTabsBar');
+    const addBtn = bar.querySelector('.form-tab-add');
     const div = document.createElement('div');
-    div.className = 'form-tab' + (i === activeN ? ' active' : '');
-    div.id = 'formTab_' + i;
-    const n = i;
+    div.className = 'form-tab';
+    div.id = 'formTab_' + tabCounter;
+    const n = tabCounter;
     const label = document.createElement('span');
-    label.textContent = 'Expense #' + i;
+    label.textContent = 'Expense #' + tabCounter;
     label.style.pointerEvents = 'none';
     const x = document.createElement('span');
     x.className = 'form-tab-close';
@@ -1709,51 +2210,17 @@ function restoreTabState(tabN) {
     div.appendChild(label);
     div.appendChild(x);
     div.addEventListener('click', () => activateFormTab(n));
-    bar.appendChild(div);
+    bar.insertBefore(div, addBtn);
+    activateFormTab(n);
   }
-  const addBtn = document.createElement('div');
-  addBtn.className = 'form-tab-add';
-  addBtn.textContent = '+';
-  addBtn.onclick = addFormTab;
-  bar.appendChild(addBtn);
 
-  // Init state for this new tab if not already saved
-  if (!tabStates[activeN]) tabStates[activeN] = defaultTabState();
-  activeTabN = activeN;
-}
-   
-
-  function addFormTab() {
-  saveTabState();                          // save current tab before creating new one
-  tabCounter++;
-  tabStates[tabCounter] = defaultTabState(); // fresh empty state for new tab
-  const bar = document.getElementById('formTabsBar');
-  const addBtn = bar.querySelector('.form-tab-add');
-  const div = document.createElement('div');
-  div.className = 'form-tab';
-  div.id = 'formTab_' + tabCounter;
-  const n = tabCounter;
-  const label = document.createElement('span');
-  label.textContent = 'Expense #' + tabCounter;
-  label.style.pointerEvents = 'none';
-  const x = document.createElement('span');
-  x.className = 'form-tab-close';
-  x.innerHTML = '&#x2715;';
-  x.addEventListener('click', function(ev) { ev.stopPropagation(); tryCloseFormTab(n); });
-  div.appendChild(label);
-  div.appendChild(x);
-  div.addEventListener('click', () => activateFormTab(n));
-  bar.insertBefore(div, addBtn);
-  activateFormTab(n);                      // this saves old + restores new fresh state
-}
-
-function activateFormTab(n) {
-  if (activeTabN === n) return;           // already on this tab — do nothing
-  saveTabState();                          // save current tab's DOM into tabStates
-  document.querySelectorAll('.form-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('formTab_' + n)?.classList.add('active');
-  restoreTabState(n);                      // load the new tab's saved state into DOM
-}
+  function activateFormTab(n) {
+    if (activeTabN === n) return;
+    saveTabState();
+    document.querySelectorAll('.form-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('formTab_' + n)?.classList.add('active');
+    restoreTabState(n);
+  }
 
   function tryCloseFormTab(n, e) {
     if (e) e.stopPropagation();
@@ -1762,23 +2229,22 @@ function activateFormTab(n) {
   }
   function closeExpenseCancel() { document.getElementById('closeExpenseOverlay').classList.remove('open'); closingTabN = null; }
   function closeExpenseConfirm() {
-  document.getElementById('closeExpenseOverlay').classList.remove('open');
-  if (closingTabN === 'all') {
-    // Close entire form — go back to split pane or empty state
-    document.getElementById('formTabsBar').innerHTML = '';
-    tabCounter = 0;
-    activeTabN = null;
-    showPage(categories.length ? 'splitPane' : 'emptyState');
-  } else if (closingTabN !== null) {
-    document.getElementById('formTab_' + closingTabN)?.remove();
-    if (!document.querySelector('.form-tab')) {
+    document.getElementById('closeExpenseOverlay').classList.remove('open');
+    if (closingTabN === 'all') {
+      document.getElementById('formTabsBar').innerHTML = '';
       tabCounter = 0;
       activeTabN = null;
       showPage(categories.length ? 'splitPane' : 'emptyState');
+    } else if (closingTabN !== null) {
+      document.getElementById('formTab_' + closingTabN)?.remove();
+      if (!document.querySelector('.form-tab')) {
+        tabCounter = 0;
+        activeTabN = null;
+        showPage(categories.length ? 'splitPane' : 'emptyState');
+      }
     }
+    closingTabN = null;
   }
-  closingTabN = null;
-}
 
   // ─── CATEGORY DROPDOWN ───
   function toggleCatDropdown(e) { e.stopPropagation(); document.getElementById('formCatDropdown').classList.toggle('open'); }
@@ -1821,7 +2287,6 @@ function activateFormTab(n) {
   function appendStaticRow() {
     const body = document.getElementById('formItemsBody');
     document.getElementById('staticRow2')?.remove();
-    document.getElementById('staticRow3')?.remove();
     const tr2 = document.createElement('tr'); tr2.id = 'staticRow2';
     tr2.innerHTML = '<td style="text-align:center;color:#555;font-size:13px;">2</td><td></td><td></td><td></td><td></td>';
     body.appendChild(tr2);
@@ -1847,7 +2312,6 @@ function activateFormTab(n) {
     body.appendChild(tr);
     renderItemDdOptions(rk);
   }
-  function removeItemRow(rk) { document.getElementById('itemRow_'+rk)?.remove(); calcTotals(); }
   function showItemDropdown(rk) { renderItemDdOptions(rk); document.querySelectorAll('.item-dd-list').forEach(d => d.classList.remove('open')); document.getElementById('itemDd_'+rk)?.classList.add('open'); }
   function filterItemDropdown(rk) { showItemDropdown(rk); }
   function renderItemDdOptions(rk) {
@@ -1862,7 +2326,7 @@ function activateFormTab(n) {
     });
   }
   function calcRow(rk) {
-    const qty = parseFloat(document.getElementById('itemQty_'+rk)?.value)||0;
+    const qty   = parseFloat(document.getElementById('itemQty_'+rk)?.value)||0;
     const price = parseFloat(document.getElementById('itemPrice_'+rk)?.value)||0;
     const amtEl = document.getElementById('itemAmt_'+rk);
     if (amtEl) amtEl.value = (qty && price) ? (qty*price) : '';
@@ -1878,10 +2342,12 @@ function activateFormTab(n) {
     const chk = document.getElementById('roundOffChk');
     document.getElementById('roundOffVal').value = tA ? (rounded-tA).toFixed(2) : '0';
     document.getElementById('formTotalBox').textContent = tA ? (chk&&chk.checked ? rounded : tA.toFixed(2)) : '';
-    const ptEl = document.getElementById('payTotalText');
-    if (ptEl) ptEl.textContent = 'Total payment: '+(tA||0)+'/'+(tA||0);
-  }
-
+    const ptEl = document.getElementById('payTotalText');  // ← NEW block starts here
+    if (ptEl) {
+        const payTotal = paymentRows.reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
+        ptEl.textContent = 'Total payment: ' + payTotal + '/' + (tA||0);
+    }
+}  // ← closing brace stays here
   // ─── ADD ITEM MODAL ───
   function openAddItemModal() {
     document.querySelectorAll('.item-dd-list').forEach(d => d.classList.remove('open'));
@@ -1890,81 +2356,50 @@ function activateFormTab(n) {
     openModal('addItemModal');
     setTimeout(() => document.getElementById('newItemName').focus(), 80);
   }
- function saveNewItem() {
+  function saveNewItem() {
     const name  = document.getElementById('newItemName').value.trim();
     const price = parseFloat(document.getElementById('newItemPrice').value) || 0;
     if (!name) { showToast('Item name cannot be empty.', 'red'); return; }
-
-    // Disable save button to prevent double click
     const saveBtn = document.querySelector('#addItemModal .btn-save-modal');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
-
-    const resetBtn = () => {
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
-    };
-
-    // Helper: push item into local state and refresh UI
+    const resetBtn = () => { if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; } };
     const addItemLocally = (item) => {
-      expenseItems.push(item);
-      closeModal('addItemModal');
-      // Refresh all open item dropdowns in the form
-      document.querySelectorAll('[id^="itemDdOpts_"]').forEach(el => {
-        const rk = el.id.replace('itemDdOpts_', '');
-        renderItemDdOptions(rk);
-      });
-      if (currentTab === 'items') renderCategoryList();
-      showToast('Item saved successfully.', 'green');
-    };
-
+  expenseItems.push(item);
+  closeModal('addItemModal');
+  document.querySelectorAll('[id^="itemDdOpts_"]').forEach(el => {
+    const rk = el.id.replace('itemDdOpts_', '');
+    renderItemDdOptions(rk);
+  });
+  const activeInput = document.querySelector('[id^="itemName_"]:focus') ||
+                      document.querySelector('[id^="itemName_"]');
+  if (activeInput) {
+    const rk = activeInput.id.replace('itemName_', '');
+    activeInput.value = item.name;
+    const priceEl = document.getElementById('itemPrice_' + rk);
+    const qtyEl   = document.getElementById('itemQty_'   + rk);
+    if (priceEl) priceEl.value = item.price || '';
+    if (qtyEl)   qtyEl.value   = 1;
+    document.getElementById('itemDd_' + rk)?.classList.remove('open');
+    calcRow(rk);
+  }
+  if (currentTab === 'items') renderCategoryList();
+  showToast('Item saved successfully.', 'green');
+};
     ajax('POST', window.expenseRoutes.itemStore, { name, price })
       .then(res => {
         resetBtn();
-        if (res.success && res.item) {
-          addItemLocally(res.item);
-        } else {
-          // API returned but no success — save locally with temp id
-          addItemLocally({ id: 'local_' + Date.now(), name, price });
-        }
+        if (res.success && res.item) addItemLocally(res.item);
+        else addItemLocally({ id: 'local_' + Date.now(), name, price });
       })
-      .catch(() => {
-        resetBtn();
-        // Network/server error — save locally so user is not blocked
-        addItemLocally({ id: 'local_' + Date.now(), name, price });
-      });
+      .catch(() => { resetBtn(); addItemLocally({ id: 'local_' + Date.now(), name, price }); });
   }
 
-  // ─── PAYMENT CARD (Image 2: Payment Type only, no Amount field, Reference No below) ───
-  function renderPaymentCard() {
-    const card = document.getElementById('paymentCard'); card.innerHTML = '';
-    paymentRows.forEach((row, i) => {
-      const wrap = document.createElement('div'); wrap.className = 'payment-row-wrap';
-      const pr = document.createElement('div'); pr.className = 'payment-row';
-      pr.innerHTML = `
-        <div class="payment-field">
-          <span class="payment-field-label">Payment Type</span>
-          <select class="payment-type-select" onchange="payRowChange(${i},'type',this.value)">
-            <option value="" ${!row.type?'selected':''}>Select Type</option>
-            <option value="Cash"   ${row.type==='Cash'  ?'selected':''}>Cash</option>
-            <option value="Cheque" ${row.type==='Cheque'?'selected':''}>Cheque</option>
-            <option value="UPI"    ${row.type==='UPI'   ?'selected':''}>UPI</option>
-            <option value="Card"   ${row.type==='Card'  ?'selected':''}>Card</option>
-          </select>
-        </div>`;
-      wrap.appendChild(pr);
-      // Reference No shown for all types (visible below)
-      const ref = document.createElement('input');
-      ref.type='text'; ref.className='ref-no-input'; ref.placeholder='Reference No.'; ref.value=row.ref||'';
-      ref.oninput = ev => payRowChange(i, 'ref', ev.target.value);
-      wrap.appendChild(ref);
-      card.appendChild(wrap);
-    });
-    const footer = document.createElement('div'); footer.className='payment-card-footer';
-    footer.innerHTML = `<button class="btn-add-payment-type" onclick="addPaymentRow()">+ Add Payment type</button>`;
-    card.appendChild(footer);
-  }
-  function payRowChange(i,field,val) { paymentRows[i][field]=val; renderPaymentCard(); }
-  function addPaymentRow() { paymentRows.push({type:'',amount:'',ref:''}); renderPaymentCard(); }
-  function removePaymentRow(i) { paymentRows.splice(i,1); if(!paymentRows.length) paymentRows.push({type:'Cash',amount:'',ref:''}); renderPaymentCard(); }
+ 
+  function payRowChange(i,field,val) { paymentRows[i][field]=val; }
+  function addPaymentRow() { 
+  paymentRows.push({type:'', amount:0, ref:''}); 
+  renderPaymentCard(); 
+}
 
   // ─── SAVE EXPENSE ───
   function saveExpense() {
@@ -1973,10 +2408,10 @@ function activateFormTab(n) {
     const cat = categories.find(c => c.name === lbl);
     if (!cat) return;
     if (window._editingExpenseId) {
-      const editId = window._editingExpenseId;
+      const editId     = window._editingExpenseId;
       const editCatIdx = window._editingCatIdx;
       window._editingExpenseId = null;
-      window._editingCatIdx = null;
+      window._editingCatIdx    = null;
       ajax('DELETE', window.expenseRoutes.expenseDestroy + '/' + editId).then(() => {
         const oldCat = categories[editCatIdx];
         if (oldCat) {
@@ -1995,14 +2430,14 @@ function activateFormTab(n) {
 
   function _doSaveExpense(cat) {
     if (!cat) return;
-    const total    = parseFloat(document.getElementById('formAmtTotal').textContent) || 0;
-    const payType  = paymentRows[0]?.type || 'Cash';
-    const ref      = paymentRows[0]?.ref || '';
-    const dateVal  = document.getElementById('formDateVal').textContent;
-    const expNo    = document.getElementById('formExpNoInput').value.trim();
-    const parts = dateVal.split('/');
-    const dbDate = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : dateVal;
-    const btn = document.getElementById('btnSaveExpense');
+    const total   = parseFloat(document.getElementById('formAmtTotal').textContent) || 0;
+    const payType = paymentRows[0]?.type || 'Cash';
+    const ref     = paymentRows[0]?.ref  || '';
+    const dateVal = document.getElementById('formDateVal').textContent;
+    const expNo   = document.getElementById('formExpNoInput').value.trim();
+    const parts   = dateVal.split('/');
+    const dbDate  = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : dateVal;
+    const btn     = document.getElementById('btnSaveExpense');
     btn.disabled = true; btn.textContent = 'Saving...';
     ajax('POST', window.expenseRoutes.expenseSave, {
       expense_category_id: cat.id,
@@ -2099,64 +2534,10 @@ function activateFormTab(n) {
 
   function escHtml(str) { const d=document.createElement('div'); d.appendChild(document.createTextNode(String(str))); return d.innerHTML; }
 
-  // ─── PREVIEW ───
-  function openPreview(expId, catIdx) {
-    document.querySelectorAll('.td-row-menu').forEach(m => m.classList.remove('open'));
-    const cat = categories[catIdx];
-    const entry = cat ? cat.entries.find(e => e.id === expId) : null;
-    if (!entry) return;
-    const userName = window.App?.user?.name || 'Company';
-    document.getElementById('previewContent').innerHTML = `
-      <div style="font-family:'Segoe UI',sans-serif;">
-        <h2 style="text-align:center;font-size:18px;font-weight:700;margin-bottom:20px;color:#1a1f36;">Expense</h2>
-        <div style="border:1px solid #e0e0e0;border-radius:4px;overflow:hidden;">
-          <div style="background:#f9f9f9;padding:12px 16px;border-bottom:1px solid #e0e0e0;">
-            <div style="font-size:18px;font-weight:700;color:#1a1f36;">${escHtml(userName)}</div>
-          </div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <tr style="border-bottom:1px solid #e0e0e0;">
-              <td style="padding:10px 16px;color:#555;border-right:1px solid #e0e0e0;width:50%;"><strong>Expense For:</strong><br>${escHtml(cat.name)}</td>
-              <td style="padding:10px 16px;color:#555;"><strong>Expense Details:</strong><br>Date: ${escHtml(entry.date||'')}${entry.expNo ? '<br>Exp No: '+escHtml(entry.expNo) : ''}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #e0e0e0;background:#f9f9f9;">
-              <td style="padding:10px 16px;font-weight:700;">Total</td>
-              <td style="padding:10px 16px;text-align:right;font-weight:700;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #e0e0e0;">
-              <td colspan="2" style="padding:10px 16px;"><strong>Amount in Words:</strong><br><span style="color:#555;">${numberToWords(parseFloat(entry.amount||0))}</span></td>
-            </tr>
-            <tr style="border-bottom:1px solid #e0e0e0;">
-              <td style="padding:8px 16px;color:#555;">Paid</td>
-              <td style="padding:8px 16px;text-align:right;color:#555;">Rs ${parseFloat(entry.amount||0).toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td style="padding:8px 16px;color:#555;">Balance</td>
-              <td style="padding:8px 16px;text-align:right;color:#555;">Rs ${parseFloat(entry.balance||0).toFixed(2)}</td>
-            </tr>
-          </table>
-          <div style="padding:16px;border-top:1px solid #e0e0e0;display:flex;justify-content:flex-end;">
-            <div style="border:1px solid #e0e0e0;border-radius:4px;padding:12px 24px;min-width:200px;min-height:60px;text-align:center;">
-              <div style="font-size:12px;color:#555;margin-bottom:28px;">For ${escHtml(userName)}:</div>
-              <div style="font-size:11px;color:#888;border-top:1px solid #ccc;padding-top:4px;">Authorized Signatory</div>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    openModal('previewModal');
-  }
-
-  function previewOpenPDF() { showToast('PDF feature coming soon.', 'red'); }
-  function previewSavePDF() { showToast('Save PDF feature coming soon.', 'red'); }
-  function previewEmailPDF() { showToast('Email PDF feature coming soon.', 'red'); }
-
-  function openViewHistory(expId) {
-    document.querySelectorAll('.td-row-menu').forEach(m => m.classList.remove('open'));
-    openModal('viewHistoryModal');
-  }
-
+  // ─── VIEW/EDIT ───
   function openViewEdit(expId, catIdx) {
     document.querySelectorAll('.td-row-menu').forEach(m => m.classList.remove('open'));
-    const cat = categories[catIdx];
+    const cat   = categories[catIdx];
     const entry = cat ? cat.entries.find(e => e.id === expId) : null;
     if (!entry) return;
     resetForm();
@@ -2167,18 +2548,19 @@ function activateFormTab(n) {
     if (entry.date) {
       const parts = entry.date.split('-');
       if (parts.length === 3) {
-        calSelDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        setDateDisplay(calSelDate);
+        calSelDate  = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
         calViewDate = new Date(calSelDate);
+        setDateDisplay(calSelDate);
         buildCalendar();
       }
     }
     paymentRows = [{ type: entry.paymentType || 'Cheque', amount: entry.amount || '', ref: entry.reference_no || '' }];
     renderPaymentCard();
     window._editingExpenseId = expId;
-    window._editingCatIdx = catIdx;
+    window._editingCatIdx    = catIdx;
   }
 
+  // ─── NUMBER TO WORDS ───
   function numberToWords(num) {
     if (num === 0) return 'Zero';
     const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
