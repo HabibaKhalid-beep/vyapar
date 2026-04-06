@@ -216,7 +216,8 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
 Route::get('reports', [ReportController::class, 'index'])->name('reports');
-
+Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])
+    ->name('reports.item-wise-discount');
 
 
 // ═══════════════════════════════════════
