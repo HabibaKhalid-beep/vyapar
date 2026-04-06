@@ -392,10 +392,20 @@
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
-            window.saleStoreUrl = "{{ route('sale.store') }}";
-            window.saleMethod = 'POST';
+            window.saleStoreUrl = "{{ route('sale.update', $estimate) }}";
+            window.saleMethod = 'PUT';
             window.estimateId = {{ $estimate->id }};
             window.editSaleData = @json($estimate->load(['items.item'])->toArray());
+            window.docType = 'estimate';
+        </script>
+    @elseif(isset($prefilledEstimateData))
+        <script>
+            window.items = @json($items ?? []);
+            window.parties = @json($parties ?? []);
+            window.saleStoreUrl = "{{ route('sale.store') }}";
+            window.saleMethod = 'POST';
+            window.estimateId = null;
+            window.editSaleData = @json($prefilledEstimateData);
             window.docType = 'estimate';
         </script>
     @else
@@ -428,7 +438,6 @@
 
 
 </html>
-
 
 
 

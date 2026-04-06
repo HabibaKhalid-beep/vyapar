@@ -36,7 +36,7 @@ class SaleOrderController extends Controller
         return view('dashboard.saleorder.sale-order', compact('saleOrders', 'search', 'convertedInvoices'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
         $items = Item::orderBy('name')->get();
@@ -44,7 +44,25 @@ class SaleOrderController extends Controller
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = 'SO-' . str_pad($nextSaleId, 4, '0', STR_PAD_LEFT);
 
-        return view('dashboard.saleorder.create-sale-order', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber'));
+        $saleOrder = null;
+        $convertedSaleOrderData = null;
+
+        if ($request->filled('edit_sale_id')) {
+            $saleOrder = Sale::with(['items', 'payments', 'party'])->where('type', 'sale_order')->findOrFail($request->integer('edit_sale_id'));
+        }
+
+        if ($request->filled('duplicate_sale_id')) {
+            $sourceSaleOrder = Sale::with(['items', 'payments', 'party'])->where('type', 'sale_order')->findOrFail($request->integer('duplicate_sale_id'));
+            $convertedSaleOrderData = $sourceSaleOrder->toArray();
+            $convertedSaleOrderData['bill_number'] = $nextInvoiceNumber;
+            $convertedSaleOrderData['order_date'] = now()->toDateString();
+            $convertedSaleOrderData['due_date'] = $sourceSaleOrder->due_date?->format('Y-m-d') ?: now()->toDateString();
+            $convertedSaleOrderData['received_amount'] = 0;
+            $convertedSaleOrderData['balance'] = $sourceSaleOrder->grand_total ?? $sourceSaleOrder->total_amount ?? 0;
+            $convertedSaleOrderData['payments'] = [];
+        }
+
+        return view('dashboard.saleorder.create-sale-order', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber', 'convertedSaleOrderData', 'saleOrder'));
     }
 
     public function createFromEstimate(Sale $sale)

@@ -26,7 +26,7 @@ class SaleController extends Controller
         return view('dashboard.sales.sale_index', compact('sales'));
     }
 
-    public function create(string $type = 'invoice')
+    public function create(Request $request, string $type = 'invoice')
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
         $items = Item::orderBy('name')->get();
@@ -44,7 +44,20 @@ class SaleController extends Controller
         ];
         $nextInvoiceNumber = ($prefixes[$type] ?? '') . $nextSaleId;
 
-        return view('dashboard.sales.create', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber', 'type'));
+        $convertedSaleData = null;
+        if ($request->filled('duplicate_sale_id')) {
+            $sourceSale = Sale::with(['items', 'payments', 'party'])->findOrFail($request->integer('duplicate_sale_id'));
+            $convertedSaleData = $sourceSale->toArray();
+            $convertedSaleData['bill_number'] = $nextInvoiceNumber;
+            $convertedSaleData['invoice_date'] = now()->toDateString();
+            $convertedSaleData['due_date'] = $sourceSale->due_date?->format('Y-m-d') ?: now()->toDateString();
+            $convertedSaleData['received_amount'] = 0;
+            $convertedSaleData['balance'] = $sourceSale->grand_total ?? $sourceSale->total_amount ?? 0;
+            $convertedSaleData['status'] = $type === 'estimate' ? 'draft' : 'unpaid';
+            $convertedSaleData['payments'] = [];
+        }
+
+        return view('dashboard.sales.create', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
     }
 
     public function createFromEstimate(Sale $sale)

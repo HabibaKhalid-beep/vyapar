@@ -121,6 +121,13 @@
       add: { label: 'Add Party', modal: 'addPartyModal' },
     },
     {
+      label: 'Brokers',
+      icon: 'fa-handshake',
+      href: '/dashboard/brokers',
+      dataPage: 'brokers',
+      permission: 'party.view',
+    },
+    {
       label: 'Items',
       icon: 'fa-boxes-stacked',
       href: '/dashboard/items',

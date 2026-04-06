@@ -12,15 +12,20 @@ use App\Models\Purchase;
     protected $fillable = [
         'name',
         'phone',
+        'ptcl_number',
         'email',
+        'city',
+        'address',
         'billing_address',
         'shipping_address',
         'opening_balance',
         'as_of_date',
         'credit_limit_enabled',
+        'credit_limit_amount',
         'custom_fields',
         'transaction_type',
-        'party_type'
+        'party_type',
+        'party_group'
     ];
 
     protected $appends = [
@@ -30,6 +35,7 @@ use App\Models\Purchase;
 
     protected $casts = [
         'credit_limit_enabled' => 'boolean',
+        'credit_limit_amount' => 'decimal:2',
         'custom_fields' => 'array',
         // ✅ 'date' cast hatao, neeche accessor use karo
     ];
@@ -58,6 +64,29 @@ use App\Models\Purchase;
     public function getCurrentBalanceAttribute()
     {
         $openingBalance = (float) ($this->opening_balance ?? 0);
+        $transferReceivedTotal = $this->relationLoaded('transactions')
+            ? (float) $this->transactions
+                ->whereNotNull('transfer_group')
+                ->where('status', 'receive')
+                ->sum(fn ($transaction) => (float) ($transaction->balance ?? $transaction->total ?? 0))
+            : (float) $this->transactions()
+                ->whereNotNull('transfer_group')
+                ->where('status', 'receive')
+                ->get(['balance', 'total'])
+                ->sum(fn ($transaction) => (float) ($transaction->balance ?? $transaction->total ?? 0));
+
+        $transferPaidTotal = $this->relationLoaded('transactions')
+            ? (float) $this->transactions
+                ->whereNotNull('transfer_group')
+                ->where('status', 'pay')
+                ->sum(fn ($transaction) => (float) ($transaction->balance ?? $transaction->total ?? 0))
+            : (float) $this->transactions()
+                ->whereNotNull('transfer_group')
+                ->where('status', 'pay')
+                ->get(['balance', 'total'])
+                ->sum(fn ($transaction) => (float) ($transaction->balance ?? $transaction->total ?? 0));
+
+        $transferNet = $transferReceivedTotal - $transferPaidTotal;
 
         $salesTotal = $this->relationLoaded('sales')
             ? (float) $this->sales
@@ -96,14 +125,14 @@ use App\Models\Purchase;
                 ->sum(fn ($purchase) => (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0));
 
         if ($this->transaction_type === 'pay') {
-            return $openingBalance + $purchaseTotal - $purchaseReturnTotal;
+            return $openingBalance + $purchaseTotal - $purchaseReturnTotal + $transferNet;
         }
 
         if ($this->transaction_type === 'receive') {
-            return $openingBalance + $salesTotal - $saleReturnTotal;
+            return $openingBalance + $salesTotal - $saleReturnTotal + $transferNet;
         }
 
-        return $openingBalance;
+        return $openingBalance + $transferNet;
     }
 
     public function getFormattedCurrentBalanceAttribute()
