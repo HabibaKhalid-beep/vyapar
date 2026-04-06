@@ -22,8 +22,7 @@ class ItemController extends Controller
             return response()->json($query->get());
         }
 
-       $products = Item::with('category')->where('type', 'product')->get();
-
+        $products = Item::with('category')->where('type', 'product')->get();
 
         if ($products->isEmpty()) {
             return view('items.products', compact('products'));
@@ -56,7 +55,6 @@ class ItemController extends Controller
     {
         $data = $request->isJson() ? $request->json()->all() : $request->all();
         $type = $data['type'] ?? 'product';
-        $expectsJson = $request->expectsJson() || $request->wantsJson() || $request->ajax();
 
         $categoryId = null;
         if (!empty($data['category_id'])) {
@@ -86,16 +84,10 @@ class ItemController extends Controller
             'min_stock'       => $data['min_stock']       ?? 0,
         ]);
 
-        if ($expectsJson) {
-            return response()->json([
-                'redirect' => $type === 'service' ? route('items.services') : route('items'),
-                'item'     => $item,
-            ]);
-        }
-
-        return $type === 'service'
-            ? redirect()->route('items.services')
-            : redirect()->route('items');
+        return response()->json([
+            'redirect' => $type === 'service' ? route('items.services') : route('items'),
+            'item'     => $item,
+        ]);
     }
 
     public function edit(string $id)
@@ -111,7 +103,6 @@ class ItemController extends Controller
     {
         $item = Item::findOrFail($id);
         $data = $request->isJson() ? $request->json()->all() : $request->all();
-        $expectsJson = $request->expectsJson() || $request->wantsJson() || $request->ajax();
 
         $categoryId = $item->category_id;
         if (!empty($data['category_id'])) {
@@ -143,11 +134,7 @@ class ItemController extends Controller
             'min_stock'       => $data['min_stock']        ?? $item->min_stock,
         ]);
 
-        if ($expectsJson) {
-            return response()->json(['success' => true, 'item' => $item]);
-        }
-
-        return redirect()->route('items');
+        return response()->json(['success' => true, 'item' => $item]);
     }
 
     public function destroy(string $id)
@@ -162,12 +149,12 @@ class ItemController extends Controller
 
     // ── Category ─────────────────────────────────────────────────
 
-   public function category(Request $request)
-{
-    $categories = Category::withCount('items')->get();
-    $uncategorizedCount = Item::whereNull('category_id')->count();
-    return view('items.category', compact('categories', 'uncategorizedCount'));
-}
+    public function category(Request $request)
+    {
+        $categories = Category::withCount('items')->get();
+        $uncategorizedCount = Item::whereNull('category_id')->count();
+        return view('items.category', compact('categories', 'uncategorizedCount'));
+    }
 
     public function categoryList()
     {
@@ -226,12 +213,10 @@ class ItemController extends Controller
     {
         $item = Item::findOrFail($id);
 
-        // Auto-fix any old sale_items missing item_id for this item
         SaleItem::whereNull('item_id')
             ->where('item_name', $item->name)
             ->update(['item_id' => $item->id]);
 
-        // Fetch by item_id OR item_name fallback
         $saleItems = SaleItem::with(['sale.party'])
             ->where(function ($q) use ($id, $item) {
                 $q->where('item_id', $id)
@@ -257,23 +242,23 @@ class ItemController extends Controller
             if (!$sale) return null;
 
             return [
-                'id'      => $sale->id,
-                'type'    => $typeMap[$sale->type] ?? ucfirst($sale->type),
-                'raw_type'=> $sale->type,
-                'invoice' => $sale->bill_number ?? $sale->id,
-                'name'    => $sale->party?->name ?? 'Walk-in Customer',
-                'date'    => $sale->invoice_date
+                'id'       => $sale->id,
+                'type'     => $typeMap[$sale->type] ?? ucfirst($sale->type),
+                'raw_type' => $sale->type,
+                'invoice'  => $sale->bill_number ?? $sale->id,
+                'name'     => $sale->party?->name ?? 'Walk-in Customer',
+                'date'     => $sale->invoice_date
                                 ? \Carbon\Carbon::parse($sale->invoice_date)->format('d/m/Y')
                                 : \Carbon\Carbon::parse($sale->created_at)->format('d/m/Y'),
-                'qty'     => $si->quantity ?? 0,
-                'unit'    => $si->unit ?? '',
-                'price'   => $si->unit_price ?? 0,
-                'status'  => $sale->status ?? 'Unpaid',
-                'isAdd'   => !in_array($sale->type, ['sale_return']),
+                'qty'      => $si->quantity ?? 0,
+                'unit'     => $si->unit ?? '',
+                'price'    => $si->unit_price ?? 0,
+                'status'   => $sale->status ?? 'Unpaid',
+                'isAdd'    => !in_array($sale->type, ['sale_return']),
             ];
         })->filter()->values();
 
-return response()->json($transactions);
+        return response()->json($transactions);
     }
 
     public function adjust(Request $request, string $id)
@@ -317,24 +302,17 @@ return response()->json($transactions);
         $updates = $request->input('updates', []);
 
         if (empty($updates)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No updates provided'
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'No updates provided'], 422);
         }
 
         try {
             foreach ($updates as $itemId => $fields) {
                 $item = Item::find($itemId);
-                if (!$item) {
-                    continue;
-                }
+                if (!$item) continue;
 
-                // Update name
                 if (isset($fields['name']) && $fields['name'] !== null && $fields['name'] !== '') {
                     $item->name = $fields['name'];
                 }
-                // Update only provided price fields
                 if (isset($fields['sale_price']) && $fields['sale_price'] !== null && $fields['sale_price'] !== '') {
                     $item->sale_price = floatval($fields['sale_price']);
                 }
@@ -345,10 +323,7 @@ return response()->json($transactions);
                 $item->save();
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Items updated successfully'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Items updated successfully']);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

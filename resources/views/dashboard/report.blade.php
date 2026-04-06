@@ -229,32 +229,76 @@
             style="font-size: 11px; letter-spacing: 0.5px;">Item/Stock Report</h6>
           <ul class="nav flex-column mb-4 reports-nav">
 
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="stock summary"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Summary</a></li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="party report summary"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Party report by items</a></li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="item wise profit and loss"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Item wise profit and loss</a></li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4"
-                data-target="item category wise profit and loss"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Category wise profit and loss</a></li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="low stock summary"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Low stock summary</a></li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="stock details"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Details</a></li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="item details"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Details</a></li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4"
-                data-target="sale purchase report by item category"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale/Purchase report by item category</a>
-            </li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4"
-                data-target="stock summary report by item category"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Summary report by item category</a>
-            </li>
-            <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="item wise discount"><i
-                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Item wise discount</a></li>
-
+            <li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="stock-summary"
+     onclick="showTab('stock-summary'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Summary
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="party-report-summary"
+     onclick="showTab('party-report-summary'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Party report by items
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="item-wise-profit-and-loss"
+     onclick="showTab('item-wise-profit-and-loss'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item wise profit and loss
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="item-category-wise-profit-and-loss"
+     onclick="showTab('item-category-wise-profit-and-loss'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Category wise profit and loss
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="low-stock-summary"
+     onclick="showTab('low-stock-summary'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Low stock summary
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="stock-details"
+     onclick="showTab('stock-details'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Details
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="item-details"
+     onclick="showTab('item-details'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Details
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="sale-purchase-report-by-item-category"
+     onclick="showTab('sale-purchase-report-by-item-category'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale/Purchase report by item category
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="stock-summary-report-by-item-category"
+     onclick="showTab('stock-summary-report-by-item-category'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Summary report by item category
+  </a>
+</li>
+<li class="nav-item">
+  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+     data-tab="item-wise-discount"
+     onclick="showTab('item-wise-discount'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item wise discount
+  </a>
+</li>
 
           </ul>
           <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"

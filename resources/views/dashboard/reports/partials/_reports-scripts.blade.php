@@ -374,6 +374,30 @@ function filterIWDAjax() {
 function loadIWDDetails(itemId) {
     showToast('Loading details for item #' + itemId, 'info');
     // TODO: open a modal with detail breakdown per invoice
+
+}// ================================================================
+// TAB SWITCHING
+// ================================================================
+function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.report-tab-content').forEach(function(el) {
+        el.classList.add('d-none');
+    });
+
+    // Show the clicked tab
+    const target = document.getElementById('tab-' + tabName);
+    if (target) {
+        target.classList.remove('d-none');
+    }
+
+    // Update active state in sidebar
+    document.querySelectorAll('.report-nav-link').forEach(function(el) {
+        el.classList.remove('active');
+    });
+    const activeLink = document.querySelector('[data-tab="' + tabName + '"]');
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
 }
 </script>
 

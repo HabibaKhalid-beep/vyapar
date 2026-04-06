@@ -1,7 +1,7 @@
 {{-- ============================================================
      1. STOCK SUMMARY TAB
      ============================================================ --}}
-<div id="tab-stock summary" class="report-tab-content d-none">
+<div id="tab-stock-summary" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -104,7 +104,7 @@
 {{-- ============================================================
      2. ITEM REPORT BY PARTY TAB
      ============================================================ --}}
-<div id="tab-party report summary" class="report-tab-content d-none">
+<div  id="tab-party-report-summary" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -193,7 +193,7 @@
 {{-- ============================================================
      3. ITEM WISE PROFIT AND LOSS TAB
      ============================================================ --}}
-<div id="tab-item wise profit and loss" class="report-tab-content d-none">
+ <div id="tab-item-wise-profit-and-loss" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -292,7 +292,7 @@
 {{-- ============================================================
      4. ITEM CATEGORY WISE PROFIT AND LOSS
      ============================================================ --}}
-<div id="tab-item category wise profit and loss" class="report-tab-content d-none">
+ <div id="tab-item-category-wise-profit-and-loss" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -397,7 +397,7 @@
 {{-- ============================================================
      5. LOW STOCK SUMMARY
      ============================================================ --}}
-<div id="tab-low stock summary" class="report-tab-content d-none">
+<div id="tab-low-stock-summary" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -462,7 +462,7 @@
 {{-- ============================================================
      6. STOCK DETAIL
      ============================================================ --}}
-<div id="tab-stock details" class="report-tab-content d-none">
+<div  id="tab-stock-details" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -560,7 +560,7 @@
 {{-- ============================================================
      7. ITEM DETAIL
      ============================================================ --}}
-<div id="tab-item details" class="report-tab-content d-none">
+<div  id="tab-item-details" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -645,7 +645,7 @@
 {{-- ============================================================
      8. SALE/PURCHASE REPORT BY ITEM CATEGORY
      ============================================================ --}}
-<div id="tab-sale purchase report by item category" class="report-tab-content d-none">
+ <div id="tab-sale-purchase-report-by-item-category" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -721,7 +721,7 @@
 {{-- ============================================================
      9. ITEM WISE DISCOUNT — matches screenshot 5 & 6
      ============================================================ --}}
-<div id="tab-item wise discount" class="report-tab-content d-none">
+<div id="tab-item-wise-discount" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         {{-- Top filter bar --}}
@@ -872,7 +872,7 @@
 {{-- ============================================================
      10. STOCK SUMMARY REPORT BY ITEM CATEGORY
      ============================================================ --}}
-<div id="tab-stock summary report by item category" class="report-tab-content d-none">
+<div id="tab-stock-summary-report-by-item-category" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-end mb-4" style="gap: 8px;">
