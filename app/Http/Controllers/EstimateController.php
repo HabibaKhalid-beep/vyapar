@@ -38,13 +38,31 @@ class EstimateController extends Controller
         return view('dashboard.sales.estimate', compact('estimates', 'allEstimates', 'search', 'convertedInvoices'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = 'EST-' . str_pad($nextSaleId, 4, '0', STR_PAD_LEFT);
 
-        return view('dashboard.sales.estimate-create', compact('items', 'parties', 'nextInvoiceNumber'));
+        $estimate = null;
+        $prefilledEstimateData = null;
+
+        if ($request->filled('edit_sale_id')) {
+            $estimate = Sale::with(['items.item', 'party', 'payments'])->where('type', 'estimate')->findOrFail($request->integer('edit_sale_id'));
+        }
+
+        if ($request->filled('duplicate_sale_id')) {
+            $sourceEstimate = Sale::with(['items.item', 'party', 'payments'])->where('type', 'estimate')->findOrFail($request->integer('duplicate_sale_id'));
+            $prefilledEstimateData = $sourceEstimate->toArray();
+            $prefilledEstimateData['bill_number'] = $nextInvoiceNumber;
+            $prefilledEstimateData['invoice_date'] = now()->toDateString();
+            $prefilledEstimateData['due_date'] = $sourceEstimate->due_date?->format('Y-m-d') ?: now()->toDateString();
+            $prefilledEstimateData['received_amount'] = 0;
+            $prefilledEstimateData['balance'] = $sourceEstimate->grand_total ?? $sourceEstimate->total_amount ?? 0;
+            $prefilledEstimateData['payments'] = [];
+        }
+
+        return view('dashboard.sales.estimate-create', compact('items', 'parties', 'nextInvoiceNumber', 'estimate', 'prefilledEstimateData'));
     }
 }

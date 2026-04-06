@@ -468,9 +468,9 @@
         window.items = @json($items);
         window.parties = @json($parties);
         window.bankAccounts = @json($bankAccounts);
-        window.saleOrderStoreUrl = "{{ route('sale.store') }}";
-        window.saleOrderMethod = 'POST';
-        window.editSaleOrderData = @json($convertedSaleOrderData ?? null);
+        window.saleOrderStoreUrl = "{{ isset($saleOrder) ? route('sale.update', $saleOrder) : route('sale.store') }}";
+        window.saleOrderMethod = "{{ isset($saleOrder) ? 'PUT' : 'POST' }}";
+        window.editSaleOrderData = @json($saleOrder ?? $convertedSaleOrderData ?? null);
         window.sourceEstimateId = @json($convertedSaleOrderData['source_estimate_id'] ?? null);
         window.sourceProformaId = @json($convertedSaleOrderData['source_proforma_id'] ?? null);
         window.docType = 'sale_order';
@@ -737,7 +737,6 @@ document.addEventListener("DOMContentLoaded", function () {
 </body>
 
 </html>
-
 
 
 

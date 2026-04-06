@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Transaction extends Model
 {
     protected $fillable = [
-        'party_id', 'type', 'number', 'date', 'total', 'balance', 'status'
+        'party_id',
+        'counter_party_id',
+        'type',
+        'number',
+        'transfer_group',
+        'date',
+        'total',
+        'balance',
+        'status',
+        'description',
     ];
 
     protected $casts = [
@@ -17,6 +26,11 @@ class Transaction extends Model
     public function party()
     {
         return $this->belongsTo(Party::class);
+    }
+
+    public function counterParty()
+    {
+        return $this->belongsTo(Party::class, 'counter_party_id');
     }
 
     
