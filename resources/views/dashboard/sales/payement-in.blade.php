@@ -185,17 +185,8 @@
           <div class="row align-items-end payment-row mb-2">
 
   <div class="col-md-4">
-    <label class="form-label">Payment Type</label>
-    <select class="form-select payment-type">
-      <option value="">-- Select Type --</option>
-      <option value="cash">Cash</option>
-      <option value="remote">Remote</option>
-    </select>
-  </div>
-
-  
-  <div class="col-md-3">
     <label class="form-label">Bank Account</label>
+    <input type="hidden" class="payment-type" value="bank">
     <select class="form-select payment-bank" name="bank_account_id">
     <option value="">-- Select Bank --</option>
     @foreach($bankAccounts as $bank)
@@ -209,6 +200,11 @@
     <input type="number" class="form-control payment-amount" placeholder="Enter amount">
   </div>
 
+  <div class="col-md-3">
+    <label class="form-label">Reference No</label>
+    <input type="text" class="form-control payment-reference" placeholder="Enter reference number">
+  </div>
+
   <div class="col-md-2 d-flex align-items-center">
     <button type="button" class="remove-row border-0 bg-transparent text-secondary" style="display:none; font-size:18px;">
       <i class="fa-solid fa-trash"></i>
@@ -216,18 +212,13 @@
   </div>
 
 </div>
-<!-- Add Payment Type Button -->
+<!-- Add Payment Button -->
 <div class="mt-2">
   <button type="button" id="addPaymentRow" class="btn p-0 text-primary border-0 bg-transparent">
-    + Add Payment Type
+    + Add Payment
   </button>
 </div>
-
-                  <!-- Reference No -->
-                  <div class="mb-3">
-                    <label for="referenceNo" class="form-label">Reference No</label>
-                    <input type="text" class="form-control" id="referenceNo" placeholder="Enter reference number">
-                  </div>
+                  <input type="hidden" id="referenceNo" value="">
 
                
 
@@ -237,17 +228,30 @@
 
               <!-- Extra Buttons -->
               <div class="d-flex flex-column gap-2 mt-3 align-items-start">
-                <button type="button" class="btn d-flex align-items-center gap-2 border w-auto"
+                <button type="button" id="toggleDescriptionBtn" class="btn d-flex align-items-center gap-2 border w-auto"
                         style="border-color:#ced4da; background-color:#fff; padding: 6px 12px;">
                   <i class="fa-solid fa-file text-secondary" style="font-size:20px;"></i>
                   <span class="text-secondary">Add Description</span>
                 </button>
 
-                <button type="button" class="btn d-flex align-items-center gap-2 border w-auto"
+                <div id="descriptionBox" class="d-none mt-2 w-100">
+                  <label class="form-label text-secondary">Description</label>
+                  <textarea class="form-control" id="paymentDescription" name="description" rows="4" placeholder="Enter description"></textarea>
+                </div>
+
+                <button type="button" id="toggleImageBtn" class="btn d-flex align-items-center gap-2 border w-auto"
                         style="border-color:#ced4da; background-color:#fff; padding: 6px 12px;">
                   <i class="fa-solid fa-camera text-secondary" style="font-size:20px;"></i>
                   <span class="text-secondary">Upload Image</span>
                 </button>
+
+                <input type="file" id="paymentImageInput" class="d-none" accept="image/*">
+                <div id="imageUploadBox" class="d-none mt-2 w-100">
+                  <div class="border rounded p-3 text-center text-secondary" id="imagePlaceholder" style="cursor:pointer;">
+                    Click to select an image
+                  </div>
+                  <div id="imageSelectedName" class="small text-muted mt-2 d-none"></div>
+                </div>
               </div>
 
             </div> <!-- End Left Side -->
@@ -267,7 +271,7 @@
 
               <div class="mb-3">
                 <label class="form-label text-secondary">Received</label>
-                <input type="text" class="form-control" placeholder="Received">
+                <input type="text" class="form-control" id="receivedAmount" placeholder="Received" readonly>
               </div>
 
             </div> <!-- End Right Side -->
@@ -873,16 +877,25 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
     newRow.classList.add("row", "align-items-end", "payment-row", "mb-2");
 
     newRow.innerHTML = `
-        <div class="col-md-5">
-            <select class="form-select payment-type">
-                <option value="">-- Select Type --</option>
-                <option value="cash">Cash</option>
-                <option value="remote">Remote</option>
+        <div class="col-md-4">
+            <label class="form-label">Bank Account</label>
+            <input type="hidden" class="payment-type" value="bank">
+            <select class="form-select payment-bank" name="bank_account_id">
+                <option value="">-- Select Bank --</option>
+                @foreach($bankAccounts as $bank)
+                    <option value="{{ $bank->id }}">{{ $bank->display_name }}</option>
+                @endforeach
             </select>
         </div>
 
-        <div class="col-md-5">
+        <div class="col-md-3">
+            <label class="form-label">Amount</label>
             <input type="number" class="form-control payment-amount" placeholder="Enter amount">
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Reference No</label>
+            <input type="text" class="form-control payment-reference" placeholder="Enter reference number">
         </div>
 
         <div class="col-md-2 d-flex align-items-center">
@@ -892,12 +905,56 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
         </div>
     `;
   $('#paymentContainer > div:first').append(newRow); 
+  updateReceivedTotal();
 });
 
 // Remove row
 document.addEventListener("click", function (e) {
     if (e.target.closest(".remove-row")) {
         e.target.closest(".payment-row").remove();
+        updateReceivedTotal();
+    }
+});
+
+function updateReceivedTotal() {
+    let total = 0;
+    document.querySelectorAll('.payment-amount').forEach(input => {
+        total += parseFloat(input.value || 0) || 0;
+    });
+
+    const receivedInput = document.getElementById('receivedAmount');
+    if (receivedInput) {
+        receivedInput.value = total.toFixed(2).replace(/\.00$/, '');
+    }
+}
+
+document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('payment-amount')) {
+        updateReceivedTotal();
+    }
+});
+
+document.getElementById('toggleDescriptionBtn')?.addEventListener('click', function() {
+    document.getElementById('descriptionBox')?.classList.toggle('d-none');
+});
+
+document.getElementById('toggleImageBtn')?.addEventListener('click', function() {
+    const box = document.getElementById('imageUploadBox');
+    box?.classList.remove('d-none');
+    document.getElementById('paymentImageInput')?.click();
+});
+
+document.getElementById('imagePlaceholder')?.addEventListener('click', function() {
+    document.getElementById('paymentImageInput')?.click();
+});
+
+document.getElementById('paymentImageInput')?.addEventListener('change', function(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const selectedName = document.getElementById('imageSelectedName');
+    if (selectedName) {
+        selectedName.textContent = `Selected: ${file.name}`;
+        selectedName.classList.remove('d-none');
     }
 });
 
@@ -916,6 +973,9 @@ $('#paymentInForm').on('submit', function(e) {
         }
     });
 
+    $('#referenceNo').val($('.payment-reference').first().val() || '');
+    updateReceivedTotal();
+
     $.ajax({
         url:'/dashboard/payments-in', 
         method: 'POST',
@@ -926,13 +986,17 @@ $('#paymentInForm').on('submit', function(e) {
             payments: payments,
           receipt_no: $('#receiptNo').val(), // 
             date: $('input[name="date"]').val(),  
-            received: $('input[placeholder="Received"]').val(),
+            received: $('#receivedAmount').val(),
+            description: $('#paymentDescription').val(),
             _token: $('meta[name="csrf-token"]').attr('content')
         }),
         success: function(res) {
             alert('Payment saved successfully!');
             $('#paymentInForm')[0].reset();
             $('#paymentContainer .payment-row').not(':first').remove();
+            $('#descriptionBox, #imageUploadBox, #imageSelectedName').addClass('d-none');
+            $('#imageSelectedName').text('');
+            updateReceivedTotal();
         },
         error: function(xhr) {
             console.log(xhr.responseJSON); 

@@ -9,7 +9,12 @@ class Item extends Model
     protected $fillable = [
         'type', 'name', 'category_id', 'unit',
         'sale_price', 'wholesale_price', 'purchase_price',
-        'opening_qty', 'item_code', 'location', 'image_path', 'min_stock',
+        'opening_qty', 'item_code', 'location', 'description',
+        'image_path', 'image_paths', 'min_stock',
+    ];
+
+    protected $casts = [
+        'image_paths' => 'array',
     ];
 
     protected $appends = ['stock_qty'];

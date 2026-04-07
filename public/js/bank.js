@@ -13,12 +13,190 @@ document.addEventListener('DOMContentLoaded', () => {
   const detailOpeningBalance = document.getElementById('bankDetailOpeningBalance');
 
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || window.App?.csrfToken || '';
+  const bulkMenuButton = document.getElementById('bankBulkMenuBtn');
+  const bulkMenu = document.getElementById('bankBulkMenu');
+  const bulkOverlay = document.getElementById('bankBulkOverlay');
+  const bulkModalTitle = document.getElementById('bankBulkModalTitle');
+  const bulkModalInfo = document.getElementById('bankBulkModalInfo');
+  const bulkSearch = document.getElementById('bankBulkSearch');
+  const bulkTbody = document.getElementById('bankBulkTbody');
+  const bulkCheckAll = document.getElementById('bankBulkCheckAll');
+  const bulkApplyBtn = document.getElementById('bankBulkApplyBtn');
+  const bulkCancelBtn = document.getElementById('bankBulkCancelBtn');
+  const bulkFooterNote = document.getElementById('bankBulkFooterNote');
+  const bulkPasswordBox = document.getElementById('bankBulkPasswordBox');
+  const bulkPasswordInput = document.getElementById('bankBulkPasswordInput');
+  const bulkPasswordError = document.getElementById('bankBulkPasswordError');
+  const BANK_STATUS_KEY = 'vyapar-bank-account-status';
+  const BANK_BULK_ACTIVE_PASSWORD = 'admin@123';
 
   // Table element used for filtering & actions
   const bankTable = document.getElementById('bankTable');
 
   // Keep track of whether a date filter is currently active (clicking the date column)
   let activeFilterDate = null;
+  let bulkModalType = null;
+
+  function getBankStatusMap() {
+    try {
+      return JSON.parse(localStorage.getItem(BANK_STATUS_KEY) || '{}');
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function setBankStatusMap(map) {
+    localStorage.setItem(BANK_STATUS_KEY, JSON.stringify(map));
+  }
+
+  function isBankInactive(bankId) {
+    return !!getBankStatusMap()[String(bankId)];
+  }
+
+  function setBankInactive(bankId, inactive) {
+    const map = getBankStatusMap();
+    if (inactive) {
+      map[String(bankId)] = true;
+    } else {
+      delete map[String(bankId)];
+    }
+    setBankStatusMap(map);
+  }
+
+  function ensureStatusPill(item) {
+    if (!item) return null;
+    let pill = item.querySelector('.bank-status-pill');
+    if (!pill) {
+      pill = document.createElement('span');
+      pill.className = 'bank-status-pill';
+      item.querySelector('.entity-name')?.insertAdjacentElement('afterend', pill);
+    }
+    return pill;
+  }
+
+  function refreshBankStatusUI() {
+    if (!list) return;
+
+    list.querySelectorAll('li[data-bank]').forEach((item) => {
+      const inactive = isBankInactive(item.dataset.bank);
+      item.classList.toggle('bank-inactive', inactive);
+      const pill = ensureStatusPill(item);
+      if (!pill) return;
+      pill.textContent = inactive ? 'Inactive' : 'Active';
+      pill.classList.toggle('inactive', inactive);
+      pill.classList.toggle('active', !inactive);
+    });
+
+    applySearchFilter();
+
+    const activeVisibleItem = list.querySelector('li.active[data-bank]:not([style*="display: none"])');
+    if (!activeVisibleItem) {
+      const firstVisibleItem = Array.from(list.querySelectorAll('li[data-bank]')).find((item) => item.style.display !== 'none');
+      if (firstVisibleItem) {
+        selectBankItem(firstVisibleItem);
+      }
+    }
+  }
+
+  function getBulkModalRows() {
+    if (!list) return [];
+
+    return Array.from(list.querySelectorAll('li[data-bank]'))
+      .map((item) => ({
+        id: item.dataset.bank || '',
+        name: item.querySelector('.entity-name')?.childNodes[0]?.textContent?.trim() || item.querySelector('.entity-name')?.textContent?.trim() || 'Bank Account',
+        accountNumber: item.dataset.accountNumber || '-',
+        inactive: isBankInactive(item.dataset.bank),
+      }))
+      .filter((row) => {
+        if (bulkModalType === 'bulk-inactive') return !row.inactive;
+        if (bulkModalType === 'bulk-active') return row.inactive;
+        return true;
+      });
+  }
+
+  function renderBulkRows() {
+    if (!bulkTbody) return;
+
+    const query = (bulkSearch?.value || '').trim().toLowerCase();
+    const rows = getBulkModalRows().filter((row) => {
+      return [row.name, row.accountNumber].some((value) => String(value).toLowerCase().includes(query));
+    });
+
+    if (!rows.length) {
+      bulkTbody.innerHTML = '<tr><td colspan="4" class="bulk-empty">No bank accounts to show</td></tr>';
+      if (bulkCheckAll) bulkCheckAll.checked = false;
+      return;
+    }
+
+    bulkTbody.innerHTML = rows.map((row) => `
+      <tr>
+        <td>
+          <input type="checkbox" class="bank-bulk-check" value="${row.id}" style="width:15px;height:15px;accent-color:#2563eb;">
+        </td>
+        <td>${escapeHtml(row.name)}</td>
+        <td>${escapeHtml(row.accountNumber)}</td>
+        <td><span class="bank-status-pill ${row.inactive ? 'inactive' : 'active'}">${row.inactive ? 'Inactive' : 'Active'}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function openBulkModal(type) {
+    bulkModalType = type;
+    if (bulkModalTitle) {
+      bulkModalTitle.textContent = type === 'bulk-active' ? 'Bulk Active' : 'Bulk Inactive';
+    }
+    if (bulkModalInfo) {
+      bulkModalInfo.textContent = type === 'bulk-active'
+        ? 'Showing inactive bank accounts only.'
+        : 'Showing active bank accounts only.';
+    }
+    if (bulkFooterNote) {
+      bulkFooterNote.textContent = type === 'bulk-active'
+        ? 'Selected bank accounts will become active.'
+        : 'Selected bank accounts will become inactive.';
+    }
+    if (bulkApplyBtn) {
+      bulkApplyBtn.textContent = type === 'bulk-active' ? 'Mark Active' : 'Mark Inactive';
+    }
+    if (bulkPasswordBox) {
+      bulkPasswordBox.classList.toggle('open', type === 'bulk-active');
+    }
+    if (bulkPasswordInput) {
+      bulkPasswordInput.value = '';
+    }
+    if (bulkPasswordError) {
+      bulkPasswordError.classList.remove('show');
+    }
+    if (bulkSearch) bulkSearch.value = '';
+    if (bulkCheckAll) bulkCheckAll.checked = false;
+    renderBulkRows();
+    bulkOverlay?.classList.add('open');
+  }
+
+  function closeBulkModal() {
+    bulkOverlay?.classList.remove('open');
+    bulkModalType = null;
+    if (bulkPasswordInput) {
+      bulkPasswordInput.value = '';
+    }
+    if (bulkPasswordError) {
+      bulkPasswordError.classList.remove('show');
+    }
+  }
+
+  function closeBulkMenu() {
+    bulkMenu?.classList.remove('open');
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
 
   function selectBankItem(item) {
     if (!item) return;
@@ -79,6 +257,83 @@ document.addEventListener('DOMContentLoaded', () => {
     if (first) {
       selectBankItem(first);
     }
+  }
+
+  refreshBankStatusUI();
+
+  if (bulkMenuButton) {
+    bulkMenuButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      bulkMenu?.classList.toggle('open');
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.bulk-menu-wrap')) {
+      closeBulkMenu();
+    }
+  });
+
+  document.querySelectorAll('[data-bulk-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      closeBulkMenu();
+      openBulkModal(button.dataset.bulkAction || 'bulk-inactive');
+    });
+  });
+
+  if (bulkCancelBtn) {
+    bulkCancelBtn.addEventListener('click', closeBulkModal);
+  }
+
+  if (bulkOverlay) {
+    bulkOverlay.addEventListener('click', (event) => {
+      if (event.target === bulkOverlay) {
+        closeBulkModal();
+      }
+    });
+  }
+
+  if (bulkSearch) {
+    bulkSearch.addEventListener('input', renderBulkRows);
+  }
+
+  if (bulkCheckAll) {
+    bulkCheckAll.addEventListener('change', () => {
+      document.querySelectorAll('.bank-bulk-check').forEach((checkbox) => {
+        checkbox.checked = bulkCheckAll.checked;
+      });
+    });
+  }
+
+  if (bulkApplyBtn) {
+    bulkApplyBtn.addEventListener('click', () => {
+      const selectedIds = Array.from(document.querySelectorAll('.bank-bulk-check:checked'))
+        .map((checkbox) => checkbox.value)
+        .filter(Boolean);
+
+      if (!selectedIds.length) {
+        showToast('Please select at least one bank account.', 'warning');
+        return;
+      }
+
+      const makeInactive = bulkModalType === 'bulk-inactive';
+
+      if (!makeInactive) {
+        const enteredPassword = bulkPasswordInput?.value || '';
+        if (enteredPassword !== BANK_BULK_ACTIVE_PASSWORD) {
+          bulkPasswordError?.classList.add('show');
+          bulkPasswordInput?.focus();
+          showToast('Password incorrect. Bank accounts were not activated.', 'danger');
+          return;
+        }
+      }
+
+      selectedIds.forEach((bankId) => setBankInactive(bankId, makeInactive));
+      refreshBankStatusUI();
+      renderBulkRows();
+      showToast(makeInactive ? 'Selected bank accounts marked inactive.' : 'Selected bank accounts marked active.');
+      closeBulkModal();
+    });
   }
 
   if (addBankButton) {
@@ -425,11 +680,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applySearchFilter() {
-    const q = search.value.trim().toLowerCase();
+    const q = sidebarSearch.value.trim().toLowerCase();
     const isDateSearch = /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(q) || /^\d{4}-\d{2}-\d{2}$/.test(q);
     const normalizedDate = normalizeDate(q);
 
     list.querySelectorAll('li').forEach(li => {
+      if (!li.dataset.bank) return;
+
+      if (isBankInactive(li.dataset.bank)) {
+        li.style.display = 'none';
+        return;
+      }
+
       const name = li.querySelector('.entity-name')?.textContent?.toLowerCase() || '';
       const bankName = li.dataset.bankName?.toLowerCase() || '';
       const accountNumber = li.dataset.accountNumber?.toLowerCase() || '';

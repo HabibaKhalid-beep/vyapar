@@ -127,6 +127,26 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
     background: #f9fafb; display: flex; align-items: center;
     justify-content: center; overflow: hidden;
 }
+.vy-image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 92px));
+    gap: 10px;
+    margin-top: 12px;
+}
+.vy-image-preview-item {
+    width: 92px;
+    height: 92px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #dbe3ef;
+    background: #fff;
+}
+.vy-image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
 
 /* Code row */
 .vy-code-row { padding: 14px 28px 0; flex-shrink: 0; }
@@ -337,7 +357,15 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
 
 @section('content')
 @php
-    $existingItemImage = $item->image_path ?? $item->image ?? $item->photo ?? null;
+    $existingItemImages = collect($item->image_paths ?? [])
+        ->filter()
+        ->values();
+
+    if ($existingItemImages->isEmpty() && !empty($item->image_path)) {
+        $existingItemImages = collect([$item->image_path]);
+    }
+
+    $existingItemImage = $existingItemImages->first() ?? $item->image ?? $item->photo ?? null;
     $existingItemImageUrl = null;
     if ($existingItemImage) {
         $existingItemImageUrl = \Illuminate\Support\Str::startsWith($existingItemImage, ['http://', 'https://', '/', 'storage/'])
@@ -424,9 +452,10 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
                 </svg>
                 @endif
             </div>
-            <span id="img-label">{{ $existingItemImageUrl ? 'Change Item Image' : 'Add Item Image' }}</span>
-            <input type="file" id="img-file" accept="image/*" style="display:none;" onchange="previewImg(event);markDirty()"/>
+            <span id="img-label">{{ $existingItemImages->count() > 1 ? $existingItemImages->count() . ' images saved' : ($existingItemImageUrl ? 'Change Item Images' : 'Add Item Images') }}</span>
+            <input type="file" id="img-file" name="images[]" accept="image/*" multiple style="display:none;" onchange="previewImg(event);markDirty()"/>
         </div>
+        <div id="image-preview-list" class="vy-image-preview-grid" style="display:none;"></div>
     </div>
 
     {{-- ── Item Code ── --}}
@@ -548,6 +577,12 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
                     <input type="text" id="location" class="vy-stock-input"
                            placeholder="Location"
                            value="{{ $item->location ?? '' }}" oninput="markDirty()"/>
+                </div>
+            </div>
+            <div style="margin-top:14px;">
+                <div class="vy-price-group" style="max-width:540px;">
+                    <span class="vy-price-lbl">Description</span>
+                    <textarea id="item-description" class="vy-price-input" placeholder="Description" oninput="markDirty()" style="min-height:110px;resize:vertical;">{{ $item->description ?? '' }}</textarea>
                 </div>
             </div>
         </div>
@@ -848,13 +883,25 @@ function saveUnit() {
 
 /* ── Image ── */
 function previewImg(e) {
-    const f = e.target.files[0]; if (!f) return;
+    const files = Array.from(e.target.files || []);
+    const f = files[0];
+    if (!f) return;
+    const previewList = document.getElementById('image-preview-list');
     const r = new FileReader();
     r.onload = ev => {
         document.getElementById('img-thumb').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:3px;"/>`;
-        document.getElementById('img-label').textContent = 'Change Item Image';
+        document.getElementById('img-label').textContent = files.length > 1
+            ? `${files.length} images selected`
+            : '1 image selected';
     };
     r.readAsDataURL(f);
+    if (previewList) {
+        previewList.innerHTML = files.map(file => {
+            const src = URL.createObjectURL(file);
+            return `<div class="vy-image-preview-item"><img src="${src}" alt="Selected image"></div>`;
+        }).join('');
+        previewList.style.display = files.length ? 'grid' : 'none';
+    }
 }
 
 function buildUpdateFormData() {
@@ -874,8 +921,9 @@ function buildUpdateFormData() {
     fd.append('as_of_date', document.getElementById('as-of-date').value);
     fd.append('min_stock', document.getElementById('min-stock').value);
     fd.append('location', document.getElementById('location').value);
-    const imageFile = document.getElementById('img-file').files[0];
-    if (imageFile) fd.append('image', imageFile);
+    fd.append('description', document.getElementById('item-description').value);
+    const imageFiles = Array.from(document.getElementById('img-file').files || []);
+    imageFiles.forEach(file => fd.append('images[]', file));
     return fd;
 }
 
