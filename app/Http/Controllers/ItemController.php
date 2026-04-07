@@ -11,6 +11,17 @@ use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
+    private function itemListQuery(string $type, bool $includeInactive = false)
+    {
+        $query = Item::with('category')->where('type', $type);
+
+        if (!$includeInactive) {
+            $query->active();
+        }
+
+        return $query;
+    }
+
     private function normalizeDecimal(mixed $value, float $default = 0): float
     {
         if ($value === null || $value === '') {
@@ -62,7 +73,8 @@ class ItemController extends Controller
     public function index(Request $request)
     {
         if ($request->has('json')) {
-            $query = Item::with('category')->where('type', 'product');
+            $includeInactive = $request->boolean('include_inactive');
+            $query = $this->itemListQuery('product', $includeInactive);
             if ($request->has('category_id'))
                 $query->where('category_id', $request->category_id);
             if ($request->has('uncategorized'))
@@ -70,7 +82,7 @@ class ItemController extends Controller
             return response()->json($query->get());
         }
 
-        $products = Item::with('category')->where('type', 'product')->get();
+        $products = $this->itemListQuery('product', true)->get();
 
         if ($products->isEmpty()) {
             return view('items.products', compact('products'));
@@ -83,11 +95,11 @@ class ItemController extends Controller
     {
         if ($request->has('json')) {
             return response()->json(
-                Item::with('category')->where('type', 'service')->get()
+                $this->itemListQuery('service', $request->boolean('include_inactive'))->get()
             );
         }
 
-        $services = Item::with('category')->where('type', 'service')->get();
+        $services = $this->itemListQuery('service', true)->get();
         return view('items.services', compact('services'));
     }
 
@@ -129,6 +141,7 @@ class ItemController extends Controller
             'image_path'      => $imagePaths[0] ?? null,
             'image_paths'     => $imagePaths ?: null,
             'min_stock'       => $this->normalizeDecimal($data['min_stock'] ?? 0),
+            'is_active'       => array_key_exists('is_active', $data) ? filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN) : true,
         ]);
 
         return response()->json([
@@ -181,6 +194,7 @@ class ItemController extends Controller
             'image_path'      => $imagePaths[0] ?? null,
             'image_paths'     => $imagePaths ?: null,
             'min_stock'       => $this->normalizeDecimal($data['min_stock'] ?? $item->min_stock, (float) $item->min_stock),
+            'is_active'       => array_key_exists('is_active', $data) ? filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN) : $item->is_active,
         ]);
 
         return response()->json(['success' => true, 'item' => $item]);
@@ -379,5 +393,26 @@ class ItemController extends Controller
                 'message' => 'Error updating items: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function bulkStatus(Request $request)
+    {
+        $data = $request->validate([
+            'item_ids' => ['required', 'array', 'min:1'],
+            'item_ids.*' => ['integer', 'exists:items,id'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $updated = Item::whereIn('id', $data['item_ids'])->update([
+            'is_active' => $data['is_active'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'message' => $data['is_active']
+                ? 'Selected items marked active.'
+                : 'Selected items marked inactive.',
+        ]);
     }
 }

@@ -10,11 +10,12 @@ class Item extends Model
         'type', 'name', 'category_id', 'unit',
         'sale_price', 'wholesale_price', 'purchase_price',
         'opening_qty', 'item_code', 'location', 'description',
-        'image_path', 'image_paths', 'min_stock',
+        'image_path', 'image_paths', 'min_stock', 'is_active',
     ];
 
     protected $casts = [
         'image_paths' => 'array',
+        'is_active' => 'boolean',
     ];
 
     protected $appends = ['stock_qty'];
@@ -59,5 +60,10 @@ class Item extends Model
     public function getStockValueAttribute(): float
     {
         return $this->stock_qty * floatval($this->purchase_price);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

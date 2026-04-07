@@ -47,7 +47,7 @@ class PurchaseBillController extends Controller
     public function create()
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextInvoiceNumber = 'PB-' . ((Purchase::max('id') ?? 0) + 1);
         $convertedPurchaseData = null;
@@ -85,7 +85,7 @@ class PurchaseBillController extends Controller
     public function edit(Purchase $purchase)
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $purchase->load(['items', 'payments']);

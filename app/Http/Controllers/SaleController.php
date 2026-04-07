@@ -41,7 +41,6 @@ class SaleController extends Controller
     public function create(Request $request, string $type = 'invoice')
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $brokers = Broker::orderBy('name')->get();
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
@@ -86,7 +85,6 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $brokers = Broker::orderBy('name')->get();
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
@@ -121,7 +119,6 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $brokers = Broker::orderBy('name')->get();
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
@@ -156,7 +153,6 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $brokers = Broker::orderBy('name')->get();
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
@@ -190,7 +186,6 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $brokers = Broker::orderBy('name')->get();
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
@@ -219,7 +214,6 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $brokers = Broker::orderBy('name')->get();
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
@@ -254,7 +248,8 @@ class SaleController extends Controller
      */
 private function posData(): array
 {
-    $items = Item::where('type', 'product')
+    $items = Item::active()
+        ->where('type', 'product')
         ->orderBy('name')
         ->get([
             'id', 'name', 'item_code', 'unit',
@@ -301,7 +296,6 @@ private function posData(): array
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $brokers = Broker::orderBy('name')->get();
         $items = Item::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $type = $sale->type ?? 'invoice';
@@ -425,7 +419,7 @@ private function posData(): array
         ])->first();
     }
 
-  
+
 
     $sale->items()->create([
                 'item_id'          => $itemRecord?->id,

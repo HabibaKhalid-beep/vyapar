@@ -254,7 +254,7 @@ Route::delete('expense/{id}', [ExpenseCreateController::class, 'destroyExpense']
     Route::get('/items', [ItemController::class, 'index'])->name('items');
     Route::get('/items/services', [ItemController::class, 'services'])->name('items.services');
     Route::get('/items/create', [ItemController::class, 'create'])->name('items.create');
-    Route::post('/items', [ItemController::class, 'store'])->name('items.store');
+Route::post('/items', [ItemController::class, 'store'])->name('items.store');
 
 
 
@@ -271,6 +271,7 @@ Route::delete('expense/{id}', [ExpenseCreateController::class, 'destroyExpense']
     Route::delete('/items/units/{id}', [ItemController::class, 'destroyUnit'])->name('items.units.destroy');
 
  Route::post('/items/{id}/adjust', [ItemController::class, 'adjust'])->name('items.adjust');
+Route::post('/items/bulk-status', [ItemController::class, 'bulkStatus'])->name('items.bulk-status');
 Route::get('/items/{id}/transactions', [ItemController::class, 'transactions'])->name('items.transactions');
 Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::get('/items/{id}/edit', [ItemController::class, 'edit'])->name('items.edit');

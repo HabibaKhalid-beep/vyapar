@@ -1088,8 +1088,6 @@ let transactions = {};
 let selectedIdx  = null;
 let sortAsc      = true;
 let bulkModalType = null;
-const BULK_STATUS_KEY = 'vyapar-product-inactive-items';
-let inactiveItemIds = loadInactiveItemIds();
 
 /* ── Sort state for transactions table ── */
 let txnSortCol = null;
@@ -1250,10 +1248,7 @@ function confirmDelete() {
     })
     .then(async r => {
         if (r.ok) {
-            const deletedId = getItemId(item, i);
             allItems.splice(i, 1);
-            inactiveItemIds = inactiveItemIds.filter(id => id !== deletedId);
-            saveInactiveItemIds();
             delete transactions[i];
             selectedIdx = null;
             document.getElementById('no-selection').style.display = 'flex';
@@ -1282,28 +1277,13 @@ function getItemId(item, idx) {
     return String(item?.id ?? `idx-${idx}`);
 }
 
-function loadInactiveItemIds() {
-    try {
-        return JSON.parse(localStorage.getItem(BULK_STATUS_KEY) || '[]');
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveInactiveItemIds() {
-    localStorage.setItem(BULK_STATUS_KEY, JSON.stringify(inactiveItemIds));
-}
-
 function isItemInactive(item, idx) {
-    return inactiveItemIds.includes(getItemId(item, idx));
+    return !(item?.is_active ?? true);
 }
 
 function setItemInactive(item, idx, inactive) {
-    const itemId = getItemId(item, idx);
-    inactiveItemIds = inactive
-        ? Array.from(new Set([...inactiveItemIds, itemId]))
-        : inactiveItemIds.filter(id => id !== itemId);
-    saveInactiveItemIds();
+    if (!allItems[idx]) return;
+    allItems[idx].is_active = !inactive;
 }
 
 function getFilteredItems() {
@@ -1911,11 +1891,49 @@ function applyBulkAction() {
     }
 
     const makeInactive = bulkModalType === 'bulk-inactive';
-    selectedIndexes.forEach(idx => setItemInactive(allItems[idx], idx, makeInactive));
-    renderBulkRows();
-    renderList();
-    ensureValidSelection();
-    showToast(makeInactive ? 'Selected items marked inactive.' : 'Selected items marked active.');
+    const itemIds = selectedIndexes
+        .map(idx => allItems[idx]?.id)
+        .filter(id => !!id);
+
+    if (!itemIds.length) {
+        showToast('Selected items are missing IDs.');
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (!csrfToken) {
+        showToast('CSRF token missing.');
+        return;
+    }
+
+    fetch(`{{ route('items.bulk-status') }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+        },
+        body: JSON.stringify({
+            item_ids: itemIds,
+            is_active: !makeInactive
+        })
+    })
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to update item status.');
+        }
+
+        selectedIndexes.forEach(idx => setItemInactive(allItems[idx], idx, makeInactive));
+        renderBulkRows();
+        renderList();
+        ensureValidSelection();
+        showToast(data.message || (makeInactive ? 'Selected items marked inactive.' : 'Selected items marked active.'));
+    })
+    .catch(error => {
+        showToast(error.message || 'Failed to update item status.');
+    });
 }
 
 function renderBulkEditRows() {
@@ -2137,7 +2155,6 @@ function formatDate(d) { if(!d)return''; const[y,m,day]=d.split('-'); return day
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 @endpush
-
 
 
 

@@ -145,7 +145,7 @@ class PerfomaController extends Controller
 
     private function renderProformaForm(?Sale $proforma = null, ?Sale $duplicateProforma = null)
     {
-        $items = Item::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = 'PI-' . str_pad((string) $nextSaleId, 4, '0', STR_PAD_LEFT);

@@ -211,7 +211,7 @@ class SaleReturnController extends Controller
     )
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = 'SR-' . str_pad((string) $nextSaleId, 4, '0', STR_PAD_LEFT);
