@@ -17,6 +17,7 @@ class Transaction extends Model
         'balance',
         'status',
         'description',
+        'attachment',
     ];
 
     protected $casts = [

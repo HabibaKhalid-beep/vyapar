@@ -24,6 +24,7 @@ class PartyController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
+            'phone_number_2' => 'nullable|string|max:20',
             'ptcl_number' => 'nullable|string|max:30',
             'email' => 'nullable|email|max:255',
             'city' => 'nullable|string|max:100',
@@ -34,11 +35,14 @@ class PartyController extends Controller
             'as_of_date' => 'nullable|date',
             'credit_limit_enabled' => 'nullable|boolean',
             'credit_limit_amount' => 'nullable|numeric|min:0|required_if:credit_limit_enabled,1',
+            'due_days' => 'nullable|integer|min:1|max:100',
             'custom_fields' => 'nullable|array',
             'transaction_type' => 'nullable|in:receive,pay',
-            'party_type' => 'nullable|in:customer,supplier',
+            'party_type' => 'nullable|array',
+            'party_type.*' => 'in:customer,supplier',
             'party_group' => 'nullable|string|max:100',
         ]);
+        $data['party_type'] = $this->normalizePartyType($data['party_type'] ?? []);
         if (empty($data['credit_limit_enabled'])) {
             $data['credit_limit_amount'] = null;
         }
@@ -105,6 +109,7 @@ public function update(Request $request, $id)
     $data = $request->validate([
         'name' => 'sometimes|string|max:255',
         'phone' => 'sometimes|nullable|string|max:20',
+        'phone_number_2' => 'sometimes|nullable|string|max:20',
         'ptcl_number' => 'sometimes|nullable|string|max:30',
         'email' => 'sometimes|nullable|email|max:255',
         'city' => 'sometimes|nullable|string|max:100',
@@ -115,11 +120,16 @@ public function update(Request $request, $id)
         'as_of_date' => 'sometimes|nullable|date',
         'credit_limit_enabled' => 'sometimes|nullable|boolean',
         'credit_limit_amount' => 'sometimes|nullable|numeric|min:0|required_if:credit_limit_enabled,1',
+        'due_days' => 'sometimes|nullable|integer|min:1|max:100',
         'custom_fields' => 'sometimes|nullable|array',
         'transaction_type' => 'sometimes|nullable|in:receive,pay',
-        'party_type' => 'sometimes|nullable|in:customer,supplier',
+        'party_type' => 'sometimes|nullable|array',
+        'party_type.*' => 'in:customer,supplier',
         'party_group' => 'sometimes|nullable|string|max:100',
     ]);
+    if (array_key_exists('party_type', $data)) {
+        $data['party_type'] = $this->normalizePartyType($data['party_type'] ?? []);
+    }
     if (array_key_exists('credit_limit_enabled', $data) && empty($data['credit_limit_enabled'])) {
         $data['credit_limit_amount'] = null;
     }
@@ -168,6 +178,19 @@ public function update(Request $request, $id)
         $party->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    private function normalizePartyType(array $partyTypes): ?string
+    {
+        $allowedTypes = ['customer', 'supplier'];
+
+        $normalizedTypes = collect($partyTypes)
+            ->filter(fn ($type) => in_array($type, $allowedTypes, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        return $normalizedTypes ? implode(',', $normalizedTypes) : null;
     }
 
 public function transactions(Party $party)
@@ -334,68 +357,95 @@ public function transactions(Party $party)
 
 public function storeTransfer(Request $request)
 {
+    if (is_string($request->input('rows'))) {
+        $request->merge([
+            'rows' => json_decode($request->input('rows'), true) ?? [],
+        ]);
+    }
+
     $data = $request->validate([
-        'source_party_id' => 'required|exists:parties,id',
         'transfer_date' => 'required|date',
         'description' => 'nullable|string',
-        'rows' => 'required|array|min:1',
-        'rows.*.party_id' => 'required|exists:parties,id|different:source_party_id',
+        'attachment' => 'nullable|image|max:4096',
+        'rows' => 'required|array|size:2',
+        'rows.*.party_id' => 'required|exists:parties,id',
         'rows.*.type' => 'required|in:received,paid',
         'rows.*.amount' => 'required|numeric|min:0.01',
     ]);
+    $paidRow = collect($data['rows'])->firstWhere('type', 'paid');
+    $receivedRow = collect($data['rows'])->firstWhere('type', 'received');
 
-    $sourceParty = Party::findOrFail($data['source_party_id']);
+    if (!$paidRow || !$receivedRow) {
+        return response()->json([
+            'success' => false,
+            'message' => 'One paid row and one received row are required.',
+        ], 422);
+    }
+
+    if ((int) $paidRow['party_id'] === (int) $receivedRow['party_id']) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Paid party and received party cannot be same.',
+        ], 422);
+    }
+
+    if ((float) $paidRow['amount'] !== (float) $receivedRow['amount']) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Paid and received amount must be equal.',
+        ], 422);
+    }
+
+    $sourceParty = Party::findOrFail($paidRow['party_id']);
+    $targetParty = Party::findOrFail($receivedRow['party_id']);
+    $amount = (float) $paidRow['amount'];
     $transferGroup = 'PTP-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(5));
     $savedRows = [];
+    $attachmentPath = $request->hasFile('attachment')
+        ? $request->file('attachment')->store('party-transfers', 'public')
+        : null;
 
-    DB::transaction(function () use ($data, $sourceParty, $transferGroup, &$savedRows) {
-        foreach ($data['rows'] as $index => $row) {
-            $targetParty = Party::findOrFail($row['party_id']);
-            $amount = (float) $row['amount'];
-            $isReceived = $row['type'] === 'received';
+    DB::transaction(function () use ($data, $sourceParty, $targetParty, $amount, $transferGroup, $attachmentPath, &$savedRows) {
+        $description = $data['description'] ?? null;
+        $number = $transferGroup . '-1';
 
-            $targetType = $isReceived ? 'Party to Party[Received]' : 'Party to Party[Paid]';
-            $targetStatus = $isReceived ? 'receive' : 'pay';
-            $sourceType = $isReceived ? 'Party to Party[Paid]' : 'Party to Party[Received]';
-            $sourceStatus = $isReceived ? 'pay' : 'receive';
-            $number = $transferGroup . '-' . ($index + 1);
-            $description = $data['description'] ?? null;
+        $targetTransaction = Transaction::create([
+            'party_id' => $targetParty->id,
+            'counter_party_id' => $sourceParty->id,
+            'type' => 'Party to Party[Received]',
+            'number' => $number,
+            'transfer_group' => $transferGroup,
+            'date' => $data['transfer_date'],
+            'total' => $amount,
+            'balance' => $amount,
+            'status' => 'receive',
+            'description' => $description,
+            'attachment' => $attachmentPath,
+        ]);
 
-            $targetTransaction = Transaction::create([
-                'party_id' => $targetParty->id,
-                'counter_party_id' => $sourceParty->id,
-                'type' => $targetType,
-                'number' => $number,
-                'transfer_group' => $transferGroup,
-                'date' => $data['transfer_date'],
-                'total' => $amount,
-                'balance' => $amount,
-                'status' => $targetStatus,
-                'description' => $description,
-            ]);
+        $sourceTransaction = Transaction::create([
+            'party_id' => $sourceParty->id,
+            'counter_party_id' => $targetParty->id,
+            'type' => 'Party to Party[Paid]',
+            'number' => $number,
+            'transfer_group' => $transferGroup,
+            'date' => $data['transfer_date'],
+            'total' => $amount,
+            'balance' => $amount,
+            'status' => 'pay',
+            'description' => $description,
+            'attachment' => $attachmentPath,
+        ]);
 
-            $sourceTransaction = Transaction::create([
-                'party_id' => $sourceParty->id,
-                'counter_party_id' => $targetParty->id,
-                'type' => $sourceType,
-                'number' => $number,
-                'transfer_group' => $transferGroup,
-                'date' => $data['transfer_date'],
-                'total' => $amount,
-                'balance' => $amount,
-                'status' => $sourceStatus,
-                'description' => $description,
-            ]);
-
-            $savedRows[] = [
-                'row' => $index + 1,
-                'source_transaction_id' => $sourceTransaction->id,
-                'target_transaction_id' => $targetTransaction->id,
-                'party_name' => $targetParty->name,
-                'amount' => number_format($amount, 2, '.', ''),
-                'type' => $row['type'],
-            ];
-        }
+        $savedRows[] = [
+            'row' => 1,
+            'source_transaction_id' => $sourceTransaction->id,
+            'target_transaction_id' => $targetTransaction->id,
+            'paid_party_name' => $sourceParty->name,
+            'received_party_name' => $targetParty->name,
+            'amount' => number_format($amount, 2, '.', ''),
+            'type' => 'cross_transfer',
+        ];
     });
 
     return response()->json([

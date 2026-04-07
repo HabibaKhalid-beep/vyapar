@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Broker;
 
 class Sale extends Model
 {
     protected $fillable = [
         'type',
         'party_id',
+        'broker_id',
         'phone',
         'billing_address',
         'shipping_address',
@@ -55,6 +57,11 @@ class Sale extends Model
     public function party()
     {
         return $this->belongsTo(Party::class);
+    }
+
+    public function broker()
+    {
+        return $this->belongsTo(Broker::class);
     }
 
     public function payments()

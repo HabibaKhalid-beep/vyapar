@@ -112,6 +112,7 @@
         data-id="{{ $party->id }}"
         data-name="{{ $party->name }}"
         data-phone="{{ $party->phone }}"
+        data-phone-number-2="{{ $party->phone_number_2 }}"
         data-ptcl-number="{{ $party->ptcl_number }}"
         data-email="{{ $party->email }}"
         data-city="{{ $party->city }}"
@@ -124,6 +125,7 @@
         data-transaction-type="{{ $party->transaction_type }}"
         data-party-type="{{ $party->party_type }}"
         data-party-group="{{ $party->party_group }}"
+        data-due-days="{{ $party->due_days }}"
         data-credit-limit-enabled="{{ $party->credit_limit_enabled }}"
         data-credit-limit-amount="{{ $party->credit_limit_amount }}"
         data-custom-fields="{{ json_encode($party->custom_fields ?? []) }}">
@@ -475,6 +477,13 @@
                 <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
               </div>
             </div>
+            <div class="col-md-4" data-party-setting="phone_2">
+              <label class="form-label fw-600">Phone Number 2</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone-volume"></i></span>
+                <input type="tel" name="phone_number_2" class="form-control" placeholder="Enter second phone number" id="partyPhone2Input">
+              </div>
+            </div>
             <div class="col-md-4 is-hidden" data-party-setting="party_grouping">
               <label class="form-label fw-600">Party Group</label>
               <div class="party-group-dropdown" id="partyGroupDropdown">
@@ -567,6 +576,10 @@
         <input type="number" name="credit_limit_amount" class="form-control" placeholder="Enter credit limit" id="creditLimitAmountInput" min="0" step="0.01">
       </div>
     </div>
+    <div class="col-md-4" data-party-setting="due_days">
+      <label class="form-label">Due Days</label>
+      <input type="number" name="due_days" class="form-control" placeholder="e.g. 5, 10, 30" min="1" max="100" id="partyDueDaysInput">
+    </div>
   </div>
 
   <!-- To Receive / To Pay Options at the bottom -->
@@ -586,13 +599,13 @@
   <label class="form-label fw-600">Party Type</label>
 
   <div class="form-check">
-    <input class="form-check-input" type="radio" name="party_type" id="customerParty" value="customer" checked>
-    <label class="form-check-label" for="customerParty">Customer Party</label>
+    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="customerParty" value="customer">
+    <label class="form-check-label" for="customerParty">Customer</label>
   </div>
 
   <div class="form-check">
-    <input class="form-check-input" type="radio" name="party_type" id="supplierParty" value="supplier">
-    <label class="form-check-label" for="supplierParty">Supplier Party</label>
+    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
+    <label class="form-check-label" for="supplierParty">Supplier</label>
   </div>
 </div>
 
@@ -745,15 +758,6 @@
       <div class="modal-header party-transfer-header">
         <h5 class="modal-title">Party To Party Transfer</h5>
         <div class="party-transfer-header-right">
-          <div class="party-transfer-source">
-            <span class="party-transfer-source-label">Transfer By</span>
-            <select class="form-select" id="partyTransferSource">
-              <option value="">Select party</option>
-              @foreach($parties as $party)
-                <option value="{{ $party->id }}">{{ $party->name }}</option>
-              @endforeach
-            </select>
-          </div>
           <div class="party-transfer-date-wrap">
             <label for="partyTransferDate">Date</label>
             <input type="date" id="partyTransferDate" class="form-control" value="{{ date('Y-m-d') }}">
@@ -806,13 +810,22 @@
 
         <div class="party-transfer-bottom">
           <div class="party-transfer-side-tools">
-            <button type="button" class="party-transfer-tool-btn">
+            <button type="button" class="party-transfer-tool-btn" id="partyTransferDescriptionToggle">
               <i class="fa-regular fa-file-lines"></i> Add Description
             </button>
-            <button type="button" class="party-transfer-tool-btn icon-only">
+            <button type="button" class="party-transfer-tool-btn icon-only" id="partyTransferImageTrigger">
               <i class="fa-solid fa-camera"></i>
             </button>
-            <textarea id="partyTransferDescription" class="form-control" rows="4" placeholder="Write transfer note or description"></textarea>
+            <input type="file" id="partyTransferImageInput" class="d-none" accept="image/*">
+            <div class="party-transfer-extra-panel is-hidden" id="partyTransferDescriptionWrap">
+              <textarea id="partyTransferDescription" class="form-control" rows="4" placeholder="Write transfer note or description"></textarea>
+            </div>
+            <div class="party-transfer-extra-panel is-hidden" id="partyTransferImagePreviewWrap">
+              <div class="party-transfer-image-preview-card">
+                <img id="partyTransferImagePreview" src="" alt="Transfer attachment preview">
+                <button type="button" class="party-transfer-image-remove" id="partyTransferImageRemove">Remove</button>
+              </div>
+            </div>
           </div>
           <div class="party-transfer-summary">
             <div class="party-transfer-summary-card">
@@ -1407,6 +1420,38 @@
     font-size: 22px;
   }
 
+  .party-transfer-extra-panel.is-hidden {
+    display: none;
+  }
+
+  .party-transfer-image-preview-card {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #f8fafc;
+    width: min(280px, 100%);
+  }
+
+  .party-transfer-image-preview-card img {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #dbe3ef;
+  }
+
+  .party-transfer-image-remove {
+    align-self: flex-end;
+    border: none;
+    background: transparent;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
   .party-transfer-summary {
     display: grid;
     gap: 12px;
@@ -1672,10 +1717,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const partyTransferModal = partyTransferModalEl ? bootstrap.Modal.getOrCreateInstance(partyTransferModalEl) : null;
     const partyTransferSave = document.getElementById("partyTransferSave");
     const partyTransferSaveNew = document.getElementById("partyTransferSaveNew");
-    const partyTransferSource = document.getElementById("partyTransferSource");
     const partyTransferDate = document.getElementById("partyTransferDate");
     const partyTransferTotal = document.getElementById("partyTransferTotal");
     const partyTransferSelectionCount = document.getElementById("partyTransferSelectionCount");
+    const partyTransferDescriptionToggle = document.getElementById("partyTransferDescriptionToggle");
+    const partyTransferDescriptionWrap = document.getElementById("partyTransferDescriptionWrap");
+    const partyTransferDescriptionInput = document.getElementById("partyTransferDescription");
+    const partyTransferImageTrigger = document.getElementById("partyTransferImageTrigger");
+    const partyTransferImageInput = document.getElementById("partyTransferImageInput");
+    const partyTransferImagePreviewWrap = document.getElementById("partyTransferImagePreviewWrap");
+    const partyTransferImagePreview = document.getElementById("partyTransferImagePreview");
+    const partyTransferImageRemove = document.getElementById("partyTransferImageRemove");
 
     let currentPartyId = null;
     let transactionsState = [];
@@ -1803,6 +1855,10 @@ document.addEventListener("DOMContentLoaded", function () {
     partyTransferModalEl?.addEventListener('show.bs.modal', resetPartyTransferModal);
     partyTransferSave?.addEventListener('click', () => persistPartyTransfer(true));
     partyTransferSaveNew?.addEventListener('click', () => persistPartyTransfer(false));
+    partyTransferDescriptionToggle?.addEventListener('click', togglePartyTransferDescription);
+    partyTransferImageTrigger?.addEventListener('click', () => partyTransferImageInput?.click());
+    partyTransferImageInput?.addEventListener('change', handlePartyTransferImageSelection);
+    partyTransferImageRemove?.addEventListener('click', clearPartyTransferImage);
 
     document.addEventListener('click', function (event) {
         if (!event.target.closest('.party-transfer-party-select')) {
@@ -1859,6 +1915,50 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    function togglePartyTransferDescription(forceVisible = null) {
+        if (!partyTransferDescriptionWrap) return;
+
+        const shouldShow = forceVisible === null
+            ? partyTransferDescriptionWrap.classList.contains('is-hidden')
+            : forceVisible;
+
+        partyTransferDescriptionWrap.classList.toggle('is-hidden', !shouldShow);
+
+        if (shouldShow) {
+            partyTransferDescriptionInput?.focus();
+        }
+    }
+
+    function clearPartyTransferImage() {
+        if (partyTransferImageInput) {
+            partyTransferImageInput.value = '';
+        }
+
+        if (partyTransferImagePreview) {
+            partyTransferImagePreview.src = '';
+        }
+
+        partyTransferImagePreviewWrap?.classList.add('is-hidden');
+    }
+
+    function handlePartyTransferImageSelection(event) {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            clearPartyTransferImage();
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (loadEvent) {
+            if (partyTransferImagePreview) {
+                partyTransferImagePreview.src = loadEvent.target?.result || '';
+            }
+            partyTransferImagePreviewWrap?.classList.remove('is-hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
     function resetPartyTransferModal() {
         if (!partyTransferModalEl) return;
 
@@ -1866,14 +1966,12 @@ document.addEventListener("DOMContentLoaded", function () {
             partyTransferDate.value = "{{ date('Y-m-d') }}";
         }
 
-        if (partyTransferSource) {
-            partyTransferSource.value = currentPartyId || '';
-        }
-
         const descriptionBox = document.getElementById("partyTransferDescription");
         if (descriptionBox) {
             descriptionBox.value = '';
         }
+        togglePartyTransferDescription(false);
+        clearPartyTransferImage();
 
         document.querySelectorAll('.party-transfer-row').forEach((row, index) => {
             const partyInput = row.querySelector('.transfer-party-input');
@@ -1898,9 +1996,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // GET FORM DATA
     function getPartyData() {
+        const selectedPartyTypes = Array.from(document.querySelectorAll('input[name="party_type[]"]:checked'))
+            .map((input) => input.value);
+
         return {
             name: document.getElementById("partyNameInput").value,
             phone: document.getElementById("partyPhoneInput").value,
+            phone_number_2: document.getElementById("partyPhone2Input").value,
             ptcl_number: document.getElementById("partyPtclInput").value,
             party_group: partyGroupInput?.value || '',
             email: document.querySelector('#partyAddressPane input[type="email"]').value,
@@ -1908,6 +2010,7 @@ document.addEventListener("DOMContentLoaded", function () {
             address: document.getElementById("partyAddressInput").value,
             billing_address: document.getElementById("billingAddress").value,
             shipping_address: document.getElementById("shippingAddress").value,
+            due_days: document.getElementById("partyDueDaysInput")?.value || '',
             opening_balance: document.querySelector('#partyCreditPane input[type="number"]').value,
             as_of_date: document.querySelector('#partyCreditPane input[type="date"]').value,
             credit_limit_enabled: document.getElementById("creditLimitSwitch").checked ? 1 : 0,
@@ -1917,7 +2020,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 : document.getElementById("toPay").checked
                     ? 'pay'
                     : null,
-            party_type: document.querySelector('input[name="party_type"]:checked')?.value,
+            party_type: selectedPartyTypes,
         };
     }
 
@@ -1968,11 +2071,6 @@ document.addEventListener("DOMContentLoaded", function () {
             };
         }).filter((row) => row.party_name || row.amount > 0);
 
-        if (!partyTransferSource?.value) {
-            alert('Please select Transfer By party.');
-            return;
-        }
-
         if (!rows.length) {
             alert('Please fill at least one transfer row.');
             return;
@@ -1984,24 +2082,40 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        if (rows.some((row) => String(row.party_id) === String(partyTransferSource.value))) {
-            alert('Transfer party and customer party cannot be same.');
+        const paidRows = rows.filter((row) => row.type === 'paid');
+        const receivedRows = rows.filter((row) => row.type === 'received');
+
+        if (paidRows.length !== 1 || receivedRows.length !== 1) {
+            alert('One party must be Paid and one party must be Received.');
             return;
+        }
+
+        if (String(paidRows[0].party_id) === String(receivedRows[0].party_id)) {
+            alert('Paid party and Received party cannot be same.');
+            return;
+        }
+
+        if (Number(paidRows[0].amount) !== Number(receivedRows[0].amount)) {
+            alert('Paid amount and Received amount must be equal.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('transfer_date', partyTransferDate?.value || '');
+        formData.append('description', partyTransferDescriptionInput?.value || '');
+        formData.append('rows', JSON.stringify(rows.map(({ party_id, type, amount }) => ({ party_id, type, amount }))));
+
+        if (partyTransferImageInput?.files?.[0]) {
+            formData.append('attachment', partyTransferImageInput.files[0]);
         }
 
         fetch("{{ route('parties.transfer.store') }}", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json",
                 "X-CSRF-TOKEN": "{{ csrf_token() }}"
             },
-            body: JSON.stringify({
-                source_party_id: partyTransferSource.value,
-                transfer_date: partyTransferDate?.value || '',
-                description: document.getElementById("partyTransferDescription")?.value || '',
-                rows: rows.map(({ party_id, type, amount }) => ({ party_id, type, amount }))
-            })
+            body: formData
         })
         .then(async (response) => {
             const data = await response.json();
@@ -2577,6 +2691,7 @@ document.addEventListener("DOMContentLoaded", function () {
             resetModal();
             document.getElementById("partyNameInput").value = rowData.name || rowData.party || '';
             document.getElementById("partyPhoneInput").value = rowData.phone || rowData.mobile || '';
+            document.getElementById("partyPhone2Input").value = rowData.phone_number_2 || rowData.phone2 || '';
             document.getElementById("partyPtclInput").value = rowData.ptcl_number || '';
             document.getElementById("partyCityInput").value = rowData.city || '';
             const emailInput = document.querySelector('#partyAddressPane input[type="email"]');
@@ -2617,6 +2732,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 li.dataset.id = party.id;
                 li.dataset.name = party.name;
                 li.dataset.phone = party.phone || "";
+                li.dataset.phoneNumber2 = party.phone_number_2 || "";
                 li.dataset.ptclNumber = party.ptcl_number || "";
                 li.dataset.partyGroup = partyData.party_group || "";
                 li.dataset.email = party.email || "";
@@ -2628,7 +2744,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 li.dataset.currentBalance = getDisplayBalanceValue(partyData, party.current_balance || 0);
                 li.dataset.asOfDate = party.as_of_date || "";
                 li.dataset.transactionType = party.transaction_type || "";
-                li.dataset.partyType = party.party_type || "";
+                li.dataset.partyType = Array.isArray(partyData.party_type) ? partyData.party_type.join(',') : (party.party_type || "");
                 li.dataset.creditLimitEnabled = party.credit_limit_enabled || 0;
                 li.dataset.creditLimitAmount = partyData.credit_limit_amount || "";
                 li.dataset.customFields = JSON.stringify(party.custom_fields || []);
@@ -2855,7 +2971,7 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("✅ Party Selected - ID:", currentPartyId);
 
         document.getElementById("partyDetailName").textContent = li.dataset.name || '';
-        document.getElementById("partyPhone").textContent = li.dataset.phone || '';
+        document.getElementById("partyPhone").textContent = [li.dataset.phone, li.dataset.phoneNumber2].filter(Boolean).join(' / ');
         document.getElementById("partyEmail").textContent = li.dataset.email || '';
         document.getElementById("partyAddress").textContent = li.dataset.billingAddress || '';
         document.getElementById("partyCityPtcl").textContent = `${li.dataset.city || '-'} / ${li.dataset.ptclNumber || '-'}`;
@@ -2873,6 +2989,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.getElementById("partyNameInput").value = party.name || '';
     document.getElementById("partyPhoneInput").value = party.phone || '';
+    document.getElementById("partyPhone2Input").value = party.phone_number_2 || '';
     renderPartyGroupOptions(party.party_group || '');
     document.querySelector('#partyAddressPane input[type="email"]').value = party.email || '';
     document.getElementById("partyCityInput").value = party.city || '';
@@ -2880,6 +2997,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("partyAddressInput").value = party.address || '';
     document.getElementById("billingAddress").value = party.billing_address || '';
     document.getElementById("shippingAddress").value = party.shipping_address || '';
+    document.getElementById("partyDueDaysInput").value = party.due_days || '';
     document.querySelector('#partyCreditPane input[type="number"]').value = party.opening_balance || 0;
 
     // ✅ FIX: Date ko properly format karein
@@ -2912,11 +3030,21 @@ document.addEventListener("DOMContentLoaded", function () {
         toPay.checked = false;
     }
 
-    // Party type radio
-    if (party.party_type) {
-        const radio = document.querySelector(`input[name="party_type"][value="${party.party_type}"]`);
-        if (radio) radio.checked = true;
-    }
+    document.querySelectorAll('input[name="party_type[]"]').forEach((checkbox) => {
+        checkbox.checked = false;
+    });
+
+    const selectedPartyTypes = Array.isArray(party.party_type)
+        ? party.party_type
+        : String(party.party_type || '')
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+    selectedPartyTypes.forEach((value) => {
+        const checkbox = document.querySelector(`input[name="party_type[]"][value="${value}"]`);
+        if (checkbox) checkbox.checked = true;
+    });
 
     // ✅ FIX: Additional fields / Custom fields
     const customFieldInputs = document.querySelectorAll('#partyAdditionalPane input[type="text"]');
@@ -2953,6 +3081,7 @@ document.addEventListener("DOMContentLoaded", function () {
             id: li.dataset.id,
             name: li.dataset.name,
             phone: li.dataset.phone,
+            phone_number_2: li.dataset.phoneNumber2,
             ptcl_number: li.dataset.ptclNumber,
             party_group: li.dataset.partyGroup,
             email: li.dataset.email,
@@ -3003,6 +3132,7 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
 
                 li.dataset.name = partyData.name;
                 li.dataset.phone = partyData.phone;
+                li.dataset.phoneNumber2 = partyData.phone_number_2;
                 li.dataset.ptclNumber = partyData.ptcl_number;
                 li.dataset.partyGroup = partyData.party_group;
                 li.dataset.email = partyData.email;
@@ -3010,10 +3140,11 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
                 li.dataset.address = partyData.address;
                 li.dataset.billingAddress = partyData.billing_address;
                 li.dataset.shippingAddress = partyData.shipping_address;
+                li.dataset.dueDays = partyData.due_days;
                 li.dataset.openingBalance = partyData.opening_balance;
                 li.dataset.currentBalance = getDisplayBalanceValue(partyData, data.party.current_balance || partyData.opening_balance || 0);
                 li.dataset.asOfDate = partyData.as_of_date;
-                li.dataset.partyType = partyData.party_type;
+                li.dataset.partyType = Array.isArray(partyData.party_type) ? partyData.party_type.join(',') : '';
                 li.dataset.creditLimitEnabled = partyData.credit_limit_enabled;
                 li.dataset.creditLimitAmount = partyData.credit_limit_amount;
                 li.dataset.transactionType = partyData.transaction_type;
@@ -3022,7 +3153,7 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
                 li.querySelector(".entity-balance").textContent = "Rs " + getDisplayBalanceValue(partyData, data.party.current_balance || partyData.opening_balance || 0);
 
                 document.getElementById("partyDetailName").textContent = partyData.name;
-                document.getElementById("partyPhone").textContent = partyData.phone;
+                document.getElementById("partyPhone").textContent = [partyData.phone, partyData.phone_number_2].filter(Boolean).join(' / ');
                 document.getElementById("partyEmail").textContent = partyData.email;
                 document.getElementById("partyAddress").textContent = partyData.billing_address;
                 document.getElementById("partyCityPtcl").textContent = `${partyData.city || '-'} / ${partyData.ptcl_number || '-'}`;
@@ -3054,7 +3185,7 @@ partyList.addEventListener("click", function (e) {
 
     // Update right panel header info
     document.getElementById("partyDetailName").textContent = li.dataset.name || '';
-    document.getElementById("partyPhone").textContent = li.dataset.phone || '';
+    document.getElementById("partyPhone").textContent = [li.dataset.phone, li.dataset.phoneNumber2].filter(Boolean).join(' / ');
     document.getElementById("partyEmail").textContent = li.dataset.email || '';
     document.getElementById("partyAddress").textContent = li.dataset.billingAddress || '';
     document.getElementById("partyCityPtcl").textContent = `${li.dataset.city || '-'} / ${li.dataset.ptclNumber || '-'}`;
