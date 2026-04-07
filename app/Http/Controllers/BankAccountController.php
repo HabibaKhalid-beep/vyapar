@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
+use App\Models\AppSetting;
 use App\Models\BankTransaction;
 use App\Models\PurchasePayment;
 use App\Models\SalePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class BankAccountController extends Controller
 {
@@ -277,7 +279,26 @@ class BankAccountController extends Controller
             'bank_ids' => ['required', 'array', 'min:1'],
             'bank_ids.*' => ['integer', 'exists:bank_accounts,id'],
             'is_active' => ['required', 'boolean'],
+            'password' => ['nullable', 'string'],
         ]);
+
+        if ($data['is_active']) {
+            $storedPasswordHash = AppSetting::getValue('bank_account_password');
+
+            if (!$storedPasswordHash) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please set Bank Account Password in General Settings first.',
+                ], 422);
+            }
+
+            if (empty($data['password']) || !Hash::check($data['password'], $storedPasswordHash)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Incorrect bank account password.',
+                ], 422);
+            }
+        }
 
         $updated = BankAccount::whereIn('id', $data['bank_ids'])->update([
             'is_active' => $data['is_active'],

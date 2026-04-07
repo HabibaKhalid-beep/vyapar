@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const bulkPasswordBox = document.getElementById('bankBulkPasswordBox');
   const bulkPasswordInput = document.getElementById('bankBulkPasswordInput');
   const bulkPasswordError = document.getElementById('bankBulkPasswordError');
-  const BANK_BULK_ACTIVE_PASSWORD = 'admin@123';
 
   // Table element used for filtering & actions
   const bankTable = document.getElementById('bankTable');
@@ -304,10 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!makeInactive) {
         const enteredPassword = bulkPasswordInput?.value || '';
-        if (enteredPassword !== BANK_BULK_ACTIVE_PASSWORD) {
+        if (!enteredPassword) {
           bulkPasswordError?.classList.add('show');
           bulkPasswordInput?.focus();
-          showToast('Password incorrect. Bank accounts were not activated.', 'danger');
+          showToast('Please enter bank account password.', 'danger');
           return;
         }
       }
@@ -322,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           bank_ids: selectedIds,
           is_active: !makeInactive,
+          password: bulkPasswordInput?.value || '',
         }),
       })
         .then(async (res) => {

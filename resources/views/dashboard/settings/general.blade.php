@@ -16,6 +16,9 @@
 </head>
 
 <body>
+  @if(session('success'))
+    <div class="alert alert-success m-3">{{ session('success') }}</div>
+  @endif
   <div class="settings-layout">
     <aside class="sidebar">
       <div class="sidebar__header">
@@ -47,6 +50,38 @@
         <!-- Column 1 (top): Application -->
         <section class="section section--application">
           <div class="section__title">Application</div>
+
+          <form method="POST" action="{{ route('settings.general.update') }}" class="mb-4">
+            @csrf
+            <div class="field-block">
+              <div class="field-row" style="display:block;">
+                <div class="field-label mb-2">
+                  Bank Account Password
+                  <i class="fa fa-info-circle field-label__info" aria-hidden="true"></i>
+                </div>
+                <input
+                  type="password"
+                  name="bank_account_password"
+                  class="form-control"
+                  placeholder="{{ $bankAccountPasswordSet ? 'Enter new password to update' : 'Enter password' }}"
+                />
+                <div class="mt-2 text-muted" style="font-size:12px;">
+                  Yehi password bank accounts ko bulk active karte waqt use hoga.
+                </div>
+                @error('bank_account_password')
+                  <div class="text-danger mt-2" style="font-size:12px;">{{ $message }}</div>
+                @enderror
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              class="apply-btn mt-2"
+              style="padding: 6px 14px; font-size: 13px; width: auto; min-width: 140px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;"
+            >
+              Save Password
+            </button>
+          </form>
 
           <label class="check-row">
             <input type="checkbox" class="check-row__input" />

@@ -190,6 +190,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
     Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
+    Route::post('settings/general', [SettingController::class, 'updateGeneral'])->name('settings.general.update');
     Route::get('settings/transactions', [SettingController::class, 'transactions'])->name('settings.transactions');
     Route::get('settings/taxes', [SettingController::class, 'taxes'])->name('settings.taxes');
     Route::get('settings/items', [SettingController::class, 'items'])->name('settings.items');
