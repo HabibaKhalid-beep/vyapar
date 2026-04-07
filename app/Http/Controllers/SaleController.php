@@ -41,7 +41,8 @@ class SaleController extends Controller
     public function create(Request $request, string $type = 'invoice')
     {
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
@@ -85,7 +86,8 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -119,7 +121,8 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -153,7 +156,8 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -186,7 +190,8 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -214,7 +219,8 @@ class SaleController extends Controller
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -296,7 +302,8 @@ private function posData(): array
         }
 
         $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $type = $sale->type ?? 'invoice';
 
