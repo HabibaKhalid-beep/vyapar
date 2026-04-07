@@ -38,7 +38,7 @@ class SaleOrderController extends Controller
 
     public function create(Request $request)
     {
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
@@ -77,7 +77,7 @@ class SaleOrderController extends Controller
                 ->with('error', 'This estimate is already converted.');
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
@@ -142,7 +142,7 @@ class SaleOrderController extends Controller
                 ->with('error', 'This proforma is already converted.');
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;

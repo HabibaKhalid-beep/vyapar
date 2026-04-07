@@ -14,7 +14,7 @@ class PaymentInController extends Controller
     {
         return view('dashboard.sales.payement-in', [
             'parties'      => Party::all(),
-            'bankAccounts' => BankAccount::all(),
+            'bankAccounts' => BankAccount::active()->get(),
         ]);
     }
 

@@ -132,7 +132,7 @@ class PurchaseReturnController extends Controller
 
     private function renderPurchaseReturnForm(?Purchase $purchaseReturn = null, ?Purchase $duplicatePurchaseReturn = null)
     {
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextInvoiceNumber = 'PR-' . ((Purchase::max('id') ?? 0) + 1);

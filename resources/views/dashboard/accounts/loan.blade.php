@@ -1000,7 +1000,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 
     <ul class="entity-list" id="loanList">
       @foreach($loanAccounts as $loan)
-        <li class="{{ $loop->first ? 'active' : '' }}" data-loan="{{ $loan->id }}" data-account-number="{{ $loan->account_number }}" data-lender-bank="{{ $loan->lenderBank?->display_name ?? '' }}" data-current-balance="{{ $loan->current_balance }}" data-interest-rate="{{ $loan->interest_rate }}">
+        <li class="{{ $loop->first ? 'active' : '' }}" data-loan="{{ $loan->id }}" data-account-number="{{ $loan->account_number }}" data-lender-bank="{{ $loan->lenderBank?->display_with_account ?? '' }}" data-current-balance="{{ $loan->current_balance }}" data-interest-rate="{{ $loan->interest_rate }}">
           <span class="entity-name">{{ $loan->display_name }}</span>
           <span class="entity-balance {{ $loan->current_balance < 0 ? 'negative' : 'positive' }}">₹ {{ number_format($loan->current_balance, 2) }}</span>
         </li>
@@ -1028,7 +1028,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
           </div>
           <div class="entity-detail-meta">
             <div class="meta-heading">Lender Bank</div>
-            <div class="meta-value" id="loanDetailLenderBank">{{ optional($loanAccounts->first())->lenderBank?->display_name  }}</div>
+            <div class="meta-value" id="loanDetailLenderBank">{{ optional($loanAccounts->first())->lenderBank?->display_with_account  }}</div>
           </div>
           <div class="entity-detail-meta">
             <div class="meta-heading"> Balance Amount</div>
@@ -1084,15 +1084,15 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
             @forelse($loanAccounts as $loan)
               <tr data-loan-id="{{ $loan->id }}">
                 <td>{{ $loan->display_name }}</td>
-                <td>{{ $loan->lenderBank?->display_name ?? '-' }}</td>
+                <td>{{ $loan->lenderBank?->display_with_account ?? '-' }}</td>
                 <td>{{ $loan->account_number ?? '-' }}</td>
 
                 <td>₹ {{ number_format($loan->current_balance ?? 0, 2) }}</td>
                 <td>{{ optional($loan->balance_as_of)->format('d/m/Y') ?? '-' }}</td>
-                <td>{{ $loan->receivedInBank?->display_name ?? '-' }}</td>
+                <td>{{ $loan->receivedInBank?->display_with_account ?? '-' }}</td>
 
                 <td>₹ {{ number_format($loan->processing_fee ?? 0, 2) }}</td>
-                <td>{{ $loan->processingFeeBank?->display_name ?? '-' }}</td>
+                <td>{{ $loan->processingFeeBank?->display_with_account ?? '-' }}</td>
                 <td>
                   <div class="action-dropdown">
                     <button type="button" class="action-toggle" aria-label="Actions">
@@ -1139,7 +1139,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
               <select name="lender_bank_id" class="form-select">
                 <option value="">Select bank...</option>
                 @foreach($banks as $bank)
-                  <option value="{{ $bank->id }}">{{ $bank->display_name }}</option>
+                  <option value="{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                 @endforeach
               </select>
             </div>
@@ -1164,7 +1164,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
               <select name="received_in" class="form-select" required>
                 <option value="">Select bank...</option>
                 @foreach($banks as $bank)
-                  <option value="{{ $bank->id }}">{{ $bank->display_name }}</option>
+                  <option value="{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                 @endforeach
               </select>
             </div>
@@ -1173,7 +1173,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
               <select name="processing_fee_paid_from_id" class="form-select">
                 <option value="">Select bank...</option>
                 @foreach($banks as $bank)
-                  <option value="{{ $bank->id }}">{{ $bank->display_name }}</option>
+                  <option value="{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                 @endforeach
               </select>
             </div>
@@ -1204,3 +1204,4 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 @push('scripts')
 <script src="{{ asset('js/loan.js') }}"></script>
 @endpush
+

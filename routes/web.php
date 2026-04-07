@@ -292,6 +292,7 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::post('/brokers', [BrokerController::class, 'store'])->name('brokers.store');
     Route::put('/brokers/{broker}', [BrokerController::class, 'update'])->name('brokers.update');
     Route::delete('/brokers/{broker}', [BrokerController::class, 'destroy'])->name('brokers.destroy');
+    Route::post('/bank-accounts/bulk-status', [BankAccountController::class, 'bulkStatus'])->name('bank-accounts.bulk-status');
     // payment-in
     Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
 Route::post('/payments-in', [BankAccountController::class, 'paymentIn'])->name('payments-in.store');

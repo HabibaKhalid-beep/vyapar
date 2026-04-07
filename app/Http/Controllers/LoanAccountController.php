@@ -13,7 +13,7 @@ class LoanAccountController extends Controller
     public function index()
     {
         $loanAccounts = LoanAccount::with(['lenderBank', 'receivedInBank', 'processingFeeBank'])->orderByDesc('created_at')->get();
-        $banks = BankAccount::orderBy('display_name')->get();
+        $banks = BankAccount::active()->orderBy('display_name')->get();
 
         return view('dashboard.accounts.loan', compact('loanAccounts', 'banks'));
     }

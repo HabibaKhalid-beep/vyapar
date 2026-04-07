@@ -190,7 +190,11 @@
     <select class="form-select payment-bank" name="bank_account_id">
     <option value="">-- Select Bank --</option>
     @foreach($bankAccounts as $bank)
-       <option value="{{ $bank->id }}">{{ $bank->display_name }}</option>
+       @php
+         $accountNumber = preg_replace('/\s+/', '', (string) ($bank->account_number ?? ''));
+         $bankLabel = trim($bank->display_name . ($accountNumber !== '' ? ' - ' . $accountNumber : ''));
+       @endphp
+       <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
     @endforeach
 </select>
   </div>
@@ -883,7 +887,11 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
             <select class="form-select payment-bank" name="bank_account_id">
                 <option value="">-- Select Bank --</option>
                 @foreach($bankAccounts as $bank)
-                    <option value="{{ $bank->id }}">{{ $bank->display_name }}</option>
+                    @php
+                        $accountNumber = preg_replace('/\s+/', '', (string) ($bank->account_number ?? ''));
+                        $bankLabel = trim($bank->display_name . ($accountNumber !== '' ? ' - ' . $accountNumber : ''));
+                    @endphp
+                    <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
                 @endforeach
             </select>
         </div>

@@ -39,7 +39,7 @@ class PurchaseOrderController extends Controller
 
     public function create()
     {
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::with('category')->active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextInvoiceNumber = (Purchase::where('type', 'purchase_order')->max('id') ?? 0) + 1;
@@ -56,7 +56,7 @@ class PurchaseOrderController extends Controller
     {
         abort_unless($purchase->type === 'purchase_order', 404);
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::with('category')->active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $purchase->load(['items', 'payments']);

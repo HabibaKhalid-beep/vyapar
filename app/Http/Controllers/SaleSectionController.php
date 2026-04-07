@@ -13,10 +13,10 @@ class SaleSectionController extends Controller
 
  
 
-  public function paymentIn()
+public function paymentIn()
 {
     $parties = Party::all();
-    $bankAccounts = BankAccount::all(); 
+    $bankAccounts = BankAccount::active()->get(); 
 
     return view('dashboard.sales.payement-in', compact('parties', 'bankAccounts')); // ✅
 }

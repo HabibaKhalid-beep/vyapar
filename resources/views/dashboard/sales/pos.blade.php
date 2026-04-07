@@ -1065,7 +1065,7 @@ function doSaveBill() {
     amount:       rowTotal(it),
   }));
 
-const bankAcc = BANK_ACCOUNTS.find(b => b.display_name === payMode);
+const bankAcc = BANK_ACCOUNTS.find(b => (b.display_with_account || b.display_name) === payMode);
 
 const paymentsPayload = recv > 0 ? [{
     payment_type:    payMode,

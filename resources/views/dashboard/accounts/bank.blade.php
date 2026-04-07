@@ -1227,8 +1227,9 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
             data-iban="{{ $bank->iban }}"
             data-account-holder="{{ $bank->account_holder_name }}"
             data-print-on-invoice="{{ $bank->print_on_invoice ? '1' : '0' }}"
+            data-is-active="{{ $bank->is_active ? '1' : '0' }}"
         >
-          <span class="entity-name">{{ $bank->display_name }}</span>
+          <span class="entity-name">{{ $bank->display_with_account }}</span>
           <span class="entity-balance {{ (float) $bank->opening_balance < 0 ? 'negative' : 'positive' }}">₹ {{ number_format($bank->opening_balance, 2) }}</span>
         </li>
         @empty
@@ -1243,7 +1244,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
       <div class="detail-panel-header">
         <div>
           <div class="entity-detail-name" id="bankDetailName" style="font-weight: 400;">
-            {{ optional($bankAccounts->first())->display_name ?? 'Select a bank account' }}
+            {{ optional($bankAccounts->first())->display_with_account ?? 'Select a bank account' }}
             <button class="btn-icon" title="Edit">
               <i class="fa-solid fa-pen"></i>
             </button>
@@ -1472,3 +1473,4 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   });
 </script>
 @endpush
+

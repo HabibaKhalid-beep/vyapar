@@ -93,6 +93,7 @@ class BankAccountController extends Controller
         ]);
 
         $data['print_on_invoice'] = $request->has('print_on_invoice');
+        $data['is_active'] = $request->boolean('is_active', true);
 
         $bankAccount = BankAccount::create($data);
 
@@ -135,6 +136,7 @@ class BankAccountController extends Controller
         ]);
 
         $data['print_on_invoice'] = $request->has('print_on_invoice');
+        $data['is_active'] = $request->boolean('is_active', $bankAccount->is_active);
 
         $bankAccount->update($data);
 
@@ -268,4 +270,25 @@ class BankAccountController extends Controller
         'message' => 'Payment recorded successfully.'
     ]);
 }
+
+    public function bulkStatus(Request $request)
+    {
+        $data = $request->validate([
+            'bank_ids' => ['required', 'array', 'min:1'],
+            'bank_ids.*' => ['integer', 'exists:bank_accounts,id'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $updated = BankAccount::whereIn('id', $data['bank_ids'])->update([
+            'is_active' => $data['is_active'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'message' => $data['is_active']
+                ? 'Selected bank accounts marked active.'
+                : 'Selected bank accounts marked inactive.',
+        ]);
+    }
 }

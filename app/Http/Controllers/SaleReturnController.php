@@ -210,7 +210,7 @@ class SaleReturnController extends Controller
         ?array $prefilledSaleReturnData = null
     )
     {
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;

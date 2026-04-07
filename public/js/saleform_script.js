@@ -570,7 +570,7 @@ function initializeForm(context) {
 
             if (defaultAmount > 0) {
                 payments.push({
-                    payment_type: bank?.display_name || 'Bank',
+                    payment_type: bank?.display_with_account || bank?.display_name || 'Bank',
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -591,7 +591,7 @@ function initializeForm(context) {
             if (!rawType || amount <= 0) return;
 
             payments.push({
-                payment_type: isBank ? (bank?.display_name || 'Bank') : rawType,
+                payment_type: isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType,
                 bank_account_id: bankId,
                 amount: amount,
                 reference: reference,

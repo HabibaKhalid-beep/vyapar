@@ -40,7 +40,7 @@ class SaleController extends Controller
 
     public function create(Request $request, string $type = 'invoice')
     {
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
@@ -85,7 +85,7 @@ class SaleController extends Controller
                 ->with('error', 'This estimate is already converted to sale invoice #' . ($sale->reference_id ?? ''));
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
@@ -120,7 +120,7 @@ class SaleController extends Controller
                 ->with('error', 'This sale order is already converted to invoice #' . ($sale->reference_id ?? ''));
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
@@ -155,7 +155,7 @@ class SaleController extends Controller
                 ->with('error', 'This delivery challan is already converted to invoice #' . ($sale->reference_id ?? ''));
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
@@ -189,7 +189,7 @@ class SaleController extends Controller
                 ->with('error', 'This proforma is already converted to sale invoice #' . ($sale->reference_id ?? ''));
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
@@ -218,7 +218,7 @@ class SaleController extends Controller
             abort(404);
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
@@ -265,10 +265,10 @@ private function posData(): array
     $parties = Party::orderBy('name')
         ->get(['id', 'name', 'phone']);
 
-    $bankAccounts = BankAccount::orderBy('display_name')->get();
+    $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
 
     $paymentModes = collect(['Cash', 'Card', 'UPI', 'Credit'])
-        ->merge($bankAccounts->pluck('display_name'))
+        ->merge($bankAccounts->pluck('display_with_account'))
         ->unique()
         ->values()
         ->all();
@@ -301,7 +301,7 @@ private function posData(): array
                 ->with('error', 'Cancelled invoice cannot be edited.');
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
@@ -1331,7 +1331,7 @@ if ($receivedAmount >= $grandTotal && $grandTotal > 0) return 'Paid';
  public function paymentIn()
 {
     $parties = Party::all();
-    $bankAccounts = BankAccount::all();
+    $bankAccounts = BankAccount::active()->get();
 
     return view('dashboard.sales.payement-in', compact('parties', 'bankAccounts'));
 }

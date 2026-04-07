@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const bulkPasswordBox = document.getElementById('bankBulkPasswordBox');
   const bulkPasswordInput = document.getElementById('bankBulkPasswordInput');
   const bulkPasswordError = document.getElementById('bankBulkPasswordError');
-  const BANK_STATUS_KEY = 'vyapar-bank-account-status';
   const BANK_BULK_ACTIVE_PASSWORD = 'admin@123';
 
   // Table element used for filtering & actions
@@ -37,30 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeFilterDate = null;
   let bulkModalType = null;
 
-  function getBankStatusMap() {
-    try {
-      return JSON.parse(localStorage.getItem(BANK_STATUS_KEY) || '{}');
-    } catch (error) {
-      return {};
-    }
-  }
-
-  function setBankStatusMap(map) {
-    localStorage.setItem(BANK_STATUS_KEY, JSON.stringify(map));
-  }
-
   function isBankInactive(bankId) {
-    return !!getBankStatusMap()[String(bankId)];
+    const item = list?.querySelector(`li[data-bank="${bankId}"]`);
+    return item ? item.dataset.isActive === '0' : false;
   }
 
   function setBankInactive(bankId, inactive) {
-    const map = getBankStatusMap();
-    if (inactive) {
-      map[String(bankId)] = true;
-    } else {
-      delete map[String(bankId)];
-    }
-    setBankStatusMap(map);
+    const item = list?.querySelector(`li[data-bank="${bankId}"]`);
+    if (!item) return;
+    item.dataset.isActive = inactive ? '0' : '1';
   }
 
   function ensureStatusPill(item) {
@@ -328,11 +312,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      selectedIds.forEach((bankId) => setBankInactive(bankId, makeInactive));
-      refreshBankStatusUI();
-      renderBulkRows();
-      showToast(makeInactive ? 'Selected bank accounts marked inactive.' : 'Selected bank accounts marked active.');
-      closeBulkModal();
+      fetch('/dashboard/bank-accounts/bulk-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          bank_ids: selectedIds,
+          is_active: !makeInactive,
+        }),
+      })
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.message || 'Failed to update bank status.');
+          }
+          return data;
+        })
+        .then((data) => {
+          selectedIds.forEach((bankId) => setBankInactive(bankId, makeInactive));
+          refreshBankStatusUI();
+          renderBulkRows();
+          showToast(data.message || (makeInactive ? 'Selected bank accounts marked inactive.' : 'Selected bank accounts marked active.'));
+          closeBulkModal();
+        })
+        .catch((error) => {
+          showToast(error?.message || 'Failed to update bank status.', 'danger');
+        });
     });
   }
 
