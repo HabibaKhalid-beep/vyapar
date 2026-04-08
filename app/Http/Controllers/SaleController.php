@@ -9,6 +9,7 @@ use App\Models\Broker;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -362,6 +363,7 @@ private function posData(): array
             'items.*.amount' => 'nullable|numeric|min:0',
             'payments' => 'nullable|array',
             'payments.*.payment_type' => 'required|string|max:50',
+            'payments.*.direction' => 'nullable|in:payment_in,payment_out',
             'payments.*.bank_account_id' => 'nullable|exists:bank_accounts,id',
             'payments.*.amount' => 'required|numeric|min:0',
             'payments.*.reference' => 'nullable|string|max:255',
@@ -372,9 +374,7 @@ private function posData(): array
         $receivedAmount = $existingReceived;
         if (!empty($data['payments']) && is_array($data['payments'])) {
             foreach ($data['payments'] as $payment) {
-                if (!empty($payment['bank_account_id'])) {
-                    $receivedAmount += floatval($payment['amount'] ?? 0);
-                }
+                $receivedAmount += floatval($payment['amount'] ?? 0);
             }
         }
 
@@ -450,8 +450,11 @@ private function posData(): array
                     continue;
                 }
 
+            $direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
+
                 $sale->payments()->create([
                     'payment_type' => $payment['payment_type'],
+                    'direction' => $direction,
                     'bank_account_id' => $payment['bank_account_id'] ?? null,
                     'amount' => $payment['amount'],
                     'reference' => $payment['reference'] ?? null,
@@ -460,28 +463,38 @@ private function posData(): array
                 if (!empty($payment['bank_account_id']) && !empty($payment['amount'])) {
                     $bank = BankAccount::find($payment['bank_account_id']);
                     if ($bank) {
-                        $bank->opening_balance = ($bank->opening_balance ?? 0) + floatval($payment['amount']);
+                        $paymentAmount = floatval($payment['amount'] ?? 0);
+                        $bank->opening_balance = ($bank->opening_balance ?? 0)
+                            + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);
                         $bank->save();
 
                         BankTransaction::create([
                             'from_bank_account_id' => $bank->id,
                             'to_bank_account_id' => null,
-                            'type' => 'sale_payment',
-                            'amount' => (float) ($payment['amount'] ?? 0),
+                            'type' => $direction === 'payment_out' ? 'sale_payment_out' : 'sale_payment',
+                            'amount' => $paymentAmount,
                             'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
                             'reference_type' => 'sale',
                             'reference_id' => $sale->id,
-                            'description' => 'Sale payment received for invoice #' . ($sale->bill_number ?: $sale->id),
+                            'description' => $direction === 'payment_out'
+                                ? 'Payment paid to party for invoice #' . ($sale->bill_number ?: $sale->id)
+                                : 'Sale payment received for invoice #' . ($sale->bill_number ?: $sale->id),
                             'meta' => [
                                 'party_id' => $sale->party_id,
                                 'payment_type' => $payment['payment_type'] ?? null,
                                 'reference' => $payment['reference'] ?? null,
+                                'direction' => $direction,
                             ],
                         ]);
                     }
                 }
+
             }
         }
+
+        $sale->load('payments');
+        $this->syncSaleLedgerEntries($sale, $data);
+        $this->recalculatePartyLedgerBalances($sale->party_id);
 
         $redirectUrl = match ($sale->type) {
             'estimate' => route('sale.estimate'),
@@ -539,6 +552,7 @@ private function posData(): array
             'items.*.amount' => 'nullable|numeric|min:0',
             'payments' => 'nullable|array',
             'payments.*.payment_type' => 'required|string|max:50',
+            'payments.*.direction' => 'nullable|in:payment_in,payment_out',
             'payments.*.bank_account_id' => 'nullable|exists:bank_accounts,id',
             'payments.*.amount' => 'required|numeric|min:0',
             'payments.*.reference' => 'nullable|string|max:255',
@@ -546,12 +560,9 @@ private function posData(): array
 
         $receivedAmount = 0;
 
-        // Calculate received amount from payments (only bank payments count as received)
         if (!empty($data['payments']) && is_array($data['payments'])) {
             foreach ($data['payments'] as $payment) {
-                if (!empty($payment['bank_account_id'])) {
-                    $receivedAmount += floatval($payment['amount'] ?? 0);
-                }
+                $receivedAmount += floatval($payment['amount'] ?? 0);
             }
         }
 
@@ -621,8 +632,11 @@ private function posData(): array
 
         if (!empty($data['payments']) && is_array($data['payments'])) {
             foreach ($data['payments'] as $payment) {
+            $direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
+
                 $sale->payments()->create([
                     'payment_type' => $payment['payment_type'],
+                    'direction' => $direction,
                     'bank_account_id' => $payment['bank_account_id'] ?? null,
                     'amount' => $payment['amount'],
                     'reference' => $payment['reference'] ?? null,
@@ -632,28 +646,38 @@ private function posData(): array
                 if (!empty($payment['bank_account_id']) && !empty($payment['amount'])) {
                     $bank = BankAccount::find($payment['bank_account_id']);
                     if ($bank) {
-                        $bank->opening_balance = ($bank->opening_balance ?? 0) + floatval($payment['amount']);
+                        $paymentAmount = floatval($payment['amount'] ?? 0);
+                        $bank->opening_balance = ($bank->opening_balance ?? 0)
+                            + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);
                         $bank->save();
 
                         BankTransaction::create([
                             'from_bank_account_id' => $bank->id,
                             'to_bank_account_id' => null,
-                            'type' => 'sale_payment',
-                            'amount' => (float) ($payment['amount'] ?? 0),
+                            'type' => $direction === 'payment_out' ? 'sale_payment_out' : 'sale_payment',
+                            'amount' => $paymentAmount,
                             'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
                             'reference_type' => 'sale',
                             'reference_id' => $sale->id,
-                            'description' => 'Additional payment received for invoice #' . ($sale->bill_number ?: $sale->id),
+                            'description' => $direction === 'payment_out'
+                                ? 'Payment paid to party for invoice #' . ($sale->bill_number ?: $sale->id)
+                                : 'Additional payment received for invoice #' . ($sale->bill_number ?: $sale->id),
                             'meta' => [
                                 'party_id' => $sale->party_id,
                                 'payment_type' => $payment['payment_type'] ?? null,
                                 'reference' => $payment['reference'] ?? null,
+                                'direction' => $direction,
                             ],
                         ]);
                     }
                 }
+
             }
         }
+
+        $sale->load('payments');
+        $this->syncSaleLedgerEntries($sale, $data);
+        $this->recalculatePartyLedgerBalances($sale->party_id);
 
         if (!empty($data['source_estimate_id'])) {
             Sale::whereKey($data['source_estimate_id'])
@@ -1291,6 +1315,131 @@ private function posData(): array
             })->values()->all(),
             'payments' => [],
         ];
+    }
+
+    private function shouldCreateLedgerForSaleType(string $type): bool
+    {
+        return in_array($type, ['invoice', 'pos', 'sale_return'], true);
+    }
+
+    private function resolveLedgerTypeFromSale(string $type): string
+    {
+        return match ($type) {
+            'sale_return' => 'sale_return',
+            default => 'sale',
+        };
+    }
+
+    private function calculateLedgerExpenseTotal(array $data): float
+    {
+        return floatval($data['labour'] ?? 0)
+            + floatval($data['bardana'] ?? 0)
+            + floatval($data['parcel_expense'] ?? 0)
+            + floatval($data['post_expense'] ?? 0)
+            + floatval($data['extra_expense'] ?? 0);
+    }
+
+    private function deleteSaleLedgerTransactions(Sale $sale): void
+    {
+        if (empty($sale->party_id) || empty($sale->bill_number)) {
+            return;
+        }
+
+        Transaction::query()
+            ->where('party_id', $sale->party_id)
+            ->where(function ($query) use ($sale) {
+                $query->where(function ($subQuery) use ($sale) {
+                    $subQuery->where('number', $sale->bill_number)
+                        ->whereIn('type', ['sale', 'sale_return']);
+                })->orWhere(function ($subQuery) use ($sale) {
+                    $subQuery->where('number', 'like', 'PAY-' . ($sale->bill_number ?: $sale->id) . '-%');
+                });
+            })
+            ->delete();
+    }
+
+    private function syncSaleLedgerEntries(Sale $sale, array $data): void
+    {
+        if (empty($sale->party_id) || !$this->shouldCreateLedgerForSaleType((string) $sale->type)) {
+            return;
+        }
+
+        $this->deleteSaleLedgerTransactions($sale);
+
+        $expense = $this->calculateLedgerExpenseTotal($data);
+        $saleAmount = floatval($sale->grand_total ?? 0) + $expense;
+        $ledgerType = $this->resolveLedgerTypeFromSale((string) $sale->type);
+
+        Transaction::create([
+            'party_id' => $sale->party_id,
+            'type' => $ledgerType,
+            'number' => $sale->bill_number ?: (string) $sale->id,
+            'date' => $sale->invoice_date ?? now(),
+            'total' => $saleAmount,
+            'debit' => $ledgerType === 'sale_return' ? 0 : $saleAmount,
+            'credit' => $ledgerType === 'sale_return' ? $saleAmount : 0,
+            'paid_amount' => floatval($sale->received_amount ?? 0),
+            'balance' => floatval($sale->balance ?? 0),
+            'running_balance' => 0,
+            'due_date' => $sale->due_date,
+            'status' => $sale->status,
+            'broker_id' => $sale->broker_id,
+            'broker_amount' => floatval($data['broker_amount'] ?? 0),
+            'labour' => floatval($data['labour'] ?? 0),
+            'bardana' => floatval($data['bardana'] ?? 0),
+            'parcel_expense' => floatval($data['parcel_expense'] ?? 0),
+            'post_expense' => floatval($data['post_expense'] ?? 0),
+            'extra_expense' => floatval($data['extra_expense'] ?? 0),
+            'description' => 'Invoice #' . ($sale->bill_number ?: $sale->id),
+        ]);
+
+        foreach ($sale->payments()->orderBy('id')->get() as $paymentRecord) {
+            $paymentAmount = floatval($paymentRecord->amount ?? 0);
+            $paymentDirection = $this->normalizePaymentDirection($paymentRecord->direction ?? null);
+
+            Transaction::create([
+                'party_id' => $sale->party_id,
+                'type' => $paymentDirection,
+                'number' => 'PAY-' . ($sale->bill_number ?: $sale->id) . '-' . $paymentRecord->id,
+                'date' => $sale->invoice_date ?? now(),
+                'total' => $paymentAmount,
+                'debit' => 0,
+                'credit' => $paymentAmount,
+                'paid_amount' => $paymentAmount,
+                'balance' => floatval($sale->balance ?? 0),
+                'running_balance' => 0,
+                'status' => 'paid',
+                'description' => $paymentDirection === 'payment_out'
+                    ? 'Payment paid to party for Invoice #' . ($sale->bill_number ?: $sale->id)
+                    : 'Payment received for Invoice #' . ($sale->bill_number ?: $sale->id),
+            ]);
+        }
+    }
+
+    private function normalizePaymentDirection(?string $direction): string
+    {
+        return 'payment_in';
+    }
+
+    private function recalculatePartyLedgerBalances(?int $partyId): void
+    {
+        if (empty($partyId)) {
+            return;
+        }
+
+        $runningBalance = 0.0;
+
+        Transaction::where('party_id', $partyId)
+            ->orderBy('date')
+            ->orderBy('id')
+            ->get()
+            ->each(function (Transaction $transaction) use (&$runningBalance) {
+                $runningBalance += $transaction->ledgerEffectValue();
+                $transaction->running_balance = $runningBalance;
+                $transaction->saveQuietly();
+            });
+
+        Transaction::syncPartyCurrentBalance($partyId);
     }
 
     private function resolveStatusForType(

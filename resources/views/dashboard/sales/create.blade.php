@@ -489,6 +489,10 @@
                             <div class="bottom-left">
                                 <div class="payment-section">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
+                                        <select class="input-control default-payment-direction d-none" style="max-width: 140px;">
+                                            <option value="payment_in" selected>Payment In</option>
+                                            <option value="payment_out">Payment Out</option>
+                                        </select>
                                         <select class="input-control default-payment-type">
                                             <option value="" selected disabled>Select Payment Type</option>
                                             @foreach($bankAccounts as $bank)
@@ -513,6 +517,10 @@
 
                                 <template id="payment-entry-template">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
+                                        <select class="input-control payment-direction-entry d-none" style="max-width: 140px;">
+                                            <option value="payment_in" selected>Payment In</option>
+                                            <option value="payment_out">Payment Out</option>
+                                        </select>
                                         <select class="input-control payment-type-entry">
                                             <option value="" selected disabled>Select Bank Account</option>
                                             @foreach($bankAccounts as $bank)

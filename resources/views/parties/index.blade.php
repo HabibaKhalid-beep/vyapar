@@ -182,7 +182,15 @@
 
     <div class="detail-panel-body">
   <div class="table-header">
-    <h6 class="fw-600 mb-3" style="font-size: 14px !important;">Transactions</h6>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <h6 class="fw-600 mb-3" style="font-size: 14px !important; margin-bottom:0 !important;">Transactions</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="openLedgerModalBtn">
+              <i class="fa-solid fa-book-open me-1"></i> Payment History
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="openTransferHistoryModalBtn">
+              <i class="fa-solid fa-right-left me-1"></i> Transfer History
+            </button>
+    </div>
     <div class="header-icons">
       <i class="fa fa-search" title="Search" id="txnSearchToggle"></i>
       <i class="fa fa-file-excel" title="Export to Excel" id="txnExcelTrigger"></i>
@@ -230,8 +238,6 @@
       <label><input type="checkbox"> Delivery Challan </label>
       <label><input type="checkbox"> Receivable Opening Balance </label>
       <label><input type="checkbox"> Payable Opening Balance</label>
-      <label><input type="checkbox"> Party to Party[Recieved] </label>
-      <label><input type="checkbox"> Party to Party[Paid]</label>
       <label><input type="checkbox"> Sale FA</label>
       <label><input type="checkbox"> Purchase FA</label>
       <label><input type="checkbox"> Sale[Cancelled]</label>
@@ -637,8 +643,8 @@
             <button type="button" class="btn btn-primary" id="btnSaveParty">
               <i class="fa-solid fa-check me-1"></i> Save
             </button>
- <button class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
-    <button class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
+ <button type="button" class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
+    <button type="button" class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
           </div>
         </form>
 
@@ -908,6 +914,80 @@
     <div class="txn-option-actions">
       <button type="button" class="txn-option-btn cancel" id="txnOptionCancel">Cancel</button>
       <button type="button" class="txn-option-btn ok" id="txnOptionConfirm">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="partyLedgerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-1" id="partyLedgerModalTitle">Party Ledger</h5>
+          <div class="text-muted" style="font-size:13px;">Debit / Credit / Running Balance</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead style="background:#f8fafc;">
+              <tr>
+                <th>Date</th>
+                <th>Transaction ID</th>
+                <th>Ref No.</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th class="text-end">Debit</th>
+                <th class="text-end">Credit</th>
+                <th class="text-end">Running Balance</th>
+              </tr>
+            </thead>
+            <tbody id="partyLedgerTableBody">
+              <tr>
+                <td colspan="8" class="text-center text-muted py-4">Select a party to view payment ledger.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="partyTransferHistoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-1" id="partyTransferHistoryModalTitle">Party Transfer History</h5>
+          <div class="text-muted" style="font-size:13px;">Party to party transfer entries only</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead style="background:#f8fafc;">
+              <tr>
+                <th>Date</th>
+                <th>Transaction ID</th>
+                <th>Ref No.</th>
+                <th>Type</th>
+                <th>Counter Party</th>
+                <th class="text-end">Amount</th>
+                <th>Status</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="partyTransferHistoryTableBody">
+              <tr>
+                <td colspan="8" class="text-center text-muted py-4">Select a party to view transfer history.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1728,6 +1808,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const partyTransferImagePreviewWrap = document.getElementById("partyTransferImagePreviewWrap");
     const partyTransferImagePreview = document.getElementById("partyTransferImagePreview");
     const partyTransferImageRemove = document.getElementById("partyTransferImageRemove");
+    const openLedgerModalBtn = document.getElementById("openLedgerModalBtn");
+    const openTransferHistoryModalBtn = document.getElementById("openTransferHistoryModalBtn");
+    const partyLedgerModalEl = document.getElementById("partyLedgerModal");
+    const partyLedgerModal = partyLedgerModalEl ? bootstrap.Modal.getOrCreateInstance(partyLedgerModalEl) : null;
+    const partyLedgerTableBody = document.getElementById("partyLedgerTableBody");
+    const partyLedgerModalTitle = document.getElementById("partyLedgerModalTitle");
+    const partyTransferHistoryModalEl = document.getElementById("partyTransferHistoryModal");
+    const partyTransferHistoryModal = partyTransferHistoryModalEl ? bootstrap.Modal.getOrCreateInstance(partyTransferHistoryModalEl) : null;
+    const partyTransferHistoryTableBody = document.getElementById("partyTransferHistoryTableBody");
+    const partyTransferHistoryModalTitle = document.getElementById("partyTransferHistoryModalTitle");
 
     let currentPartyId = null;
     let transactionsState = [];
@@ -2051,6 +2141,140 @@ document.addEventListener("DOMContentLoaded", function () {
         }));
     }
 
+    function renderPaymentLedgerTable(rows, partyName = 'Party') {
+        if (!partyLedgerTableBody) return;
+
+        if (partyLedgerModalTitle) {
+            partyLedgerModalTitle.textContent = `${partyName} Payment Ledger`;
+        }
+
+        if (!rows.length) {
+            partyLedgerTableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">No payment ledger entries found.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        partyLedgerTableBody.innerHTML = rows.map((row) => `
+            <tr>
+                <td>${escapeHtml(row.date || '-')}</td>
+                <td>${escapeHtml(row.id || '-')}</td>
+                <td>${escapeHtml(row.number || '-')}</td>
+                <td>${escapeHtml(row.type || '-')}</td>
+                <td>${escapeHtml(row.description || '-')}</td>
+                <td class="text-end">${escapeHtml(row.debit || '0.00')}</td>
+                <td class="text-end">${escapeHtml(row.credit || '0.00')}</td>
+                <td class="text-end">${escapeHtml(row.running_balance || row.balance || '0.00')}</td>
+            </tr>
+        `).join('');
+    }
+
+    function openLedgerModal() {
+        if (!currentPartyId) {
+            alert('Select Party First');
+            return;
+        }
+
+        if (partyLedgerTableBody) {
+            partyLedgerTableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Loading payment ledger...</td>
+                </tr>
+            `;
+        }
+
+        partyLedgerModal?.show();
+
+        fetch(`/dashboard/parties/${currentPartyId}/ledger`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error('Unable to load payment ledger.');
+                }
+
+                renderPaymentLedgerTable(Array.isArray(data.ledger) ? data.ledger : [], data.party_name || 'Party');
+            })
+            .catch(error => {
+                console.error('Payment Ledger Load Error:', error);
+                if (partyLedgerTableBody) {
+                    partyLedgerTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center text-danger py-4">Unable to load payment ledger.</td>
+                        </tr>
+                    `;
+                }
+            });
+    }
+
+    function renderTransferHistoryTable(rows, partyName = 'Party') {
+        if (!partyTransferHistoryTableBody) return;
+
+        if (partyTransferHistoryModalTitle) {
+            partyTransferHistoryModalTitle.textContent = `${partyName} Transfer History`;
+        }
+
+        if (!rows.length) {
+            partyTransferHistoryTableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">No transfer history found.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        partyTransferHistoryTableBody.innerHTML = rows.map((row) => `
+            <tr>
+                <td>${escapeHtml(row.date || '-')}</td>
+                <td>${escapeHtml(row.id || '-')}</td>
+                <td>${escapeHtml(row.ref_no || '-')}</td>
+                <td>${escapeHtml(row.type || '-')}</td>
+                <td>${escapeHtml(row.counter_party || '-')}</td>
+                <td class="text-end">${escapeHtml(row.amount || '0.00')}</td>
+                <td>${escapeHtml(row.status || '-')}</td>
+                <td>${escapeHtml(row.description || '-')}</td>
+            </tr>
+        `).join('');
+    }
+
+    function openTransferHistoryModal() {
+        if (!currentPartyId) {
+            alert('Select Party First');
+            return;
+        }
+
+        if (partyTransferHistoryTableBody) {
+            partyTransferHistoryTableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Loading transfer history...</td>
+                </tr>
+            `;
+        }
+
+        partyTransferHistoryModal?.show();
+
+        fetch(`/dashboard/parties/${currentPartyId}/transfer-history`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error('Unable to load transfer history.');
+                }
+
+                renderTransferHistoryTable(Array.isArray(data.transfers) ? data.transfers : [], data.party_name || 'Party');
+            })
+            .catch(error => {
+                console.error('Transfer History Load Error:', error);
+                if (partyTransferHistoryTableBody) {
+                    partyTransferHistoryTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center text-danger py-4">Unable to load transfer history.</td>
+                        </tr>
+                    `;
+                }
+            });
+    }
+
     function escapeHtml(value) {
         return String(value ?? '')
             .replace(/&/g, '&amp;')
@@ -2113,7 +2337,8 @@ document.addEventListener("DOMContentLoaded", function () {
             method: "POST",
             headers: {
                 "Accept": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Accept": "application/json"
             },
             body: formData
         })
@@ -2220,7 +2445,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function getPartyTxnActionsHtml(txn) {
-        if (txn.source !== 'sale') {
+        const hasActions = txn.actions && Object.values(txn.actions).some(value => Boolean(value));
+
+        if (!hasActions) {
             return `<span style="color:#94a3b8;font-size:13px;">-</span>`;
         }
 
@@ -2562,11 +2789,23 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function getDisplayBalanceValue(partyData, fallbackBalance = 0) {
-        if (partyData.credit_limit_enabled && partyData.credit_limit_amount) {
-            return parseFloat(partyData.credit_limit_amount || 0).toFixed(2);
-        }
+        return parseFloat(fallbackBalance ?? partyData.current_balance ?? partyData.opening_balance ?? 0).toFixed(2);
+    }
 
-        return parseFloat(fallbackBalance || partyData.opening_balance || 0).toFixed(2);
+    function updatePartySidebarBalance(partyId, balanceValue) {
+        const sidebarParty = document.querySelector(`.party-item[data-id="${partyId}"]`);
+        if (!sidebarParty) return;
+
+        const numericBalance = parseFloat(String(balanceValue ?? 0).replace(/,/g, ''));
+        const normalizedBalance = Number.isFinite(numericBalance) ? numericBalance.toFixed(2) : '0.00';
+        sidebarParty.dataset.currentBalance = normalizedBalance;
+
+        const balanceEl = sidebarParty.querySelector(".entity-balance");
+        if (!balanceEl) return;
+
+        balanceEl.textContent = `Rs ${normalizedBalance}`;
+        balanceEl.classList.remove('positive', 'negative');
+        balanceEl.classList.add(parseFloat(normalizedBalance) < 0 ? 'negative' : 'positive');
     }
 
     function applyPartySettings() {
@@ -2713,7 +2952,9 @@ document.addEventListener("DOMContentLoaded", function () {
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Accept": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
             },
             body: JSON.stringify(partyData)
         })
@@ -2774,6 +3015,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     saveBtn.addEventListener("click", () => addParty(true));
     saveNewBtn.addEventListener("click", () => addParty(false));
+    openLedgerModalBtn?.addEventListener("click", openLedgerModal);
+    openTransferHistoryModalBtn?.addEventListener("click", openTransferHistoryModal);
     txnSearchToggle.addEventListener("click", toggleTransactionSearch);
     txnSearchInput.addEventListener("input", applyTransactionSearch);
     txnPrintTrigger.addEventListener("click", () => openTxnOptionModal('print'));
@@ -3102,7 +3345,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ✅ UPDATE PARTY
-    updateBtn.addEventListener("click", function () {
+    updateBtn.addEventListener("click", function (e) {
+        e.preventDefault();
         console.log("🔄 Update clicked! currentPartyId:", currentPartyId);
 
         if (!currentPartyId) {
@@ -3114,15 +3358,32 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("📤 Sending data:", partyData);
 fetch(`/dashboard/parties/${currentPartyId}`, {
     method: "PUT",
+            credentials: "same-origin",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Accept": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
             },
             body: JSON.stringify(partyData)
         })
-        .then(res => {
+        .then(async res => {
             console.log("📥 Response status:", res.status);
-            return res.json();
+            const text = await res.text();
+            let data = null;
+
+            try {
+                data = JSON.parse(text);
+            } catch (error) {
+                console.error("Update non-JSON response:", text);
+                throw new Error(text.includes("<!DOCTYPE") ? "Server returned HTML error page. Check validation/server error." : text);
+            }
+
+            if (!res.ok) {
+                throw new Error(data.message || "Update failed");
+            }
+
+            return data;
         })
         .then(data => {
             console.log("📥 Response data:", data);
@@ -3208,6 +3469,7 @@ function loadPartyTransactions(partyId) {
         .then(res => res.json())
         .then(data => {
           if (data.success) {
+                updatePartySidebarBalance(partyId, data.total_balance || 0);
                 transactionsState = Array.isArray(data.transactions) ? data.transactions : [];
                 renderTransactionsTable(transactionsState);
                 return;

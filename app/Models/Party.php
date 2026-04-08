@@ -20,6 +20,7 @@ use App\Models\Purchase;
         'billing_address',
         'shipping_address',
         'opening_balance',
+        'current_balance',
         'as_of_date',
         'credit_limit_enabled',
         'credit_limit_amount',
@@ -37,6 +38,7 @@ use App\Models\Purchase;
 
     protected $casts = [
         'credit_limit_enabled' => 'boolean',
+        'current_balance' => 'decimal:2',
         'credit_limit_amount' => 'decimal:2',
         'custom_fields' => 'array',
     ];
@@ -61,7 +63,7 @@ use App\Models\Purchase;
         return $this->hasMany(Purchase::class);
     }
 
-    public function getCurrentBalanceAttribute()
+    public function getCurrentBalanceAttribute($value)
     {
         $openingBalance = (float) ($this->opening_balance ?? 0);
 
@@ -106,13 +108,29 @@ use App\Models\Purchase;
 
         if ($this->transaction_type === 'pay') {
             return $openingBalance + $purchaseTotal - $purchaseReturnTotal + $transferNet;
+
+        if ($value !== null) {
+            return (float) $value;
         }
 
-        if ($this->transaction_type === 'receive') {
-            return $openingBalance + $salesTotal - $saleReturnTotal + $transferNet;
+        $transactions = $this->relationLoaded('transactions')
+            ? $this->transactions
+            : $this->transactions()->orderBy('date')->orderBy('id')->get();
+
+        $signedOpeningBalance = (float) ($this->opening_balance ?? 0);
+        if (strtolower((string) $this->transaction_type) === 'pay') {
+            $signedOpeningBalance *= -1;
         }
 
-        return $openingBalance + $transferNet;
+        $salesReceivedAmount = $this->relationLoaded('sales')
+            ? (float) $this->sales
+                ->whereIn('type', ['invoice', 'pos'])
+                ->sum(fn ($sale) => (float) ($sale->received_amount ?? 0))
+            : (float) $this->sales()
+                ->whereIn('type', ['invoice', 'pos'])
+                ->sum('received_amount');
+
+        return $signedOpeningBalance + $salesReceivedAmount;
     }
 
     public function getFormattedCurrentBalanceAttribute()

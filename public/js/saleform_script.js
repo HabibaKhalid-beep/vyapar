@@ -2,6 +2,7 @@ function initializeForm(context) {
     const $ctx = $(context);
     const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
     const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
+    const defaultPaymentDirection = 'payment_in';
 
     const itemOptionsHtml = (window.items || []).map(item => {
         const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}">${richLabel}</option>`;
@@ -57,6 +58,8 @@ function initializeForm(context) {
     const receivedLabelDiv = $ctx.find('.received-label-text');
     const receivedRow = $ctx.find('.received-row');
     const balanceRow = $ctx.find('.balance-row');
+
+    $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
 
     function setupAdjustmentControls() {
         const $roundOffInput = $ctx.find('.round-off-val');
@@ -240,12 +243,14 @@ function initializeForm(context) {
 
         // Pre-select the same bank as the first payment (so user can quickly add more)
         $ctx.find('.default-payment-type').val('');
+        $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
         $ctx.find('.default-payment-amount').val('0').addClass('d-none');
         $ctx.find('.default-payment-reference').val('').addClass('d-none');
         $ctx.find('.payment-entries').empty();
 
         (sale.payments || []).forEach((payment, index) => {
             if (index === 0 && payment.bank_account_id) {
+                $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
                 $ctx.find('.default-payment-type').val(`bank-${payment.bank_account_id}`);
             }
         });
@@ -451,6 +456,7 @@ function initializeForm(context) {
 
         // Ensure the newly added row is visible and focused for value entry
         const $newEntry = $ctx.find('.payment-entries .payment-entry').last();
+        $newEntry.find('.payment-direction-entry').val(defaultPaymentDirection);
         $newEntry.find('.payment-amount').focus();
     });
 
@@ -567,10 +573,16 @@ function initializeForm(context) {
             const bank = (window.bankAccounts || []).find(b => b.id === bankId);
             const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
             const defaultReference = $ctx.find('.default-payment-reference').val() || null;
+            const defaultDirection = $ctx.find('.default-payment-direction').val() || 'payment_in';
 
             if (defaultAmount > 0) {
                 payments.push({
+<<<<<<< Updated upstream
                     payment_type: bank?.display_with_account || bank?.display_name || 'Bank',
+=======
+                    direction: defaultDirection,
+                    payment_type: bank?.display_name || 'Bank',
+>>>>>>> Stashed changes
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -588,10 +600,16 @@ function initializeForm(context) {
 
             const amount = parseFloat($entry.find('.payment-amount').val() || 0) || 0;
             const reference = $entry.find('.payment-reference').val() || null;
+            const direction = $entry.find('.payment-direction-entry').val() || 'payment_in';
             if (!rawType || amount <= 0) return;
 
             payments.push({
+<<<<<<< Updated upstream
                 payment_type: isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType,
+=======
+                direction,
+                payment_type: isBank ? (bank?.display_name || 'Bank') : rawType,
+>>>>>>> Stashed changes
                 bank_account_id: bankId,
                 amount: amount,
                 reference: reference,
@@ -892,6 +910,7 @@ function initializeForm(context) {
 
     // Recalculate payment summary when payments change
     $ctx.on('keyup change', '.default-payment-amount, .payment-amount', updatePaymentSummary);
+    $ctx.on('change', '.default-payment-direction, .payment-direction-entry', updatePaymentSummary);
     $ctx.on('change', '.fill-balance-check, .round-off-check', function() {
         setupAdjustmentControls();
         calculateTotals();

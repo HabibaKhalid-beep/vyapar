@@ -110,16 +110,17 @@ $(document).ready(function () {
   }
 
   async function fetchJson(url, options = {}) {
+    const optionHeaders = options.headers || {};
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
         'X-CSRF-TOKEN': csrfToken,
-        ...(options.headers || {}),
+        ...optionHeaders,
       },
       ...options,
     });
-
     const data = await response.json();
+
     if (!response.ok) {
       throw new Error(data?.message || 'Request failed.');
     }
@@ -399,6 +400,7 @@ $(document).ready(function () {
     const convertReturnUrl = $menu.data('convert-return-url');
     const cancelUrl = $menu.data('cancel-url');
     const saleNumber = $menu.data('sale-number');
+    const partyName = $menu.data('party-name');
 
     if (action === 'view') {
       if (isCancelled) {
