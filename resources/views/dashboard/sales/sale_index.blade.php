@@ -553,6 +553,8 @@
                 <i class="fa-solid fa-share row-action-share" title="Share" style="cursor:pointer;"></i>
                 <div class="dropdown sale-action-menu"
                      data-sale-id="{{ $sale->id }}"
+                     data-party-name="{{ $sale->party?->name ?? 'No Party Selected' }}"
+                     data-balance="{{ (float) ($sale->balance ?? 0) }}"
                      data-edit-url="{{ route('sale.edit', $sale) }}"
                      data-preview-url="{{ route('sale.invoice-preview', $sale) }}"
                      data-pdf-url="{{ route('sale.invoice-pdf', $sale) }}"

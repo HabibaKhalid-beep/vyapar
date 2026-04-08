@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Models\Purchase;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,6 +15,12 @@ class PartyController extends Controller
     // Display all parties
     public function index()
     {
+        Party::query()->select('id')->orderBy('id')->chunk(200, function ($parties) {
+            foreach ($parties as $party) {
+                $this->syncPartyCurrentBalance((int) $party->id);
+            }
+        });
+
         $parties = Party::with('sales')->latest()->get();
         return view('parties.index', compact('parties'));
     }
@@ -57,9 +64,14 @@ class PartyController extends Controller
     'number'   => 'TXN' . time(), 
     'date'     => $request->input('as_of_date') ?? now(),
     'total'    => $request->input('opening_balance') ?? 0,
+    'debit'    => $request->input('transaction_type') === 'receive' ? ($request->input('opening_balance') ?? 0) : 0,
+    'credit'   => $request->input('transaction_type') === 'pay' ? ($request->input('opening_balance') ?? 0) : 0,
     'balance'  => $request->input('opening_balance') ?? 0,
+    'running_balance' => $request->input('opening_balance') ?? 0,
     'status'   => $request->input('transaction_type') ?? 'unpaid',
 ]);
+
+        $this->syncPartyCurrentBalance($party->id);
 
 
         $party->load('sales');
@@ -137,16 +149,47 @@ public function update(Request $request, $id)
     $party->update($data);
 
     // ✅ Transaction update
-    $transaction = $party->transactions()->latest()->first(); // last transaction
-    if ($transaction) {
-        $transaction->update([
-            'type'    => $request->input('transaction_type', $transaction->type),
-            'date'    => $request->input('as_of_date', $transaction->date),
-            'total'   => $request->input('opening_balance', $transaction->total),
-            'balance' => $request->input('opening_balance', $transaction->balance),
-            'status'  => $request->input('transaction_type', $transaction->status),
+    $openingTransaction = Transaction::query()
+        ->where('party_id', $party->id)
+        ->whereNull('transfer_group')
+        ->where(function ($query) {
+            $query->whereIn('type', ['receive', 'pay'])
+                ->orWhere('number', 'like', 'TXN%');
+        })
+        ->orderBy('id')
+        ->first();
+
+    if ($openingTransaction) {
+        $openingTransaction->update([
+            'type' => $request->input('transaction_type', $openingTransaction->type),
+            'date' => $request->input('as_of_date', $openingTransaction->date),
+            'total' => $request->input('opening_balance', $openingTransaction->total),
+            'debit' => $request->input('transaction_type', $openingTransaction->type) === 'receive'
+                ? $request->input('opening_balance', $openingTransaction->total)
+                : 0,
+            'credit' => $request->input('transaction_type', $openingTransaction->type) === 'pay'
+                ? $request->input('opening_balance', $openingTransaction->total)
+                : 0,
+            'balance' => $request->input('opening_balance', $openingTransaction->balance),
+            'running_balance' => $request->input('opening_balance', $openingTransaction->running_balance ?? $openingTransaction->balance),
+            'status' => $request->input('transaction_type', $openingTransaction->status),
+        ]);
+    } elseif ($request->filled('opening_balance') || $request->filled('transaction_type')) {
+        Transaction::create([
+            'party_id' => $party->id,
+            'type' => $request->input('transaction_type'),
+            'number' => 'TXN' . time(),
+            'date' => $request->input('as_of_date') ?? now(),
+            'total' => $request->input('opening_balance') ?? 0,
+            'debit' => $request->input('transaction_type') === 'receive' ? ($request->input('opening_balance') ?? 0) : 0,
+            'credit' => $request->input('transaction_type') === 'pay' ? ($request->input('opening_balance') ?? 0) : 0,
+            'balance' => $request->input('opening_balance') ?? 0,
+            'running_balance' => $request->input('opening_balance') ?? 0,
+            'status' => $request->input('transaction_type') ?? 'unpaid',
         ]);
     }
+
+    $this->syncPartyCurrentBalance($party->id);
 
     $party->load(['transactions', 'sales']);
 
@@ -195,164 +238,306 @@ public function update(Request $request, $id)
 
 public function transactions(Party $party)
 {
-    $party->loadMissing(['transactions', 'sales']);
+    $this->syncPartyCurrentBalance($party->id);
+    $party->refresh();
+    $party->loadMissing(['transactions.counterParty', 'sales', 'purchases']);
 
     $salesTransactions = Sale::query()
         ->where('party_id', $party->id)
         ->get()
         ->map(function ($sale) {
+            $amount = (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
+            $date = $sale->invoice_date ?? $sale->order_date ?? $sale->due_date ?? $sale->created_at;
             $typeLabel = match ($sale->type) {
-                'invoice' => 'Sale',
+                'invoice', 'pos' => 'Sale',
+                'sale_return' => 'Sale Return',
                 'estimate' => 'Estimate',
                 'sale_order' => 'Sale Order',
                 'proforma' => 'Proforma Invoice',
                 'delivery_challan' => 'Delivery Challan',
-                'sale_return' => 'Credit Note',
-                'pos' => 'POS',
                 default => ucfirst((string) $sale->type),
             };
 
-            $date = $sale->invoice_date ?? $sale->order_date ?? $sale->due_date ?? $sale->created_at;
-            $actionUrls = match ($sale->type) {
-                'invoice', 'pos' => [
-                    'view' => route('sale.edit', $sale),
-                    'delete' => route('sale.destroy', $sale),
-                    'cancel' => route('sale.cancel', $sale),
-                    'duplicate' => route('sale.create', ['type' => $sale->type === 'pos' ? 'pos' : 'invoice']) . '?duplicate_sale_id=' . $sale->id,
-                    'pdf' => route('sale.invoice-pdf', $sale),
-                    'preview' => route('sale.invoice-preview', $sale),
-                    'print' => route('sale.invoice-pdf', $sale),
-                    'preview_delivery' => route('sale.delivery-preview', $sale),
-                    'convert_return' => route('sale-return.create', ['sale_id' => $sale->id]),
-                    'history' => route('sale.bank-history', $sale),
-                ],
-                'estimate' => [
-                    'view' => route('estimates.create') . '?edit_sale_id=' . $sale->id,
-                    'delete' => route('estimates.destroy', $sale),
-                    'cancel' => null,
-                    'duplicate' => route('estimates.create') . '?duplicate_sale_id=' . $sale->id,
-                    'pdf' => route('estimates.pdf', $sale),
-                    'preview' => route('estimates.preview', $sale),
-                    'print' => route('estimates.print', $sale),
-                    'preview_delivery' => null,
-                    'convert_return' => null,
-                    'history' => null,
-                ],
-                'sale_return' => [
-                    'view' => route('sale-return.edit', $sale),
-                    'delete' => route('sale-return.destroy', $sale),
-                    'cancel' => null,
-                    'duplicate' => route('sale-return.duplicate', $sale),
-                    'pdf' => route('sale-return.pdf', $sale),
-                    'preview' => route('sale-return.preview', $sale),
-                    'print' => route('sale-return.print', $sale),
-                    'preview_delivery' => null,
-                    'convert_return' => null,
-                    'history' => null,
-                ],
-                'proforma' => [
-                    'view' => route('proforma-invoice.edit', $sale),
-                    'delete' => route('proforma-invoice.destroy', $sale),
-                    'cancel' => null,
-                    'duplicate' => route('proforma-invoice.duplicate', $sale),
-                    'pdf' => route('proforma-invoice.pdf', $sale),
-                    'preview' => route('proforma-invoice.preview', $sale),
-                    'print' => route('proforma-invoice.print', $sale),
-                    'preview_delivery' => null,
-                    'convert_return' => null,
-                    'history' => null,
-                ],
-                'delivery_challan' => [
-                    'view' => route('delivery-challan.edit', $sale),
-                    'delete' => route('delivery-challan.destroy', $sale),
-                    'cancel' => null,
-                    'duplicate' => route('delivery-challan.duplicate', $sale),
-                    'pdf' => route('delivery-challan.pdf', $sale),
-                    'preview' => route('delivery-challan.preview', $sale),
-                    'print' => route('delivery-challan.print', $sale),
-                    'preview_delivery' => route('delivery-challan.preview', $sale),
-                    'convert_return' => null,
-                    'history' => null,
-                ],
-                'sale_order' => [
-                    'view' => route('sale-order.create') . '?edit_sale_id=' . $sale->id,
-                    'delete' => null,
-                    'cancel' => null,
-                    'duplicate' => route('sale-order.create') . '?duplicate_sale_id=' . $sale->id,
-                    'pdf' => route('sale-orders.pdf', $sale),
-                    'preview' => route('sale-orders.preview', $sale),
-                    'print' => route('sale-orders.print', $sale),
-                    'preview_delivery' => null,
-                    'convert_return' => null,
-                    'history' => null,
-                ],
-                default => [
-                    'view' => route('sale.edit', $sale),
-                    'delete' => route('sale.destroy', $sale),
-                    'cancel' => null,
-                    'duplicate' => null,
-                    'pdf' => null,
-                    'preview' => null,
-                    'print' => null,
-                    'preview_delivery' => null,
-                    'convert_return' => null,
-                    'history' => null,
-                ],
+            $effect = match ($sale->type) {
+                'sale_return' => -1 * $amount,
+                'invoice', 'pos' => $amount,
+                default => 0,
             };
 
             return [
-                'id' => $sale->id,
+                'id' => 'sale-' . $sale->id,
                 'type' => $typeLabel,
                 'raw_type' => (string) $sale->type,
                 'source' => 'sale',
                 'number' => $sale->bill_number ?: (string) $sale->id,
-                'date' => optional($date)->format('d/m/Y'),
-                'total' => number_format((float) ($sale->grand_total ?? $sale->total_amount ?? 0), 2),
-                'balance' => number_format((float) ($sale->balance ?? 0), 2),
+                'date' => optional($date),
+                'description' => (string) ($sale->description ?? ''),
+                'debit' => $effect > 0 ? $effect : 0,
+                'credit' => $effect < 0 ? abs($effect) : 0,
+                'effect' => $effect,
+                'due_date' => optional($sale->due_date),
                 'status' => (string) ($sale->status ?? ''),
-                'actions' => $actionUrls,
-                'sort_date' => optional($date)->timestamp ?? $sale->created_at?->timestamp ?? 0,
+                'actions' => $this->saleActionUrls($sale),
             ];
         });
 
-    $openingBalanceTransactions = $party->transactions->map(function ($txn) {
-        $typeLabel = match ((string) $txn->type) {
-            'pay' => 'Payable Opening Balance',
-            'receive' => 'Receivable Opening Balance',
-            default => (string) $txn->type,
-        };
+    $purchaseTransactions = Purchase::query()
+        ->where('party_id', $party->id)
+        ->get()
+        ->map(function ($purchase) {
+            $amount = (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0);
+            $date = $purchase->bill_date ?? $purchase->due_date ?? $purchase->created_at;
+            $effect = $purchase->type === 'purchase_return' ? $amount : -1 * $amount;
+
+            return [
+                'id' => 'purchase-' . $purchase->id,
+                'type' => $purchase->type === 'purchase_return' ? 'Purchase Return' : 'Purchase',
+                'raw_type' => (string) $purchase->type,
+                'source' => 'purchase',
+                'number' => $purchase->bill_number ?: (string) $purchase->id,
+                'date' => optional($date),
+                'description' => (string) ($purchase->description ?? ''),
+                'debit' => $effect > 0 ? $effect : 0,
+                'credit' => $effect < 0 ? abs($effect) : 0,
+                'effect' => $effect,
+                'due_date' => optional($purchase->due_date),
+                'status' => (string) ($purchase->balance > 0 ? 'unpaid' : 'paid'),
+                'actions' => [],
+            ];
+        });
+
+    $manualLedgerTransactions = $party->transactions
+        ->whereNull('transfer_group')
+        ->reject(function ($txn) {
+            return in_array(strtolower((string) $txn->type), ['sale', 'sale_return', 'purchase', 'purchase_return', 'payment_in', 'payment_out'], true);
+        })
+        ->map(function ($txn) {
+        $effect = $txn->ledgerEffectValue();
 
         return [
-            'id' => 'opening-' . $txn->id,
-            'type' => $typeLabel,
+            'id' => 'txn-' . $txn->id,
+            'type' => $this->formatLedgerTypeLabel((string) $txn->type),
             'raw_type' => (string) $txn->type,
-            'source' => !empty($txn->transfer_group) ? 'transfer' : 'opening',
+            'source' => !empty($txn->transfer_group) ? 'transfer' : 'ledger',
             'number' => $txn->number ?: '-',
-            'date' => optional($txn->date)->format('d/m/Y'),
-            'total' => number_format((float) ($txn->total ?? 0), 2),
-            'balance' => number_format((float) ($txn->balance ?? 0), 2),
+            'date' => optional($txn->date),
+            'description' => (string) ($txn->description ?? ''),
+            'debit' => $effect > 0 ? $effect : 0,
+            'credit' => $effect < 0 ? abs($effect) : 0,
+            'effect' => $effect,
+            'due_date' => optional($txn->due_date),
             'status' => (string) ($txn->status ?? $txn->type ?? ''),
             'counter_party_name' => $txn->counterParty?->name,
             'actions' => [],
-            'sort_date' => optional($txn->date)->timestamp ?? 0,
         ];
     });
 
     $transactions = $salesTransactions
-        ->concat($openingBalanceTransactions)
-        ->sortByDesc('sort_date')
-        ->values()
-        ->map(function ($transaction) {
-            unset($transaction['sort_date']);
-            return $transaction;
-        });
+        ->concat($purchaseTransactions)
+        ->concat($manualLedgerTransactions)
+        ->sortBy(function ($entry) {
+            return ($entry['date']?->timestamp ?? 0) . '-' . $entry['id'];
+        })
+        ->values();
+
+    $runningBalance = 0.0;
+    $transactions = $transactions->map(function ($entry) use (&$runningBalance) {
+        $runningBalance += (float) ($entry['effect'] ?? 0);
+        $entry['date'] = $entry['date']?->format('d/m/Y');
+        $entry['due_date'] = $entry['due_date']?->format('Y-m-d');
+        $entry['total'] = number_format((float) (($entry['debit'] ?? 0) + ($entry['credit'] ?? 0)), 2);
+        $entry['balance'] = number_format($runningBalance, 2);
+        $entry['debit'] = number_format((float) ($entry['debit'] ?? 0), 2);
+        $entry['credit'] = number_format((float) ($entry['credit'] ?? 0), 2);
+        $entry['running_balance'] = number_format($runningBalance, 2);
+        unset($entry['effect']);
+        return $entry;
+    });
 
     return response()->json([
-        'success'        => true,
-        'transactions'   => $transactions,
-        'party_name'     => $party->name,
-        'total_balance'  => number_format((float) $party->current_balance, 2),
+        'success' => true,
+        'transactions' => $transactions->values(),
+        'party_name' => $party->name,
+        'total_balance' => number_format((float) $party->current_balance, 2),
+        'overdue_transactions' => $transactions
+            ->filter(fn ($entry) => (float) str_replace(',', '', $entry['running_balance']) > 0 && !empty($entry['due_date']) && $entry['due_date'] < now()->toDateString())
+            ->values(),
     ]);
+}
+
+public function transferHistory(Party $party)
+{
+    $transfers = $party->transactions()
+        ->with('counterParty')
+        ->whereNotNull('transfer_group')
+        ->orderByDesc('date')
+        ->orderByDesc('id')
+        ->get()
+        ->map(function (Transaction $transaction) {
+            return [
+                'id' => $transaction->id,
+                'date' => optional($transaction->date)?->format('d-M-Y'),
+                'ref_no' => $transaction->number ?: '-',
+                'type' => (string) $transaction->type,
+                'counter_party' => $transaction->counterParty?->name ?: '-',
+                'amount' => number_format((float) ($transaction->total ?? 0), 2),
+                'description' => (string) ($transaction->description ?? '-'),
+                'status' => (string) ($transaction->status ?? '-'),
+            ];
+        })
+        ->values();
+
+    return response()->json([
+        'success' => true,
+        'party_name' => $party->name,
+        'transfers' => $transfers,
+    ]);
+}
+
+public function ledger(Party $party)
+{
+    $party->loadMissing(['transactions.counterParty']);
+
+    $runningBalance = 0.0;
+
+    $ledger = $party->transactions()
+        ->whereNull('transfer_group')
+        ->whereIn('type', ['sale', 'sale_return', 'payment_in', 'payment_out', 'receive', 'pay'])
+        ->orderBy('date')
+        ->orderBy('id')
+        ->get()
+        ->map(function (Transaction $transaction) use (&$runningBalance) {
+            $credit = (float) $transaction->ledgerCreditValue();
+            $debit = (float) $transaction->ledgerDebitValue();
+            $runningBalance += $transaction->ledgerEffectValue();
+
+            return [
+                'id' => $transaction->id,
+                'number' => $transaction->number ?: '-',
+                'date' => optional($transaction->date)?->format('d-M-Y'),
+                'type' => $this->formatLedgerTypeLabel((string) $transaction->type),
+                'description' => (string) ($transaction->description ?: ($transaction->counterParty?->name ? 'Counter Party: ' . $transaction->counterParty->name : '')),
+                'credit' => number_format($credit, 2),
+                'debit' => number_format($debit, 2),
+                'balance' => number_format($runningBalance, 2),
+                'running_balance' => number_format($runningBalance, 2),
+            ];
+        })
+        ->values();
+
+    return response()->json([
+        'success' => true,
+        'party_name' => $party->name,
+        'ledger' => $ledger,
+    ]);
+}
+
+private function formatLedgerTypeLabel(string $type): string
+{
+    return match (strtolower($type)) {
+        'pay' => 'Payable Opening Balance',
+        'receive' => 'Receivable Opening Balance',
+        'payment_in' => 'Payment In',
+        'payment_out' => 'Payment Out',
+        'party to party[received]' => 'Party to Party[Received]',
+        'party to party[paid]' => 'Party to Party[Paid]',
+        default => ucwords(str_replace(['_', '-'], ' ', $type)),
+    };
+}
+
+private function buildLedgerSourceKey(string $type, string $number): string
+{
+    return strtolower(trim($type)) . '|' . strtolower(trim($number));
+}
+
+private function saleActionUrls(Sale $sale): array
+{
+    return match ($sale->type) {
+        'invoice', 'pos' => [
+            'view' => route('sale.edit', $sale),
+            'delete' => route('sale.destroy', $sale),
+            'cancel' => route('sale.cancel', $sale),
+            'duplicate' => route('sale.create', ['type' => $sale->type === 'pos' ? 'pos' : 'invoice']) . '?duplicate_sale_id=' . $sale->id,
+            'pdf' => route('sale.invoice-pdf', $sale),
+            'preview' => route('sale.invoice-preview', $sale),
+            'print' => route('sale.invoice-pdf', $sale),
+            'preview_delivery' => route('sale.delivery-preview', $sale),
+            'convert_return' => route('sale-return.create', ['sale_id' => $sale->id]),
+            'history' => route('sale.bank-history', $sale),
+        ],
+        'estimate' => [
+            'view' => route('estimates.create') . '?edit_sale_id=' . $sale->id,
+            'delete' => route('estimates.destroy', $sale),
+            'cancel' => null,
+            'duplicate' => route('estimates.create') . '?duplicate_sale_id=' . $sale->id,
+            'pdf' => route('estimates.pdf', $sale),
+            'preview' => route('estimates.preview', $sale),
+            'print' => route('estimates.print', $sale),
+            'preview_delivery' => null,
+            'convert_return' => null,
+            'history' => null,
+        ],
+        'sale_return' => [
+            'view' => route('sale-return.edit', $sale),
+            'delete' => route('sale-return.destroy', $sale),
+            'cancel' => null,
+            'duplicate' => route('sale-return.duplicate', $sale),
+            'pdf' => route('sale-return.pdf', $sale),
+            'preview' => route('sale-return.preview', $sale),
+            'print' => route('sale-return.print', $sale),
+            'preview_delivery' => null,
+            'convert_return' => null,
+            'history' => null,
+        ],
+        'proforma' => [
+            'view' => route('proforma-invoice.edit', $sale),
+            'delete' => route('proforma-invoice.destroy', $sale),
+            'cancel' => null,
+            'duplicate' => route('proforma-invoice.duplicate', $sale),
+            'pdf' => route('proforma-invoice.pdf', $sale),
+            'preview' => route('proforma-invoice.preview', $sale),
+            'print' => route('proforma-invoice.print', $sale),
+            'preview_delivery' => null,
+            'convert_return' => null,
+            'history' => null,
+        ],
+        'delivery_challan' => [
+            'view' => route('delivery-challan.edit', $sale),
+            'delete' => route('delivery-challan.destroy', $sale),
+            'cancel' => null,
+            'duplicate' => route('delivery-challan.duplicate', $sale),
+            'pdf' => route('delivery-challan.pdf', $sale),
+            'preview' => route('delivery-challan.preview', $sale),
+            'print' => route('delivery-challan.print', $sale),
+            'preview_delivery' => route('delivery-challan.preview', $sale),
+            'convert_return' => null,
+            'history' => null,
+        ],
+        'sale_order' => [
+            'view' => route('sale-order.create') . '?edit_sale_id=' . $sale->id,
+            'delete' => null,
+            'cancel' => null,
+            'duplicate' => route('sale-order.create') . '?duplicate_sale_id=' . $sale->id,
+            'pdf' => route('sale-orders.pdf', $sale),
+            'preview' => route('sale-orders.preview', $sale),
+            'print' => route('sale-orders.print', $sale),
+            'preview_delivery' => null,
+            'convert_return' => null,
+            'history' => null,
+        ],
+        default => [
+            'view' => route('sale.edit', $sale),
+            'delete' => route('sale.destroy', $sale),
+            'cancel' => null,
+            'duplicate' => null,
+            'pdf' => null,
+            'preview' => null,
+            'print' => null,
+            'preview_delivery' => null,
+            'convert_return' => null,
+            'history' => null,
+        ],
+    };
 }
 
 public function storeTransfer(Request $request)
@@ -417,7 +602,10 @@ public function storeTransfer(Request $request)
             'transfer_group' => $transferGroup,
             'date' => $data['transfer_date'],
             'total' => $amount,
+            'debit' => $amount,
+            'credit' => 0,
             'balance' => $amount,
+            'running_balance' => $amount,
             'status' => 'receive',
             'description' => $description,
             'attachment' => $attachmentPath,
@@ -431,7 +619,10 @@ public function storeTransfer(Request $request)
             'transfer_group' => $transferGroup,
             'date' => $data['transfer_date'],
             'total' => $amount,
+            'debit' => 0,
+            'credit' => $amount,
             'balance' => $amount,
+            'running_balance' => $amount,
             'status' => 'pay',
             'description' => $description,
             'attachment' => $attachmentPath,
@@ -448,11 +639,19 @@ public function storeTransfer(Request $request)
         ];
     });
 
+    $this->syncPartyCurrentBalance($sourceParty->id);
+    $this->syncPartyCurrentBalance($targetParty->id);
+
     return response()->json([
         'success' => true,
         'message' => 'Party transfer saved successfully.',
         'transfer_group' => $transferGroup,
         'rows' => $savedRows,
     ]);
+}
+
+private function syncPartyCurrentBalance(int $partyId): void
+{
+    Transaction::syncPartyCurrentBalance($partyId);
 }
 }

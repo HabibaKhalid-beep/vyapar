@@ -9,6 +9,7 @@ class SalePayment extends Model
     protected $fillable = [
         'sale_id',
         'payment_type',
+        'direction',
         'bank_account_id',
         'amount',
         'reference',

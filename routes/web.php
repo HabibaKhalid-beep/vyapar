@@ -291,6 +291,8 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::put('/parties/{party}', [PartyController::class, 'update'])->name('parties.update');
     Route::delete('/parties/{id}', [PartyController::class, 'destroy'])->name('parties.destroy');
     Route::get('parties/{party}/transactions', [PartyController::class, 'transactions'])->name('parties.transactions');
+    Route::get('parties/{party}/ledger', [PartyController::class, 'ledger'])->name('parties.ledger');
+    Route::get('parties/{party}/transfer-history', [PartyController::class, 'transferHistory'])->name('parties.transfer-history');
     Route::post('parties/transfer', [PartyController::class, 'storeTransfer'])->name('parties.transfer.store');
 
     // Brokers
