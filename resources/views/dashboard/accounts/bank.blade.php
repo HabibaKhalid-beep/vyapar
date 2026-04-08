@@ -845,16 +845,16 @@ font-size:12px;
 
 .action-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   right: 0;
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-  min-width: 140px;
+  border: 1px solid #edf0f5;
+  border-radius: 14px;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
+  min-width: 220px;
   display: none;
   z-index: 2000;
-  padding: 4px 0;
+  padding: 10px 0;
 }
 
 .action-item {
@@ -862,14 +862,21 @@ font-size:12px;
   text-align: left;
   background: transparent;
   border: none;
-  padding: 8px 12px;
+  padding: 12px 22px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 500;
   color: #1f2937;
 }
 
 .action-item:hover {
-  background: #f3f4f6;
+  background: #f3f8ff;
+}
+
+.action-cell {
+  width: 54px;
+  text-align: center;
+  position: relative;
 }
 
 .bulk-menu-wrap {
@@ -1302,6 +1309,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
               <th>Payment Type</th>
               <th>Date</th>
               <th>Amount</th>
+              <th class="action-cell"></th>
             </tr>
           </thead>
           <tbody>
@@ -1317,10 +1325,22 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
                 <td>{{ $transaction->payment_type ?? '-' }}</td>
                 <td>{{ optional($transaction->created_at)->format('d/m/Y h:i A') }}</td>
                 <td class="positive">₹ {{ number_format($transaction->amount, 2) }}</td>
+                <td class="action-cell">
+                  <div class="action-dropdown">
+                    <button type="button" class="action-toggle" title="More Options" aria-label="More Options">
+                      <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                    <div class="action-menu">
+                      <button type="button" class="action-item" data-action="edit" data-bank-id="{{ $transaction->bank_account_id }}">View/Edit</button>
+                      <button type="button" class="action-item" data-action="delete" data-bank-id="{{ $transaction->bank_account_id }}">Delete</button>
+                      <button type="button" class="action-item" data-action="history" data-bank-id="{{ $transaction->bank_account_id }}">View History</button>
+                    </div>
+                  </div>
+                </td>
               </tr>
             @empty
               <tr>
-                <td colspan="7" class="text-center py-5 text-muted">No payment transactions found yet.</td>
+                <td colspan="8" class="text-center py-5 text-muted">No payment transactions found yet.</td>
               </tr>
             @endforelse
           </tbody>

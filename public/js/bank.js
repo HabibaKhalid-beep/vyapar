@@ -205,6 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
     filterTableByBankId(bankId);
   }
 
+  function getSelectedBankId() {
+    return document.querySelector('li.active[data-bank]')?.dataset.bank || '';
+  }
+
   function filterTableByBankId(bankId) {
     if (!bankTable) return;
     const rows = Array.from(bankTable.tBodies[0].rows);
@@ -727,13 +731,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyTableFilter() {
     if (!bankTable || !tableSearch) return;
     const q = tableSearch.value.trim().toLowerCase();
+    const selectedBankId = getSelectedBankId();
 
     Array.from(bankTable.tBodies[0].rows).forEach(row => {
       const text = Array.from(row.cells)
         .slice(0, -1) // exclude action column
         .map(cell => cell.textContent.trim().toLowerCase())
         .join(' ');
-      row.style.display = q === '' || text.includes(q) ? '' : 'none';
+      const matchesSearch = q === '' || text.includes(q);
+      const matchesBank = !selectedBankId || row.dataset.bankId === selectedBankId;
+      row.style.display = matchesSearch && matchesBank ? '' : 'none';
     });
   }
 
@@ -764,7 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!row) return;
 
       const cells = Array.from(row.children);
-      const dateColumnIndex = 4; // As of Date column
+      const dateColumnIndex = 5;
       const clickedIndex = cells.indexOf(cell);
 
       // If clicked outside the date column, clear the date filter
@@ -893,6 +900,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
       return;
+    }
+
+    if (action === 'history') {
+      const item = document.querySelector(`li[data-bank="${bankId}"]`);
+      if (item) {
+        selectBankItem(item);
+      }
+      tableSearch?.focus();
+      bankTable?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
 
