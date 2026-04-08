@@ -410,4 +410,76 @@ class ReportController extends Controller
 
         return response()->json(['success' => true, 'rows' => $rows]);
     }
+    public function saleReport(Request $request)
+{
+    [$from, $to] = $this->dateRange($request);
+ 
+    // ── Guard: table must exist ─────────────────────────────
+    if (!\Schema::hasTable('sales')) {
+        return response()->json([
+            'success'        => true,
+            'transactions'   => [],
+            'total_amount'   => 0,
+            'total_received' => 0,
+            'total_balance'  => 0,
+            'growth_pct'     => 0,
+        ]);
+    }
+ 
+    // ── Base query ─────────────────────────────────────────
+    $query = DB::table('sales as s')
+        ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+        ->whereBetween('s.invoice_date', [$from, $to])
+        ->select(
+            's.id',
+            's.bill_number',
+            's.invoice_date',
+            's.total_amount',
+            's.payment_type',
+            DB::raw("COALESCE(s.received_amount, 0) as received_paid"),
+            DB::raw("COALESCE(s.total_amount, 0) - COALESCE(s.received_amount, 0) as balance_due"),
+            'p.name as party_name',
+            'p.phone as party_phone',
+            's.status',
+            's.description',
+            's.order_number'
+        )
+        ->orderByDesc('s.invoice_date')
+        ->orderByDesc('s.id');
+ 
+    $rows = $query->get();
+ 
+    // ── Summary ────────────────────────────────────────────
+    $totalAmount   = $rows->sum('total_amount');
+    $totalReceived = $rows->sum('received_paid');
+    $totalBalance  = $rows->sum('balance_due');
+ 
+    // ── Growth % vs previous period ───────────────────────
+    $fromDate  = new \DateTime($from);
+    $toDate    = new \DateTime($to);
+    $diffDays  = $fromDate->diff($toDate)->days + 1;
+    $prevFrom  = (clone $fromDate)->modify("-{$diffDays} days")->format('Y-m-d');
+    $prevTo    = (clone $fromDate)->modify('-1 day')->format('Y-m-d');
+ 
+    $prevTotal = DB::table('sales')
+        ->whereBetween('invoice_date', [$prevFrom, $prevTo])
+        ->sum('total_amount');
+ 
+    $growthPct = 0;
+    if ($prevTotal > 0) {
+        $growthPct = round((($totalAmount - $prevTotal) / $prevTotal) * 100, 1);
+    } elseif ($totalAmount > 0) {
+        $growthPct = 100;
+    }
+ 
+    return response()->json([
+        'success'        => true,
+        'transactions'   => $rows->toArray(),
+        'total_amount'   => $this->fmt($totalAmount),
+        'total_received' => $this->fmt($totalReceived),
+        'total_balance'  => $this->fmt($totalBalance),
+        'growth_pct'     => $growthPct,
+        'period'         => ['from' => $from, 'to' => $to],
+    ]);
+}
 }
