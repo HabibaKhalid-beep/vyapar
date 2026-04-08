@@ -39,15 +39,13 @@ use App\Models\Purchase;
         'credit_limit_enabled' => 'boolean',
         'credit_limit_amount' => 'decimal:2',
         'custom_fields' => 'array',
-        // ✅ 'date' cast hatao, neeche accessor use karo
     ];
 
-    // ✅ ADD: as_of_date ko YYYY-MM-DD format mein return karo
     public function getAsOfDateAttribute($value)
     {
         return $value ? \Carbon\Carbon::parse($value)->format('Y-m-d') : null;
     }
-     // ✅ Party ki saari transactions
+
     public function transactions()
     {
         return $this->hasMany(Transaction::class)->orderBy('date', 'desc');
@@ -66,29 +64,9 @@ use App\Models\Purchase;
     public function getCurrentBalanceAttribute()
     {
         $openingBalance = (float) ($this->opening_balance ?? 0);
-        $transferReceivedTotal = $this->relationLoaded('transactions')
-            ? (float) $this->transactions
-                ->whereNotNull('transfer_group')
-                ->where('status', 'receive')
-                ->sum(fn ($transaction) => (float) ($transaction->balance ?? $transaction->total ?? 0))
-            : (float) $this->transactions()
-                ->whereNotNull('transfer_group')
-                ->where('status', 'receive')
-                ->get(['balance', 'total'])
-                ->sum(fn ($transaction) => (float) ($transaction->balance ?? $transaction->total ?? 0));
 
-        $transferPaidTotal = $this->relationLoaded('transactions')
-            ? (float) $this->transactions
-                ->whereNotNull('transfer_group')
-                ->where('status', 'pay')
-                ->sum(fn ($transaction) => (float) ($transaction->balance ?? $transaction->total ?? 0))
-            : (float) $this->transactions()
-                ->whereNotNull('transfer_group')
-                ->where('status', 'pay')
-                ->get(['balance', 'total'])
-                ->sum(fn ($transaction) => (float) ($transaction->balance ?? $transaction->total ?? 0));
-
-        $transferNet = $transferReceivedTotal - $transferPaidTotal;
+        // transfer_group column does not exist in transactions table — removed those queries
+        $transferNet = 0;
 
         $salesTotal = $this->relationLoaded('sales')
             ? (float) $this->sales
@@ -143,7 +121,6 @@ use App\Models\Purchase;
     }
 
     public function paymentIns() {
-    return $this->hasMany(PaymentIn::class);
-}
-
+        return $this->hasMany(PaymentIn::class);
+    }
 }

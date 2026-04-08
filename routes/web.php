@@ -220,7 +220,11 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 Route::get('reports', [ReportController::class, 'index'])->name('reports');
 Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])
     ->name('reports.item-wise-discount');
-
+Route::get('reports/party-statement/{partyId}',   [ReportController::class, 'partyStatement']);
+Route::get('reports/all-parties',                  [ReportController::class, 'allParties']);
+Route::get('reports/party-report-by-items',        [ReportController::class, 'partyReportByItems']);
+Route::get('reports/sale-purchase-by-party',       [ReportController::class, 'salePurchaseByParty']);
+Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
 
 // ═══════════════════════════════════════
 // ADD THESE ROUTES inside the auth middleware group in web.php
