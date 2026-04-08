@@ -241,6 +241,40 @@ function showToast(message, type) {
 
 
 // ================================================================
+// POPULATE CATEGORY DROPDOWNS FROM SERVER  ← FIX
+// ================================================================
+(function populateCategoryDropdowns() {
+    // IDs of every category <select> used across item/stock tabs
+    const selectIds = [
+        'ss-cat-filter',   // Stock Summary
+        'ls-cat-filter',   // Low Stock
+        'sd-cat-filter',   // Stock Detail
+        'iwd-cat-filter',  // Item Wise Discount
+        'spc-cat-filter',  // Sale/Purchase by Category
+    ];
+
+    const options = [
+        { value: '', text: 'All Categories' },
+        @foreach($categories ?? [] as $cat)
+        { value: '{{ $cat->id }}', text: '{{ addslashes($cat->name) }}' },
+        @endforeach
+    ];
+
+    selectIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el.options.length > 1) return; // already populated
+        // Clear and rebuild
+        el.innerHTML = '';
+        options.forEach(opt => {
+            el.appendChild(Object.assign(document.createElement('option'), {
+                value: opt.value,
+                textContent: opt.text
+            }));
+        });
+    });
+})();
+
+// ================================================================
 // CLIENT-SIDE FILTERS
 // ================================================================
 
@@ -373,34 +407,34 @@ function filterIWDAjax() {
 
 function loadIWDDetails(itemId) {
     showToast('Loading details for item #' + itemId, 'info');
-    // TODO: open a modal with detail breakdown per invoice
+}
 
-}// ================================================================
-// TAB SWITCHING
-// ================================================================
-function showTab(tabName) {
-    // Hide all tabs
+window.showTab = function(tabName) {
     document.querySelectorAll('.report-tab-content').forEach(function(el) {
         el.classList.add('d-none');
     });
-
-    // Show the clicked tab
-    const target = document.getElementById('tab-' + tabName);
-    if (target) {
-        target.classList.remove('d-none');
-    }
-
-    // Update active state in sidebar
-    document.querySelectorAll('.report-nav-link').forEach(function(el) {
+    var target = document.getElementById('tab-' + tabName);
+    if (target) target.classList.remove('d-none');
+    document.querySelectorAll('.report-nav-link, .nav-link[data-tab]').forEach(function(el) {
         el.classList.remove('active');
     });
-    const activeLink = document.querySelector('[data-tab="' + tabName + '"]');
-    if (activeLink) {
-        activeLink.classList.add('active');
-    }
-}
-</script>
+    var activeLink = document.querySelector('[data-tab="' + tabName + '"]');
+    if (activeLink) activeLink.classList.add('active');
+};
 
+document.addEventListener('DOMContentLoaded', function () {
+    const hash = window.location.hash.replace('#', '');
+    const stockTabs = [
+        'stock-summary', 'party-report-summary', 'item-wise-profit-and-loss',
+        'item-category-wise-profit-and-loss', 'low-stock-summary', 'stock-details',
+        'item-details', 'sale-purchase-report-by-item-category',
+        'stock-summary-report-by-item-category', 'item-wise-discount'
+    ];
+    if (hash && stockTabs.includes(hash)) {
+        window.showTab(hash);
+    }
+});
+</script>
 
 {{-- ============================================================
      CALENDAR MODAL
