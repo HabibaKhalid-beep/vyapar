@@ -12,6 +12,7 @@ use App\Models\Purchase;
     protected $fillable = [
         'name',
         'phone',
+        'phone_number_2',
         'ptcl_number',
         'email',
         'city',
@@ -22,6 +23,7 @@ use App\Models\Purchase;
         'as_of_date',
         'credit_limit_enabled',
         'credit_limit_amount',
+        'due_days',
         'custom_fields',
         'transaction_type',
         'party_type',

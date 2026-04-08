@@ -167,7 +167,7 @@
                     @forelse($purchases as $purchase)
                         @php
                             $primaryPayment = $purchase->payments->first();
-                            $paymentLabel = $primaryPayment?->bankAccount?->display_name
+                            $paymentLabel = $primaryPayment?->bankAccount?->display_with_account
                                 ?? $primaryPayment?->payment_type
                                 ?? '-';
                             $status = (float) ($purchase->balance ?? 0) <= 0 ? 'Paid' : 'Unpaid';

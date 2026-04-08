@@ -11,10 +11,70 @@ use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
+    private function itemListQuery(string $type, bool $includeInactive = false)
+    {
+        $query = Item::with('category')->where('type', $type);
+
+        if (!$includeInactive) {
+            $query->active();
+        }
+
+        return $query;
+    }
+
+    private function normalizeDecimal(mixed $value, float $default = 0): float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return $default;
+    }
+
+    private function storeItemImages(Request $request): array
+    {
+        $imagePaths = [];
+
+        if ($request->hasFile('images')) {
+            foreach ((array) $request->file('images') as $image) {
+                if ($image) {
+                    $imagePaths[] = $image->store('items', 'public');
+                }
+            }
+        } elseif ($request->hasFile('image')) {
+            $imagePaths[] = $request->file('image')->store('items', 'public');
+        }
+
+        return $imagePaths;
+    }
+
+    private function normalizeItemImagePaths(?array $paths, ?string $fallbackPath = null): array
+    {
+        $normalized = array_values(array_filter($paths ?? []));
+
+        if (empty($normalized) && $fallbackPath) {
+            $normalized[] = $fallbackPath;
+        }
+
+        return $normalized;
+    }
+
+    private function deleteStoredImages(array $paths): void
+    {
+        foreach (array_filter($paths) as $path) {
+            Storage::disk('public')->delete($path);
+        }
+    }
+
     public function index(Request $request)
     {
         if ($request->has('json')) {
-            $query = Item::with('category')->where('type', 'product');
+            $includeInactive = $request->boolean('include_inactive');
+            $query = $this->itemListQuery('product', $includeInactive);
             if ($request->has('category_id'))
                 $query->where('category_id', $request->category_id);
             if ($request->has('uncategorized'))
@@ -22,7 +82,7 @@ class ItemController extends Controller
             return response()->json($query->get());
         }
 
-        $products = Item::with('category')->where('type', 'product')->get();
+        $products = $this->itemListQuery('product', true)->get();
 
         if ($products->isEmpty()) {
             return view('items.products', compact('products'));
@@ -35,11 +95,11 @@ class ItemController extends Controller
     {
         if ($request->has('json')) {
             return response()->json(
-                Item::with('category')->where('type', 'service')->get()
+                $this->itemListQuery('service', $request->boolean('include_inactive'))->get()
             );
         }
 
-        $services = Item::with('category')->where('type', 'service')->get();
+        $services = $this->itemListQuery('service', true)->get();
         return view('items.services', compact('services'));
     }
 
@@ -64,24 +124,24 @@ class ItemController extends Controller
             $categoryId = $cat?->id;
         }
 
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('items', 'public');
-        }
+        $imagePaths = $this->storeItemImages($request);
 
         $item = Item::create([
             'type'            => $type,
             'name'            => $data['name']           ?? '',
             'category_id'     => $categoryId,
             'unit'            => $data['unit']            ?? '',
-            'sale_price'      => $data['sale_price']      ?? 0,
-            'wholesale_price' => $data['wholesale_price'] ?? 0,
-            'purchase_price'  => $data['purchase_price']  ?? $data['cost_price'] ?? 0,
-            'opening_qty'     => $data['opening_qty']     ?? 0,
+            'sale_price'      => $this->normalizeDecimal($data['sale_price'] ?? 0),
+            'wholesale_price' => $this->normalizeDecimal($data['wholesale_price'] ?? 0),
+            'purchase_price'  => $this->normalizeDecimal($data['purchase_price'] ?? $data['cost_price'] ?? 0),
+            'opening_qty'     => $this->normalizeDecimal($data['opening_qty'] ?? 0),
             'item_code'       => $data['item_code']       ?? null,
             'location'        => $data['location']        ?? null,
-            'image_path'      => $imagePath,
-            'min_stock'       => $data['min_stock']       ?? 0,
+            'description'     => $data['description']     ?? null,
+            'image_path'      => $imagePaths[0] ?? null,
+            'image_paths'     => $imagePaths ?: null,
+            'min_stock'       => $this->normalizeDecimal($data['min_stock'] ?? 0),
+            'is_active'       => array_key_exists('is_active', $data) ? filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN) : true,
         ]);
 
         return response()->json([
@@ -112,26 +172,29 @@ class ItemController extends Controller
             $categoryId = $cat?->id;
         }
 
-        $imagePath = $item->image_path;
-        if ($request->hasFile('image')) {
-            if ($item->image_path) {
-                Storage::disk('public')->delete($item->image_path);
-            }
-            $imagePath = $request->file('image')->store('items', 'public');
+        $existingImagePaths = $this->normalizeItemImagePaths($item->image_paths, $item->image_path);
+        $imagePaths = $existingImagePaths;
+
+        if ($request->hasFile('images') || $request->hasFile('image')) {
+            $this->deleteStoredImages($existingImagePaths);
+            $imagePaths = $this->storeItemImages($request);
         }
 
         $item->update([
             'name'            => $data['name']            ?? $item->name,
             'category_id'     => $categoryId,
             'unit'            => $data['unit']             ?? $item->unit,
-            'sale_price'      => $data['sale_price']       ?? $item->sale_price,
-            'wholesale_price' => $data['wholesale_price']  ?? $item->wholesale_price,
-            'purchase_price'  => $data['purchase_price']   ?? $data['cost_price'] ?? $item->purchase_price,
-            'opening_qty'     => $data['opening_qty']      ?? $item->opening_qty,
+            'sale_price'      => $this->normalizeDecimal($data['sale_price'] ?? $item->sale_price, (float) $item->sale_price),
+            'wholesale_price' => $this->normalizeDecimal($data['wholesale_price'] ?? $item->wholesale_price, (float) $item->wholesale_price),
+            'purchase_price'  => $this->normalizeDecimal($data['purchase_price'] ?? $data['cost_price'] ?? $item->purchase_price, (float) $item->purchase_price),
+            'opening_qty'     => $this->normalizeDecimal($data['opening_qty'] ?? $item->opening_qty, (float) $item->opening_qty),
             'item_code'       => $data['item_code']        ?? $item->item_code,
             'location'        => $data['location']         ?? $item->location,
-            'image_path'      => $imagePath,
-            'min_stock'       => $data['min_stock']        ?? $item->min_stock,
+            'description'     => $data['description']      ?? $item->description,
+            'image_path'      => $imagePaths[0] ?? null,
+            'image_paths'     => $imagePaths ?: null,
+            'min_stock'       => $this->normalizeDecimal($data['min_stock'] ?? $item->min_stock, (float) $item->min_stock),
+            'is_active'       => array_key_exists('is_active', $data) ? filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN) : $item->is_active,
         ]);
 
         return response()->json(['success' => true, 'item' => $item]);
@@ -330,5 +393,26 @@ class ItemController extends Controller
                 'message' => 'Error updating items: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function bulkStatus(Request $request)
+    {
+        $data = $request->validate([
+            'item_ids' => ['required', 'array', 'min:1'],
+            'item_ids.*' => ['integer', 'exists:items,id'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $updated = Item::whereIn('id', $data['item_ids'])->update([
+            'is_active' => $data['is_active'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'message' => $data['is_active']
+                ? 'Selected items marked active.'
+                : 'Selected items marked inactive.',
+        ]);
     }
 }

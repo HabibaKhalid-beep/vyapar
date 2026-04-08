@@ -872,6 +872,214 @@ font-size:12px;
   background: #f3f4f6;
 }
 
+.bulk-menu-wrap {
+  position: relative;
+}
+
+.bulk-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+  padding: 6px 0;
+  display: none;
+  z-index: 2100;
+}
+
+.bulk-menu.open {
+  display: block;
+}
+
+.bulk-menu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.bulk-menu-item:hover {
+  background: #f3f4f6;
+}
+
+.bank-inactive {
+  opacity: 0.65;
+}
+
+.bank-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.bank-status-pill.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.bank-status-pill.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.bulk-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 20px;
+}
+
+.bulk-overlay.open {
+  display: flex;
+}
+
+.bulk-modal {
+  width: min(720px, 100%);
+  max-height: 90vh;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.bulk-modal-header,
+.bulk-modal-footer {
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.bulk-modal-footer {
+  border-bottom: none;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.bulk-modal-body {
+  padding: 18px 20px;
+  overflow: auto;
+}
+
+.bulk-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.bulk-modal-info {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.bulk-search {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.bulk-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bulk-table th,
+.bulk-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+  text-align: left;
+}
+
+.bulk-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.bulk-password-box {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: none;
+}
+
+.bulk-password-box.open {
+  display: block;
+}
+
+.bulk-password-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.bulk-password-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.bulk-password-error {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 8px;
+  display: none;
+}
+
+.bulk-password-error.show {
+  display: block;
+}
+
+.bulk-empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 28px 12px;
+}
+
+.bulk-footer-note {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.bulk-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 </style>
   <script>
     function toggleFilter(){
@@ -966,9 +1174,15 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
         <i class="fa-solid fa-gear"></i>
       </button>
 
-      <button class="btn-ellipsis" title="More Options">
-        <i class="fa-solid fa-ellipsis-vertical"></i>
-      </button>
+      <div class="bulk-menu-wrap">
+        <button class="btn-ellipsis" title="More Options" id="bankBulkMenuBtn" type="button">
+          <i class="fa-solid fa-ellipsis-vertical"></i>
+        </button>
+        <div class="bulk-menu" id="bankBulkMenu">
+          <button type="button" class="bulk-menu-item" data-bulk-action="bulk-inactive">Bulk Inactive</button>
+          <button type="button" class="bulk-menu-item" data-bulk-action="bulk-active">Bulk Active</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -1013,8 +1227,9 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
             data-iban="{{ $bank->iban }}"
             data-account-holder="{{ $bank->account_holder_name }}"
             data-print-on-invoice="{{ $bank->print_on_invoice ? '1' : '0' }}"
+            data-is-active="{{ $bank->is_active ? '1' : '0' }}"
         >
-          <span class="entity-name">{{ $bank->display_name }}</span>
+          <span class="entity-name">{{ $bank->display_with_account }}</span>
           <span class="entity-balance {{ (float) $bank->opening_balance < 0 ? 'negative' : 'positive' }}">₹ {{ number_format($bank->opening_balance, 2) }}</span>
         </li>
         @empty
@@ -1029,7 +1244,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
       <div class="detail-panel-header">
         <div>
           <div class="entity-detail-name" id="bankDetailName" style="font-weight: 400;">
-            {{ optional($bankAccounts->first())->display_name ?? 'Select a bank account' }}
+            {{ optional($bankAccounts->first())->display_with_account ?? 'Select a bank account' }}
             <button class="btn-icon" title="Edit">
               <i class="fa-solid fa-pen"></i>
             </button>
@@ -1150,8 +1365,8 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
               <input type="date" name="as_of_date" class="form-control" value="{{ now()->format('Y-m-d') }}">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-600">Account Number</label>
-              <input type="text" name="account_number" class="form-control" placeholder="Enter Account Number">
+              <label class="form-label fw-600">Account Number <span class="text-danger">*</span></label>
+              <input type="text" name="account_number" class="form-control" placeholder="Enter Account Number" required>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-600">SWIFT Code</label>
@@ -1181,6 +1396,47 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
           <button type="submit" class="btn btn-primary" id="bankFormSubmit">Save Details</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<div class="bulk-overlay" id="bankBulkOverlay">
+  <div class="bulk-modal" role="dialog" aria-modal="true" aria-labelledby="bankBulkModalTitle">
+    <div class="bulk-modal-header">
+      <h3 class="bulk-modal-title" id="bankBulkModalTitle">Bulk Inactive</h3>
+      <div class="bulk-modal-info" id="bankBulkModalInfo">Select bank accounts to update.</div>
+    </div>
+    <div class="bulk-modal-body">
+      <input type="text" id="bankBulkSearch" class="bulk-search" placeholder="Search bank account">
+      <table class="bulk-table">
+        <thead>
+          <tr>
+            <th style="width:44px;">
+              <input type="checkbox" id="bankBulkCheckAll">
+            </th>
+            <th>Bank Account</th>
+            <th>Account Number</th>
+            <th style="width:140px;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="bankBulkTbody">
+          <tr>
+            <td colspan="4" class="bulk-empty">No bank accounts to show</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="bulk-password-box" id="bankBulkPasswordBox">
+        <label for="bankBulkPasswordInput" class="bulk-password-label">Password required to activate bank accounts</label>
+        <input type="password" id="bankBulkPasswordInput" class="bulk-password-input" placeholder="Enter password">
+        <div class="bulk-password-error" id="bankBulkPasswordError">Incorrect password.</div>
+      </div>
+    </div>
+    <div class="bulk-modal-footer">
+      <div class="bulk-footer-note" id="bankBulkFooterNote">Choose one or more bank accounts.</div>
+      <div class="bulk-footer-actions">
+        <button type="button" class="btn btn-outline-secondary" id="bankBulkCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="bankBulkApplyBtn">Apply</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1217,3 +1473,4 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   });
 </script>
 @endpush
+

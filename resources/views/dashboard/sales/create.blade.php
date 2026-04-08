@@ -51,6 +51,143 @@
 .dropdown-item.party-option:hover {
     background-color: #e2f0ff;
 }
+
+.party-dropdown-wrapper,
+.broker-dropdown-wrapper {
+    width: 100%;
+}
+
+.header-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 28px;
+    align-items: start;
+}
+
+.header-left {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.2fr) repeat(3, minmax(120px, 1fr));
+    gap: 12px;
+    min-width: 0;
+}
+
+.party-selector-group {
+    margin-top: 0 !important;
+}
+
+.party-selector-panel {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+}
+
+.party-dropdown-wrapper .btn.dropdown-toggle,
+.broker-dropdown-wrapper .btn.dropdown-toggle {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 8px;
+    border-color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 500;
+    background: #fff;
+}
+
+#partyBalanceDisplay {
+    margin-top: 6px !important;
+    font-size: 15px;
+}
+
+.party-meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.party-meta-field label {
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.party-meta-field .meta-control {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid #d7e0ea;
+    border-radius: 10px;
+    background: #fbfdff;
+    color: #111827;
+    resize: none;
+    font-size: 15px;
+}
+
+.party-meta-field textarea.meta-control {
+    min-height: 82px;
+}
+
+.party-meta-grid {
+    display: contents;
+}
+
+.party-meta-field.address-field {
+    order: 4;
+}
+
+.party-meta-field.broker-field {
+    order: 7;
+    grid-column: 1 / span 2;
+}
+
+.party-meta-field.broker-phone-field {
+    order: 8;
+}
+
+.header-right.w-25 {
+    width: 420px !important;
+    min-width: 420px;
+    justify-content: flex-end;
+    background: #ffffff;
+    border: 1px solid #dbe4f0;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.broker-option span:first-child {
+    width: 70%;
+}
+
+.broker-option span:last-child {
+    width: 30%;
+    text-align: right;
+    color: #64748b;
+}
+
+@media (max-width: 991px) {
+    .header-section {
+        grid-template-columns: 1fr;
+    }
+
+    .header-left {
+        grid-template-columns: 1fr;
+    }
+
+    .party-meta-field.broker-field {
+        grid-column: auto;
+    }
+
+    .header-right.w-25 {
+        width: 100% !important;
+        min-width: 0;
+    }
+}
     </style>
 
 <body>
@@ -100,7 +237,8 @@
                         <!-- Header Section -->
                         <div class="header-section">
                             <div class="header-left">
-                                <div class="input-group">
+                                <div class="input-group party-selector-group">
+                                <div class="party-selector-panel">
                                 <!-- Party dropdown button -->
 <div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
     <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -122,7 +260,12 @@
         <a class="dropdown-item d-flex justify-content-between party-option" href="#"
            data-id="{{ $party->id }}"
            data-phone="{{ $party->phone }}"
+           data-city="{{ $party->city }}"
+           data-ptcl="{{ $party->ptcl_number }}"
+           data-address="{{ addslashes($party->address ?? '') }}"
            data-billing="{{ addslashes($party->billing_address ?? '') }}"
+           data-shipping="{{ addslashes($party->shipping_address ?? '') }}"
+           data-due-days="{{ $party->due_days ?? '' }}"
            data-opening="{{ $party->opening_balance ?? 0 }}"
            data-type="{{ $party->transaction_type }}">
             <span>{{ $party->name }}</span>
@@ -149,16 +292,63 @@
     </ul>
 </div>
 <input type="hidden" class="party-id" name="party_id">
-
                                 </div>
-
-                                <div class="input-group mt-3">
-                                    <input type="text" class="input-control phone-input" placeholder=" " readonly>
-                                    <label>Phone No.</label>
                                 </div>
-                                <div class="input-group mt-3">
-                                    <textarea class="input-control billing-address" placeholder="" rows="2" readonly></textarea>
-                                    <label>Billing Address</label>
+                                <div class="party-meta-grid">
+                                    <div class="party-meta-field">
+                                        <label>Phone No.</label>
+                                        <input type="text" class="meta-control phone-input" readonly>
+                                    </div>
+                                    <div class="party-meta-field">
+                                        <label>City</label>
+                                        <input type="text" class="meta-control city-input" readonly>
+                                    </div>
+                                    <div class="party-meta-field">
+                                        <label>PTCL No.</label>
+                                        <input type="text" class="meta-control ptcl-input" readonly>
+                                    </div>
+                                    <div class="party-meta-field address-field">
+                                        <label>Address</label>
+                                        <textarea class="meta-control address-input" rows="2" readonly></textarea>
+                                    </div>
+                                    <div class="party-meta-field address-field">
+                                        <label>Billing Address</label>
+                                        <textarea class="meta-control billing-address" rows="2" readonly></textarea>
+                                    </div>
+                                    <div class="party-meta-field address-field">
+                                        <label>Shipping Address</label>
+                                        <textarea class="meta-control shipping-address" rows="2" readonly></textarea>
+                                    </div>
+                                    <div class="party-meta-field broker-field">
+                                        <label>Broker</label>
+                                        <div class="broker-dropdown-wrapper" style="position: relative; display: inline-block;">
+                                        <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="brokerDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Select Broker
+                                        </button>
+                                        <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
+                                            <li class="dropdown-header d-flex justify-content-between px-3">
+                                                <span>Broker Name</span>
+                                                <span>City</span>
+                                            </li>
+                                            @foreach($brokers as $broker)
+                                            <li>
+                                                <a class="dropdown-item d-flex justify-content-between broker-option" href="#"
+                                                   data-id="{{ $broker->id }}"
+                                                   data-phone="{{ $broker->phone }}"
+                                                   data-name="{{ $broker->name }}">
+                                                    <span>{{ $broker->name }}</span>
+                                                    <span>{{ $broker->city ?: '-' }}</span>
+                                                </a>
+                                            </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                    <input type="hidden" class="broker-id" name="broker_id">
+                                    </div>
+                                    <div class="party-meta-field broker-phone-field">
+                                        <label>Broker Phone No.</label>
+                                        <input type="text" class="meta-control broker-phone-input" readonly>
+                                    </div>
                                 </div>
                             </div>
 
@@ -170,6 +360,10 @@
                                 <div class="input-group date-wrapper">
                                     <span>Invoice Date</span>
                                     <input type="date" class="input-control underline-input invoice-date">
+                                </div>
+                                <div class="input-group date-wrapper">
+                                    <span>Due Date</span>
+                                    <input type="date" class="input-control underline-input due-date">
                                 </div>
 
                             </div>
@@ -298,7 +492,7 @@
                                         <select class="input-control default-payment-type">
                                             <option value="" selected disabled>Select Payment Type</option>
                                             @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_name }}</option>
+                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
                                         </select>
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
@@ -322,7 +516,7 @@
                                         <select class="input-control payment-type-entry">
                                             <option value="" selected disabled>Select Bank Account</option>
                                             @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_name }}</option>
+                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
                                         </select>
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
@@ -416,14 +610,14 @@
                                 </div>
 
                                 <div class="calc-row">
-                                    <div class="calc-label">Received</div>
+                                    <div class="calc-label">Paid Amount</div>
                                     <div class="calc-inputs">
                                         <input type="number" class="mini-input received-amount" value="0" readonly>
                                     </div>
                                 </div>
 
                                 <div class="calc-row">
-                                    <div class="calc-label">Balance</div>
+                                    <div class="calc-label">Remaining Amount</div>
                                     <div class="calc-inputs">
                                         <span class="fw-bold balance-amount">0</span>
                                     </div>
@@ -491,6 +685,7 @@
 <script>
     window.items = @json($items);
     window.parties = @json($parties);
+    window.brokers = @json($brokers);
     window.bankAccounts = @json($bankAccounts);
 
     window.saleStoreUrl = "{{ route('sale.store') }}";
@@ -781,9 +976,43 @@ document.addEventListener("DOMContentLoaded", function() {
     const dropdownMenu = document.getElementById("partyDropdownMenu");
     const partyIdInput = document.querySelector(".party-id");
     const balanceDisplay = document.getElementById("partyBalanceDisplay");
+    const brokerDropdownBtn = document.getElementById("brokerDropdownBtn");
+    const brokerDropdownMenu = document.getElementById("brokerDropdownMenu");
+    const brokerIdInput = document.querySelector(".broker-id");
     const addModalEl = document.getElementById('addPartyModal');
 
     const addModal = new bootstrap.Modal(addModalEl);
+
+    const setPartyFieldValues = (partyRecord = {}) => {
+        document.querySelector(".phone-input").value = partyRecord.phone || "";
+        document.querySelector(".city-input").value = partyRecord.city || "";
+        document.querySelector(".ptcl-input").value = partyRecord.ptcl_number || partyRecord.ptcl || "";
+        document.querySelector(".address-input").value = partyRecord.address || "";
+        document.querySelector(".billing-address").value = partyRecord.billing_address || partyRecord.billing || "";
+        document.querySelector(".shipping-address").value = partyRecord.shipping_address || partyRecord.shipping || "";
+    };
+
+    const setDueDateFromParty = (partyRecord = {}) => {
+        const dueDateInput = document.querySelector(".due-date");
+        const invoiceDateInput = document.querySelector(".invoice-date");
+        if (!dueDateInput || !invoiceDateInput) return;
+
+        const dueDays = Number(partyRecord.due_days || partyRecord.dueDays || 0);
+        const invoiceDateValue = invoiceDateInput.value;
+
+        if (!invoiceDateValue || !dueDays || dueDays < 1) {
+            return;
+        }
+
+        const dueDate = new Date(invoiceDateValue);
+        if (Number.isNaN(dueDate.getTime())) return;
+
+        dueDate.setDate(dueDate.getDate() + dueDays);
+        const yyyy = dueDate.getFullYear();
+        const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(dueDate.getDate()).padStart(2, '0');
+        dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+    };
 
 
     dropdownMenu.addEventListener("click", function(e) {
@@ -793,9 +1022,17 @@ document.addEventListener("DOMContentLoaded", function() {
             const name = option.querySelector("span:first-child").textContent;
             let opening = parseFloat(option.dataset.opening) || 0;
             const type = option.dataset.type;
-            const phone = option.dataset.phone;
-            const billing = option.dataset.billing;
             const id = option.dataset.id;
+            const selectedParty = (window.parties || []).find((party) => String(party.id) === String(id)) || {};
+            const partyRecord = {
+                phone: selectedParty.phone ?? option.dataset.phone ?? "",
+                city: selectedParty.city ?? option.dataset.city ?? "",
+                ptcl_number: selectedParty.ptcl_number ?? option.dataset.ptcl ?? "",
+                address: selectedParty.address ?? option.dataset.address ?? "",
+                billing_address: selectedParty.billing_address ?? option.dataset.billing ?? "",
+                shipping_address: selectedParty.shipping_address ?? option.dataset.shipping ?? "",
+                due_days: selectedParty.due_days ?? option.dataset.dueDays ?? "",
+            };
 
             // Button pe sirf party name
             dropdownBtn.textContent = name;
@@ -820,15 +1057,30 @@ else {
             // Save selected party id
             partyIdInput.value = id;
 
-            // Populate phone & billing fields
-            document.querySelector(".phone-input").value = phone;
-            document.querySelector(".billing-address").value = billing;
+            // Populate detail fields
+            setPartyFieldValues(partyRecord);
+            setDueDateFromParty(partyRecord);
         }
         else if(e.target.id === "addNewPartyBtn") {
             addModal.show();
             document.getElementById("addPartyForm").reset();
             balanceDisplay.textContent = "";
+            setPartyFieldValues({});
         }
+    });
+
+    brokerDropdownMenu?.addEventListener("click", function(e) {
+        if (!e.target.closest(".broker-option")) return;
+
+        e.preventDefault();
+        const option = e.target.closest(".broker-option");
+        const name = option.dataset.name || option.querySelector("span:first-child").textContent;
+        const phone = option.dataset.phone || "";
+        const id = option.dataset.id || "";
+
+        brokerDropdownBtn.textContent = name;
+        brokerIdInput.value = id;
+        document.querySelector(".broker-phone-input").value = phone;
     });
 
 });
@@ -836,7 +1088,4 @@ else {
 </body>
 
 </html>
-
-
-
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\BankAccount;
 use App\Models\BankTransaction;
+use App\Models\Broker;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
@@ -15,21 +16,33 @@ use Illuminate\Support\Facades\Storage;
 
 class SaleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $sales = Sale::with(['payments', 'bankAccount', 'party'])
+        $salesQuery = Sale::with(['payments', 'bankAccount', 'party'])
             ->where('type', 'invoice')
-            ->whereNotIn('status', ['returned'])
+            ->whereNotIn('status', ['returned']);
+
+        if ($request->boolean('overdue')) {
+            $salesQuery
+                ->where('balance', '>', 0)
+                ->whereDate('due_date', '<', now()->toDateString());
+        }
+
+        $sales = $salesQuery
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
-        return view('dashboard.sales.sale_index', compact('sales'));
+        return view('dashboard.sales.sale_index', [
+            'sales' => $sales,
+            'showOverdueOnly' => $request->boolean('overdue'),
+        ]);
     }
 
     public function create(Request $request, string $type = 'invoice')
     {
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
@@ -57,7 +70,7 @@ class SaleController extends Controller
             $convertedSaleData['payments'] = [];
         }
 
-        return view('dashboard.sales.create', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
+        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
     }
 
     public function createFromEstimate(Sale $sale)
@@ -72,8 +85,9 @@ class SaleController extends Controller
                 ->with('error', 'This estimate is already converted to sale invoice #' . ($sale->reference_id ?? ''));
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -85,6 +99,7 @@ class SaleController extends Controller
 
         return view('dashboard.sales.create', compact(
             'bankAccounts',
+            'brokers',
             'items',
             'parties',
             'nextInvoiceNumber',
@@ -105,8 +120,9 @@ class SaleController extends Controller
                 ->with('error', 'This sale order is already converted to invoice #' . ($sale->reference_id ?? ''));
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -118,6 +134,7 @@ class SaleController extends Controller
 
         return view('dashboard.sales.create', compact(
             'bankAccounts',
+            'brokers',
             'items',
             'parties',
             'nextInvoiceNumber',
@@ -138,8 +155,9 @@ class SaleController extends Controller
                 ->with('error', 'This delivery challan is already converted to invoice #' . ($sale->reference_id ?? ''));
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -151,6 +169,7 @@ class SaleController extends Controller
 
         return view('dashboard.sales.create', compact(
             'bankAccounts',
+            'brokers',
             'items',
             'parties',
             'nextInvoiceNumber',
@@ -170,8 +189,9 @@ class SaleController extends Controller
                 ->with('error', 'This proforma is already converted to sale invoice #' . ($sale->reference_id ?? ''));
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -183,6 +203,7 @@ class SaleController extends Controller
 
         return view('dashboard.sales.create', compact(
             'bankAccounts',
+            'brokers',
             'items',
             'parties',
             'nextInvoiceNumber',
@@ -197,8 +218,9 @@ class SaleController extends Controller
             abort(404);
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
         $sale->load(['items']);
@@ -211,6 +233,7 @@ class SaleController extends Controller
 
         return view('dashboard.sales.create', compact(
             'bankAccounts',
+            'brokers',
             'items',
             'parties',
             'nextInvoiceNumber',
@@ -231,7 +254,8 @@ class SaleController extends Controller
      */
 private function posData(): array
 {
-    $items = Item::where('type', 'product')
+    $items = Item::active()
+        ->where('type', 'product')
         ->orderBy('name')
         ->get([
             'id', 'name', 'item_code', 'unit',
@@ -241,10 +265,10 @@ private function posData(): array
     $parties = Party::orderBy('name')
         ->get(['id', 'name', 'phone']);
 
-    $bankAccounts = BankAccount::orderBy('display_name')->get();
+    $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
 
     $paymentModes = collect(['Cash', 'Card', 'UPI', 'Credit'])
-        ->merge($bankAccounts->pluck('display_name'))
+        ->merge($bankAccounts->pluck('display_with_account'))
         ->unique()
         ->values()
         ->all();
@@ -277,8 +301,9 @@ private function posData(): array
                 ->with('error', 'Cancelled invoice cannot be edited.');
         }
 
-        $bankAccounts = BankAccount::orderBy('display_name')->get();
-        $items = Item::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $type = $sale->type ?? 'invoice';
 
@@ -292,7 +317,7 @@ private function posData(): array
             $sale->document_url = Storage::disk('public')->url($sale->document_path);
         }
 
-        return view('dashboard.sales.create', compact('bankAccounts', 'items', 'parties', 'sale', 'type'));
+        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'sale', 'type'));
     }
 
     public function update(Request $request, Sale $sale)
@@ -305,6 +330,7 @@ private function posData(): array
             'source_challan_id' => 'nullable|exists:sales,id',
             'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
+            'broker_id' => 'nullable|exists:brokers,id',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
@@ -366,6 +392,7 @@ private function posData(): array
         $sale->update([
             'type' => $type,
             'party_id' => $data['party_id'] ?? $sale->party_id,
+            'broker_id' => $data['broker_id'] ?? $sale->broker_id,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
@@ -399,7 +426,7 @@ private function posData(): array
         ])->first();
     }
 
-  
+
 
     $sale->items()->create([
                 'item_id'          => $itemRecord?->id,
@@ -480,6 +507,7 @@ private function posData(): array
             'source_challan_id' => 'nullable|exists:sales,id',
             'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
+            'broker_id' => 'nullable|exists:brokers,id',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
@@ -540,6 +568,7 @@ private function posData(): array
         $sale = Sale::create([
             'type' => $type,
             'party_id' => $data['party_id'] ?? null,
+            'broker_id' => $data['broker_id'] ?? null,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
@@ -1302,7 +1331,7 @@ if ($receivedAmount >= $grandTotal && $grandTotal > 0) return 'Paid';
  public function paymentIn()
 {
     $parties = Party::all();
-    $bankAccounts = BankAccount::all();
+    $bankAccounts = BankAccount::active()->get();
 
     return view('dashboard.sales.payement-in', compact('parties', 'bankAccounts'));
 }

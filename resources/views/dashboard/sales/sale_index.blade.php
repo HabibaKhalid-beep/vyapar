@@ -321,6 +321,11 @@
       </select>
     </div>
 
+    <a href="{{ route('sale.index', ['overdue' => $showOverdueOnly ? null : 1]) }}"
+       class="btn btn-sm {{ $showOverdueOnly ? 'btn-danger' : 'btn-outline-danger' }}">
+      {{ $showOverdueOnly ? 'Showing Overdue Only' : 'Overdue List' }}
+    </a>
+
   </div>
 
 </div>
@@ -474,14 +479,27 @@
             </th>
             <th>
               <div class="column-filter-header">
+                <span>Due Date</span>
+                <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+              </div>
+              <div class="column-filter-dropdown">
+                <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Due Date">
+                <div class="d-flex justify-content-end gap-2 mt-2">
+                  <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="8">Clear</button>
+                  <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="8">Apply</button>
+                </div>
+              </div>
+            </th>
+            <th>
+              <div class="column-filter-header">
                 <span>Status</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
               </div>
               <div class="column-filter-dropdown">
                 <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Status">
                 <div class="d-flex justify-content-end gap-2 mt-2">
-                  <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="8">Clear</button>
-                  <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="8">Apply</button>
+                  <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="9">Clear</button>
+                  <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="9">Apply</button>
                 </div>
               </div>
             </th>
@@ -504,6 +522,16 @@
             <td>Rs {{ number_format($sale->total_amount ?? 0) }}</td>
             <td>Rs {{ number_format($sale->received_amount ?? 0) }}</td>
             <td>Rs {{ number_format($sale->balance ?? 0) }}</td>
+            <td>
+              @if($sale->due_date)
+                @php $isOverdue = ($sale->balance ?? 0) > 0 && \Carbon\Carbon::parse($sale->due_date)->isPast(); @endphp
+                <span class="{{ $isOverdue ? 'text-danger fw-semibold' : 'text-muted' }}">
+                  {{ \Carbon\Carbon::parse($sale->due_date)->format('d/m/Y') }}
+                </span>
+              @else
+                -
+              @endif
+            </td>
 
             <td>
               @php
@@ -557,7 +585,7 @@
           </tr>
           @empty
           <tr>
-            <td colspan="10" class="text-center text-muted py-4">
+            <td colspan="11" class="text-center text-muted py-4">
               No sales yet.
             </td>
           </tr>

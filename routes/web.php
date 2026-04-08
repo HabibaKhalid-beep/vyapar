@@ -190,6 +190,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
     Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
+    Route::post('settings/general', [SettingController::class, 'updateGeneral'])->name('settings.general.update');
     Route::get('settings/transactions', [SettingController::class, 'transactions'])->name('settings.transactions');
     Route::get('settings/taxes', [SettingController::class, 'taxes'])->name('settings.taxes');
     Route::get('settings/items', [SettingController::class, 'items'])->name('settings.items');
@@ -258,7 +259,7 @@ Route::delete('expense/{id}', [ExpenseCreateController::class, 'destroyExpense']
     Route::get('/items', [ItemController::class, 'index'])->name('items');
     Route::get('/items/services', [ItemController::class, 'services'])->name('items.services');
     Route::get('/items/create', [ItemController::class, 'create'])->name('items.create');
-    Route::post('/items', [ItemController::class, 'store'])->name('items.store');
+Route::post('/items', [ItemController::class, 'store'])->name('items.store');
 
 
 
@@ -275,6 +276,7 @@ Route::delete('expense/{id}', [ExpenseCreateController::class, 'destroyExpense']
     Route::delete('/items/units/{id}', [ItemController::class, 'destroyUnit'])->name('items.units.destroy');
 
  Route::post('/items/{id}/adjust', [ItemController::class, 'adjust'])->name('items.adjust');
+Route::post('/items/bulk-status', [ItemController::class, 'bulkStatus'])->name('items.bulk-status');
 Route::get('/items/{id}/transactions', [ItemController::class, 'transactions'])->name('items.transactions');
 Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::get('/items/{id}/edit', [ItemController::class, 'edit'])->name('items.edit');
@@ -295,6 +297,7 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::post('/brokers', [BrokerController::class, 'store'])->name('brokers.store');
     Route::put('/brokers/{broker}', [BrokerController::class, 'update'])->name('brokers.update');
     Route::delete('/brokers/{broker}', [BrokerController::class, 'destroy'])->name('brokers.destroy');
+    Route::post('/bank-accounts/bulk-status', [BankAccountController::class, 'bulkStatus'])->name('bank-accounts.bulk-status');
     // payment-in
     Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
 Route::post('/payments-in', [BankAccountController::class, 'paymentIn'])->name('payments-in.store');

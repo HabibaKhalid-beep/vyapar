@@ -31,7 +31,7 @@
                 <div class="col-md-6 text-md-end">
                     <h6 class="text-muted">Payment</h6>
                     @forelse($purchase->payments as $payment)
-                        <div>{{ $payment->bankAccount?->display_name ?? $payment->payment_type }} - {{ number_format($payment->amount ?? 0, 2) }}</div>
+                        <div>{{ $payment->bankAccount?->display_with_account ?? $payment->payment_type }} - {{ number_format($payment->amount ?? 0, 2) }}</div>
                     @empty
                         <div>-</div>
                     @endforelse

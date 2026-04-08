@@ -280,7 +280,7 @@
                                         <select class="input-control default-payment-type">
                                             <option value="" selected disabled>Select Payment Type</option>
                                             @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_name }}</option>
+                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
                                         </select>
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
@@ -304,7 +304,7 @@
                                         <select class="input-control payment-type-entry">
                                             <option value="" selected disabled>Select Bank Account</option>
                                             @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_name }}</option>
+                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
                                         </select>
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
@@ -752,3 +752,4 @@ document.addEventListener("DOMContentLoaded", function () {
 </body>
 
 </html>
+

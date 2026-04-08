@@ -485,6 +485,26 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
 }
+.vy-image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 92px));
+    gap: 10px;
+    margin-top: 12px;
+}
+.vy-image-preview-item {
+    width: 92px;
+    height: 92px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #dbe3ef;
+    background: #fff;
+}
+.vy-image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
 
 /* ── Item Code — fused box ── */
 .vy-code-row {
@@ -791,19 +811,6 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
             </button>
             <span id="unit-conv-label" style="font-size:12px;color:#6b7280;position:absolute;top:100%;margin-top:4px;left:50%;transform:translateX(-50%);white-space:nowrap;"></span>
         </div>
-        <div class="vy-img-area" onclick="document.getElementById('img-file').click()">
-            <div class="vy-img-icon" id="img-thumb">
-                <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
-                    <path d="M18.5 4.5 a2.5 2.5 0 0 1 2 1.5" stroke-width="1.3"/>
-                    <polyline points="20.5 3.5 20.5 6 18 6" stroke-width="1.3"/>
-                </svg>
-            </div>
-            <span>Add Item Image</span>
-            <input type="file" id="img-file" name="image" accept="image/*" style="display:none;" onchange="previewImg(event)"/>
-        </div>
-
     </div>
 
     {{-- Item Code --}}
@@ -883,6 +890,28 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
                 <input type="text" id="min-stock"  placeholder="Min Stock To Maintain" class="vy-price-input"/>
                 <input type="text" id="location"   placeholder="Location"              class="vy-price-input"/>
             </div>
+            <div style="margin-top:18px;">
+                <div class="vy-extra-title" style="margin-bottom:10px;">Item Images</div>
+                <div class="vy-img-area" style="margin-left:0;" onclick="document.getElementById('img-file').click()">
+                    <div class="vy-img-icon" id="img-thumb">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                            <path d="M18.5 4.5 a2.5 2.5 0 0 1 2 1.5" stroke-width="1.3"/>
+                            <polyline points="20.5 3.5 20.5 6 18 6" stroke-width="1.3"/>
+                        </svg>
+                    </div>
+                    <span id="img-label">Add Item Images</span>
+                    <input type="file" id="img-file" name="images[]" accept="image/*" multiple style="display:none;" onchange="previewImg(event)"/>
+                </div>
+                <div id="image-preview-list" class="vy-image-preview-grid" style="display:none;"></div>
+            </div>
+            <div id="description-sec" style="margin-top:18px;">
+                <div class="vy-extra-title" style="margin-bottom:10px;">Description</div>
+                <div class="vy-extra-grid" style="grid-template-columns:1fr;">
+                    <textarea id="item-description" class="vy-price-input" placeholder="Description"></textarea>
+                </div>
+            </div>
         </div>
 
         <div id="mrp-sec" class="vy-extra-sec">
@@ -897,13 +926,6 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
             <div class="vy-extra-title">Barcode Scan</div>
             <div class="vy-extra-grid">
                 <input type="text" id="barcode-value" class="vy-price-input" placeholder="Barcode Value"/>
-            </div>
-        </div>
-
-        <div id="description-sec" class="vy-extra-sec">
-            <div class="vy-extra-title">Description</div>
-            <div class="vy-extra-grid">
-                <textarea id="item-description" class="vy-price-input" placeholder="Description"></textarea>
             </div>
         </div>
 
@@ -1189,7 +1211,7 @@ let settingsState = {
     category: true,
     mrp: false,
     barcode: false,
-    description: false,
+    description: true,
     serial: false,
     batch: false
 };
@@ -1251,7 +1273,7 @@ function saveAdditionalFieldsSettings(silent = false){
     settingsState.category = !!document.getElementById('setting-category-toggle')?.checked;
     settingsState.mrp = !!document.getElementById('setting-mrp-enabled')?.checked;
     settingsState.barcode = !!document.getElementById('setting-barcode-toggle')?.checked;
-    settingsState.description = !!document.getElementById('setting-description-toggle')?.checked;
+    settingsState.description = true;
     settingsState.serial = !!document.getElementById('setting-serial-enabled')?.checked;
     settingsState.batch = !!document.getElementById('setting-batch-enabled')?.checked;
 
@@ -1263,7 +1285,6 @@ function saveAdditionalFieldsSettings(silent = false){
     document.getElementById('cat-wrapper').style.display = settingsState.category ? '' : 'none';
     document.getElementById('mrp-sec').classList.toggle('show', settingsState.mrp);
     document.getElementById('barcode-sec').classList.toggle('show', settingsState.barcode);
-    document.getElementById('description-sec').classList.toggle('show', settingsState.description);
     document.getElementById('serial-sec').classList.toggle('show', settingsState.serial);
     document.getElementById('batch-sec').classList.toggle('show', settingsState.batch);
 
@@ -1495,13 +1516,26 @@ function saveUnit(){
 
 /* ─── Image preview ──────────────────────── */
 function previewImg(e){
-    const f = e.target.files[0]; if(!f) return;
+    const files = Array.from(e.target.files || []);
+    const f = files[0];
+    if(!f) return;
+    const previewList = document.getElementById('image-preview-list');
     const r = new FileReader();
     r.onload = ev => {
         document.getElementById('img-thumb').innerHTML =
             `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:3px;"/>`;
+        document.getElementById('img-label').textContent = files.length > 1
+            ? `${files.length} images selected`
+            : '1 image selected';
     };
     r.readAsDataURL(f);
+    if (previewList) {
+        previewList.innerHTML = files.map(file => {
+            const src = URL.createObjectURL(file);
+            return `<div class="vy-image-preview-item"><img src="${src}" alt="Selected image"></div>`;
+        }).join('');
+        previewList.style.display = files.length ? 'grid' : 'none';
+    }
 }
 
 /* ─── Validation & Data ──────────────────── */
@@ -1549,7 +1583,7 @@ function buildItemFormData(){
     fd.append('size_value', getVal('size-value'));
     fd.append('mrp_enabled', document.getElementById('setting-mrp-enabled')?.checked ? '1' : '0');
     fd.append('barcode_enabled', document.getElementById('setting-barcode-toggle')?.checked ? '1' : '0');
-    fd.append('description_enabled', document.getElementById('setting-description-toggle')?.checked ? '1' : '0');
+    fd.append('description_enabled', '1');
     fd.append('serial_enabled', document.getElementById('setting-serial-enabled')?.checked ? '1' : '0');
     fd.append('batch_enabled', document.getElementById('setting-batch-enabled')?.checked ? '1' : '0');
     for (let index = 1; index <= 6; index++) {
@@ -1558,8 +1592,8 @@ function buildItemFormData(){
         fd.append(`custom_field_${index}_print`, document.getElementById(`custom-field-print-${index}`)?.checked ? '1' : '0');
         fd.append(`custom_field_${index}_value`, getVal(`custom-inline-value-${index}`));
     }
-    const imageFile = document.getElementById('img-file').files[0];
-    if (imageFile) fd.append('image', imageFile);
+    const imageFiles = Array.from(document.getElementById('img-file').files || []);
+    imageFiles.forEach(file => fd.append('images[]', file));
     return fd;
 }
 function resetForm(){
@@ -1581,17 +1615,27 @@ function resetForm(){
     document.getElementById('unit-conv-label').textContent='';
     document.getElementById('img-thumb').innerHTML=
         '<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+    document.getElementById('img-label').textContent = 'Add Item Images';
+    const imageInput = document.getElementById('img-file');
+    if (imageInput) imageInput.value = '';
+    const previewList = document.getElementById('image-preview-list');
+    if (previewList) {
+        previewList.innerHTML = '';
+        previewList.style.display = 'none';
+    }
     document.getElementById('type-toggle').checked=false;
     iType='product';
     applyTypeUI(false);
-    settingsState = { wholesale: true, category: true, mrp: false, barcode: false, description: false, serial: false, batch: false };
+    settingsState = { wholesale: true, category: true, mrp: false, barcode: false, description: true, serial: false, batch: false };
     document.getElementById('setting-wholesale-toggle').checked = true;
     document.getElementById('setting-category-toggle').checked = true;
     document.getElementById('setting-mrp-enabled').checked = false;
-    ['setting-barcode-toggle','setting-description-toggle','setting-serial-enabled','setting-batch-enabled','setting-exp-enabled','setting-mfg-enabled','setting-model-enabled','setting-size-enabled'].forEach(id => {
+    ['setting-barcode-toggle','setting-serial-enabled','setting-batch-enabled','setting-exp-enabled','setting-mfg-enabled','setting-model-enabled','setting-size-enabled'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.checked = false;
     });
+    const descriptionToggle = document.getElementById('setting-description-toggle');
+    if (descriptionToggle) descriptionToggle.checked = true;
     for (let index = 1; index <= 6; index++) {
         const enabled = document.getElementById(`custom-field-enabled-${index}`);
         const name = document.getElementById(`custom-field-name-${index}`);
@@ -1630,7 +1674,7 @@ function saveItem(){
     form.appendChild(csrf);
 
     for (const [key, value] of formData.entries()) {
-        if (key === 'image') continue;
+        if (value instanceof File) continue;
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = key;
