@@ -1434,7 +1434,9 @@ private function posData(): array
             ->orderBy('id')
             ->get()
             ->each(function (Transaction $transaction) use (&$runningBalance) {
-                $runningBalance += $transaction->ledgerEffectValue();
+                $runningBalance += Transaction::normalizeLedgerAmount($transaction->debit ?? 0);
+                $runningBalance -= Transaction::normalizeLedgerAmount($transaction->credit ?? 0);
+                $runningBalance = Transaction::normalizeLedgerAmount($runningBalance);
                 $transaction->running_balance = $runningBalance;
                 $transaction->saveQuietly();
             });
