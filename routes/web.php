@@ -25,6 +25,7 @@ use App\Http\Controllers\ExpenseCreateController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BrokerController;
+use App\Http\Controllers\WarehouseController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -299,6 +300,7 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::post('/brokers', [BrokerController::class, 'store'])->name('brokers.store');
     Route::put('/brokers/{broker}', [BrokerController::class, 'update'])->name('brokers.update');
     Route::delete('/brokers/{broker}', [BrokerController::class, 'destroy'])->name('brokers.destroy');
+    Route::post('/warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
     Route::post('/bank-accounts/bulk-status', [BankAccountController::class, 'bulkStatus'])->name('bank-accounts.bulk-status');
     // payment-in
     Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
