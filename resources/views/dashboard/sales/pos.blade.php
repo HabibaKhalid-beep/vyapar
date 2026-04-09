@@ -403,7 +403,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
           <input type="text" id="cust-in"
             placeholder="Search for a customer by name, phone number [F11]"
             oninput="filterCust(this.value)"
-           
+
             autocomplete="off"/>
           <div class="cust-dd" id="cust-dd">
             <div class="add-new" onclick="openAddCustomer()">➕ Add New Customer</div>
@@ -414,10 +414,18 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
               <div class="c-item"
                 onclick="selectCust('{{ addslashes($party->name) }}','{{ $party->phone ?? '' }}',{{ $party->id }})"
                 data-name="{{ strtolower($party->name) }}"
-                data-phone="{{ $party->phone ?? '' }}">
+                data-phone="{{ $party->phone ?? '' }}"
+                data-phone2="{{ $party->phone_number_2 ?? '' }}"
+                data-ptcl="{{ $party->ptcl_number ?? '' }}">
                 <div class="c-name">{{ $party->name }}</div>
                 @if($party->phone)
                   <div class="c-phone">📞 {{ $party->phone }}</div>
+                @endif
+                @if($party->phone_number_2)
+                  <div class="c-phone">Alt: {{ $party->phone_number_2 }}</div>
+                @endif
+                @if($party->ptcl_number)
+                  <div class="c-phone">PTCL: {{ $party->ptcl_number }}</div>
                 @endif
               </div>
             @endforeach
@@ -691,7 +699,6 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
     </div>
   </div>
 </div>
-
 <!-- Add Customer -->
 <div class="overlay" id="modal-addcust">
   <div class="mbox" style="max-width:520px">
@@ -706,11 +713,20 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
         <label>Phone Number</label>
         <input type="text" id="nc-phone" placeholder="Phone Number"/>
       </div>
+      <div class="mfield">
+        <label>Phone Number 2</label>
+        <input type="text" id="nc-phone-2" placeholder="Second Phone Number"/>
+      </div>
+      <div class="mfield">
+        <label>PTCL Number</label>
+        <input type="text" id="nc-ptcl" placeholder="PTCL Number"/>
+      </div>
       <div class="mfield span2">
         <label>Billing Address</label>
         <textarea id="nc-billing" placeholder="Billing Address"></textarea>
       </div>
       <div class="mfield span2">
+    
         <label>Shipping Address</label>
         <textarea id="nc-shipping" placeholder="Shipping Address"></textarea>
       </div>
@@ -944,7 +960,7 @@ function searchKey(e) {
 
 document.addEventListener('click', e => {
   if (!e.target.closest('.search-inner')) document.getElementById('search-dd').classList.remove('open');
-  if (!e.target.closest('.cust-wrap') && !e.target.closest('#cust-dd'))    
+  if (!e.target.closest('.cust-wrap') && !e.target.closest('#cust-dd'))
     document.getElementById('cust-dd').classList.remove('open');
   if (!e.target.closest('.date-row') && !e.target.closest('.cal-pop'))
     document.getElementById('cal-pop').classList.remove('open');
@@ -1425,7 +1441,9 @@ function filterCust(q) {
   items.forEach(el => {
     const name  = (el.dataset.name  || '').toLowerCase();
     const phone = (el.dataset.phone || '');
-    const match = !q || name.includes(q.toLowerCase()) || phone.includes(q);
+    const phone2 = (el.dataset.phone2 || '');
+    const ptcl = (el.dataset.ptcl || '');
+    const match = !q || name.includes(q.toLowerCase()) || phone.includes(q) || phone2.includes(q) || ptcl.includes(q);
     el.style.display = match ? '' : 'none';
     if (match) visible++;
   });
@@ -1447,7 +1465,7 @@ function selectCust(name, phone, partyId) {
 
 function openAddCustomer() {
   document.getElementById('cust-dd').classList.remove('open');
-  ['nc-name','nc-phone','nc-billing','nc-shipping'].forEach(id => {
+  ['nc-name','nc-phone','nc-phone-2','nc-ptcl','nc-billing','nc-shipping'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
     if (id === 'nc-shipping') el.disabled = false;
@@ -1471,14 +1489,24 @@ document.addEventListener('input', e => {
 function saveCustomer() {
   const name = document.getElementById('nc-name').value.trim();
   if (!name) { alert('Customer name is required.'); return; }
-  const phone    = document.getElementById('nc-phone').value.trim();
-  const billing  = document.getElementById('nc-billing').value.trim();
+  const phone = document.getElementById('nc-phone').value.trim();
+  const phone2 = document.getElementById('nc-phone-2').value.trim();
+  const ptcl = document.getElementById('nc-ptcl').value.trim();
+  const billing = document.getElementById('nc-billing').value.trim();
   const shipping = document.getElementById('nc-shipping').value.trim();
 
   fetch(ROUTES.storeParty, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
-    body:    JSON.stringify({ name, phone, billing_address: billing, shipping_address: shipping, type: 'customer' }),
+    body:    JSON.stringify({
+      name,
+      phone,
+      phone_number_2: phone2,
+      ptcl_number: ptcl,
+      billing_address: billing,
+      shipping_address: shipping,
+      party_type: ['customer'],
+    }),
   })
   .then(r => {
     const ct = r.headers.get('content-type') || '';
@@ -1489,7 +1517,7 @@ function saveCustomer() {
     const party = (data && data.party) ? data.party : data;
     if (!party || !party.id) throw new Error('No party id: ' + JSON.stringify(data));
 
-    selectCust(name, phone, party.id);
+    selectCust(party.name || name, party.phone || phone, party.id);
     closeModal('modal-addcust');
     toast('Customer saved!');
 
@@ -1497,10 +1525,15 @@ function saveCustomer() {
     const dd  = document.getElementById('cust-dd');
     const div = document.createElement('div');
     div.className      = 'c-item';
-    div.dataset.name   = name.toLowerCase();
-    div.dataset.phone  = phone;
-    div.innerHTML      = `<div class="c-name">${name}</div>${phone ? `<div class="c-phone">📞 ${phone}</div>` : ''}`;
-    div.onclick        = () => selectCust(name, phone, party.id);
+    div.dataset.name   = (party.name || name).toLowerCase();
+    div.dataset.phone  = party.phone || phone;
+    div.dataset.phone2 = party.phone_number_2 || phone2;
+    div.dataset.ptcl   = party.ptcl_number || ptcl;
+    div.innerHTML      = `<div class="c-name">${party.name || name}</div>`
+      + `${(party.phone || phone) ? `<div class="c-phone">📞 ${party.phone || phone}</div>` : ''}`
+      + `${(party.phone_number_2 || phone2) ? `<div class="c-phone">Alt: ${party.phone_number_2 || phone2}</div>` : ''}`
+      + `${(party.ptcl_number || ptcl) ? `<div class="c-phone">PTCL: ${party.ptcl_number || ptcl}</div>` : ''}`;
+    div.onclick        = () => selectCust(party.name || name, party.phone || phone, party.id);
     dd.appendChild(div);
   })
   .catch(err => {
