@@ -9,6 +9,7 @@ use App\Models\Sale;
 class Transaction extends Model
 {
     protected static bool $isSyncingPartyBalance = false;
+    private const LEDGER_SNAP_EPSILON = 0.011;
 
     protected $fillable = [
         'party_id',
@@ -102,7 +103,9 @@ class Transaction extends Model
             $ledgerRunningBalance = 0.0;
             $transactions
                 ->each(function (Transaction $transaction) use (&$ledgerRunningBalance) {
-                    $ledgerRunningBalance += $transaction->ledgerEffectValue();
+                    $ledgerRunningBalance += static::normalizeLedgerAmount($transaction->debit ?? 0);
+                    $ledgerRunningBalance -= static::normalizeLedgerAmount($transaction->credit ?? 0);
+                    $ledgerRunningBalance = static::normalizeLedgerAmount($ledgerRunningBalance);
 
                     if ((float) ($transaction->running_balance ?? 0) !== (float) $ledgerRunningBalance) {
                         $transaction->running_balance = $ledgerRunningBalance;
@@ -180,5 +183,17 @@ class Transaction extends Model
         }
 
         return abs(min($this->ledgerEffectValue(), 0));
+    }
+
+    public static function normalizeLedgerAmount($value): float
+    {
+        $rounded = round((float) $value, 2);
+        $nearestWhole = round($rounded);
+
+        if (abs($rounded - $nearestWhole) <= self::LEDGER_SNAP_EPSILON) {
+            return (float) number_format($nearestWhole, 2, '.', '');
+        }
+
+        return (float) number_format($rounded, 2, '.', '');
     }
 }

@@ -275,8 +275,10 @@ public function transactions(Party $party)
                 'debit' => $effect > 0 ? $effect : 0,
                 'credit' => $effect < 0 ? abs($effect) : 0,
                 'effect' => $effect,
+                'row_balance' => (float) ($sale->balance ?? max(0, $amount - (float) ($sale->received_amount ?? 0))),
                 'due_date' => optional($sale->due_date),
                 'status' => (string) ($sale->status ?? ''),
+                'sort_order' => 20,
                 'actions' => $this->saleActionUrls($sale),
             ];
         });
@@ -300,8 +302,10 @@ public function transactions(Party $party)
                 'debit' => $effect > 0 ? $effect : 0,
                 'credit' => $effect < 0 ? abs($effect) : 0,
                 'effect' => $effect,
+                'row_balance' => (float) ($purchase->balance ?? 0),
                 'due_date' => optional($purchase->due_date),
                 'status' => (string) ($purchase->balance > 0 ? 'unpaid' : 'paid'),
+                'sort_order' => 30,
                 'actions' => [],
             ];
         });
@@ -325,9 +329,11 @@ public function transactions(Party $party)
             'debit' => $effect > 0 ? $effect : 0,
             'credit' => $effect < 0 ? abs($effect) : 0,
             'effect' => $effect,
+            'row_balance' => (float) ($txn->total ?? 0),
             'due_date' => optional($txn->due_date),
             'status' => (string) ($txn->status ?? $txn->type ?? ''),
             'counter_party_name' => $txn->counterParty?->name,
+            'sort_order' => in_array(strtolower((string) $txn->type), ['receive', 'pay'], true) ? 10 : 40,
             'actions' => [],
         ];
     });
@@ -336,7 +342,12 @@ public function transactions(Party $party)
         ->concat($purchaseTransactions)
         ->concat($manualLedgerTransactions)
         ->sortBy(function ($entry) {
-            return ($entry['date']?->timestamp ?? 0) . '-' . $entry['id'];
+            return sprintf(
+                '%012d-%03d-%s',
+                (int) ($entry['date']?->timestamp ?? 0),
+                (int) ($entry['sort_order'] ?? 999),
+                (string) $entry['id']
+            );
         })
         ->values();
 
@@ -346,11 +357,11 @@ public function transactions(Party $party)
         $entry['date'] = $entry['date']?->format('d/m/Y');
         $entry['due_date'] = $entry['due_date']?->format('Y-m-d');
         $entry['total'] = number_format((float) (($entry['debit'] ?? 0) + ($entry['credit'] ?? 0)), 2);
-        $entry['balance'] = number_format($runningBalance, 2);
+        $entry['balance'] = number_format((float) ($entry['row_balance'] ?? 0), 2);
         $entry['debit'] = number_format((float) ($entry['debit'] ?? 0), 2);
         $entry['credit'] = number_format((float) ($entry['credit'] ?? 0), 2);
         $entry['running_balance'] = number_format($runningBalance, 2);
-        unset($entry['effect']);
+        unset($entry['effect'], $entry['row_balance'], $entry['sort_order']);
         return $entry;
     });
 
@@ -409,7 +420,9 @@ public function ledger(Party $party)
         ->map(function (Transaction $transaction) use (&$runningBalance) {
             $credit = (float) $transaction->ledgerCreditValue();
             $debit = (float) $transaction->ledgerDebitValue();
-            $runningBalance += $transaction->ledgerEffectValue();
+            $runningBalance += Transaction::normalizeLedgerAmount($debit);
+            $runningBalance -= Transaction::normalizeLedgerAmount($credit);
+            $runningBalance = Transaction::normalizeLedgerAmount($runningBalance);
 
             return [
                 'id' => $transaction->id,

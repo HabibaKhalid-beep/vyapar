@@ -163,7 +163,11 @@ function initializeForm(context) {
             if (party) {
                 $ctx.find('#partyDropdownBtn').text(party.name || 'Select Party');
                 $ctx.find('.phone-input').val(party.phone || sale.phone || '');
+                $ctx.find('.city-input').val(party.city || '');
+                $ctx.find('.ptcl-input').val(party.ptcl_number || party.ptcl || '');
+                $ctx.find('.address-input').val(party.address || '');
                 $ctx.find('.billing-address').val(party.billing_address || sale.billing_address || '');
+                $ctx.find('.shipping-address').val(party.shipping_address || sale.shipping_address || '');
             } else {
                 $ctx.find('#partyDropdownBtn').text('Select Party');
             }
@@ -283,12 +287,20 @@ function initializeForm(context) {
         const partyId = $option.data('id') || '';
         const partyName = $.trim($option.find('span').first().text());
         const phone = $option.data('phone') || '';
+        const city = $option.data('city') || '';
+        const ptcl = $option.data('ptcl') || '';
+        const address = $option.data('address') || '';
         const billing = $option.data('billing') || '';
+        const shipping = $option.data('shipping') || '';
 
         $ctx.find('.party-id').val(partyId);
         $ctx.find('#partyDropdownBtn').text(partyName || 'Select Party');
         $ctx.find('.phone-input').val(phone);
+        $ctx.find('.city-input').val(city);
+        $ctx.find('.ptcl-input').val(ptcl);
+        $ctx.find('.address-input').val(address);
         $ctx.find('.billing-address').val(billing);
+        $ctx.find('.shipping-address').val(shipping);
     });
 
     // Add row functionality
@@ -577,12 +589,8 @@ function initializeForm(context) {
 
             if (defaultAmount > 0) {
                 payments.push({
-<<<<<<< Updated upstream
-                    payment_type: bank?.display_with_account || bank?.display_name || 'Bank',
-=======
                     direction: defaultDirection,
-                    payment_type: bank?.display_name || 'Bank',
->>>>>>> Stashed changes
+                    payment_type: bank?.display_with_account || bank?.display_name || 'Bank',
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -604,12 +612,8 @@ function initializeForm(context) {
             if (!rawType || amount <= 0) return;
 
             payments.push({
-<<<<<<< Updated upstream
-                payment_type: isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType,
-=======
                 direction,
-                payment_type: isBank ? (bank?.display_name || 'Bank') : rawType,
->>>>>>> Stashed changes
+                payment_type: isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType,
                 bank_account_id: bankId,
                 amount: amount,
                 reference: reference,
