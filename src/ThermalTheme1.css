@@ -1,0 +1,156 @@
+.t5-wrapper {
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  padding: 24px 28px 32px;
+}
+
+/* HEADER */
+.t5-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.t5-company-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.t5-company-phone {
+  font-size: 13px;
+  color: #444;
+  margin: 0;
+}
+
+/* DASHED LINE */
+.t5-dashed {
+  border: none;
+  border-top: 1px dashed #aaa;
+  margin: 10px 0;
+}
+
+.t5-no-margin {
+  margin: 0;
+}
+
+/* INVOICE TITLE */
+.t5-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+  margin: 6px 0 10px;
+}
+
+/* INFO ROW */
+.t5-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.t5-billto-name {
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0;
+  color: #111;
+}
+
+.t5-invoice-details {
+  text-align: right;
+}
+
+.t5-details-line {
+  font-size: 13px;
+  color: #111;
+  margin: 2px 0;
+}
+
+/* TABLE */
+.t5-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.t5-th-left,
+.t5-th-right {
+  padding: 6px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  background: #fff;
+}
+
+.t5-th-left { text-align: left; }
+.t5-th-right { text-align: right; }
+
+.t5-col-num    { width: 40px; }
+.t5-col-qty    { width: 100px; }
+.t5-col-price  { width: 140px; }
+.t5-col-amount { width: 120px; }
+
+.t5-td-left,
+.t5-td-right {
+  padding: 5px 8px;
+  font-size: 14px;
+  color: #111;
+  border: none;
+}
+
+.t5-td-left { text-align: left; }
+.t5-td-right { text-align: right; }
+
+/* dashed separator row */
+.t5-dashed-row td {
+  padding: 0;
+}
+
+/* Total main row */
+.t5-total-main-row td {
+  padding-top: 8px;
+  padding-bottom: 2px;
+}
+
+/* Sub-label rows (Total / Received / Balance) */
+.t5-sub-label {
+  padding-left: 24px;
+  font-size: 14px;
+}
+
+.t5-sub-colon {
+  text-align: center;
+  font-size: 14px;
+}
+
+/* TERMS */
+.t5-terms {
+  margin-top: 10px;
+  position: relative;
+}
+
+.t5-terms-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #111;
+}
+
+.t5-terms-text {
+  font-size: 14px;
+  color: #444;
+  margin: 0;
+}
+
+.t5-edit-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 14px;
+  color: #aaa;
+}

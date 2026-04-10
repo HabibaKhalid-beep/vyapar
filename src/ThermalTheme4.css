@@ -1,0 +1,179 @@
+.tt4-wrapper {
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  padding: 24px 28px 32px;
+}
+
+/* HEADER */
+.tt4-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.tt4-company-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.tt4-company-phone {
+  font-size: 13px;
+  color: #444;
+  margin: 0;
+}
+
+/* DASHED LINE */
+.tt4-dashed {
+  border: none;
+  border-top: 1px dashed #aaa;
+  margin: 10px 0;
+}
+
+.tt4-no-margin {
+  margin: 0;
+}
+
+/* INVOICE TITLE */
+.tt4-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+  margin: 6px 0 10px;
+}
+
+/* INVOICE NO + DATE ROW */
+.tt4-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #111;
+  margin: 4px 0;
+}
+
+.tt4-meta-left {
+  text-align: left;
+}
+
+.tt4-meta-right {
+  text-align: right;
+}
+
+/* BILL TO centered */
+.tt4-billto-name {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  margin: 6px 0;
+}
+
+/* TABLE */
+.tt4-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.tt4-th-left,
+.tt4-th-right {
+  padding: 6px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  background: #fff;
+  vertical-align: top;
+}
+
+.tt4-th-left { text-align: left; }
+.tt4-th-right { text-align: right; }
+
+.tt4-th-line {
+  display: block;
+  line-height: 1.5;
+}
+
+.tt4-th-sub {
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.tt4-col-num    { width: 40px; }
+.tt4-col-price  { width: 140px; }
+.tt4-col-amount { width: 120px; }
+
+.tt4-td-left,
+.tt4-td-right {
+  padding: 5px 8px;
+  font-size: 14px;
+  color: #111;
+  border: none;
+  vertical-align: top;
+}
+
+.tt4-td-left { text-align: left; }
+.tt4-td-right { text-align: right; }
+
+.tt4-dashed-cell {
+  padding: 0;
+}
+
+.tt4-item-name {
+  display: block;
+  line-height: 1.5;
+}
+
+.tt4-item-qty {
+  display: block;
+  font-size: 13px;
+  color: #111;
+  line-height: 1.5;
+}
+
+.tt4-qty-total-row td {
+  padding-top: 6px;
+  padding-bottom: 2px;
+}
+
+.tt4-sub-label {
+  padding-left: 24px;
+  font-size: 14px;
+}
+
+.tt4-sub-colon {
+  text-align: center;
+  font-size: 14px;
+}
+
+/* TERMS centered */
+.tt4-terms {
+  margin-top: 10px;
+  text-align: center;
+  position: relative;
+}
+
+.tt4-terms-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #111;
+}
+
+.tt4-terms-text {
+  font-size: 14px;
+  color: #444;
+  margin: 0;
+}
+
+.tt4-edit-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 14px;
+  color: #aaa;
+}

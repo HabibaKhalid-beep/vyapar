@@ -1,0 +1,268 @@
+.tax4-wrapper {
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  border: 1px solid #bbb;
+}
+
+.tax4-title-row {
+  text-align: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #bbb;
+}
+
+.tax4-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  color: #111;
+}
+
+.tax4-cell {
+  padding: 14px 16px;
+  border-right: 1px solid #bbb;
+  border-bottom: 1px solid #bbb;
+}
+
+.tax4-no-right-border {
+  border-right: none;
+}
+
+.tax4-header-row {
+  display: flex;
+}
+
+.tax4-company-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tax4-logo {
+  width: 68px;
+  height: 58px;
+  background-color: #888;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 13px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tax4-company-info h1 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.tax4-company-info p {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+}
+
+.tax4-meta-cell {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tax4-meta-label {
+  font-size: 14px;
+  color: #111;
+  margin: 0;
+}
+
+.tax4-billto-row {
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid #bbb;
+}
+
+.tax4-billto-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 4px;
+}
+
+.tax4-billto-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tax4-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tax4-th-left,
+.tax4-th-right {
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #bbb;
+  background: #eef3fb;
+  color: #111;
+}
+
+.tax4-th-left {
+  text-align: left;
+}
+
+.tax4-th-right {
+  text-align: right;
+}
+
+.tax4-col-num    { width: 50px; }
+.tax4-col-qty    { width: 110px; }
+.tax4-col-price  { width: 150px; }
+.tax4-col-amount { width: 140px; }
+
+.tax4-td-left,
+.tax4-td-right {
+  padding: 9px 16px;
+  font-size: 14px;
+  border: 1px solid #bbb;
+}
+
+.tax4-td-left {
+  text-align: left;
+}
+
+.tax4-td-right {
+  text-align: right;
+}
+
+.tax4-total-row .tax4-td-left,
+.tax4-total-row .tax4-td-right {
+  border-top: 2px solid #aaa;
+}
+
+/* Summary section */
+.tax4-summary-table {
+  border-bottom: 1px solid #bbb;
+}
+
+.tax4-summary-row {
+  display: flex;
+  align-items: flex-start;
+  border-bottom: 1px solid #bbb;
+  padding: 7px 16px;
+  font-size: 14px;
+}
+
+.tax4-summary-row:last-child {
+  border-bottom: none;
+}
+
+.tax4-summary-label {
+  width: 38%;
+  color: #111;
+}
+
+.tax4-summary-colon {
+  width: 5%;
+  color: #111;
+  text-align: center;
+}
+
+.tax4-summary-value {
+  flex: 1;
+  text-align: right;
+  color: #111;
+}
+
+.tax4-summary-bold {
+  font-weight: 700;
+}
+
+/* Received / Balance stacked in one row */
+.tax4-received-balance .tax4-summary-label,
+.tax4-received-balance .tax4-summary-colon,
+.tax4-received-balance .tax4-summary-value {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tax4-rb-line {
+  display: block;
+  line-height: 1.6;
+}
+
+/* Footer */
+.tax4-footer-row {
+  display: flex;
+  min-height: 120px;
+}
+
+.tax4-footer-left {
+  flex: 1;
+  padding: 14px 16px;
+  position: relative;
+  border-right: 1px solid #bbb;
+}
+
+.tax4-footer-right {
+  width: 50%;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #bbb;
+  border-top: none;
+  border-right: none;
+}
+
+.tax4-terms-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.tax4-terms-text {
+  font-size: 14px;
+  color: #444;
+  margin: 0;
+}
+
+.tax4-edit-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.tax4-for-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  margin: 0;
+  align-self: flex-start;
+}
+
+.tax4-sign-box {
+  width: 80%;
+  border-top: 1px solid #bbb;
+  padding-top: 8px;
+  text-align: center;
+}
+
+.tax4-signatory {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}

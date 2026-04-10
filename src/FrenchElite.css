@@ -1,0 +1,220 @@
+.fe-wrapper {
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 0 30px 0;
+  background: #fff;
+  color: #111;
+}
+
+.fe-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  margin-bottom: 20px;
+}
+
+.fe-invoice-banner {
+  width: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 0;
+}
+
+.fe-invoice-banner h1 {
+  color: white;
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.fe-logo {
+  width: 90px;
+  height: 80px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.fe-company {
+  padding: 0 20px;
+  margin-bottom: 10px;
+}
+
+.fe-company h2 {
+  font-size: 22px;
+  font-weight: 400;
+  color: #444;
+  margin: 0 0 8px;
+}
+
+.fe-phone-label {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+.fe-phone-value {
+  font-size: 14px;
+  color: #333;
+  margin: 2px 0 0;
+}
+
+.fe-divider {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 12px 20px 16px;
+}
+
+.fe-meta {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #444;
+}
+
+.fe-meta-left p {
+  margin: 0 0 6px;
+}
+
+.fe-date-row {
+  display: flex;
+  gap: 60px;
+}
+
+.fe-bill-label {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 4px;
+}
+
+.fe-bill-value {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.fe-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.fe-th-left,
+.fe-th-right {
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.fe-th-left {
+  text-align: left;
+}
+
+.fe-th-right {
+  text-align: right;
+}
+
+.fe-td-left,
+.fe-td-right {
+  padding: 10px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.fe-td-left {
+  text-align: left;
+}
+
+.fe-td-right {
+  text-align: right;
+}
+
+.fe-total-row .fe-td-left,
+.fe-total-row .fe-td-right {
+  color: white;
+  border-bottom: none;
+}
+
+.fe-bottom {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+  gap: 20px;
+}
+
+.fe-bottom-left {
+  flex: 1;
+  font-size: 14px;
+}
+
+.fe-section-label {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 4px;
+}
+
+.fe-words {
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 16px;
+}
+
+.fe-terms-label {
+  margin-top: 10px;
+}
+
+.fe-terms-text {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+}
+
+.fe-bottom-right {
+  width: 360px;
+  flex-shrink: 0;
+  border: 1px solid #ddd;
+}
+
+.fe-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.fe-summary-row:last-child {
+  border-bottom: none;
+}
+
+.fe-summary-total {
+  color: white;
+  font-weight: 700;
+}
+
+.fe-footer {
+  padding: 30px 20px 0 60px;
+  font-size: 14px;
+}
+
+.fe-for-text {
+  color: #555;
+  margin: 0 0 40px;
+}
+
+.fe-signatory {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}

@@ -1,0 +1,173 @@
+.tally-wrapper {
+  border: 1px solid #ccc;
+  padding: 30px;
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.tally-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #1a1a2e;
+}
+
+.tally-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.tally-logo {
+  width: 100px;
+  height: 80px;
+  background-color: #888;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.tally-company h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.tally-company p {
+  font-size: 14px;
+  color: #444;
+  margin-top: 4px;
+}
+
+.tally-info {
+  display: flex;
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+}
+
+.tally-bill {
+  flex: 1;
+  padding: 15px;
+  border-right: 1px solid #ccc;
+}
+
+.tally-invoice-details {
+  flex: 1;
+  padding: 15px;
+}
+
+.tally-label {
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.tally-value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tally-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.tally-table th {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 10px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.tally-table th:nth-child(1),
+.tally-table th:nth-child(2) {
+  text-align: left;
+}
+
+.tally-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.tally-table td:nth-child(1),
+.tally-table td:nth-child(2) {
+  text-align: left;
+}
+
+.tally-total-row td {
+  background-color: #f9f9f9;
+}
+
+.tally-summary {
+  margin-bottom: 15px;
+}
+
+.tally-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.tally-summary-row.bold {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.tally-words {
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.tally-terms {
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.tally-sign {
+  border: 1px solid #ccc;
+  padding: 15px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 600;
+}
+.tally-sign {
+  display: flex;
+  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 20px;
+}
+
+.tally-sign-box {
+  border: 1px solid #ccc;
+  width: 300px;
+  min-height: 80px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 10px;
+  font-size: 14px;
+  font-family: sans-serif;
+  margin-top: 8px;
+}
+.tally-table thead tr th {
+    background-color: inherit;
+}
