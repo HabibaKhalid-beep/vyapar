@@ -432,7 +432,7 @@ $(document).ready(function () {
     const isCancelled = String($menu.data('is-cancelled')) === '1';
     const editUrl = $menu.data('edit-url');
     const previewUrl = buildReactInvoiceUrl($menu.data('preview-url'), saleId);
-    const pdfUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { download: 1 });
+    const pdfUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId);
     const printUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { print: 1 });
     const deliveryPreviewUrl = $menu.data('delivery-preview-url');
     const paymentHistoryUrl = $menu.data('payment-history-url');
