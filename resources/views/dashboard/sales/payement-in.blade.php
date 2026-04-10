@@ -265,7 +265,7 @@
 
               <div class="mb-3">
                 <label class="form-label text-secondary">Receipt No</label>
-               <input type="text" class="form-control" id="receiptNo" placeholder="Receipt No">
+              <input type="text" class="form-control" id="receiptNo" name="receipt_no" placeholder="Receipt No">
               </div>
 
               <div class="mb-3">
@@ -361,19 +361,19 @@
         <div class="w-100 d-flex">
           <div class="w-50 mt-2">
             <p class="ps-3 text-secondary m-0">Total Amount</p>
-            <p class="ps-3 h4">Rs 100</p>
+            <p class="ps-3 h4">Rs {{ number_format($paymentIns->sum('amount'), 2) }}</p>
           </div>
           <div class="w-50 mt-2 d-flex align-items-end justify-content-center flex-column">
             <div class="col-5 h-50 rounded-pill d-flex justify-content-center align-item-center me-4"
               style="background-color: #DEF7EE;">
-              <p class="text-success pt-1">100% <i class="bi bi-arrow-up-right "></i></>
+              <p class="text-success pt-1">{{ $paymentIns->count() > 0 ? $paymentIns->count() : 0 }} <i class="bi bi-arrow-up-right "></i></>
               </p>
             </div>
             <span class="me-4 pe-1 mt-1 text-secondary" style="font-size: 10px;">vs last month</span>
           </div>
         </div>
         <div class="w-100 d-flex mt-3">
-          <p class="ps-3 pe-3 text-secondary">Received : <span class="fw-bold text-dark">Rs 100</span></p>
+          <p class="ps-3 pe-3 text-secondary">Received : <span class="fw-bold text-dark">Rs {{ number_format($paymentIns->sum('amount'), 2) }}</span></p>
 
 
         </div>
@@ -587,11 +587,25 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colspan="7" class="text-center text-muted py-4">
-                  No estimates yet. Click "New Estimate" to create one.
-                </td>
-              </tr>
+              @forelse($paymentIns as $paymentIn)
+                <tr>
+                  <td>{{ $paymentIn->date ? \Carbon\Carbon::parse($paymentIn->date)->format('d-m-Y') : '-' }}</td>
+                  <td>{{ $paymentIn->reference_no ?: '-' }}</td>
+                  <td>{{ $paymentIn->party?->name ?: '-' }}</td>
+                  <td>Rs {{ number_format((float) $paymentIn->amount, 2) }}</td>
+                  <td>{{ $paymentIn->bankAccount?->display_with_account ?: '-' }}</td>
+                  <td>{{ ucfirst($paymentIn->payment_type) }}</td>
+                  <td>
+                    <a href="{{ route('invoice', ['payment_in' => $paymentIn->id]) }}" class="btn btn-sm btn-outline-primary">View Invoice</a>
+                  </td>
+                </tr>
+              @empty
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">
+                    No payment in records yet. Click "Add Payment-in" to create one.
+                  </td>
+                </tr>
+              @endforelse
             </tbody>
           </table>
         </div>
@@ -974,10 +988,11 @@ $('#paymentInForm').on('submit', function(e) {
     $('#paymentContainer .payment-row').each(function() {
         const type = $(this).find('.payment-type').val();
         const amount = $(this).find('.payment-amount').val();
-        const bank_account_id = $(this).find('.payment-bank').val(); // ✅ yeh add karo
+        const bank_account_id = $(this).find('.payment-bank').val();
+        const reference = $(this).find('.payment-reference').val();
 
         if(type && amount) {
-            payments.push({ type, amount, bank_account_id });
+            payments.push({ type, amount, bank_account_id, reference });
         }
     });
 
@@ -987,24 +1002,28 @@ $('#paymentInForm').on('submit', function(e) {
     $.ajax({
         url:'/dashboard/payments-in', 
         method: 'POST',
-        contentType: 'application/json',       
+        contentType: 'application/json',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+            'Accept': 'application/json'
+        },
         data: JSON.stringify({
             party_id: $('.party-id').val(),
             reference_no: $('#referenceNo').val(),
             payments: payments,
-          receipt_no: $('#receiptNo').val(), // 
+            receipt_no: $('#receiptNo').val(),
             date: $('input[name="date"]').val(),  
             received: $('#receivedAmount').val(),
             description: $('#paymentDescription').val(),
             _token: $('meta[name="csrf-token"]').attr('content')
         }),
         success: function(res) {
-            alert('Payment saved successfully!');
-            $('#paymentInForm')[0].reset();
-            $('#paymentContainer .payment-row').not(':first').remove();
-            $('#descriptionBox, #imageUploadBox, #imageSelectedName').addClass('d-none');
-            $('#imageSelectedName').text('');
-            updateReceivedTotal();
+            if (res.redirect_url) {
+                window.location.href = res.redirect_url;
+                return;
+            }
+
+            window.location.reload();
         },
         error: function(xhr) {
             console.log(xhr.responseJSON); 

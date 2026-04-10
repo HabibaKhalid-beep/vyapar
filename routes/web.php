@@ -94,7 +94,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::post('/estimates', [EstimateController::class, 'store'])->name('estimate.store');
 
     // Sale Sections
-    Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
+    Route::get('/payment-in', [PaymentInController::class, 'index'])->name('payment-in');
 
 
 
@@ -142,6 +142,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     // Invoice
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice');
     Route::get('/invoice/print', [InvoiceController::class, 'print'])->name('invoice.print');
+    Route::get('/invoice/payment-in', [InvoiceController::class, 'paymentIn'])->name('invoice.payment-in');
 
     // Loan Accounts
     Route::get('/loan-accounts', [LoanAccountController::class, 'index'])->name('loan-accounts');
@@ -303,8 +304,7 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::post('/warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
     Route::post('/bank-accounts/bulk-status', [BankAccountController::class, 'bulkStatus'])->name('bank-accounts.bulk-status');
     // payment-in
-    Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
-Route::post('/payments-in', [BankAccountController::class, 'paymentIn'])->name('payments-in.store');
+Route::post('/payments-in', [PaymentInController::class, 'store'])->name('payments-in.store');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

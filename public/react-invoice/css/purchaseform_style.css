@@ -1,0 +1,582 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #1877f2;
+    --primary-hover: #166fe5;
+    --bg-color: #f5f6f8;
+    --card-bg: #ffffff;
+    --border-color: #d1d5db;
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --input-focus-shadow: rgba(24, 119, 242, 0.1);
+    --header-font-size: 14px;
+    --main-font-size: 13px;
+    --sidebar-width: 240px;
+}
+
+/* Scoped Form Styles */
+.tab-pane .invoice-container {
+    /* Let the form grow beyond the viewport and rely on the tab-pane scroll */
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    position: relative;
+    background-color: var(--bg-color);
+}
+
+/* Layout Container */
+.tab-pane .invoice-card {
+    background: var(--card-bg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    flex-grow: 1;
+    /* overflow-y: auto; */
+    margin-bottom: 80px;
+    /* Space for the sticky bar */
+}
+
+/* Header Section */
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+}
+
+.header-left {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.header-right {
+    display: flex;
+    /* flex-direction: column; */
+    gap: 15px;
+    min-width: 200px;
+}
+
+/* Floating Label / Fieldset Style */
+.input-group {
+    position: relative;
+    margin-top: 15px;
+    /* Increased to accommodate label */
+}
+
+.input-group label {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    background: transparent;
+    padding: 0 4px;
+    font-size: var(--main-font-size);
+    color: var(--text-muted);
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 1;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-control {
+    width: 100%;
+    padding: 12px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: var(--main-font-size);
+    outline: none;
+    background: white;
+}
+
+/* Floating effect on focus or when input has content */
+.input-control:focus+label,
+.input-control:not(:placeholder-shown)+label,
+.input-control.has-content+label {
+    top: 0;
+    left: 10px;
+    background: white;
+    font-size: 11px;
+    color: var(--primary-color);
+    font-weight: 600;
+    transform: translateY(-50%);
+}
+
+/* Dropdown Menu Styles */
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    display: none;
+    z-index: 1000;
+    margin-top: 2px;
+    overflow: hidden;
+}
+
+.dropdown-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: var(--main-font-size);
+}
+
+.dropdown-item:hover {
+    background-color: #f3f9ff;
+    color: var(--primary-color);
+}
+
+.tab-pane .dropdown-item:last-child {
+    border-top: 1px solid #f3f4f6;
+    color: var(--primary-color) !important;
+    font-weight: 600;
+}
+
+.input-group.party-input .input-control:focus,
+.input-group.party-input .input-control:not(:placeholder-shown) {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--input-focus-shadow);
+}
+
+.input-group.party-input label {
+    color: var(--primary-color);
+    /* Overriding default to match specific requirement */
+}
+
+/* Underline style for bill number */
+.underline-input {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+    padding: 5px 0;
+    width: 100%;
+}
+
+.underline-input:focus {
+    border-bottom-color: var(--primary-color);
+    box-shadow: none;
+}
+
+/* Date Input Wrapper */
+.date-wrapper {
+    position: relative;
+}
+
+.date-wrapper i {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary-color);
+    pointer-events: none;
+}
+
+/* Table Section */
+.table-container {
+    margin: 20px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #f9fafb;
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.item-table td input,
+.item-table td select {
+    width: 100%;
+    border: 1px solid transparent;
+    padding: 6px;
+    font-size: var(--main-font-size);
+    outline: none;
+    background: transparent;
+}
+
+.item-table td input:focus {
+    border-color: var(--primary-color);
+    background: white;
+}
+
+.item-table .row-num {
+    color: var(--text-muted);
+    width: 40px;
+    text-align: center;
+    position: relative;
+    /* For absolute delete icon */
+    cursor: default;
+}
+
+.delete-row-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ef4444;
+    /* Red color for delete */
+    cursor: pointer;
+    display: none;
+    font-size: 14px;
+    background: white;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.item-row:hover .delete-row-icon {
+    display: flex;
+}
+
+.item-row:hover .row-index-text {
+    display: none;
+}
+
+.item-table .col-amount {
+    font-weight: 600;
+}
+
+.item-table .add-col {
+    text-align: right;
+    width: 50px;
+}
+
+.btn-add-circle {
+    background: var(--primary-color);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    float: right;
+    transition: all 0.2s;
+}
+
+.btn-add-circle:hover {
+    background: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+/* Settings Box */
+.settings-box {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 200px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    display: none;
+    padding: 12px;
+    text-align: left;
+    margin-top: 8px;
+}
+
+.settings-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #f3f4f6;
+    padding-bottom: 5px;
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+}
+
+.settings-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+.settings-item label {
+    font-size: 13px;
+    color: var(--text-main);
+    cursor: pointer;
+    user-select: none;
+}
+
+.settings-item:hover label {
+    color: var(--primary-color);
+}
+
+.d-none {
+    display: none !important;
+}
+
+/* Table Footer */
+.table-footer {
+    padding: 12px;
+    background: #f9fafb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-add-row {
+    background: white;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    padding: 6px 15px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.footer-totals {
+    display: flex;
+    gap: 40px;
+    font-weight: 600;
+}
+
+.total-label {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Bottom Split Section */
+.bottom-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 30px;
+}
+
+.bottom-left {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.bottom-right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.link-text {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.btn-action-light {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f3f4f6;
+    border: 1px solid var(--border-color);
+    padding: 10px 15px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+}
+
+.btn-action-light i {
+    font-size: 16px;
+}
+
+/* Calculation Rows */
+.calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.calc-label {
+    min-width: 80px;
+    color: var(--text-main);
+}
+
+.calc-inputs {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-grow: 1;
+    justify-content: flex-end;
+}
+
+.mini-input {
+    width: 60px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    text-align: right;
+}
+
+.final-total-group {
+    margin-top: 10px;
+}
+
+.total-input-large {
+    width: 50%;
+    padding: 12px;
+    margin-left:50%;
+    font-size: 18px;
+    font-weight: 700;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    text-align: right;
+    background: white;
+}
+
+/* Custom Checkbox */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Image Upload Preview */
+.image-upload-section .image-placeholder {
+    background: #fafafa;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
+}
+
+.image-upload-section .image-preview {
+    position: relative;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+    padding: 10px;
+    background: white;
+}
+
+.image-upload-section .image-preview-img {
+    max-width: 100%;
+    max-height: 180px;
+    display: block;
+    margin: 0 auto;
+    border-radius: 6px;
+}
+
+.image-upload-section .image-preview-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+.custom-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+/* Sticky Action Bar */
+.tab-pane .sticky-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid var(--border-color);
+    padding: 12px 40px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-share {
+    display: flex;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.btn-share-main {
+    background: white;
+    color: var(--primary-color);
+    border: none;
+    padding: 8px 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-share-arrow {
+    background: white;
+    color: var(--primary-color);
+    border: none;
+    border-left: 1px solid var(--primary-color);
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.btn-save {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 35px;
+    border-radius: 4px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-save:hover {
+    background: var(--primary-hover);
+}
+
+/* Hide arrow for number inputs */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.custom-size-th,
+.custom-size-td {
+    width: 6rem;
+}

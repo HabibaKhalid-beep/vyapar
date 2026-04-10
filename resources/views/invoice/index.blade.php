@@ -45,6 +45,19 @@
   </style>
 </head>
 <body>
+  @if ($paymentIn)
+    <script>
+      window.paymentInInvoice = @json($paymentIn);
+      window.currentInvoiceData = @json($paymentIn);
+    </script>
+  @endif
+
+  @if ($allPaymentIns)
+    <script>
+      window.allPaymentInInvoices = @json($allPaymentIns);
+    </script>
+  @endif
+
   @if ($reactJs)
     <div id="root"></div>
   @else
@@ -56,6 +69,20 @@
 
   @if ($reactJs)
     <script type="module" src="{{ $reactJs }}"></script>
+    <script>
+      // Force all themes to use actual data
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+          if (window.paymentInInvoice) {
+            // Override any theme defaults with actual data
+            const event = new CustomEvent('invoiceDataLoaded', {
+              detail: window.paymentInInvoice
+            });
+            window.dispatchEvent(event);
+          }
+        }, 500);
+      });
+    </script>
   @endif
 </body>
 </html>

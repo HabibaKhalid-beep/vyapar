@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             BankAccountSeeder::class,
             ItemSeeder::class,
             AddMissingPermissionsSeeder::class,
+            PaymentInSeeder::class,
         ]);
     }
 }
