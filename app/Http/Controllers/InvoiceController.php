@@ -1,12 +1,12 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\PaymentIn;
-use Illuminate\Http\Request;
-use App\Models\BankAccount;
-use App\Models\Sale;
-use Illuminate\Support\Carbon;
 
+use App\Models\BankAccount;
+use App\Models\PaymentIn;
+use App\Models\Sale;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class InvoiceController extends Controller
 {
@@ -22,45 +22,6 @@ class InvoiceController extends Controller
             ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
             ->first();
 
-
-        $paymentIn = null;
-        $allPaymentIns = [];
-
-        if ($request->filled('payment_in')) {
-            $paymentInRecord = PaymentIn::with(['party', 'bankAccount'])
-                ->find($request->integer('payment_in'));
-
-            if ($paymentInRecord) {
-                // Transform PaymentIn into invoice format
-                $paymentIn = [
-                    'id' => $paymentInRecord->id,
-                    'invoice_number' => $paymentInRecord->receipt_no ?? $paymentInRecord->id,
-                    'date' => $paymentInRecord->date,
-                    'party' => $paymentInRecord->party,
-                    'bank_account' => $paymentInRecord->bankAccount,
-                    'amount' => $paymentInRecord->amount,
-                    'payment_type' => $paymentInRecord->payment_type,
-                    'reference_no' => $paymentInRecord->reference_no,
-                    'receipt_no' => $paymentInRecord->receipt_no,
-                    'description' => $paymentInRecord->description,
-                    'items' => [
-                        [
-                            'name' => $paymentInRecord->payment_type . ' Payment',
-                            'quantity' => 1,
-                            'price' => $paymentInRecord->amount,
-                            'amount' => $paymentInRecord->amount,
-                        ]
-                    ],
-                ];
-            }
-        }
-
-        // Get all payment invoices
-        $allPaymentIns = PaymentIn::with(['party', 'bankAccount'])->latest()->get();
-
-        return view('invoice.index', compact('reactCss', 'reactJs', 'paymentIn', 'allPaymentIns'));
-
-        $sale = null;
         $invoiceAppData = [
             'saleId' => null,
             'invoiceData' => null,
@@ -69,8 +30,12 @@ class InvoiceController extends Controller
             'invoicePdfUrl' => null,
         ];
 
+        $paymentIn = null;
+        $allPaymentIns = collect();
+
         if ($request->filled('sale_id')) {
-            $sale = Sale::with(['items.item', 'party', 'payments.bankAccount'])->findOrFail($request->integer('sale_id'));
+            $sale = Sale::with(['items.item', 'party', 'payments.bankAccount'])
+                ->findOrFail($request->integer('sale_id'));
 
             $invoiceAppData = [
                 'saleId' => $sale->id,
@@ -79,10 +44,28 @@ class InvoiceController extends Controller
                 'initialColor' => (string) $request->query('accent', '#707070'),
                 'invoicePdfUrl' => route('sale.invoice-pdf', $sale),
             ];
+        } elseif ($request->filled('payment_in')) {
+            $paymentInRecord = PaymentIn::with(['party', 'bankAccount'])
+                ->findOrFail($request->integer('payment_in'));
+
+            $paymentIn = $this->mapPaymentInLegacyData($paymentInRecord);
+            $invoiceAppData = [
+                'saleId' => $paymentInRecord->id,
+                'invoiceData' => $this->mapPaymentInToReactInvoiceData($paymentInRecord),
+                'initialTheme' => (string) $request->query('theme', 'tally'),
+                'initialColor' => (string) $request->query('accent', '#707070'),
+                'invoicePdfUrl' => null,
+            ];
+            $allPaymentIns = PaymentIn::with(['party', 'bankAccount'])->latest()->get();
         }
 
-        return view('invoice.index', compact('reactCss', 'reactJs', 'invoiceAppData'));
-
+        return view('invoice.index', [
+            'reactCss' => $reactCss,
+            'reactJs' => $reactJs,
+            'invoiceAppData' => $invoiceAppData,
+            'paymentIn' => $paymentIn,
+            'allPaymentIns' => $allPaymentIns,
+        ]);
     }
 
     public function print()
@@ -90,55 +73,9 @@ class InvoiceController extends Controller
         return view('invoice.print');
     }
 
-
     public function paymentIn(Request $request)
     {
-        $reactCss = collect(glob(public_path('react-invoice/assets/index-*.css')))
-            ->sortByDesc(fn ($path) => filemtime($path))
-            ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
-            ->first();
-
-        $reactJs = collect(glob(public_path('react-invoice/assets/index-*.js')))
-            ->sortByDesc(fn ($path) => filemtime($path))
-            ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
-            ->first();
-
-        $paymentIn = null;
-        $allPaymentIns = [];
-
-        if ($request->filled('payment_in')) {
-            $paymentInRecord = PaymentIn::with(['party', 'bankAccount'])
-                ->find($request->integer('payment_in'));
-
-            if ($paymentInRecord) {
-                // Transform PaymentIn into invoice format
-                $paymentIn = [
-                    'id' => $paymentInRecord->id,
-                    'invoice_number' => $paymentInRecord->receipt_no ?? $paymentInRecord->id,
-                    'date' => $paymentInRecord->date,
-                    'party' => $paymentInRecord->party,
-                    'bank_account' => $paymentInRecord->bankAccount,
-                    'amount' => $paymentInRecord->amount,
-                    'payment_type' => $paymentInRecord->payment_type,
-                    'reference_no' => $paymentInRecord->reference_no,
-                    'receipt_no' => $paymentInRecord->receipt_no,
-                    'description' => $paymentInRecord->description,
-                    'items' => [
-                        [
-                            'name' => $paymentInRecord->payment_type . ' Payment',
-                            'quantity' => 1,
-                            'price' => $paymentInRecord->amount,
-                            'amount' => $paymentInRecord->amount,
-                        ]
-                    ],
-                ];
-            }
-        }
-
-        // Get all payment invoices
-        $allPaymentIns = PaymentIn::with(['party', 'bankAccount'])->latest()->get();
-
-        return view('invoice.payment-in', compact('reactCss', 'reactJs', 'paymentIn', 'allPaymentIns'));
+        return $this->index($request);
     }
 
     private function mapSaleToReactInvoiceData(Sale $sale): array
@@ -192,6 +129,69 @@ class InvoiceController extends Controller
             'bankAccountNumber' => (string) ($bankAccount?->account_number ?: ''),
             'bankAccountHolder' => (string) ($bankAccount?->account_holder_name ?: ''),
         ];
+    }
 
+    private function mapPaymentInToReactInvoiceData(PaymentIn $paymentIn): array
+    {
+        $createdAt = $paymentIn->created_at instanceof Carbon
+            ? $paymentIn->created_at
+            : Carbon::parse($paymentIn->created_at ?? now());
+
+        $date = $paymentIn->date ? Carbon::parse($paymentIn->date) : $createdAt;
+        $amount = (float) ($paymentIn->amount ?? 0);
+
+        return [
+            'title' => 'Payment In Invoice',
+            'businessName' => (string) config('app.name', 'My Company'),
+            'businessPhone' => (string) ($paymentIn->bankAccount?->phone ?: ''),
+            'invoiceNo' => (string) ($paymentIn->receipt_no ?: $paymentIn->id),
+            'date' => $date->format('d/m/Y'),
+            'time' => $createdAt->format('h:i A'),
+            'billTo' => (string) ($paymentIn->party?->name ?: 'Customer'),
+            'billAddress' => (string) ($paymentIn->party?->billing_address ?: ''),
+            'billPhone' => (string) ($paymentIn->party?->phone ?: ''),
+            'shipTo' => (string) ($paymentIn->party?->billing_address ?: ''),
+            'description' => (string) ($paymentIn->description ?: 'Payment received.'),
+            'subtotal' => $amount,
+            'discount' => 0,
+            'taxAmount' => 0,
+            'total' => $amount,
+            'received' => $amount,
+            'balance' => 0,
+            'items' => [[
+                'name' => (string) (($paymentIn->payment_type ?: 'Payment') . ' Payment'),
+                'hsn' => (string) ($paymentIn->reference_no ?: ''),
+                'qty' => 1,
+                'unit' => '',
+                'rate' => $amount,
+                'discount' => 0,
+                'amount' => $amount,
+            ]],
+            'bankName' => (string) ($paymentIn->bankAccount?->bank_name ?: $paymentIn->bankAccount?->display_name ?: ''),
+            'bankAccountNumber' => (string) ($paymentIn->bankAccount?->account_number ?: ''),
+            'bankAccountHolder' => (string) ($paymentIn->bankAccount?->account_holder_name ?: ''),
+        ];
+    }
+
+    private function mapPaymentInLegacyData(PaymentIn $paymentIn): array
+    {
+        return [
+            'id' => $paymentIn->id,
+            'invoice_number' => $paymentIn->receipt_no ?? $paymentIn->id,
+            'date' => $paymentIn->date,
+            'party' => $paymentIn->party,
+            'bank_account' => $paymentIn->bankAccount,
+            'amount' => $paymentIn->amount,
+            'payment_type' => $paymentIn->payment_type,
+            'reference_no' => $paymentIn->reference_no,
+            'receipt_no' => $paymentIn->receipt_no,
+            'description' => $paymentIn->description,
+            'items' => [[
+                'name' => ($paymentIn->payment_type ?: 'Payment') . ' Payment',
+                'quantity' => 1,
+                'price' => $paymentIn->amount,
+                'amount' => $paymentIn->amount,
+            ]],
+        ];
     }
 }

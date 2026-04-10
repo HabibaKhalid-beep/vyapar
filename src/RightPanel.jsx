@@ -18,17 +18,9 @@ import ThermalTheme5 from './ThermalTheme5'
 import FrenchElite from './FrenchElite'
 import DoubleDivine from './DoubleDivine'
 
-<<<<<<< Updated upstream
-const RightPanel = ({ selectedTheme, selectedColor, businessInfo, invoiceData, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick }) => {
-
-  const classicProps = { businessInfo, invoiceData, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick }
-  const vintageProps = { businessInfo, invoiceData, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick }
-=======
 const RightPanel = ({ selectedTheme, selectedColor, businessInfo, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick, invoiceData }) => {
-
   const classicProps = { businessInfo, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick, invoiceData }
   const vintageProps = { businessInfo, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick, invoiceData }
->>>>>>> Stashed changes
 
   const renderTheme = () => {
     if (selectedTheme === 'tally') return <TallyTheme {...classicProps} />
@@ -56,23 +48,6 @@ const RightPanel = ({ selectedTheme, selectedColor, businessInfo, signature, onC
 
   return (
     <div className="right-panel">
-      {window.paymentInInvoice && (
-        <div style={{
-          margin: '12px 16px 0',
-          padding: '14px 16px',
-          borderRadius: '14px',
-          background: 'linear-gradient(135deg, #0f4c81 0%, #0f766e 100%)',
-          color: '#fff',
-          boxShadow: '0 12px 28px rgba(15, 76, 129, 0.18)'
-        }}>
-          <div style={{ fontSize: '12px', opacity: 0.85, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Payment In Loaded</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginTop: '8px' }}>
-            <div><strong>Party:</strong> {invoiceData.billTo}</div>
-            <div><strong>Receipt:</strong> {invoiceData.receiptNo || invoiceData.invoiceNo}</div>
-            <div><strong>Amount:</strong> Rs {Number(invoiceData.amount || 0).toFixed(2)}</div>
-          </div>
-        </div>
-      )}
       {renderTheme()}
     </div>
   )
