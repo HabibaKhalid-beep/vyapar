@@ -112,6 +112,16 @@ class InvoiceController extends Controller
         $createdAt = $sale->created_at instanceof Carbon ? $sale->created_at : Carbon::parse($sale->created_at);
         $invoiceDate = $sale->invoice_date ? Carbon::parse($sale->invoice_date) : $createdAt;
 
+        $paymentsReceived = (float) $sale->payments
+            ->sum('amount');
+
+        $totalAmount = (float) ($sale->grand_total ?? 0);
+        $storedBalance = (float) ($sale->balance ?? 0);
+
+        $receivedAmount = (float) ($sale->received_amount ?? 0);
+        $receivedFromBalance = $totalAmount > 0 ? max($totalAmount - $storedBalance, 0) : 0;
+        $receivedAmount = max($receivedAmount, $paymentsReceived, $receivedFromBalance);
+
         return [
             'title' => $sale->type === 'invoice' ? 'Invoice' : ucwords(str_replace('_', ' ', (string) $sale->type)),
             'businessName' => (string) config('app.name', 'My Company'),
@@ -127,9 +137,9 @@ class InvoiceController extends Controller
             'subtotal' => (float) ($sale->total_amount ?? 0),
             'discount' => (float) ($sale->discount_rs ?? 0),
             'taxAmount' => (float) ($sale->tax_amount ?? 0),
-            'total' => (float) ($sale->grand_total ?? 0),
-            'received' => (float) ($sale->received_amount ?? 0),
-            'balance' => (float) ($sale->balance ?? 0),
+            'total' => $totalAmount,
+            'received' => $receivedAmount,
+            'balance' => (float) ($sale->balance ?? max($totalAmount - $receivedAmount, 0)),
             'items' => $items,
             'bankName' => (string) ($bankAccount?->bank_name ?: $bankAccount?->display_name ?: ''),
             'bankAccountNumber' => (string) ($bankAccount?->account_number ?: ''),

@@ -71,7 +71,7 @@ const ThermalTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
           <tr className="tt3-qty-total-row">
             <td className="tt3-td-left" colSpan="2"><strong>Qty: {view.totalQty}</strong></td>
             <td className="tt3-td-right"></td>
-            <td className="tt3-td-right"><strong>{view.total.toFixed(2)}</strong></td>
+            <td className="tt3-td-right"><strong>{view.paidTotal.toFixed(2)}</strong></td>
           </tr>
 
           {/* Total / Received / Balance sub-rows */}
@@ -79,7 +79,7 @@ const ThermalTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
             <td className="tt3-td-left"></td>
             <td className="tt3-td-left tt3-sub-label"><strong>Total</strong></td>
             <td className="tt3-td-right tt3-sub-colon">:</td>
-            <td className="tt3-td-right"><strong>{view.total.toFixed(2)}</strong></td>
+            <td className="tt3-td-right"><strong>{view.paidTotal.toFixed(2)}</strong></td>
           </tr>
           <tr>
             <td className="tt3-td-left"></td>

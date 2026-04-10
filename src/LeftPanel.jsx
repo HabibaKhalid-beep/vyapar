@@ -134,6 +134,16 @@ const LeftPanel = ({ selectedTheme, setSelectedTheme, selectedColor, setSelected
                 ></div>
               )
             ))}
+            {!isDivine && (
+              <label className="color-dot color-dot-picker">
+                <input
+                  type="color"
+                  value={selectedColor}
+                  onChange={(e) => setSelectedColor(e.target.value)}
+                  aria-label="Custom color"
+                />
+              </label>
+            )}
           </div>
         </div>
       )}

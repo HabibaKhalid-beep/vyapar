@@ -75,7 +75,7 @@ const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
         <div className="tax1-left">
           <div className="tax1-words">
             <p className="tax1-label">Invoice Amount In Words</p>
-            <p>One Hundred Rupees only</p>
+            <p>{view.amountInWords}</p>
           </div>
           <div
             className="tax1-terms"
@@ -92,11 +92,11 @@ const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
         <div className="tax1-right">
           <div className="tax1-summary-row">
             <span>Sub Total</span>
-            <span>{formatCurrency(view.subtotal)}</span>
+            <span>{formatCurrency(view.subtotalPaid)}</span>
           </div>
           <div className="tax1-summary-row total-highlight" style={{ backgroundColor: selectedColor || '#888888' }}>
             <span>Total</span>
-            <span>{formatCurrency(view.total)}</span>
+            <span>{formatCurrency(view.paidTotal)}</span>
           </div>
           <div className="tax1-summary-row">
             <span>Received</span>

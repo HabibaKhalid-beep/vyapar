@@ -69,7 +69,7 @@ const ThermalTheme5 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
             <td className="tt5-td-left" colSpan="1"><strong>Qty: {view.totalQty}</strong></td>
             <td className="tt5-td-center"><strong>Items: {view.items.length}</strong></td>
             <td className="tt5-td-right"></td>
-            <td className="tt5-td-right"><strong>{view.total.toFixed(2)}</strong></td>
+            <td className="tt5-td-right"><strong>{view.paidTotal.toFixed(2)}</strong></td>
           </tr>
 
           <tr>
@@ -81,7 +81,7 @@ const ThermalTheme5 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
             <td className="tt5-td-left tt5-sub-label" colSpan="1"><strong>Total</strong></td>
             <td className="tt5-td-left"></td>
             <td className="tt5-td-right tt5-sub-colon">:</td>
-            <td className="tt5-td-right"><strong>{view.total.toFixed(2)}</strong></td>
+            <td className="tt5-td-right"><strong>{view.paidTotal.toFixed(2)}</strong></td>
           </tr>
           <tr>
             <td className="tt5-td-left tt5-sub-label">Received</td>

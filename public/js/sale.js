@@ -71,6 +71,46 @@ $(document).ready(function () {
     return url.toString();
   }
 
+  function buildReactInvoiceUrl(baseUrl, saleId, extraParams = {}) {
+    if (!baseUrl) return '';
+    const url = new URL(baseUrl, window.location.origin);
+    const savedTheme = getInvoiceThemeState(saleId);
+
+    if (savedTheme) {
+      if (savedTheme.mode === 'thermal') {
+        url.searchParams.set('theme', `thermal${savedTheme.thermalThemeId || 1}`);
+      } else if (savedTheme.regularThemeId) {
+        const map = {
+          1: 'tally',
+          2: 'LandScapeTheme1',
+          3: 'LandScapeTheme2',
+          4: 'tax1',
+          5: 'tax2',
+          6: 'tax3',
+          7: 'tax4',
+          8: 'tax5',
+          9: 'tax6',
+          10: 'divine',
+          11: 'french',
+          12: 'theme1',
+          13: 'theme2',
+          14: 'theme3',
+          15: 'theme4',
+        };
+        url.searchParams.set('theme', map[savedTheme.regularThemeId] || 'tally');
+      }
+      if (savedTheme.accent) url.searchParams.set('accent', savedTheme.accent);
+    }
+
+    Object.entries(extraParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value);
+      }
+    });
+
+    return url.toString();
+  }
+
   function openPreviewModal(url, title) {
     if (!salePreviewModal || !salePreviewFrame || !url) {
       if (url) window.open(url, '_blank');
@@ -391,9 +431,9 @@ $(document).ready(function () {
     const saleId = $menu.data('sale-id');
     const isCancelled = String($menu.data('is-cancelled')) === '1';
     const editUrl = $menu.data('edit-url');
-    const previewUrl = buildUrlWithTheme($menu.data('preview-url'), saleId);
-    const pdfUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
-    const printUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
+    const previewUrl = buildReactInvoiceUrl($menu.data('preview-url'), saleId);
+    const pdfUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { download: 1 });
+    const printUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { print: 1 });
     const deliveryPreviewUrl = $menu.data('delivery-preview-url');
     const paymentHistoryUrl = $menu.data('payment-history-url');
     const bankHistoryUrl = $menu.data('bank-history-url');
@@ -504,7 +544,7 @@ $(document).ready(function () {
       }
     } else if (action === 'preview') {
       if (previewUrl) {
-        window.open(previewUrl, '_blank');
+        openPreviewModal(previewUrl, `Invoice Preview - ${saleNumber}`);
       }
     } else if (action === 'print') {
       if (printUrl) {
@@ -639,7 +679,7 @@ $(document).ready(function () {
   $(document).on('click', '.row-action-print', function () {
     const $menu = $(this).closest('td').find('.sale-action-menu');
     const saleId = $menu.data('sale-id');
-    const printUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
+    const printUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { print: 1 });
     if (printUrl) {
       window.open(printUrl, '_blank');
     }

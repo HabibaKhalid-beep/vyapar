@@ -86,13 +86,13 @@ const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
         <div className="tax4-summary-row">
           <span className="tax4-summary-label">Sub Total</span>
           <span className="tax4-summary-colon">:</span>
-          <span className="tax4-summary-value">{formatCurrency(view.subtotal)}</span>
+          <span className="tax4-summary-value">{formatCurrency(view.subtotalPaid)}</span>
         </div>
 
         <div className="tax4-summary-row tax4-summary-bold">
           <span className="tax4-summary-label">Total</span>
           <span className="tax4-summary-colon">:</span>
-          <span className="tax4-summary-value"><strong>{formatCurrency(view.total)}</strong></span>
+          <span className="tax4-summary-value"><strong>{formatCurrency(view.paidTotal)}</strong></span>
         </div>
 
         <div className="tax4-summary-row">

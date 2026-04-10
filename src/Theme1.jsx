@@ -89,7 +89,7 @@ const Theme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
 
           <div className="t1-section-header" style={{ backgroundColor: accent }}>Invoice Amount In Words</div>
           <div className="t1-section-body t1-words-body">
-            <p className="t1-words-text">One Hundred Rupees only</p>
+            <p className="t1-words-text">{view.amountInWords}</p>
           </div>
 
           <div
@@ -117,11 +117,11 @@ const Theme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
           <div className="t1-amounts-body">
             <div className="t1-amount-row">
               <span>Sub Total</span>
-              <span>{formatCurrency(view.subtotal)}</span>
+              <span>{formatCurrency(view.subtotalPaid)}</span>
             </div>
             <div className="t1-amount-row t1-amount-bold">
               <span>Total</span>
-              <span>{formatCurrency(view.total)}</span>
+              <span>{formatCurrency(view.paidTotal)}</span>
             </div>
             <div className="t1-amount-row">
               <span>Received</span>

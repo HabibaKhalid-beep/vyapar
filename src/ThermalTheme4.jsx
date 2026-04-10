@@ -68,14 +68,14 @@ const ThermalTheme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
           <tr className="tt4-qty-total-row">
             <td className="tt4-td-left" colSpan="2"><strong>Qty: {view.totalQty}</strong></td>
             <td className="tt4-td-right"></td>
-            <td className="tt4-td-right"><strong>{view.total.toFixed(2)}</strong></td>
+            <td className="tt4-td-right"><strong>{view.paidTotal.toFixed(2)}</strong></td>
           </tr>
 
           <tr>
             <td className="tt4-td-left"></td>
             <td className="tt4-td-left tt4-sub-label"><strong>Total</strong></td>
             <td className="tt4-td-right tt4-sub-colon">:</td>
-            <td className="tt4-td-right"><strong>{view.total.toFixed(2)}</strong></td>
+            <td className="tt4-td-right"><strong>{view.paidTotal.toFixed(2)}</strong></td>
           </tr>
           <tr>
             <td className="tt4-td-left"></td>

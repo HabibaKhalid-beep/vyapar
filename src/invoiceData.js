@@ -18,8 +18,14 @@ export function getInvoiceViewModel(invoiceData = {}) {
   const discount = Number(invoiceData.discount ?? 0)
   const taxAmount = Number(invoiceData.taxAmount ?? 0)
   const total = Number(invoiceData.total ?? Math.max(subtotal + taxAmount - discount, 0))
-  const received = Number(invoiceData.received ?? 0)
-  const balance = Number(invoiceData.balance ?? Math.max(total - received, 0))
+  const rawBalance = Number(invoiceData.balance ?? invoiceData.balance_amount ?? 0)
+  const receivedFromBalance = Math.max(total - rawBalance, 0)
+  const received = Number(invoiceData.received ?? invoiceData.received_amount ?? receivedFromBalance ?? 0)
+  const paidAmount = received > 0 ? received : total
+  const subtotalPaid = paidAmount
+
+  const amountInWords = numberToRupeesWords(paidAmount)
+  const balance = Number(invoiceData.balance ?? invoiceData.balance_amount ?? Math.max(total - received, 0))
 
   return {
     title: invoiceData.title || 'Invoice',
@@ -38,9 +44,12 @@ export function getInvoiceViewModel(invoiceData = {}) {
     items,
     totalQty,
     subtotal,
+    subtotalPaid,
     discount,
     taxAmount,
     total,
+    paidTotal: paidAmount,
+    amountInWords,
     received,
     balance,
   }
@@ -48,4 +57,65 @@ export function getInvoiceViewModel(invoiceData = {}) {
 
 export function formatCurrency(value) {
   return `Rs ${Number(value || 0).toFixed(2)}`
+}
+
+function numberToRupeesWords(value) {
+  const amount = Number(value || 0)
+  if (!isFinite(amount)) return 'Zero Rupees only'
+
+  const integerPart = Math.floor(Math.abs(amount))
+  const decimalPart = Math.round((Math.abs(amount) - integerPart) * 100)
+
+  const words = integerPart === 0 ? 'Zero' : numberToIndianWords(integerPart)
+  const paisaWords = decimalPart > 0 ? ` and ${numberToIndianWords(decimalPart)} Paisa` : ''
+  const rupeesWord = integerPart === 1 ? 'Rupee' : 'Rupees'
+
+  return `${words} ${rupeesWord}${paisaWords} only`
+}
+
+function numberToIndianWords(num) {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+
+  const toWordsBelowHundred = (n) => {
+    if (n < 20) return ones[n]
+    const t = Math.floor(n / 10)
+    const o = n % 10
+    return `${tens[t]}${o ? ' ' + ones[o] : ''}`.trim()
+  }
+
+  const toWordsBelowThousand = (n) => {
+    const h = Math.floor(n / 100)
+    const rest = n % 100
+    const head = h ? `${ones[h]} Hundred` : ''
+    const tail = rest ? `${head ? ' ' : ''}${toWordsBelowHundred(rest)}` : ''
+    return `${head}${tail}`.trim()
+  }
+
+  const parts = []
+  let remaining = num
+
+  const crore = Math.floor(remaining / 10000000)
+  if (crore) {
+    parts.push(`${toWordsBelowThousand(crore)} Crore`)
+    remaining %= 10000000
+  }
+
+  const lakh = Math.floor(remaining / 100000)
+  if (lakh) {
+    parts.push(`${toWordsBelowThousand(lakh)} Lakh`)
+    remaining %= 100000
+  }
+
+  const thousand = Math.floor(remaining / 1000)
+  if (thousand) {
+    parts.push(`${toWordsBelowThousand(thousand)} Thousand`)
+    remaining %= 1000
+  }
+
+  if (remaining) {
+    parts.push(toWordsBelowThousand(remaining))
+  }
+
+  return parts.join(' ').trim()
 }

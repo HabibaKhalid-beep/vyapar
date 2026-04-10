@@ -78,18 +78,18 @@ const FrenchElite = ({ selectedColor, businessInfo, signature, onCompanyClick, o
       <div className="fe-bottom">
         <div className="fe-bottom-left">
           <p className="fe-section-label">Invoice Amount In Words</p>
-          <p className="fe-words">One Hundred Rupees only</p>
+          <p className="fe-words">{view.amountInWords}</p>
           <p className="fe-section-label fe-terms-label" onClick={onTermsClick} style={{ cursor: 'pointer' }}>Terms And Conditions</p>
           <p className="fe-terms-text" onClick={onTermsClick} style={{ cursor: 'pointer' }}>{terms}</p>
         </div>
         <div className="fe-bottom-right">
           <div className="fe-summary-row">
             <span>Sub Total</span>
-            <span>{formatCurrency(view.subtotal)}</span>
+            <span>{formatCurrency(view.subtotalPaid)}</span>
           </div>
           <div className="fe-summary-row fe-summary-total" style={{ backgroundColor: selectedColor }}>
             <span>Total</span>
-            <span>{formatCurrency(view.total)}</span>
+            <span>{formatCurrency(view.paidTotal)}</span>
           </div>
           <div className="fe-summary-row">
             <span>Received</span>

@@ -83,10 +83,10 @@ const LandScapeTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
       {/* ROW 4: Sub Total | Total in words */}
       <div className="tax3-summary-band">
         <div className="tax3-summary-band-cell tax3-band-left">
-          <span>Sub Total: <strong>{formatCurrency(view.subtotal)}</strong></span>
+          <span>Sub Total: <strong>{formatCurrency(view.subtotalPaid)}</strong></span>
         </div>
         <div className="tax3-summary-band-cell tax3-band-right">
-          <span>Total: <strong>{formatCurrency(view.total)}</strong></span>
+          <span>Total: <strong>{formatCurrency(view.paidTotal)}</strong></span>
         </div>
       </div>
 

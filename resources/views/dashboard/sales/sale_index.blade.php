@@ -556,9 +556,9 @@
                      data-party-name="{{ $sale->party?->name ?? 'No Party Selected' }}"
                      data-balance="{{ (float) ($sale->balance ?? 0) }}"
                      data-edit-url="{{ route('sale.edit', $sale) }}"
-                     data-preview-url="{{ route('sale.invoice-preview', $sale) }}"
-                     data-pdf-url="{{ route('sale.invoice-pdf', $sale) }}"
-                     data-print-url="{{ route('sale.invoice-pdf', $sale) }}"
+                     data-preview-url="{{ route('invoice', ['sale_id' => $sale->id]) }}"
+                     data-pdf-url="{{ route('invoice', ['sale_id' => $sale->id]) }}"
+                     data-print-url="{{ route('invoice', ['sale_id' => $sale->id]) }}"
                      data-delivery-preview-url="{{ route('sale.delivery-preview', $sale) }}"
                      data-payment-history-url="{{ route('sale.payment-history', $sale) }}"
                      data-bank-history-url="{{ route('sale.bank-history', $sale) }}"
@@ -577,7 +577,7 @@
                     <li><a class="dropdown-item" href="#" data-action="cancel">Cancel Invoice</a></li>
                     <li><a class="dropdown-item" href="#" data-action="delete">Delete</a></li>
                     <li><a class="dropdown-item" href="#" data-action="duplicate">Duplicate</a></li>
-                    <li><a class="dropdown-item" href="#" data-action="preview">Preview</a></li>
+                    <li><a class="dropdown-item" href="#" data-action="pdf">Open PDF</a></li>
                     <li><a class="dropdown-item" href="#" data-action="print">Print</a></li>
                     <li><a class="dropdown-item" href="#" data-action="history">View History</a></li>
                   </ul>

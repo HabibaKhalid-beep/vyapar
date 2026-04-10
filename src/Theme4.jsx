@@ -86,7 +86,7 @@ const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
         {/* LEFT: Words + Terms inline */}
         <div className="t4-bottom-left">
           <p className="t4-inline-row">
-            <strong>Invoice Amount in Words:</strong> One Hundred Rupees only
+            <strong>Invoice Amount in Words:</strong> {view.amountInWords}
           </p>
           <p
             className="t4-inline-row"
@@ -103,11 +103,11 @@ const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
           <div className="t4-amounts-body">
             <div className="t4-amount-row">
               <span>Sub Total</span>
-              <span>{formatCurrency(view.subtotal)}</span>
+              <span>{formatCurrency(view.subtotalPaid)}</span>
             </div>
             <div className="t4-amount-row t4-amount-bold">
               <span>Total</span>
-              <span>{formatCurrency(view.total)}</span>
+              <span>{formatCurrency(view.paidTotal)}</span>
             </div>
             <div className="t4-amount-row">
               <span>Received</span>

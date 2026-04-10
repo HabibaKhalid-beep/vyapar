@@ -1,6 +1,9 @@
 import './TaxTheme5.css'
+import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
-const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick }) => {
+const TaxTheme5 = ({ selectedColor, businessInfo, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
+
   return (
     <div className="tax2-wrapper">
 
@@ -11,7 +14,7 @@ const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onS
       <div className="tax2-header" onClick={onCompanyClick} style={{ cursor: 'pointer' }}>
         <div
           className="tax2-logo"
-          onClick={(e) => { e.stopPropagation(); onLogoClick(); }}
+          onClick={(e) => { e.stopPropagation(); onLogoClick() }}
           style={{ cursor: 'pointer' }}
         >
           {logo
@@ -32,11 +35,11 @@ const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onS
 
       <div className="tax2-info-row">
         <div className="tax2-bill-cell">
-          <p className="tax2-bill-value">fida</p>
+          <p className="tax2-bill-value">{view.billTo}</p>
         </div>
         <div className="tax2-details-cell">
-          <p>Invoice No. : 3</p>
-          <p>Date : 09-04-2026</p>
+          <p>Invoice No. : {view.invoiceNo}</p>
+          <p>Date : {view.date}</p>
         </div>
       </div>
 
@@ -51,19 +54,21 @@ const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onS
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td className="tax2-td-left">1</td>
-            <td className="tax2-td-left"><strong>Sample Item</strong></td>
-            <td className="tax2-td-right">1</td>
-            <td className="tax2-td-right">Rs 100.00</td>
-            <td className="tax2-td-right">Rs 100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="tax2-td-left">{index + 1}</td>
+              <td className="tax2-td-left"><strong>{item.name}</strong></td>
+              <td className="tax2-td-right">{item.qty}</td>
+              <td className="tax2-td-right">{formatCurrency(item.rate)}</td>
+              <td className="tax2-td-right">{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
           <tr className="tax2-total-row">
             <td className="tax2-td-left"></td>
             <td className="tax2-td-left"><strong>Total</strong></td>
-            <td className="tax2-td-right"><strong>1</strong></td>
+            <td className="tax2-td-right"><strong>{view.totalQty}</strong></td>
             <td className="tax2-td-right"></td>
-            <td className="tax2-td-right"><strong>Rs 100.00</strong></td>
+            <td className="tax2-td-right"><strong>{formatCurrency(view.total)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -76,7 +81,7 @@ const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onS
             <span>Invoice Amount In Words</span>
           </div>
           <div className="tax2-words-area">
-            <p>One Hundred Rupees only</p>
+            <p>{view.amountInWords}</p>
           </div>
           <div
             className="tax2-sub-banner"
@@ -97,19 +102,19 @@ const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onS
             </div>
             <div className="tax2-summary-row">
               <span>Sub Total</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.subtotalPaid)}</span>
             </div>
             <div className="tax2-summary-row tax2-bold-row">
               <span>Total</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.paidTotal)}</span>
             </div>
             <div className="tax2-summary-row">
               <span>Received</span>
-              <span>Rs 0.00</span>
+              <span>{formatCurrency(view.received)}</span>
             </div>
             <div className="tax2-summary-row">
               <span>Balance</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.balance)}</span>
             </div>
           </div>
 
@@ -134,4 +139,4 @@ const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onS
   )
 }
 
-export default TaxTheme2
+export default TaxTheme5

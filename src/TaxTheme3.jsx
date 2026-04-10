@@ -90,18 +90,18 @@ const TaxTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
 
         <div className="tax3-cell tax3-words-cell">
           <p className="tax3-section-label">Invoice Amount in Words</p>
-          <p className="tax3-words-value">One Hundred Rupees only</p>
+          <p className="tax3-words-value">{view.amountInWords}</p>
         </div>
 
         <div className="tax3-cell tax3-amounts-cell tax3-no-right-border">
           <p className="tax3-section-label">Amounts</p>
           <div className="tax3-summary-row">
             <span>Sub Total</span>
-            <span>{formatCurrency(view.subtotal)}</span>
+            <span>{formatCurrency(view.subtotalPaid)}</span>
           </div>
           <div className="tax3-summary-row tax3-bold-row">
             <span>Total</span>
-            <span>{formatCurrency(view.total)}</span>
+            <span>{formatCurrency(view.paidTotal)}</span>
           </div>
           <div className="tax3-summary-row">
             <span>Received</span>

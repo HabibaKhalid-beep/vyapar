@@ -91,7 +91,7 @@ const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signatu
       <div className="divine-bottom">
         <div className="divine-left-bottom">
           <p className="divine-section-label" style={{ color: selectedColor }}>Invoice Amount In Words</p>
-          <p>One Hundred Rupees only</p>
+          <p>{view.amountInWords}</p>
           <br />
           <p className="divine-section-label" style={{ color: selectedColor }}>Terms And Conditions</p>
           <div
@@ -107,11 +107,11 @@ const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signatu
         <div className="divine-right-bottom">
           <div className="divine-summary-row">
             <span>Sub Total</span>
-            <span>{formatCurrency(view.subtotal)}</span>
+            <span>{formatCurrency(view.subtotalPaid)}</span>
           </div>
           <div className="divine-summary-row divine-total-highlight" style={{ backgroundColor: selectedColor }}>
             <span>Total</span>
-            <span>{formatCurrency(view.total)}</span>
+            <span>{formatCurrency(view.paidTotal)}</span>
           </div>
           <div className="divine-summary-row">
             <span>Received</span>

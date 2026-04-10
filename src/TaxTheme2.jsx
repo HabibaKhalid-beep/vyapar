@@ -81,7 +81,7 @@ const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onS
             <span>Invoice Amount In Words</span>
           </div>
           <div className="tax2-words-area">
-            <p>One Hundred Rupees only</p>
+            <p>{view.amountInWords}</p>
           </div>
           <div
             className="tax2-sub-banner"
@@ -102,11 +102,11 @@ const TaxTheme2 = ({ selectedColor, businessInfo, signature, onCompanyClick, onS
             </div>
             <div className="tax2-summary-row">
               <span>Sub Total</span>
-              <span>{formatCurrency(view.subtotal)}</span>
+              <span>{formatCurrency(view.subtotalPaid)}</span>
             </div>
             <div className="tax2-summary-row tax2-bold-row">
               <span>Total</span>
-              <span>{formatCurrency(view.total)}</span>
+              <span>{formatCurrency(view.paidTotal)}</span>
             </div>
             <div className="tax2-summary-row">
               <span>Received</span>

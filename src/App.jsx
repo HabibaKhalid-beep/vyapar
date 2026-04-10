@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import TermsModal from './TermsModal'
 import LeftPanel from './LeftPanel'
 import RightPanel from './RightPanel'
@@ -36,6 +36,80 @@ const App = () => {
     businessPhone: businessInfo.phone,
     description: terms,
   }
+
+  useEffect(() => {
+    if (!appData.saleId) return
+
+    const theme = selectedTheme || 'tally'
+    const regularMap = {
+      tally: 1,
+      LandScapeTheme1: 2,
+      LandScapeTheme2: 3,
+      tax1: 4,
+      tax2: 5,
+      tax3: 6,
+      tax4: 7,
+      tax5: 8,
+      tax6: 9,
+      divine: 10,
+      french: 11,
+      theme1: 12,
+      theme2: 13,
+      theme3: 14,
+      theme4: 15,
+    }
+    const thermalMap = {
+      thermal1: 1,
+      thermal2: 2,
+      thermal3: 3,
+      thermal4: 4,
+      thermal5: 5,
+    }
+
+    const payload = {
+      mode: theme.startsWith('thermal') ? 'thermal' : 'regular',
+      regularThemeId: theme.startsWith('thermal') ? null : (regularMap[theme] || 1),
+      thermalThemeId: theme.startsWith('thermal') ? (thermalMap[theme] || 1) : null,
+      accent: selectedColor || '#1f4e79',
+      accent2: null,
+    }
+
+    try {
+      window.localStorage.setItem(`saleInvoiceTheme:${appData.saleId}`, JSON.stringify(payload))
+    } catch (error) {
+      // ignore storage errors
+    }
+  }, [selectedTheme, selectedColor])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const shouldDownload = params.get('download') === '1'
+    const shouldPrint = params.get('print') === '1'
+
+    if (!shouldDownload && !shouldPrint) return
+
+    const run = async () => {
+      await new Promise(resolve => setTimeout(resolve, 600))
+      if (shouldDownload && window.html2pdf) {
+        const printable = document.querySelector('.right-panel')
+        if (!printable) return
+        const isThermal = (selectedTheme || '').startsWith('thermal')
+        await window.html2pdf().set({
+          margin: isThermal ? [2, 2, 2, 2] : [6, 6, 6, 6],
+          filename: `invoice-${invoiceData.invoiceNo || appData.saleId || 'invoice'}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: isThermal ? [80, 297] : 'a4', orientation: 'portrait' },
+        }).from(printable).save()
+        return
+      }
+      if (shouldPrint) {
+        window.print()
+      }
+    }
+
+    run()
+  }, [selectedTheme, invoiceData])
 
   return (
     <>
