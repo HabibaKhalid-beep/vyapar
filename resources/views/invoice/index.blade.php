@@ -60,6 +60,9 @@
 
   @if ($reactJs)
     <div id="root"></div>
+    <script>
+      window.invoiceAppData = @json($invoiceAppData ?? null);
+    </script>
   @else
     <div class="bundle-missing">
       React invoice bundle not found. Run the React build and copy the generated dist/assets files into

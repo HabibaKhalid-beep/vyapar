@@ -1,7 +1,8 @@
 import './ThermalTheme5.css'
+import { getInvoiceViewModel } from './invoiceData'
 
-const ThermalTheme5 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
-
+const ThermalTheme5 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
   return (
     <div className="tt5-wrapper">
 
@@ -18,14 +19,14 @@ const ThermalTheme5 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
 
       {/* INVOICE NO + DATE ROW */}
       <div className="tt5-meta-row">
-        <span className="tt5-meta-left">Invoice No.: 3</span>
-        <span className="tt5-meta-right">Date: 09/04/2026</span>
+        <span className="tt5-meta-left">Invoice No.: {view.invoiceNo}</span>
+        <span className="tt5-meta-right">Date: {view.date}</span>
       </div>
 
       <hr className="tt5-dashed" />
 
       {/* BILL TO centered */}
-      <p className="tt5-billto-name">fida</p>
+      <p className="tt5-billto-name">{view.billTo}</p>
 
       <hr className="tt5-dashed" />
 
@@ -47,15 +48,17 @@ const ThermalTheme5 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
             <td colSpan="4" className="tt5-dashed-cell"><hr className="tt5-dashed tt5-no-margin" /></td>
           </tr>
 
-          <tr>
-            <td className="tt5-td-left">1</td>
-            <td className="tt5-td-left">
-              <span className="tt5-item-name">Sample Item</span>
-              <span className="tt5-item-qty">1</span>
-            </td>
-            <td className="tt5-td-right">100.00</td>
-            <td className="tt5-td-right">100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="tt5-td-left">{index + 1}</td>
+              <td className="tt5-td-left">
+                <span className="tt5-item-name">{item.name}</span>
+                <span className="tt5-item-qty">{item.qty}</span>
+              </td>
+              <td className="tt5-td-right">{item.rate.toFixed(2)}</td>
+              <td className="tt5-td-right">{item.amount.toFixed(2)}</td>
+            </tr>
+          ))}
 
           <tr>
             <td colSpan="4" className="tt5-dashed-cell"><hr className="tt5-dashed tt5-no-margin" /></td>
@@ -63,10 +66,10 @@ const ThermalTheme5 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
 
           {/* Qty: 1   Items: 1   100.00 */}
           <tr className="tt5-qty-total-row">
-            <td className="tt5-td-left" colSpan="1"><strong>Qty: 1</strong></td>
-            <td className="tt5-td-center"><strong>Items: 1</strong></td>
+            <td className="tt5-td-left" colSpan="1"><strong>Qty: {view.totalQty}</strong></td>
+            <td className="tt5-td-center"><strong>Items: {view.items.length}</strong></td>
             <td className="tt5-td-right"></td>
-            <td className="tt5-td-right"><strong>100.00</strong></td>
+            <td className="tt5-td-right"><strong>{view.total.toFixed(2)}</strong></td>
           </tr>
 
           <tr>
@@ -78,19 +81,19 @@ const ThermalTheme5 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
             <td className="tt5-td-left tt5-sub-label" colSpan="1"><strong>Total</strong></td>
             <td className="tt5-td-left"></td>
             <td className="tt5-td-right tt5-sub-colon">:</td>
-            <td className="tt5-td-right"><strong>100.00</strong></td>
+            <td className="tt5-td-right"><strong>{view.total.toFixed(2)}</strong></td>
           </tr>
           <tr>
             <td className="tt5-td-left tt5-sub-label">Received</td>
             <td className="tt5-td-left"></td>
             <td className="tt5-td-right tt5-sub-colon">:</td>
-            <td className="tt5-td-right">0.00</td>
+            <td className="tt5-td-right">{view.received.toFixed(2)}</td>
           </tr>
           <tr>
             <td className="tt5-td-left tt5-sub-label">Balance</td>
             <td className="tt5-td-left"></td>
             <td className="tt5-td-right tt5-sub-colon">:</td>
-            <td className="tt5-td-right">100.00</td>
+            <td className="tt5-td-right">{view.balance.toFixed(2)}</td>
           </tr>
 
           <tr>

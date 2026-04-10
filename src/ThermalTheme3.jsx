@@ -1,7 +1,8 @@
 import './ThermalTheme3.css'
+import { getInvoiceViewModel } from './invoiceData'
 
-const ThermalTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
-
+const ThermalTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
   return (
     <div className="tt3-wrapper">
 
@@ -19,10 +20,10 @@ const ThermalTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
 
       {/* BILL TO + DATE/INVOICE NO */}
       <div className="tt3-info-row">
-        <p className="tt3-billto-name">fida</p>
+        <p className="tt3-billto-name">{view.billTo}</p>
         <div className="tt3-invoice-details">
-          <p className="tt3-details-line">Date: 09/04/2026</p>
-          <p className="tt3-details-line">Invoice No.: 3</p>
+          <p className="tt3-details-line">Date: {view.date}</p>
+          <p className="tt3-details-line">Invoice No.: {view.invoiceNo}</p>
         </div>
       </div>
 
@@ -49,15 +50,17 @@ const ThermalTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
           </tr>
 
           {/* Item row */}
-          <tr>
-            <td className="tt3-td-left">1</td>
-            <td className="tt3-td-left">
-              <span className="tt3-item-name">Sample Item</span>
-              <span className="tt3-item-qty">1</span>
-            </td>
-            <td className="tt3-td-right">100.00</td>
-            <td className="tt3-td-right">100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="tt3-td-left">{index + 1}</td>
+              <td className="tt3-td-left">
+                <span className="tt3-item-name">{item.name}</span>
+                <span className="tt3-item-qty">{item.qty}</span>
+              </td>
+              <td className="tt3-td-right">{item.rate.toFixed(2)}</td>
+              <td className="tt3-td-right">{item.amount.toFixed(2)}</td>
+            </tr>
+          ))}
 
           {/* dashed separator */}
           <tr>
@@ -66,9 +69,9 @@ const ThermalTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
 
           {/* Qty total row */}
           <tr className="tt3-qty-total-row">
-            <td className="tt3-td-left" colSpan="2"><strong>Qty: 1</strong></td>
+            <td className="tt3-td-left" colSpan="2"><strong>Qty: {view.totalQty}</strong></td>
             <td className="tt3-td-right"></td>
-            <td className="tt3-td-right"><strong>100.00</strong></td>
+            <td className="tt3-td-right"><strong>{view.total.toFixed(2)}</strong></td>
           </tr>
 
           {/* Total / Received / Balance sub-rows */}
@@ -76,19 +79,19 @@ const ThermalTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
             <td className="tt3-td-left"></td>
             <td className="tt3-td-left tt3-sub-label"><strong>Total</strong></td>
             <td className="tt3-td-right tt3-sub-colon">:</td>
-            <td className="tt3-td-right"><strong>100.00</strong></td>
+            <td className="tt3-td-right"><strong>{view.total.toFixed(2)}</strong></td>
           </tr>
           <tr>
             <td className="tt3-td-left"></td>
             <td className="tt3-td-left tt3-sub-label">Received</td>
             <td className="tt3-td-right tt3-sub-colon">:</td>
-            <td className="tt3-td-right">0.00</td>
+            <td className="tt3-td-right">{view.received.toFixed(2)}</td>
           </tr>
           <tr>
             <td className="tt3-td-left"></td>
             <td className="tt3-td-left tt3-sub-label">Balance</td>
             <td className="tt3-td-right tt3-sub-colon">:</td>
-            <td className="tt3-td-right">100.00</td>
+            <td className="tt3-td-right">{view.balance.toFixed(2)}</td>
           </tr>
 
           {/* dashed separator */}

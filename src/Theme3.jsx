@@ -1,7 +1,9 @@
 import './Theme3.css'
+import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
-const Theme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
+const Theme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const accent = selectedColor || '#888888'
+  const view = getInvoiceViewModel(invoiceData)
 
   return (
     <div className="t1-wrapper">
@@ -39,12 +41,12 @@ const Theme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
       <div className="t1-info-row" style={{ borderTopColor: accent }}>
         <div className="t1-billto-block">
           <p className="t1-billto-label" style={{backgroundColor:accent,color:'white'}}>Bill To</p>
-          <p className="t1-billto-name">fida</p>
+          <p className="t1-billto-name">{view.billTo}</p>
         </div>
         <div className="t1-invoice-details">
           <p className="t1-details-heading" style={{backgroundColor:accent,color:'white'}}>Invoice Details</p>
-          <p className="t1-details-line">Invoice No. : 3</p>
-          <p className="t1-details-line">Date : 09-04-2026</p>
+          <p className="t1-details-line">Invoice No. : {view.invoiceNo}</p>
+          <p className="t1-details-line">Date : {view.date}</p>
         </div>
       </div>
 
@@ -60,19 +62,21 @@ const Theme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td className="t1-td-left">1</td>
-            <td className="t1-td-left"><strong>Sample Item</strong></td>
-            <td className="t1-td-right">1</td>
-            <td className="t1-td-right">Rs 100.00</td>
-            <td className="t1-td-right">Rs 100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="t1-td-left">{index + 1}</td>
+              <td className="t1-td-left"><strong>{item.name}</strong></td>
+              <td className="t1-td-right">{item.qty}</td>
+              <td className="t1-td-right">{formatCurrency(item.rate)}</td>
+              <td className="t1-td-right">{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
           <tr className="t1-total-row">
             <td className="t1-td-left"></td>
             <td className="t1-td-left"><strong>Total</strong></td>
-            <td className="t1-td-right"><strong>1</strong></td>
+            <td className="t1-td-right"><strong>{view.totalQty}</strong></td>
             <td className="t1-td-right"></td>
-            <td className="t1-td-right"><strong>Rs 100.00</strong></td>
+            <td className="t1-td-right"><strong>{formatCurrency(view.total)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -113,19 +117,19 @@ const Theme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
           <div className="t1-amounts-body">
             <div className="t1-amount-row">
               <span>Sub Total</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.subtotal)}</span>
             </div>
             <div className="t1-amount-row t1-amount-bold">
               <span>Total</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.total)}</span>
             </div>
             <div className="t1-amount-row">
               <span>Received</span>
-              <span>Rs 0.00</span>
+              <span>{formatCurrency(view.received)}</span>
             </div>
             <div className="t1-amount-row t1-amount-last">
               <span>Balance</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.balance)}</span>
             </div>
           </div>
 

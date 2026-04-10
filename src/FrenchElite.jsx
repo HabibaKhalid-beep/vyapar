@@ -1,6 +1,9 @@
 import './FrenchElite.css'
+import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
-const FrenchElite = ({ selectedColor, businessInfo, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick }) => {
+const FrenchElite = ({ selectedColor, businessInfo, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
+
   return (
     <div className="fe-wrapper">
 
@@ -30,15 +33,15 @@ const FrenchElite = ({ selectedColor, businessInfo, signature, onCompanyClick, o
 
       <div className="fe-meta">
         <div className="fe-meta-left">
-          <p>Invoice No.:{3}</p>
+          <p>Invoice No.:{view.invoiceNo}</p>
           <div className="fe-date-row">
             <span>Date:</span>
-            <span>09/04/2026</span>
+            <span>{view.date}</span>
           </div>
         </div>
         <div className="fe-meta-right">
           <p className="fe-bill-label">Bill To:</p>
-          <p className="fe-bill-value">fida</p>
+          <p className="fe-bill-value">{view.billTo}</p>
         </div>
       </div>
 
@@ -53,19 +56,21 @@ const FrenchElite = ({ selectedColor, businessInfo, signature, onCompanyClick, o
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td className="fe-td-left">1</td>
-            <td className="fe-td-left"><strong>Sample Item</strong></td>
-            <td className="fe-td-right">1</td>
-            <td className="fe-td-right">Rs 100.00</td>
-            <td className="fe-td-right">Rs 100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="fe-td-left">{index + 1}</td>
+              <td className="fe-td-left"><strong>{item.name}</strong></td>
+              <td className="fe-td-right">{item.qty}</td>
+              <td className="fe-td-right">{formatCurrency(item.rate)}</td>
+              <td className="fe-td-right">{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
           <tr style={{ backgroundColor: selectedColor }} className="fe-total-row">
             <td className="fe-td-left"></td>
             <td className="fe-td-left"><strong>Total</strong></td>
-            <td className="fe-td-right"><strong>1</strong></td>
+            <td className="fe-td-right"><strong>{view.totalQty}</strong></td>
             <td className="fe-td-right"></td>
-            <td className="fe-td-right"><strong>Rs 100.00</strong></td>
+            <td className="fe-td-right"><strong>{formatCurrency(view.total)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -80,19 +85,19 @@ const FrenchElite = ({ selectedColor, businessInfo, signature, onCompanyClick, o
         <div className="fe-bottom-right">
           <div className="fe-summary-row">
             <span>Sub Total</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.subtotal)}</span>
           </div>
           <div className="fe-summary-row fe-summary-total" style={{ backgroundColor: selectedColor }}>
             <span>Total</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.total)}</span>
           </div>
           <div className="fe-summary-row">
             <span>Received</span>
-            <span>Rs 0.00</span>
+            <span>{formatCurrency(view.received)}</span>
           </div>
           <div className="fe-summary-row">
             <span>Balance</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.balance)}</span>
           </div>
         </div>
       </div>

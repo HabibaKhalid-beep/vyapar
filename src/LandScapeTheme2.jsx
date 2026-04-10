@@ -1,6 +1,9 @@
 import './LandScapeTheme2.css'
+import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
-const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
+const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
+
   return (
     <div className="tax4-wrapper">
 
@@ -34,8 +37,8 @@ const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
         </div>
 
         <div className="tax4-cell tax4-meta-cell tax4-no-right-border">
-          <p className="tax4-meta-label">Invoice No.:  <strong>3</strong></p>
-          <p className="tax4-meta-label">Date:  <strong>09/04/2026</strong></p>
+          <p className="tax4-meta-label">Invoice No.:  <strong>{view.invoiceNo}</strong></p>
+          <p className="tax4-meta-label">Date:  <strong>{view.date}</strong></p>
         </div>
 
       </div>
@@ -43,7 +46,7 @@ const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
       {/* ROW 2: Bill To */}
       <div className="tax4-billto-row">
         <p className="tax4-billto-label">Bill To:</p>
-        <p className="tax4-billto-name">fida</p>
+        <p className="tax4-billto-name">{view.billTo}</p>
       </div>
 
       {/* ROW 3: Table */}
@@ -58,19 +61,21 @@ const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td className="tax4-td-left">1</td>
-            <td className="tax4-td-left"><strong>Sample Item</strong></td>
-            <td className="tax4-td-right">1</td>
-            <td className="tax4-td-right">Rs 100.00</td>
-            <td className="tax4-td-right">Rs 100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="tax4-td-left">{index + 1}</td>
+              <td className="tax4-td-left"><strong>{item.name}</strong></td>
+              <td className="tax4-td-right">{item.qty}</td>
+              <td className="tax4-td-right">{formatCurrency(item.rate)}</td>
+              <td className="tax4-td-right">{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
           <tr className="tax4-total-row">
             <td className="tax4-td-left"></td>
             <td className="tax4-td-left"><strong>Total</strong></td>
-            <td className="tax4-td-right"><strong>1</strong></td>
+            <td className="tax4-td-right"><strong>{view.totalQty}</strong></td>
             <td className="tax4-td-right"></td>
-            <td className="tax4-td-right"><strong>Rs 100.00</strong></td>
+            <td className="tax4-td-right"><strong>{formatCurrency(view.total)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -81,13 +86,13 @@ const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
         <div className="tax4-summary-row">
           <span className="tax4-summary-label">Sub Total</span>
           <span className="tax4-summary-colon">:</span>
-          <span className="tax4-summary-value">Rs 100.00</span>
+          <span className="tax4-summary-value">{formatCurrency(view.subtotal)}</span>
         </div>
 
         <div className="tax4-summary-row tax4-summary-bold">
           <span className="tax4-summary-label">Total</span>
           <span className="tax4-summary-colon">:</span>
-          <span className="tax4-summary-value"><strong>Rs 100.00</strong></span>
+          <span className="tax4-summary-value"><strong>{formatCurrency(view.total)}</strong></span>
         </div>
 
         <div className="tax4-summary-row">
@@ -106,8 +111,8 @@ const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
             <span className="tax4-rb-line">:</span>
           </span>
           <span className="tax4-summary-value">
-            <span className="tax4-rb-line">Rs 0.00</span>
-            <span className="tax4-rb-line">Rs 100.00</span>
+            <span className="tax4-rb-line">{formatCurrency(view.received)}</span>
+            <span className="tax4-rb-line">{formatCurrency(view.balance)}</span>
           </span>
         </div>
 

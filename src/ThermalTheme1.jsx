@@ -1,8 +1,9 @@
 import './ThermalTheme1.css'
+import { getInvoiceViewModel } from './invoiceData'
 
-const ThermalTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
+const ThermalTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const accent = selectedColor || '#111111'
-
+  const view = getInvoiceViewModel(invoiceData)
   return (
     <div className="t5-wrapper">
 
@@ -20,10 +21,10 @@ const ThermalTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
 
       {/* BILL TO + DATE/INVOICE NO */}
       <div className="t5-info-row">
-        <p className="t5-billto-name">fida</p>
+        <p className="t5-billto-name">{view.billTo}</p>
         <div className="t5-invoice-details">
-          <p className="t5-details-line">Date: 09/04/2026</p>
-          <p className="t5-details-line">Invoice No.: 3</p>
+          <p className="t5-details-line">Date: {view.date}</p>
+          <p className="t5-details-line">Invoice No.: {view.invoiceNo}</p>
         </div>
       </div>
 
@@ -45,13 +46,15 @@ const ThermalTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
           <tr className="t5-dashed-row">
             <td className="t5-td-left" colSpan="5"><hr className="t5-dashed t5-no-margin" /></td>
           </tr>
-          <tr>
-            <td className="t5-td-left">1</td>
-            <td className="t5-td-left">Sample Item</td>
-            <td className="t5-td-right">1</td>
-            <td className="t5-td-right">100.00</td>
-            <td className="t5-td-right">100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="t5-td-left">{index + 1}</td>
+              <td className="t5-td-left">{item.name}</td>
+              <td className="t5-td-right">{item.qty}</td>
+              <td className="t5-td-right">{item.rate.toFixed(2)}</td>
+              <td className="t5-td-right">{item.amount.toFixed(2)}</td>
+            </tr>
+          ))}
           <tr>
             <td className="t5-td-left" colSpan="5"><hr className="t5-dashed t5-no-margin" /></td>
           </tr>
@@ -60,9 +63,9 @@ const ThermalTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
           <tr className="t5-total-main-row">
             <td className="t5-td-left"><strong>Total</strong></td>
             <td className="t5-td-left"></td>
-            <td className="t5-td-right"><strong>1</strong></td>
+            <td className="t5-td-right"><strong>{view.totalQty}</strong></td>
             <td className="t5-td-right"></td>
-            <td className="t5-td-right"><strong>100.00</strong></td>
+            <td className="t5-td-right"><strong>{view.total.toFixed(2)}</strong></td>
           </tr>
 
           {/* Total / Received / Balance sub-rows */}
@@ -78,14 +81,14 @@ const ThermalTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
             <td className="t5-td-left t5-sub-label">Received</td>
             <td className="t5-td-right t5-sub-colon">:</td>
             <td className="t5-td-right"></td>
-            <td className="t5-td-right">0.00</td>
+            <td className="t5-td-right">{view.received.toFixed(2)}</td>
           </tr>
           <tr>
             <td className="t5-td-left"></td>
             <td className="t5-td-left t5-sub-label">Balance</td>
             <td className="t5-td-right t5-sub-colon">:</td>
             <td className="t5-td-right"></td>
-            <td className="t5-td-right">100.00</td>
+            <td className="t5-td-right">{view.balance.toFixed(2)}</td>
           </tr>
 
           <tr>

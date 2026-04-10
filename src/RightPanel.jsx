@@ -18,10 +18,17 @@ import ThermalTheme5 from './ThermalTheme5'
 import FrenchElite from './FrenchElite'
 import DoubleDivine from './DoubleDivine'
 
+<<<<<<< Updated upstream
 const RightPanel = ({ selectedTheme, selectedColor, businessInfo, invoiceData, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick }) => {
 
   const classicProps = { businessInfo, invoiceData, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick }
   const vintageProps = { businessInfo, invoiceData, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick }
+=======
+const RightPanel = ({ selectedTheme, selectedColor, businessInfo, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick, invoiceData }) => {
+
+  const classicProps = { businessInfo, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick, invoiceData }
+  const vintageProps = { businessInfo, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick, invoiceData }
+>>>>>>> Stashed changes
 
   const renderTheme = () => {
     if (selectedTheme === 'tally') return <TallyTheme {...classicProps} />

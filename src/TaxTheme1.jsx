@@ -1,6 +1,9 @@
 import './TaxTheme1.css'
+import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
-const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
+const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
+
   return (
     <div className="tax1-wrapper">
 
@@ -25,12 +28,12 @@ const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
       <div className="tax1-info">
         <div className="tax1-bill">
           <p className="tax1-label">Bill To</p>
-          <p className="tax1-value">fida</p>
+          <p className="tax1-value">{view.billTo}</p>
         </div>
         <div className="tax1-invoice-details">
           <p className="tax1-label">Invoice Details</p>
-          <p>Invoice No. : <strong>3</strong></p>
-          <p>Date : <strong>09-04-2026</strong></p>
+          <p>Invoice No. : <strong>{view.invoiceNo}</strong></p>
+          <p>Date : <strong>{view.date}</strong></p>
         </div>
       </div>
 
@@ -46,19 +49,21 @@ const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>1</td>
-            <td><strong>Sample Item</strong></td>
-            <td>1</td>
-            <td>Rs 100.00</td>
-            <td>Rs 100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td>{index + 1}</td>
+              <td><strong>{item.name}</strong></td>
+              <td>{item.qty}</td>
+              <td>{formatCurrency(item.rate)}</td>
+              <td>{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
           <tr className="tax1-total-row">
             <td></td>
             <td><strong>Total</strong></td>
-            <td><strong>1</strong></td>
+            <td><strong>{view.totalQty}</strong></td>
             <td></td>
-            <td><strong>Rs 100.00</strong></td>
+            <td><strong>{formatCurrency(view.total)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -87,19 +92,19 @@ const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
         <div className="tax1-right">
           <div className="tax1-summary-row">
             <span>Sub Total</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.subtotal)}</span>
           </div>
           <div className="tax1-summary-row total-highlight" style={{ backgroundColor: selectedColor || '#888888' }}>
             <span>Total</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.total)}</span>
           </div>
           <div className="tax1-summary-row">
             <span>Received</span>
-            <span>Rs 0.00</span>
+            <span>{formatCurrency(view.received)}</span>
           </div>
           <div className="tax1-summary-row">
             <span>Balance</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.balance)}</span>
           </div>
         </div>
 

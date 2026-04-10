@@ -1,6 +1,9 @@
 import './DoubleDivine.css'
+import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
-const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
+const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
+
   return (
     <div className="divine-wrapper">
 
@@ -40,11 +43,11 @@ const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signatu
           <tbody>
             <tr>
               <td><strong>Invoice No.:</strong></td>
-              <td>3</td>
+              <td>{view.invoiceNo}</td>
             </tr>
             <tr>
               <td><strong>Date:</strong></td>
-              <td>09/04/2026</td>
+              <td>{view.date}</td>
             </tr>
           </tbody>
         </table>
@@ -52,7 +55,7 @@ const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signatu
 
       <div className="divine-bill-row">
         <p className="divine-bill-label" style={{ color: selectedColor }}>Bill To:</p>
-        <p className="divine-bill-value">fida</p>
+        <p className="divine-bill-value">{view.billTo}</p>
       </div>
 
       <table className="divine-table">
@@ -66,19 +69,21 @@ const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signatu
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>1</td>
-            <td><strong>Sample Item</strong></td>
-            <td>1</td>
-            <td>Rs 100.00</td>
-            <td>Rs 100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td>{index + 1}</td>
+              <td><strong>{item.name}</strong></td>
+              <td>{item.qty}</td>
+              <td>{formatCurrency(item.rate)}</td>
+              <td>{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
           <tr className="divine-total-row" style={{ backgroundColor: selectedColor }}>
             <td></td>
             <td><strong>Total</strong></td>
-            <td><strong>1</strong></td>
+            <td><strong>{view.totalQty}</strong></td>
             <td></td>
-            <td><strong>Rs 100.00</strong></td>
+            <td><strong>{formatCurrency(view.total)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -102,19 +107,19 @@ const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signatu
         <div className="divine-right-bottom">
           <div className="divine-summary-row">
             <span>Sub Total</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.subtotal)}</span>
           </div>
           <div className="divine-summary-row divine-total-highlight" style={{ backgroundColor: selectedColor }}>
             <span>Total</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.total)}</span>
           </div>
           <div className="divine-summary-row">
             <span>Received</span>
-            <span>Rs 0.00</span>
+            <span>{formatCurrency(view.received)}</span>
           </div>
           <div className="divine-summary-row">
             <span>Balance</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.balance)}</span>
           </div>
         </div>
       </div>

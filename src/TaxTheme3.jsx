@@ -1,6 +1,9 @@
 import './TaxTheme3.css'
+import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
-const TaxTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
+const TaxTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
+
   return (
     <div className="tax3-wrapper">
 
@@ -35,12 +38,12 @@ const TaxTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
 
         <div className="tax3-cell tax3-meta-cell">
           <p className="tax3-meta-label">Invoice No.</p>
-          <p className="tax3-meta-value">3</p>
+          <p className="tax3-meta-value">{view.invoiceNo}</p>
         </div>
 
         <div className="tax3-cell tax3-meta-cell tax3-no-right-border">
           <p className="tax3-meta-label">Date</p>
-          <p className="tax3-meta-value">09-04-2026</p>
+          <p className="tax3-meta-value">{view.date}</p>
         </div>
 
       </div>
@@ -48,7 +51,7 @@ const TaxTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
       {/* ROW 2: Bill To full width */}
       <div className="tax3-billto-row">
         <p className="tax3-billto-label">Bill To</p>
-        <p className="tax3-billto-name">fida</p>
+        <p className="tax3-billto-name">{view.billTo}</p>
       </div>
 
       {/* ROW 3: Table */}
@@ -63,19 +66,21 @@ const TaxTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td className="tax3-td-left">1</td>
-            <td className="tax3-td-left"><strong>Sample Item</strong></td>
-            <td className="tax3-td-right">1</td>
-            <td className="tax3-td-right">Rs 100.00</td>
-            <td className="tax3-td-right">Rs 100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="tax3-td-left">{index + 1}</td>
+              <td className="tax3-td-left"><strong>{item.name}</strong></td>
+              <td className="tax3-td-right">{item.qty}</td>
+              <td className="tax3-td-right">{formatCurrency(item.rate)}</td>
+              <td className="tax3-td-right">{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
           <tr className="tax3-total-row">
             <td className="tax3-td-left"></td>
             <td className="tax3-td-left"><strong>Total</strong></td>
-            <td className="tax3-td-right"><strong>1</strong></td>
+            <td className="tax3-td-right"><strong>{view.totalQty}</strong></td>
             <td className="tax3-td-right"></td>
-            <td className="tax3-td-right"><strong>Rs 100.00</strong></td>
+            <td className="tax3-td-right"><strong>{formatCurrency(view.total)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -92,19 +97,19 @@ const TaxTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
           <p className="tax3-section-label">Amounts</p>
           <div className="tax3-summary-row">
             <span>Sub Total</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.subtotal)}</span>
           </div>
           <div className="tax3-summary-row tax3-bold-row">
             <span>Total</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.total)}</span>
           </div>
           <div className="tax3-summary-row">
             <span>Received</span>
-            <span>Rs 0.00</span>
+            <span>{formatCurrency(view.received)}</span>
           </div>
           <div className="tax3-summary-row tax3-last-row">
             <span>Balance</span>
-            <span>Rs 100.00</span>
+            <span>{formatCurrency(view.balance)}</span>
           </div>
         </div>
 

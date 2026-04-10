@@ -1,7 +1,8 @@
 import './ThermalTheme4.css'
+import { getInvoiceViewModel } from './invoiceData'
 
-const ThermalTheme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
-
+const ThermalTheme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
+  const view = getInvoiceViewModel(invoiceData)
   return (
     <div className="tt4-wrapper">
 
@@ -18,14 +19,14 @@ const ThermalTheme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
 
       {/* INVOICE NO + DATE ROW */}
       <div className="tt4-meta-row">
-        <span className="tt4-meta-left">Invoice No.: 3</span>
-        <span className="tt4-meta-right">Date: 09/04/2026</span>
+        <span className="tt4-meta-left">Invoice No.: {view.invoiceNo}</span>
+        <span className="tt4-meta-right">Date: {view.date}</span>
       </div>
 
       <hr className="tt4-dashed" />
 
       {/* BILL TO centered */}
-      <p className="tt4-billto-name">fida</p>
+      <p className="tt4-billto-name">{view.billTo}</p>
 
       <hr className="tt4-dashed" />
 
@@ -47,15 +48,17 @@ const ThermalTheme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
             <td colSpan="4" className="tt4-dashed-cell"><hr className="tt4-dashed tt4-no-margin" /></td>
           </tr>
 
-          <tr>
-            <td className="tt4-td-left">1</td>
-            <td className="tt4-td-left">
-              <span className="tt4-item-name">Sample Item</span>
-              <span className="tt4-item-qty">1</span>
-            </td>
-            <td className="tt4-td-right">100.00</td>
-            <td className="tt4-td-right">100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="tt4-td-left">{index + 1}</td>
+              <td className="tt4-td-left">
+                <span className="tt4-item-name">{item.name}</span>
+                <span className="tt4-item-qty">{item.qty}</span>
+              </td>
+              <td className="tt4-td-right">{item.rate.toFixed(2)}</td>
+              <td className="tt4-td-right">{item.amount.toFixed(2)}</td>
+            </tr>
+          ))}
 
           <tr>
             <td colSpan="4" className="tt4-dashed-cell"><hr className="tt4-dashed tt4-no-margin" /></td>
@@ -63,28 +66,28 @@ const ThermalTheme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
 
           {/* Qty total row */}
           <tr className="tt4-qty-total-row">
-            <td className="tt4-td-left" colSpan="2"><strong>Qty: 1</strong></td>
+            <td className="tt4-td-left" colSpan="2"><strong>Qty: {view.totalQty}</strong></td>
             <td className="tt4-td-right"></td>
-            <td className="tt4-td-right"><strong>100.00</strong></td>
+            <td className="tt4-td-right"><strong>{view.total.toFixed(2)}</strong></td>
           </tr>
 
           <tr>
             <td className="tt4-td-left"></td>
             <td className="tt4-td-left tt4-sub-label"><strong>Total</strong></td>
             <td className="tt4-td-right tt4-sub-colon">:</td>
-            <td className="tt4-td-right"><strong>100.00</strong></td>
+            <td className="tt4-td-right"><strong>{view.total.toFixed(2)}</strong></td>
           </tr>
           <tr>
             <td className="tt4-td-left"></td>
             <td className="tt4-td-left tt4-sub-label">Received</td>
             <td className="tt4-td-right tt4-sub-colon">:</td>
-            <td className="tt4-td-right">0.00</td>
+            <td className="tt4-td-right">{view.received.toFixed(2)}</td>
           </tr>
           <tr>
             <td className="tt4-td-left"></td>
             <td className="tt4-td-left tt4-sub-label">Balance</td>
             <td className="tt4-td-right tt4-sub-colon">:</td>
-            <td className="tt4-td-right">100.00</td>
+            <td className="tt4-td-right">{view.balance.toFixed(2)}</td>
           </tr>
 
           <tr>

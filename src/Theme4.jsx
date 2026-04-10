@@ -1,7 +1,9 @@
 import './Theme4.css'
+import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
-const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick }) => {
+const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const accent = selectedColor || '#888888'
+  const view = getInvoiceViewModel(invoiceData)
 
   return (
     <div className="t4-wrapper">
@@ -38,12 +40,12 @@ const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
       <div className="t4-info-row">
         <div className="t4-billto-block">
           <p className="t4-billto-label">Bill To</p>
-          <p className="t4-billto-name">fida</p>
+          <p className="t4-billto-name">{view.billTo}</p>
         </div>
         <div className="t4-invoice-details">
           <p className="t4-details-heading">Invoice Details</p>
-          <p className="t4-details-line">Invoice No. : 3</p>
-          <p className="t4-details-line">Date : 09-04-2026</p>
+          <p className="t4-details-line">Invoice No. : {view.invoiceNo}</p>
+          <p className="t4-details-line">Date : {view.date}</p>
         </div>
       </div>
 
@@ -59,19 +61,21 @@ const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td className="t4-td-left">1</td>
-            <td className="t4-td-left"><strong>Sample Item</strong></td>
-            <td className="t4-td-right">1</td>
-            <td className="t4-td-right">Rs 100.00</td>
-            <td className="t4-td-right">Rs 100.00</td>
-          </tr>
+          {view.items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td className="t4-td-left">{index + 1}</td>
+              <td className="t4-td-left"><strong>{item.name}</strong></td>
+              <td className="t4-td-right">{item.qty}</td>
+              <td className="t4-td-right">{formatCurrency(item.rate)}</td>
+              <td className="t4-td-right">{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
           <tr className="t4-total-row">
             <td className="t4-td-left"></td>
             <td className="t4-td-left"><strong>Total</strong></td>
-            <td className="t4-td-right"><strong>1</strong></td>
+            <td className="t4-td-right"><strong>{view.totalQty}</strong></td>
             <td className="t4-td-right"></td>
-            <td className="t4-td-right"><strong>Rs 100.00</strong></td>
+            <td className="t4-td-right"><strong>{formatCurrency(view.total)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -99,19 +103,19 @@ const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
           <div className="t4-amounts-body">
             <div className="t4-amount-row">
               <span>Sub Total</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.subtotal)}</span>
             </div>
             <div className="t4-amount-row t4-amount-bold">
               <span>Total</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.total)}</span>
             </div>
             <div className="t4-amount-row">
               <span>Received</span>
-              <span>Rs 0.00</span>
+              <span>{formatCurrency(view.received)}</span>
             </div>
             <div className="t4-amount-row t4-amount-last">
               <span>Balance</span>
-              <span>Rs 100.00</span>
+              <span>{formatCurrency(view.balance)}</span>
             </div>
           </div>
 

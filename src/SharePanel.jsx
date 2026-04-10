@@ -1,13 +1,24 @@
 import './SharePanel.css'
 
-const SharePanel = () => {
+const SharePanel = ({ invoiceData, saleId }) => {
+  const invoiceNumber = invoiceData?.invoiceNo || saleId || 'Invoice'
+  const total = Number(invoiceData?.total || 0).toFixed(2)
+  const received = Number(invoiceData?.received || 0).toFixed(2)
+  const balance = Number(invoiceData?.balance || 0).toFixed(2)
+  const previewUrl = window.location.href
+  const shareText = `Invoice #${invoiceNumber}
+Party: ${invoiceData?.billTo || '-'}
+Total: Rs ${total}
+Received: Rs ${received}
+Balance: Rs ${balance}
+Preview: ${previewUrl}`
 
   const handleWhatsapp = () => {
-    window.open('https://wa.me/?text=Please find the invoice attached', '_blank')
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank')
   }
 
   const handleGmail = () => {
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&su=Invoice&body=Please find the invoice attached', '_blank')
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(`Invoice #${invoiceNumber}`)}&body=${encodeURIComponent(shareText)}`, '_blank')
   }
 
   const handleDownloadPDF = () => {

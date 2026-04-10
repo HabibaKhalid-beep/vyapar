@@ -507,7 +507,7 @@ private function posData(): array
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
-            'share_url' => route('sale.invoice-preview', $sale),
+            'share_url' => route('invoice', ['sale_id' => $sale->id]),
         ]);
     }
 
@@ -729,7 +729,7 @@ private function posData(): array
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
-            'share_url' => route('sale.invoice-preview', $sale),
+            'share_url' => route('invoice', ['sale_id' => $sale->id]),
         ]);
     }
 

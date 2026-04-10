@@ -1,6 +1,23 @@
 import './TallyTheme.css'
 
+<<<<<<< Updated upstream
 const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick }) => {
+=======
+const TallyTheme = ({ businessInfo, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick, invoiceData }) => {
+  const items = invoiceData?.items?.length ? invoiceData.items : [
+    { name: 'Sample Item', qty: 1, rate: 100, amount: 100 }
+  ]
+  const totalQty = items.reduce((sum, item) => sum + Number(item.qty || 0), 0)
+  const subtotal = Number(invoiceData?.subtotal ?? items.reduce((sum, item) => sum + Number(item.amount || 0), 0))
+  const total = Number(invoiceData?.total ?? subtotal)
+  const received = Number(invoiceData?.received ?? 0)
+  const balance = Number(invoiceData?.balance ?? Math.max(total - received, 0))
+  const billTo = invoiceData?.billTo || 'Walk-in Customer'
+  const invoiceNo = invoiceData?.invoiceNo || '3'
+  const invoiceDate = invoiceData?.date || '09/04/2026'
+  const formatCurrency = (value) => `Rs ${Number(value || 0).toFixed(2)}`
+
+>>>>>>> Stashed changes
   return (
     <div className="tally-wrapper">
 
@@ -26,6 +43,7 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
       <div className="tally-info">
         <div className="tally-bill">
           <p className="tally-label">Bill To:</p>
+<<<<<<< Updated upstream
           <p className="tally-value">{invoiceData?.billTo || 'fida'}</p>
         </div>
         <div className="tally-invoice-details">
@@ -33,6 +51,14 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
           <p>No: <strong>{invoiceData?.invoiceNo || '3'}</strong></p>
           <p>Date: <strong>{invoiceData?.date || '09/04/2026'}</strong></p>
           {invoiceData?.referenceNo ? <p>Ref: <strong>{invoiceData.referenceNo}</strong></p> : null}
+=======
+          <p className="tally-value">{billTo}</p>
+        </div>
+        <div className="tally-invoice-details">
+          <p className="tally-label">Invoice Details:</p>
+          <p>No: <strong>{invoiceNo}</strong></p>
+          <p>Date: <strong>{invoiceDate}</strong></p>
+>>>>>>> Stashed changes
         </div>
       </div>
 
@@ -47,6 +73,7 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
           </tr>
         </thead>
         <tbody>
+<<<<<<< Updated upstream
           <tr>
             <td>1</td>
             <td><strong>{invoiceData?.itemName || 'Sample Item'}</strong></td>
@@ -60,6 +87,23 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
             <td><strong>{invoiceData?.quantity || 1}</strong></td>
             <td></td>
             <td><strong>Rs {Number(invoiceData?.amount || 100).toFixed(2)}</strong></td>
+=======
+          {items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td>{index + 1}</td>
+              <td><strong>{item.name}</strong></td>
+              <td>{item.qty}</td>
+              <td>{formatCurrency(item.rate)}</td>
+              <td>{formatCurrency(item.amount)}</td>
+            </tr>
+          ))}
+          <tr className="tally-total-row">
+            <td></td>
+            <td><strong>Total</strong></td>
+            <td><strong>{totalQty}</strong></td>
+            <td></td>
+            <td><strong>{formatCurrency(total)}</strong></td>
+>>>>>>> Stashed changes
           </tr>
         </tbody>
       </table>
@@ -68,12 +112,20 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
         <div className="tally-summary-row">
           <span>Sub Total</span>
           <span>:</span>
+<<<<<<< Updated upstream
           <span>Rs {Number(invoiceData?.amount || 100).toFixed(2)}</span>
+=======
+          <span>{formatCurrency(subtotal)}</span>
+>>>>>>> Stashed changes
         </div>
         <div className="tally-summary-row bold">
           <span>Total</span>
           <span>:</span>
+<<<<<<< Updated upstream
           <span>Rs {Number(invoiceData?.amount || 100).toFixed(2)}</span>
+=======
+          <span>{formatCurrency(total)}</span>
+>>>>>>> Stashed changes
         </div>
       </div>
 
@@ -86,12 +138,20 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
         <div className="tally-summary-row">
           <span>Received</span>
           <span>:</span>
+<<<<<<< Updated upstream
           <span>Rs {Number(invoiceData?.received || 0).toFixed(2)}</span>
+=======
+          <span>{formatCurrency(received)}</span>
+>>>>>>> Stashed changes
         </div>
         <div className="tally-summary-row">
           <span>Balance</span>
           <span>:</span>
+<<<<<<< Updated upstream
           <span>Rs {Number(invoiceData?.balance || 0).toFixed(2)}</span>
+=======
+          <span>{formatCurrency(balance)}</span>
+>>>>>>> Stashed changes
         </div>
       </div>
 
