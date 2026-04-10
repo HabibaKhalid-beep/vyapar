@@ -7,10 +7,12 @@ class InvoiceController extends Controller
     public function index()
     {
         $reactCss = collect(glob(public_path('react-invoice/assets/index-*.css')))
+            ->sortByDesc(fn ($path) => filemtime($path))
             ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
             ->first();
 
         $reactJs = collect(glob(public_path('react-invoice/assets/index-*.js')))
+            ->sortByDesc(fn ($path) => filemtime($path))
             ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
             ->first();
 

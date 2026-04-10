@@ -2,6 +2,7 @@ import { useState } from 'react'
 import TermsModal from './TermsModal'
 import LeftPanel from './LeftPanel'
 import RightPanel from './RightPanel'
+import SharePanel from './SharePanel'
 import BusinessModal from './BusinessModal'
 import SignatureModal from './SignatureModal'
 import LogoModal from './LogoModal'
@@ -46,6 +47,7 @@ const App = () => {
         onTermsClick={() => setShowTermsModal(true)}
         onLogoClick={() => setShowLogoModal(true)}
       />
+      <SharePanel />
 
       {showBusinessModal && (
         <BusinessModal
