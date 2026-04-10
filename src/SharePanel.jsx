@@ -1,6 +1,6 @@
 import './SharePanel.css'
 
-const SharePanel = ({ invoiceData, saleId }) => {
+const SharePanel = ({ invoiceData, saleId, selectedTheme, selectedColor }) => {
   const invoiceNumber = invoiceData?.invoiceNo || saleId || 'Invoice'
   const total = Number(invoiceData?.total || 0).toFixed(2)
   const received = Number(invoiceData?.received || 0).toFixed(2)
@@ -21,16 +21,121 @@ Preview: ${previewUrl}`
     window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(`Invoice #${invoiceNumber}`)}&body=${encodeURIComponent(shareText)}`, '_blank')
   }
 
-  const handleDownloadPDF = () => {
-    window.print()
+  const resolvePdfConfig = () => {
+    const theme = selectedTheme || 'tally'
+    const color = selectedColor || '#1f4e79'
+    const regularMap = {
+      tally: 1,
+      LandScapeTheme1: 2,
+      LandScapeTheme2: 3,
+      tax1: 4,
+      tax2: 5,
+      tax3: 6,
+      tax4: 7,
+      tax5: 8,
+      tax6: 9,
+      divine: 10,
+      french: 11,
+      theme1: 12,
+      theme2: 13,
+      theme3: 14,
+      theme4: 15,
+    }
+    const thermalMap = {
+      thermal1: 1,
+      thermal2: 2,
+      thermal3: 3,
+      thermal4: 4,
+      thermal5: 5,
+    }
+
+    if (theme.startsWith('thermal')) {
+      return { mode: 'thermal', themeId: thermalMap[theme] || 1, accent: color }
+    }
+
+    return { mode: 'regular', themeId: regularMap[theme] || 1, accent: color }
+  }
+
+  const openPrintWindow = () => {
+    const printable = document.querySelector('.right-panel')
+    if (!printable) {
+      window.print()
+      return
+    }
+
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map((link) => link.href)
+      .filter(Boolean)
+
+    const win = window.open('', '_blank')
+    if (!win) {
+      window.print()
+      return
+    }
+
+    const styleLinks = styles.map((href) => `<link rel="stylesheet" href="${href}">`).join('')
+    win.document.open()
+    win.document.write(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    ${styleLinks}
+    <style>
+      body { margin: 0; padding: 0; background: #fff; }
+      .right-panel { width: 100% !important; height: auto !important; overflow: visible !important; padding: 0 !important; background: #fff !important; }
+    </style>
+  </head>
+  <body>
+    <div class="right-panel">${printable.innerHTML}</div>
+  </body>
+</html>`)
+    win.document.close()
+    win.onload = () => {
+      win.focus()
+      win.print()
+    }
+  }
+
+  const handleDownloadPDF = async () => {
+    const printable = document.querySelector('.right-panel')
+    if (!printable) {
+      return
+    }
+
+    if (window.html2pdf) {
+      const isThermal = (selectedTheme || '').startsWith('thermal')
+      const filename = `invoice-${invoiceNumber}.pdf`
+      await window.html2pdf().set({
+        margin: isThermal ? [2, 2, 2, 2] : [6, 6, 6, 6],
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: isThermal ? [80, 297] : 'a4', orientation: 'portrait' },
+      }).from(printable).save()
+      return
+    }
+
+    if (!saleId) {
+      openPrintWindow()
+      return
+    }
+
+    const { mode, themeId, accent } = resolvePdfConfig()
+    const url = `/dashboard/sales/${saleId}/invoice-pdf?download=1&mode=${encodeURIComponent(mode)}&theme_id=${encodeURIComponent(themeId)}&accent=${encodeURIComponent(accent)}`
+    const win = window.open(url, '_blank')
+    if (!win) {
+      window.location.href = url
+    }
   }
 
   const handlePrintNormal = () => {
-    window.print()
+    openPrintWindow()
   }
 
   const handlePrintThermal = () => {
-    window.print()
+    openPrintWindow()
   }
 
   return (

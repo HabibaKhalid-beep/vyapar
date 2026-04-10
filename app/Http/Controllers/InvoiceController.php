@@ -28,6 +28,8 @@ class InvoiceController extends Controller
             'initialTheme' => (string) $request->query('theme', 'tally'),
             'initialColor' => (string) $request->query('accent', '#707070'),
             'invoicePdfUrl' => null,
+            'browserTabLabel' => 'Invoice Preview',
+            'saveCloseUrl' => route('sale.index'),
         ];
 
         $paymentIn = null;
@@ -43,6 +45,8 @@ class InvoiceController extends Controller
                 'initialTheme' => (string) $request->query('theme', 'tally'),
                 'initialColor' => (string) $request->query('accent', '#707070'),
                 'invoicePdfUrl' => route('sale.invoice-pdf', $sale),
+                'browserTabLabel' => 'Invoice #' . ($sale->bill_number ?: $sale->id),
+                'saveCloseUrl' => route('sale.index'),
             ];
         } elseif ($request->filled('payment_in')) {
             $paymentInRecord = PaymentIn::with(['party', 'bankAccount'])
@@ -55,6 +59,8 @@ class InvoiceController extends Controller
                 'initialTheme' => (string) $request->query('theme', 'tally'),
                 'initialColor' => (string) $request->query('accent', '#707070'),
                 'invoicePdfUrl' => null,
+                'browserTabLabel' => 'Receipt #' . ($paymentInRecord->receipt_no ?: $paymentInRecord->id),
+                'saveCloseUrl' => route('payment-in'),
             ];
             $allPaymentIns = PaymentIn::with(['party', 'bankAccount'])->latest()->get();
         }

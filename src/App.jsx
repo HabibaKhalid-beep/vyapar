@@ -38,30 +38,60 @@ const App = () => {
   }
 
   return (
-    <div className="app-container">
-      <LeftPanel
-        selectedTheme={selectedTheme}
-        setSelectedTheme={setSelectedTheme}
-        selectedColor={selectedColor}
-        setSelectedColor={setSelectedColor}
-      />
-      <RightPanel
-        selectedTheme={selectedTheme}
-        selectedColor={selectedColor}
-        businessInfo={businessInfo}
-        signature={signature}
-        terms={terms}
-        logo={logo}
-        invoiceData={invoiceData}
-        onCompanyClick={() => setShowBusinessModal(true)}
-        onSignatureClick={() => setShowSignatureModal(true)}
-        onTermsClick={() => setShowTermsModal(true)}
-        onLogoClick={() => setShowLogoModal(true)}
-      />
-      <SharePanel
-        invoiceData={invoiceData}
-        saleId={appData.saleId}
-      />
+    <>
+      <div className="preview-topbar">
+        <div className="preview-tab">
+          <span className="preview-tab-label">{appData.browserTabLabel || 'Invoice Preview'}</span>
+          <div className="preview-tab-actions">
+            <button type="button" className="preview-tab-btn" aria-label="Close">x</button>
+            <button type="button" className="preview-tab-btn" onClick={() => window.open(window.location.href, '_blank')} aria-label="New Tab">+</button>
+          </div>
+        </div>
+        <div className="preview-top-icons">
+          <span className="preview-top-icon">o</span>
+          <span className="preview-top-icon">[]</span>
+          <span className="preview-top-icon">*</span>
+          <span className="preview-top-icon">x</span>
+        </div>
+      </div>
+      <div className="preview-head">
+        <h1>Preview</h1>
+        <div className="preview-head-right">
+          <label className="preview-checkbox">
+            <input type="checkbox" />
+            <span>Do not show invoice preview again</span>
+          </label>
+          <span className="preview-divider">|</span>
+          <a className="preview-save" href={appData.saveCloseUrl || '/dashboard/sales'}>Save &amp; Close</a>
+        </div>
+      </div>
+      <div className="app-container">
+        <LeftPanel
+          selectedTheme={selectedTheme}
+          setSelectedTheme={setSelectedTheme}
+          selectedColor={selectedColor}
+          setSelectedColor={setSelectedColor}
+        />
+        <RightPanel
+          selectedTheme={selectedTheme}
+          selectedColor={selectedColor}
+          businessInfo={businessInfo}
+          signature={signature}
+          terms={terms}
+          logo={logo}
+          invoiceData={invoiceData}
+          onCompanyClick={() => setShowBusinessModal(true)}
+          onSignatureClick={() => setShowSignatureModal(true)}
+          onTermsClick={() => setShowTermsModal(true)}
+          onLogoClick={() => setShowLogoModal(true)}
+        />
+        <SharePanel
+          invoiceData={invoiceData}
+          saleId={appData.saleId}
+          selectedTheme={selectedTheme}
+          selectedColor={selectedColor}
+        />
+      </div>
 
       {showBusinessModal && (
         <BusinessModal
@@ -92,7 +122,7 @@ const App = () => {
           onClose={() => setShowLogoModal(false)}
         />
       )}
-    </div>
+    </>
   )
 }
 
