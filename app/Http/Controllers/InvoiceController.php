@@ -1,16 +1,12 @@
 <?php
 
 namespace App\Http\Controllers;
-
-<<<<<<< Updated upstream
 use App\Models\PaymentIn;
 use Illuminate\Http\Request;
-=======
 use App\Models\BankAccount;
 use App\Models\Sale;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
->>>>>>> Stashed changes
+
 
 class InvoiceController extends Controller
 {
@@ -26,7 +22,7 @@ class InvoiceController extends Controller
             ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
             ->first();
 
-<<<<<<< Updated upstream
+
         $paymentIn = null;
         $allPaymentIns = [];
 
@@ -63,7 +59,7 @@ class InvoiceController extends Controller
         $allPaymentIns = PaymentIn::with(['party', 'bankAccount'])->latest()->get();
 
         return view('invoice.index', compact('reactCss', 'reactJs', 'paymentIn', 'allPaymentIns'));
-=======
+
         $sale = null;
         $invoiceAppData = [
             'saleId' => null,
@@ -86,7 +82,7 @@ class InvoiceController extends Controller
         }
 
         return view('invoice.index', compact('reactCss', 'reactJs', 'invoiceAppData'));
->>>>>>> Stashed changes
+
     }
 
     public function print()
@@ -94,7 +90,7 @@ class InvoiceController extends Controller
         return view('invoice.print');
     }
 
-<<<<<<< Updated upstream
+
     public function paymentIn(Request $request)
     {
         $reactCss = collect(glob(public_path('react-invoice/assets/index-*.css')))
@@ -143,7 +139,8 @@ class InvoiceController extends Controller
         $allPaymentIns = PaymentIn::with(['party', 'bankAccount'])->latest()->get();
 
         return view('invoice.payment-in', compact('reactCss', 'reactJs', 'paymentIn', 'allPaymentIns'));
-=======
+    }
+
     private function mapSaleToReactInvoiceData(Sale $sale): array
     {
         $bankAccount = $sale->payments
@@ -195,6 +192,6 @@ class InvoiceController extends Controller
             'bankAccountNumber' => (string) ($bankAccount?->account_number ?: ''),
             'bankAccountHolder' => (string) ($bankAccount?->account_holder_name ?: ''),
         ];
->>>>>>> Stashed changes
+
     }
 }
