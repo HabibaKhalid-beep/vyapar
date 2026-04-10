@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vyapar — Estimate / Quotation</title>
   <meta name="description" content="Create professional estimates and quotations for your customers in Vyapar.">
@@ -135,6 +135,7 @@
       <div class="modal-body">
         <form id="paymentInForm" action="{{ route('payments-in.store') }}" method="POST">
            @csrf
+          <input type="hidden" id="paymentInId" value="">
 
           <div class="row">
 
@@ -224,7 +225,7 @@
 </div>
                   <input type="hidden" id="referenceNo" value="">
 
-               
+
 
                 </div>
 
@@ -385,224 +386,135 @@
         <div class="col-12 g-2 mb-3 d-flex flex-wrap justify-content-between">
           <p class="fw-bold">Transactions</p>
 
-          <div class="d-flex">
+          <div class="d-flex align-items-center">
             <div class="search-container">
-              <input type="text" class="search-input" placeholder="Search...">
+              <input type="text" class="search-input" id="paymentInSearch" placeholder="Search...">
               <span class="search-btn">
                 <i class="fa fa-search"></i>
               </span>
             </div>
-            <div class="mt-1 pt-1 ms-3">
-              <span class="mx-3 fs-4 text-secondary"><i class="fas fa-file-excel"></i></span>
-              <span class="mx-3 fs-4 text-secondary"><i class="fas fa-print"></i></span>
+            <div class="mt-1 pt-1 ms-3 d-flex align-items-center">
+              <button type="button" id="exportPaymentInExcel" class="btn p-0 mx-3 fs-4 text-secondary border-0 bg-transparent" title="Export Excel">
+                <i class="fas fa-file-excel"></i>
+              </button>
+              <button type="button" id="printPaymentInTable" class="btn p-0 mx-3 fs-4 text-secondary border-0 bg-transparent" title="Print Table">
+                <i class="fas fa-print"></i>
+              </button>
             </div>
 
           </div>
 
         </div>
 
-        <div class="table-responsive small-table">
-          <table class="table table-hover mb-0 align-middle table-clean">
-            <thead>
-              <tr class="d-flex gap-3">
-                <th class="d-flex">
-                  <p class="pt-1">Date</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Category:</p>
-                        <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                          <option value="" selected>Equal to</option>
-                          <option value=""><a href="">Less than</a></option>
-                          <option value=""><a href="">Greater than</a></option>
-                          <option value=""><a href="">Range</a></option>
-                        </select>
-                      </li>
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Date:</p>
-                        <input type="date" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                      </li>
-                      <div class="mt-2 ms-4">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
+        <div class="table-responsive" id="paymentInTableWrap">
+          <table class="table table-hover mb-0 align-middle" id="paymentInTable">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 12%;">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Date</span>
+                    <div class="dropdown">
+                      <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <input type="date" class="form-control form-control-sm" style="outline:none;">
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 </th>
-                <th class="d-flex">
-                  <p class="pt-1">Reference No.</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Category:</p>
-                        <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                          <option value="" selected>Equal to</option>
-                          <option value=""><a href="">Less than</a></option>
-                          <option value=""><a href="">Greater than</a></option>
-                          <option value=""><a href="">Range</a></option>
-                        </select>
-                      </li>
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Reference No.</p>
-                        <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                      </li>
-                      <div class="mt-2 ms-3">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
+                <th style="width: 14%;">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Reference No.</span>
+                    <div class="dropdown">
+                      <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <input type="text" class="form-control form-control-sm" placeholder="Search...">
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 </th>
-                <th class="d-flex">
-                  <p class="pt-1">Party Name</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Category:</p>
-                        <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                          <option value="" selected>Equal to</option>
-                          <option value=""><a href="">Less than</a></option>
-                          <option value=""><a href="">Greater than</a></option>
-                          <option value=""><a href="">Range</a></option>
-                        </select>
-                      </li>
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Party Name</p>
-                        <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-
-                      </li>
-                      <div class="mt-2 ms-3">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
+                <th style="width: 18%;">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Party Name</span>
+                    <div class="dropdown">
+                      <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <input type="text" class="form-control form-control-sm" placeholder="Search...">
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 </th>
-                <th class="d-flex">
-                  <p class="pt-1">Total Amount</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Category:</p>
-                        <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                          <option value="" selected>Equal to</option>
-                          <option value=""><a href="">Less than</a></option>
-                          <option value=""><a href="">Greater than</a></option>
-                          <option value=""><a href="">Range</a></option>
-                        </select>
-                      </li>
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Party Name</p>
-                        <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-
-                      </li>
-                      <div class="mt-2 ms-3">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
+                <th style="width: 14%;">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Total Amount</span>
+                    <div class="dropdown">
+                      <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-filter"></i>
+                      </button>
+                    </div>
                   </div>
                 </th>
-                <th class="d-flex">
-                  <p class="pt-1">Received</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Category:</p>
-                        <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                          <option value="" selected>Equal to</option>
-                          <option value=""><a href="">Less than</a></option>
-                          <option value=""><a href="">Greater than</a></option>
-                          <option value=""><a href="">Range</a></option>
-                        </select>
-                      </li>
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Party Name</p>
-                        <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-
-                      </li>
-                      <div class="mt-2 ms-3">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
+                <th style="width: 14%;">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Bank Account</span>
                   </div>
                 </th>
-                <th class="d-flex">
-                  <p class="pt-1">Payment Type</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <input type="checkbox"><span class="ms-1">Cash</span>
-                      </li>
-                      <li class="dropdown-item">
-                        <input type="checkbox"><span class="ms-1">Check</span>
-                      </li>
-                      <div class="mt-2 ms-4">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
+                <th style="width: 14%;">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Payment Type</span>
                   </div>
                 </th>
-                <th class="d-flex">
-                  <p class="pt-1">Actions</p>
-                </th>
+                <th style="width: 14%; text-align: center;">Actions</th>
               </tr>
             </thead>
             <tbody>
               @forelse($paymentIns as $paymentIn)
-                <tr>
+                <tr class="payment-in-row">
                   <td>{{ $paymentIn->date ? \Carbon\Carbon::parse($paymentIn->date)->format('d-m-Y') : '-' }}</td>
-                  <td>{{ $paymentIn->reference_no ?: '-' }}</td>
-                  <td>{{ $paymentIn->party?->name ?: '-' }}</td>
-                  <td>Rs {{ number_format((float) $paymentIn->amount, 2) }}</td>
-                  <td>{{ $paymentIn->bankAccount?->display_with_account ?: '-' }}</td>
-                  <td>{{ ucfirst($paymentIn->payment_type) }}</td>
-                  <td>
-                    <a href="{{ route('invoice', ['payment_in' => $paymentIn->id]) }}" class="btn btn-sm btn-outline-primary">View Invoice</a>
+                  <td><span class="badge bg-light text-dark">{{ $paymentIn->reference_no ?: '-' }}</span></td>
+                  <td><strong>{{ $paymentIn->party?->name ?: '-' }}</strong></td>
+                  <td><span class="text-success fw-bold">Rs {{ number_format((float) $paymentIn->amount, 2) }}</span></td>
+                  <td><small>{{ $paymentIn->bankAccount?->display_name ?: '-' }}</small></td>
+                  <td><span class="badge bg-info text-white">{{ ucfirst($paymentIn->payment_type) }}</span></td>
+                  <td style="text-align: center;">
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-light px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More Actions">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <!-- <li><a class="dropdown-item" href="{{ route('invoice', ['payment_in' => $paymentIn->id]) }}"><i class="fa-solid fa-eye me-2"></i>Open</a></li> -->
+                        <li><a class="dropdown-item" href="{{ route('payments-in.edit', $paymentIn) }}"><i class="fa-solid fa-pen-to-square me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="{{ route('invoice.payment-in', ['payment_in' => $paymentIn->id]) }}" target="_blank"><i class="fa-solid fa-file-pdf me-2"></i>Open PDF</a></li>
+                        <li><a class="dropdown-item" href="{{ route('invoice.payment-in', ['payment_in' => $paymentIn->id]) }}" target="_blank"><i class="fa-solid fa-print me-2"></i>Print</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="viewPaymentHistory({{ $paymentIn->id }})"><i class="fa-solid fa-history me-2"></i>View History</a></li>
+                        <li>
+                          <form action="{{ route('payments-in.destroy', $paymentIn) }}" method="POST" onsubmit="return confirm('Delete this payment in record?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Delete</button>
+                          </form>
+                        </li>
+                      </ul>
+                    </div>
                   </td>
                 </tr>
               @empty
                 <tr>
                   <td colspan="7" class="text-center text-muted py-4">
-                    No payment in records yet. Click "Add Payment-in" to create one.
+                    <i class="fa-solid fa-inbox fa-2x mb-3 d-block opacity-50"></i>
+                    <strong>No payment in records yet.</strong> Click "Add Payment-in" to create one.
                   </td>
                 </tr>
               @endforelse
@@ -751,7 +663,7 @@
               </div>
             </div>
           </div>
-          
+
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
@@ -764,12 +676,12 @@
           </div>
         </form>
       </div>
-      
+
 
     </div>
   </div>
 </div>
- 
+
   <!-- ═══════════════════════════════════════════
      SCRIPTS
      ═══════════════════════════════════════════ -->
@@ -783,6 +695,91 @@
       $(".search-btn").click(function () {
         $(".search-container").toggleClass("active");
         $(".search-input").focus();
+      });
+
+      $("#paymentInSearch").on("input", function () {
+        const query = $(this).val().toLowerCase().trim();
+
+        $("#paymentInTable tbody tr.payment-in-row").each(function () {
+          const rowText = $(this).text().toLowerCase().replace(/\s+/g, " ").trim();
+          $(this).toggle(rowText.includes(query));
+        });
+      });
+
+      $("#exportPaymentInExcel").on("click", function () {
+        let excelHtml = `
+          <table border="1">
+            <tr>
+              <th>Date</th>
+              <th>Reference No.</th>
+              <th>Party Name</th>
+              <th>Total Amount</th>
+              <th>Bank Account</th>
+              <th>Payment Type</th>
+            </tr>
+        `;
+
+        $("#paymentInTable tbody tr.payment-in-row:visible").each(function () {
+          const cells = $(this).find("td");
+          excelHtml += "<tr>";
+          for (let i = 0; i < 6; i++) {
+            const cellText = $(cells[i]).text().replace(/\s+/g, " ").trim();
+            excelHtml += `<td>${cellText}</td>`;
+          }
+          excelHtml += "</tr>";
+        });
+
+        excelHtml += "</table>";
+
+        const blob = new Blob([`\ufeff${excelHtml}`], { type: "application/vnd.ms-excel;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        const now = new Date();
+        const filename = `payment-in-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.xls`;
+
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      });
+
+      $("#printPaymentInTable").on("click", function () {
+        const tableHtml = document.getElementById("paymentInTableWrap")?.innerHTML || "";
+        const printWindow = window.open("", "_blank", "width=1200,height=800");
+        if (!printWindow) {
+          alert("Please allow popups to print the table.");
+          return;
+        }
+
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Payment In Transactions</title>
+              <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+              <style>
+                body { font-family: Arial, sans-serif; padding: 24px; }
+                h2 { margin-bottom: 16px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+                th:last-child, td:last-child { display: none; }
+                .dropdown, .btn, form { display: none !important; }
+              </style>
+            </head>
+            <body>
+              <h2>Payment In Transactions</h2>
+              ${tableHtml}
+            </body>
+          </html>
+        `);
+
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+        }, 400);
       });
     });
   </script>
@@ -827,8 +824,8 @@
                 billingInput.value = billing;
 
                 // Balance display
-                balanceDisplay.innerHTML = type === 'pay' 
-                    ? `<span class="text-danger">₹${opening}</span>` 
+                balanceDisplay.innerHTML = type === 'pay'
+                    ? `<span class="text-danger">₹${opening}</span>`
                     : `<span class="text-success">₹${opening}</span>`;
             }
 
@@ -888,7 +885,7 @@
 
   <script>
 document.getElementById("addPaymentRow").addEventListener("click", function () {
-    
+
     const container = document.getElementById("paymentContainer");
 
     const newRow = document.createElement("div");
@@ -926,7 +923,7 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
             </button>
         </div>
     `;
-  $('#paymentContainer > div:first').append(newRow); 
+  $('#paymentContainer > div:first').append(newRow);
   updateReceivedTotal();
 });
 
@@ -980,6 +977,37 @@ document.getElementById('paymentImageInput')?.addEventListener('change', functio
     }
 });
 
+const editPaymentIn = @json($editPaymentIn ?? null);
+
+function populateEditPaymentIn(paymentIn) {
+    if (!paymentIn) return;
+
+    const modalElement = document.getElementById('addPaymentInModal');
+    const modal = modalElement ? new bootstrap.Modal(modalElement) : null;
+    const firstRow = $('#paymentContainer .payment-row').first();
+
+    $('#paymentInId').val(paymentIn.id || '');
+    $('.party-id').val(paymentIn.party_id || '');
+    $('#partyDropdownBtnText').text(paymentIn.party?.name || 'Select Party');
+    $('#receiptNo').val(paymentIn.receipt_no || '');
+    $('input[name="date"]').val(paymentIn.date || '');
+    $('#paymentDescription').val(paymentIn.description || '');
+    $('#referenceNo').val(paymentIn.reference_no || '');
+
+    $('#paymentContainer .payment-row').not(':first').remove();
+    firstRow.find('.payment-bank').val(paymentIn.bank_account_id || '');
+    firstRow.find('.payment-amount').val(paymentIn.amount || '');
+    firstRow.find('.payment-reference').val(paymentIn.reference_no || '');
+    firstRow.find('.payment-type').val(paymentIn.payment_type || 'bank');
+
+    updateReceivedTotal();
+    modal?.show();
+}
+
+if (editPaymentIn) {
+    populateEditPaymentIn(editPaymentIn);
+}
+
 
 $('#paymentInForm').on('submit', function(e) {
     e.preventDefault();
@@ -999,8 +1027,12 @@ $('#paymentInForm').on('submit', function(e) {
     $('#referenceNo').val($('.payment-reference').first().val() || '');
     updateReceivedTotal();
 
+    const paymentInId = $('#paymentInId').val();
+    const requestUrl = paymentInId ? `/dashboard/payments-in/${paymentInId}` : '/dashboard/payments-in';
+    const spoofMethod = paymentInId ? 'PUT' : 'POST';
+
     $.ajax({
-        url:'/dashboard/payments-in', 
+        url: requestUrl,
         method: 'POST',
         contentType: 'application/json',
         headers: {
@@ -1012,9 +1044,10 @@ $('#paymentInForm').on('submit', function(e) {
             reference_no: $('#referenceNo').val(),
             payments: payments,
             receipt_no: $('#receiptNo').val(),
-            date: $('input[name="date"]').val(),  
+            date: $('input[name="date"]').val(),
             received: $('#receivedAmount').val(),
             description: $('#paymentDescription').val(),
+            _method: spoofMethod,
             _token: $('meta[name="csrf-token"]').attr('content')
         }),
         success: function(res) {
@@ -1026,7 +1059,7 @@ $('#paymentInForm').on('submit', function(e) {
             window.location.reload();
         },
         error: function(xhr) {
-            console.log(xhr.responseJSON); 
+            console.log(xhr.responseJSON);
             if(xhr.status === 422) {
                 const errors = xhr.responseJSON.errors;
                 let msg = '';
@@ -1035,15 +1068,147 @@ $('#paymentInForm').on('submit', function(e) {
                 }
                 alert('Validation Error:\n' + msg);
             } else {
-                alert('Something went wrong. Please try again.');
+                const serverMessage = xhr.responseJSON?.message || xhr.responseText || 'Something went wrong. Please try again.';
+                alert(serverMessage);
             }
         }
     });
 });
 
+// View Payment History Function - Display in Table Format
+function viewPaymentHistory(paymentInId) {
+    const historyUrl = `/dashboard/payments-in/${paymentInId}/history`;
+
+    $.ajax({
+        url: historyUrl,
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+        },
+        success: function(res) {
+            if(res.success && res.history && res.history.length > 0) {
+                // Remove old modal if exists
+                $('#paymentHistoryModal').remove();
+
+                let historyHtml = `
+                    <div class="modal fade" id="paymentHistoryModal" tabindex="-1">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fa-solid fa-history me-2"></i>Payment History (${res.total_records} Records)
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                `;
+
+                // Add payment details summary
+                if(res.payment_details) {
+                    historyHtml += `
+                        <div class="alert alert-info mb-3">
+                            <h6 class="mb-2"><strong>📋 Payment Details Summary:</strong></h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small><strong>Receipt No:</strong> ${res.payment_details.receipt_no || '-'}</small><br>
+                                    <small><strong>Reference No:</strong> ${res.payment_details.reference_no || '-'}</small><br>
+                                    <small><strong>Amount:</strong> <span class="text-success fw-bold">₹${res.payment_details.amount}</span></small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small><strong>Payment Type:</strong> <span class="badge bg-info">${res.payment_details.payment_type || '-'}</span></small><br>
+                                    <small><strong>Date:</strong> ${res.payment_details.date || '-'}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Add table format history
+                historyHtml += `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 12%;">Date & Time</th>
+                                    <th style="width: 18%;">Action</th>
+                                    <th style="width: 12%;">Amount</th>
+                                    <th style="width: 14%;">Reference</th>
+                                    <th style="width: 14%;">Receipt</th>
+                                    <th style="width: 12%;">Type</th>
+                                    <th style="width: 18%;">User</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                res.history.forEach((entry, index) => {
+                    const timestamp = entry.created_at || entry.updated_at || '-';
+                    const user = entry.user_name || 'System';
+                    const action = entry.action || 'Action Recorded';
+                    const amount = entry.amount ? `₹${parseFloat(entry.amount).toFixed(2)}` : '-';
+                    const reference = entry.reference || '-';
+                    const receipt = entry.receipt || '-';
+                    const paymentType = entry.payment_type ? `<span class="badge bg-info text-white text-uppercase" style="font-size: 0.7rem;">${entry.payment_type.substring(0, 3)}</span>` : '-';
+
+                    historyHtml += `
+                        <tr>
+                            <td>
+                                <small class="text-muted">${timestamp}</small>
+                            </td>
+                            <td>
+                                <strong>${action}</strong>
+                                ${entry.description ? `<br><small class="text-muted">${entry.description}</small>` : ''}
+                            </td>
+                            <td>
+                                <span class="text-success fw-bold">${amount}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">${reference}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">${receipt}</span>
+                            </td>
+                            <td>${paymentType}</td>
+                            <td>
+                                <small><i class="fa-solid fa-user me-1 text-secondary"></i>${user}</small>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                historyHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                        <i class="fa-solid fa-xmark me-1"></i>Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                $('body').append(historyHtml);
+
+                const modal = new bootstrap.Modal(document.getElementById('paymentHistoryModal'));
+                modal.show();
+            } else {
+                alert('No history found for this payment.');
+            }
+        },
+        error: function(xhr) {
+            alert('Could not load history. Please try again.');
+            console.error(xhr);
+        }
+    });
+}
+
 </script>
 
- 
+
 </body>
 
 </html>

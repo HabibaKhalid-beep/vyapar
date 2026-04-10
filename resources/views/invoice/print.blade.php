@@ -5,36 +5,43 @@
 @section('page', 'print-preview')
 
 @section('content')
+  @php($activePaymentIn = $paymentIn ?? null)
 
   <div class="print-preview-wrapper">
     <div class="print-invoice">
       <!-- Company Header -->
       <div class="company-header">
         <div>
-          <div class="company-name">Grocery Store</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">GSTIN: 22AAAAA0000A1Z5</div>
+          <div class="company-name">{{ config('app.name', 'Vyapar') }}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">{{ $activePaymentIn ? 'Payment In Receipt' : 'GSTIN: 22AAAAA0000A1Z5' }}</div>
         </div>
         <div class="company-contact">
-          123, Market Road, Sector 5<br>
-          New Delhi, 110001<br>
-          Phone: +91 98765 43210<br>
-          Email: store@grocery.com
+          @if($activePaymentIn)
+            {{ $activePaymentIn->party?->billing_address ?: 'Party address not available' }}<br>
+            Phone: {{ $activePaymentIn->party?->phone ?: 'N/A' }}<br>
+            Bank: {{ $activePaymentIn->bankAccount?->display_name ?: 'Cash / Not selected' }}
+          @else
+            123, Market Road, Sector 5<br>
+            New Delhi, 110001<br>
+            Phone: +91 98765 43210<br>
+            Email: store@grocery.com
+          @endif
         </div>
       </div>
 
-      <div class="invoice-title-print">Tax Invoice</div>
+      <div class="invoice-title-print">{{ $activePaymentIn ? 'Payment In Receipt' : 'Tax Invoice' }}</div>
 
       <div class="bill-details-grid">
         <div>
           <div class="detail-label">Bill To</div>
-          <div class="detail-value fw-600">abc</div>
-          <div class="detail-value" style="font-size:12px;color:var(--text-muted);">+91 98765 43210</div>
+          <div class="detail-value fw-600">{{ $activePaymentIn?->party?->name ?: 'abc' }}</div>
+          <div class="detail-value" style="font-size:12px;color:var(--text-muted);">{{ $activePaymentIn?->party?->phone ?: '+91 98765 43210' }}</div>
         </div>
         <div style="text-align:right;">
           <div class="detail-label">Invoice No.</div>
-          <div class="detail-value">#001</div>
+          <div class="detail-value">#{{ $activePaymentIn?->receipt_no ?: '001' }}</div>
           <div class="detail-label mt-2">Date</div>
-          <div class="detail-value">10/03/2026</div>
+          <div class="detail-value">{{ $activePaymentIn?->date ? \Carbon\Carbon::parse($activePaymentIn->date)->format('d/m/Y') : '10/03/2026' }}</div>
         </div>
       </div>
 
@@ -45,50 +52,49 @@
             <th>Item</th>
             <th>Qty</th>
             <th>Price</th>
-            <th>Tax</th>
+            <th>Ref</th>
             <th style="text-align:right;">Amount</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>1</td>
-            <td>Rice (5kg)</td>
-            <td>2</td>
-            <td>₹ 250.00</td>
-            <td>GST 18%</td>
-            <td style="text-align:right;">₹ 500.00</td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td>Sugar (1kg)</td>
-            <td>5</td>
-            <td>₹ 45.00</td>
-            <td>GST 5%</td>
-            <td style="text-align:right;">₹ 225.00</td>
+            <td>{{ $activePaymentIn ? ucfirst($activePaymentIn->payment_type) . ' Payment' : 'Rice (5kg)' }}</td>
+            <td>1</td>
+            <td>₹ {{ number_format((float) ($activePaymentIn?->amount ?: 250), 2) }}</td>
+            <td>{{ $activePaymentIn?->reference_no ?: 'GST 18%' }}</td>
+            <td style="text-align:right;">₹ {{ number_format((float) ($activePaymentIn?->amount ?: 500), 2) }}</td>
           </tr>
         </tbody>
       </table>
 
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">
-        <strong>Amount in words:</strong> Seven Hundred and Twenty Five Rupees Only
+        <strong>Amount in words:</strong> {{ $activePaymentIn?->description ?: 'Seven Hundred and Twenty Five Rupees Only' }}
       </div>
 
       <div class="preview-totals">
         <table>
-          <tr><td>Sub Total</td><td>₹ 725.00</td></tr>
-          <tr><td>SGST</td><td>₹ 50.63</td></tr>
-          <tr><td>CGST</td><td>₹ 50.63</td></tr>
-          <tr class="total-row"><td>Total</td><td>₹ 826.25</td></tr>
-          <tr class="balance-row"><td>Balance Due</td><td>₹ 826.25</td></tr>
+          <tr><td>Sub Total</td><td>₹ {{ number_format((float) ($activePaymentIn?->amount ?: 725), 2) }}</td></tr>
+          <tr><td>Received</td><td>₹ {{ number_format((float) ($activePaymentIn?->amount ?: 50.63), 2) }}</td></tr>
+          <tr class="total-row"><td>Total</td><td>₹ {{ number_format((float) ($activePaymentIn?->amount ?: 826.25), 2) }}</td></tr>
+          <tr class="balance-row"><td>Balance Due</td><td>₹ 0.00</td></tr>
         </table>
       </div>
 
       <!-- Terms -->
       <div class="terms-section">
         <h6>Terms & Conditions</h6>
-        <p>1. Goods once sold will not be taken back or exchanged.<br>
-           2. All disputes are subject to New Delhi jurisdiction only.<br>
-           3. Payment due within 30 days of invoice date.</p>
+        <p>
+          @if($activePaymentIn)
+            1. Payment has been received from the selected party.<br>
+            2. Receipt No: {{ $activePaymentIn->receipt_no ?: 'N/A' }}<br>
+            3. Reference No: {{ $activePaymentIn->reference_no ?: 'N/A' }}
+          @else
+            1. Goods once sold will not be taken back or exchanged.<br>
+            2. All disputes are subject to New Delhi jurisdiction only.<br>
+            3. Payment due within 30 days of invoice date.
+          @endif
+        </p>
       </div>
 
       <!-- Signatory -->
