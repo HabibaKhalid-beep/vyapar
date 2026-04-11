@@ -97,7 +97,7 @@ class DeliveryController extends Controller
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
-            'redirect_url' => route('delivery-challan'),
+            'redirect_url' => route('invoice', ['sale_id' => $sale->id, 'print' => 1]),
         ]);
     }
 
