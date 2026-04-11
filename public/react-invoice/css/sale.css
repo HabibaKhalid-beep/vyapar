@@ -1,0 +1,434 @@
+/* TOP BAR */
+
+.sale-topbar{
+display:flex;
+flex-wrap:wrap;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+width:100%;
+}
+
+.vyapar-page-wrapper{
+width:100%;
+padding-left:16px;
+padding-right:16px;
+}
+
+.sale-card{
+width:100%;
+margin-bottom:14px;
+}
+
+.vyapar-card{
+width:100%;
+border-radius:12px;
+border:1px solid #e6e8ef;
+background:#fff;
+}
+
+.sale-table-header{
+width:100%;
+}
+
+.txn-table{
+width:100%;
+}
+
+.sale-summary-section{
+display:flex;
+justify-content:flex-start;
+}
+
+.sale-mini-card{
+max-width:320px;
+}
+
+
+.sale-search{
+display:flex;
+align-items:center;
+gap:10px;
+background:#fff;
+border:1px solid #e2e8f0;
+border-radius:999px;
+padding:2px 14px;
+flex:1;
+min-width:220px;
+max-width:560px;
+transition:border-color .2s, box-shadow .2s;
+}
+
+.sale-search:focus-within{
+border-color:#bfd5ff;
+box-shadow:0 10px 22px rgba(55,65,81,.08);
+}
+
+.sale-search input{
+border:none;
+background:transparent;
+outline:none;
+font-size:14px;
+width:100%;
+color:#111827;
+}
+
+.sale-search-icon{
+color:#8a8fa3;
+font-size:15px;
+}
+
+
+/* ACTION BUTTONS */
+
+.sale-actions{
+display:flex;
+align-items:center;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.sale-actions .btn{
+border-radius:99px;
+padding:0 14px;
+height:30px;
+font-weight:600;
+}
+
+.sale-actions .btn-danger{
+box-shadow:0 10px 25px rgba(255,67,110,.18);
+}
+
+.sale-actions .btn-primary{
+box-shadow:0 10px 25px rgba(49,113,253,.18);
+}
+
+
+/* CARDS */
+
+.sale-card{
+width:100%;
+margin-bottom:12px;
+}
+
+.vyapar-card{
+width:100%;
+border-radius:12px;
+border:1px solid #e6e8ef;
+}
+.sale-card:last-child{
+margin-bottom:0;
+}
+
+.sale-top-card{
+border-radius:12px;
+overflow:visible;
+}
+
+
+/* DROPDOWN */
+
+.sale-dropdown{
+  position:relative;
+  display:inline-block;
+}
+
+.sale-dropdown-toggle{
+width:40px;
+height:40px;
+border-radius:50%;
+border:none;
+background:transparent;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+}
+
+.sale-dropdown-toggle:hover{
+background:rgba(0,0,0,.05);
+}
+
+.sale-top-card{
+position:relative;
+z-index:600;
+overflow:visible;
+}
+
+.sale-dropdown-menu{
+  position:absolute;
+  top:calc(100% + 8px);
+  left:0;
+  background:#fff;
+  border:1px solid #dbe3ef;
+  border-radius:12px;
+  box-shadow:0 10px 24px rgba(0,0,0,.16);
+  min-width:220px;
+  display:none;
+  z-index:999999 !important;
+  overflow:hidden;
+}
+
+
+.sale-actions .sale-dropdown-menu{
+left:auto;
+right:0;
+}
+
+
+.sale-dropdown.open .sale-dropdown-menu{
+display:block;
+}
+
+.sale-dropdown-menu button{
+width:100%;
+text-align:left;
+border:none;
+background:transparent;
+padding:10px 12px;
+font-size:14px;
+}
+
+.sale-dropdown-menu button:hover{
+background:#f1f5f9;
+}
+
+/* ROW ACTIONS */
+.row-actions{
+    position:relative;
+    z-index:1;
+}
+
+.d-flex i{
+  color: #555;   /* light black / grey */
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+.d-flex i:hover{
+  color: #000;   /* hover par dark black */
+}
+
+.row-actions .sale-dropdown-toggle{
+    width:34px;
+    height:34px;
+
+    background:#fff;
+    color:#475569;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+}
+
+.row-actions .sale-dropdown-toggle:hover{
+    background:rgba(0,0,0,.04);
+}
+
+.row-actions .sale-dropdown-menu{
+    top:calc(100% + 6px);
+    min-width:220px;
+    right:0;
+    left:auto;
+}
+
+.row-actions .sale-dropdown-menu button{
+    padding:10px 14px;
+    font-size:13px;
+    color:#1f2937;
+}
+
+.row-actions .sale-dropdown-menu button i{
+    width:18px;
+    text-align:center;
+}
+
+.sale-dropdown-header{
+padding:10px 14px;
+font-size:12px;
+font-weight:700;
+color:#6b7280;
+border-bottom:1px solid #e5e7eb;
+}
+
+
+/* INVOICE CARD */
+
+.sale-invoices-card{
+border:1px solid #bfd0ff;
+background:#fff;
+border-radius:12px;
+position:relative;
+z-index:500;
+}
+
+.sale-invoices-title{
+font-size:1.3rem;
+font-weight:700;
+}
+
+
+/* FILTER */
+
+.sale-filter-row{
+display:flex;
+align-items:center;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.sale-filter-left{
+display:flex;
+align-items:center;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.sale-filter-label{
+font-size:14px;
+color:#555;
+font-weight:500;
+}
+
+.sale-pill{
+display:inline-flex;
+align-items:center;
+gap:6px;
+border:1px solid #dbe4ff;
+background:#f5f8ff;
+border-radius:999px;
+padding:7px 14px;
+font-size:13px;
+font-weight:500;
+}
+
+
+
+
+/* SUMMARY CARD */
+
+.sale-mini-card{
+background:#f3f0ff;
+border:1px solid #e3ddff;
+border-radius:10px;
+padding:18px 20px;
+max-width:320px;
+}
+
+.sale-summary-label{
+font-size:12px;
+color:#6b7280;
+}
+
+.sale-summary-value{
+font-size:28px;
+color:#2d43dc;
+font-weight:700;
+}
+
+.sale-summary-sub{
+font-size:13px;
+color:#374151;
+}
+
+
+/* TABLE */
+
+.txn-table{
+width:100%;
+border-collapse:collapse;
+font-size:14px;
+}
+
+.txn-table th{
+background:#f7f8fb;
+padding:12px;
+font-weight:600;
+color:#2a2a2a;
+border-bottom:1px solid #e6e8ef;
+}
+
+.txn-table td{
+    padding:12px;
+    border-bottom:1px solid #f0f1f6;
+    color:#2a2a2a;
+}
+
+.txn-table tr:hover{
+    background:#fafbff;
+}
+
+
+/* COLUMN FILTER */
+
+.column-filter-header{
+display:flex;
+align-items:center;
+gap:4px;
+position:relative;
+white-space:nowrap;
+font-weight:600;
+}
+
+.filter-icon-btn{
+border:0;
+background:transparent;
+color:#64748b;
+cursor:pointer;
+padding:2px 4px;
+}
+
+.filter-icon-btn:hover{
+color:#374151;
+background:rgba(0,0,0,.05);
+}
+
+.custom-table th{
+  position: relative;
+}
+
+.column-filter-dropdown{
+  position:absolute;
+  top: calc(100% + 6px);
+  left:0;
+  min-width:170px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  box-shadow:0 10px 24px rgba(0,0,0,.12);
+  border-radius:8px;
+  padding:8px;
+  z-index:999999;
+  display:none;
+}
+
+
+.column-filter-dropdown.open{
+display:block;
+}
+
+
+/* MAIN CARD */
+
+.sale-main-card{
+border-radius:12px;
+border:1px solid #e6e8ef;
+overflow:visible;
+margin-top:10px;
+background:#fff;
+box-shadow:0 8px 18px rgba(0,0,0,.03);
+position:relative;
+z-index:1;
+}
+
+.table-wrapper {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.txn-table {
+  min-width: 1200px;
+}
+
+.table-responsive{
+overflow:visible !important;
+}

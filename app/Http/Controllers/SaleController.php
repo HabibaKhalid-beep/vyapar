@@ -23,6 +23,38 @@ class SaleController extends Controller
             ->where('type', 'invoice')
             ->whereNotIn('status', ['returned']);
 
+        $period = (string) $request->query('period', 'all');
+        $firm = (string) $request->query('firm', '');
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        if ($firm !== '') {
+            $salesQuery->whereHas('party', function ($query) use ($firm) {
+                $query->where('name', $firm);
+            });
+        }
+
+        $today = now();
+        if ($period === 'this_month') {
+            $salesQuery->whereDate('invoice_date', '>=', $today->copy()->startOfMonth()->toDateString())
+                ->whereDate('invoice_date', '<=', $today->copy()->endOfMonth()->toDateString());
+        } elseif ($period === 'last_month') {
+            $last = $today->copy()->subMonth();
+            $salesQuery->whereDate('invoice_date', '>=', $last->copy()->startOfMonth()->toDateString())
+                ->whereDate('invoice_date', '<=', $last->copy()->endOfMonth()->toDateString());
+        } elseif ($period === 'this_quarter') {
+            $start = $today->copy()->firstOfQuarter();
+            $end = $today->copy()->lastOfQuarter();
+            $salesQuery->whereDate('invoice_date', '>=', $start->toDateString())
+                ->whereDate('invoice_date', '<=', $end->toDateString());
+        } elseif ($period === 'this_year') {
+            $salesQuery->whereDate('invoice_date', '>=', $today->copy()->startOfYear()->toDateString())
+                ->whereDate('invoice_date', '<=', $today->copy()->endOfYear()->toDateString());
+        } elseif ($period === 'custom' && $from && $to) {
+            $salesQuery->whereDate('invoice_date', '>=', $from)
+                ->whereDate('invoice_date', '<=', $to);
+        }
+
         if ($request->boolean('overdue')) {
             $salesQuery
                 ->where('balance', '>', 0)
@@ -36,6 +68,10 @@ class SaleController extends Controller
         return view('dashboard.sales.sale_index', [
             'sales' => $sales,
             'showOverdueOnly' => $request->boolean('overdue'),
+            'period' => $period,
+            'firm' => $firm,
+            'from' => $from,
+            'to' => $to,
         ]);
     }
 
@@ -507,7 +543,7 @@ private function posData(): array
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
-            'share_url' => route('sale.invoice-preview', $sale),
+            'share_url' => route('invoice', ['sale_id' => $sale->id]),
         ]);
     }
 
@@ -718,8 +754,8 @@ private function posData(): array
         }
 
         $redirectUrl = match ($sale->type) {
-            'estimate' => route('sale.estimate'),
-            'sale_order' => route('sale-order'),
+            'estimate' => route('invoice', ['sale_id' => $sale->id, 'print' => 1]),
+            'sale_order' => route('invoice', ['sale_id' => $sale->id, 'print' => 1]),
             'proforma' => route('proforma-invoice'),
             default => route('sale.index'),
         };
@@ -729,7 +765,7 @@ private function posData(): array
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
-            'share_url' => route('sale.invoice-preview', $sale),
+            'share_url' => route('invoice', ['sale_id' => $sale->id]),
         ]);
     }
 
@@ -978,6 +1014,16 @@ private function posData(): array
         $businessName = trim((string) config('app.name', 'My Company')) ?: 'My Company';
         $partyName = $sale->display_party_name !== '-' ? $sale->display_party_name : 'Walk-in Customer';
 
+        $paymentsReceived = (float) $sale->payments
+            ->sum('amount');
+
+        $totalAmount = (float) ($sale->grand_total ?? 0);
+        $storedBalance = (float) ($sale->balance ?? 0);
+
+        $receivedAmount = (float) ($sale->received_amount ?? 0);
+        $receivedFromBalance = $totalAmount > 0 ? max($totalAmount - $storedBalance, 0) : 0;
+        $receivedAmount = max($receivedAmount, $paymentsReceived, $receivedFromBalance);
+
         return [
             'title' => $sale->type === 'invoice' ? 'Invoice' : ucwords(str_replace('_', ' ', (string) $sale->type)),
             'businessName' => $businessName,
@@ -995,9 +1041,9 @@ private function posData(): array
             'subtotal' => (float) ($sale->total_amount ?? 0),
             'discount' => (float) ($sale->discount_rs ?? 0),
             'taxAmount' => (float) ($sale->tax_amount ?? 0),
-            'total' => (float) ($sale->grand_total ?? 0),
-            'received' => (float) ($sale->received_amount ?? 0),
-            'balance' => (float) ($sale->balance ?? 0),
+            'total' => $totalAmount,
+            'received' => $receivedAmount,
+            'balance' => (float) ($sale->balance ?? max($totalAmount - $receivedAmount, 0)),
             'bankName' => (string) ($bankAccount?->bank_name ?: $bankAccount?->display_name ?: ''),
             'bankAccountNumber' => (string) ($bankAccount?->account_number ?: ''),
             'bankAccountHolder' => (string) ($bankAccount?->account_holder_name ?: ''),

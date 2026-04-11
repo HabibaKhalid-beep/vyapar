@@ -1,0 +1,167 @@
+.tt5-wrapper {
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  padding: 24px 28px 32px;
+}
+
+.tt5-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.tt5-company-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.tt5-company-phone {
+  font-size: 13px;
+  color: #444;
+  margin: 0;
+}
+
+.tt5-dashed {
+  border: none;
+  border-top: 1px dashed #aaa;
+  margin: 10px 0;
+}
+
+.tt5-no-margin {
+  margin: 0;
+}
+
+.tt5-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+  margin: 6px 0 10px;
+}
+
+.tt5-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #111;
+  margin: 4px 0;
+}
+
+.tt5-meta-left { text-align: left; }
+.tt5-meta-right { text-align: right; }
+
+.tt5-billto-name {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  margin: 6px 0;
+}
+
+.tt5-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.tt5-th-left,
+.tt5-th-right {
+  padding: 6px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  background: #fff;
+  vertical-align: top;
+}
+
+.tt5-th-left { text-align: left; }
+.tt5-th-right { text-align: right; }
+
+.tt5-th-line {
+  display: block;
+  line-height: 1.5;
+}
+
+.tt5-th-sub {
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.tt5-col-num    { width: 40px; }
+.tt5-col-price  { width: 140px; }
+.tt5-col-amount { width: 120px; }
+
+.tt5-td-left,
+.tt5-td-right,
+.tt5-td-center {
+  padding: 5px 8px;
+  font-size: 14px;
+  color: #111;
+  border: none;
+  vertical-align: top;
+}
+
+.tt5-td-left { text-align: left; }
+.tt5-td-right { text-align: right; }
+.tt5-td-center { text-align: center; }
+
+.tt5-dashed-cell { padding: 0; }
+
+.tt5-item-name {
+  display: block;
+  line-height: 1.5;
+}
+
+.tt5-item-qty {
+  display: block;
+  font-size: 13px;
+  color: #111;
+  line-height: 1.5;
+}
+
+.tt5-qty-total-row td {
+  padding-top: 6px;
+  padding-bottom: 2px;
+}
+
+.tt5-sub-label {
+  font-size: 14px;
+  padding-left: 24px;
+}
+
+.tt5-sub-colon {
+  text-align: center;
+  font-size: 14px;
+}
+
+.tt5-terms {
+  margin-top: 10px;
+  text-align: center;
+  position: relative;
+}
+
+.tt5-terms-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #111;
+}
+
+.tt5-terms-text {
+  font-size: 14px;
+  color: #444;
+  margin: 0;
+}
+
+.tt5-edit-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 14px;
+  color: #aaa;
+}

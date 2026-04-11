@@ -1,0 +1,7 @@
+.right-panel {
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto;
+  background-color: #ffffff;
+  padding: 40px;
+}

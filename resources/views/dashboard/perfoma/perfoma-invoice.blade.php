@@ -161,9 +161,8 @@
                         </button>
                         <ul class="dropdown-menu">
                           <li><a class="dropdown-item" href="{{ route('proforma-invoice.edit', $proforma->id) }}"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                          <li><a class="dropdown-item" href="{{ route('proforma-invoice.preview', $proforma->id) }}" target="_blank"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
+                          <li><a class="dropdown-item" href="{{ route('proforma-invoice.react', $proforma->id) }}" target="_blank"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
                           <li><a class="dropdown-item" href="{{ route('proforma-invoice.print', $proforma->id) }}" target="_blank"><i class="fas fa-print me-2"></i>Print</a></li>
-                          <li><a class="dropdown-item" href="{{ route('proforma-invoice.pdf', $proforma->id) }}" target="_blank"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
                           <li><a class="dropdown-item" href="{{ route('proforma-invoice.duplicate', $proforma->id) }}"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
                           <li><hr class="dropdown-divider"></li>
                           <li><a class="dropdown-item text-danger" href="#" onclick="deleteProforma('{{ route('proforma-invoice.destroy', $proforma->id) }}'); return false;"><i class="fas fa-trash me-2"></i>Delete</a></li>

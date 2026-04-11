@@ -33,6 +33,7 @@ class Sale extends Model
         'status',
         'description',
         'image_path',
+        'image_paths',
         'document_path',
     ];
 
@@ -47,6 +48,7 @@ class Sale extends Model
         'tax_amount' => 'decimal:2',
         'round_off' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'image_paths' => 'array',
     ];
 
     public function items()

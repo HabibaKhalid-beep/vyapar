@@ -1,0 +1,180 @@
+.tt3-wrapper {
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  padding: 24px 28px 32px;
+}
+
+/* HEADER */
+.tt3-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.tt3-company-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.tt3-company-phone {
+  font-size: 13px;
+  color: #444;
+  margin: 0;
+}
+
+/* DASHED LINE */
+.tt3-dashed {
+  border: none;
+  border-top: 1px dashed #aaa;
+  margin: 10px 0;
+}
+
+.tt3-no-margin {
+  margin: 0;
+}
+
+/* INVOICE TITLE */
+.tt3-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+  margin: 6px 0 10px;
+}
+
+/* INFO ROW */
+.tt3-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.tt3-billto-name {
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0;
+  color: #111;
+}
+
+.tt3-invoice-details {
+  text-align: right;
+}
+
+.tt3-details-line {
+  font-size: 13px;
+  color: #111;
+  margin: 2px 0;
+}
+
+/* TABLE */
+.tt3-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.tt3-th-left,
+.tt3-th-right {
+  padding: 6px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  background: #fff;
+  vertical-align: top;
+}
+
+.tt3-th-left { text-align: left; }
+.tt3-th-right { text-align: right; }
+
+.tt3-th-line {
+  display: block;
+  line-height: 1.5;
+}
+
+.tt3-th-sub {
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.tt3-col-num    { width: 40px; }
+.tt3-col-price  { width: 140px; }
+.tt3-col-amount { width: 120px; }
+
+.tt3-td-left,
+.tt3-td-right {
+  padding: 5px 8px;
+  font-size: 14px;
+  color: #111;
+  border: none;
+  vertical-align: top;
+}
+
+.tt3-td-left { text-align: left; }
+.tt3-td-right { text-align: right; }
+
+/* dashed separator row */
+.tt3-dashed-cell {
+  padding: 0;
+}
+
+/* Item name + qty stacked */
+.tt3-item-name {
+  display: block;
+  line-height: 1.5;
+}
+
+.tt3-item-qty {
+  display: block;
+  font-size: 13px;
+  color: #111;
+  line-height: 1.5;
+}
+
+/* Qty total row */
+.tt3-qty-total-row td {
+  padding-top: 6px;
+  padding-bottom: 2px;
+}
+
+/* Sub-label rows */
+.tt3-sub-label {
+  padding-left: 24px;
+  font-size: 14px;
+}
+
+.tt3-sub-colon {
+  text-align: center;
+  font-size: 14px;
+}
+
+/* TERMS */
+.tt3-terms {
+  margin-top: 10px;
+  position: relative;
+}
+
+.tt3-terms-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #111;
+}
+
+.tt3-terms-text {
+  font-size: 14px;
+  color: #444;
+  margin: 0;
+}
+
+.tt3-edit-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 14px;
+  color: #aaa;
+}

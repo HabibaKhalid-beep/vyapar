@@ -25,6 +25,7 @@ use App\Http\Controllers\ExpenseCreateController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BrokerController;
+use App\Http\Controllers\WarehouseController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -93,7 +94,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::post('/estimates', [EstimateController::class, 'store'])->name('estimate.store');
 
     // Sale Sections
-    Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
+    Route::get('/payment-in', [PaymentInController::class, 'index'])->name('payment-in');
 
 
 
@@ -109,6 +110,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/proforma-invoice/{sale}/duplicate', [PerfomaController::class, 'duplicate'])->name('proforma-invoice.duplicate');
     Route::get('/proforma-invoice/{sale}/convert-to-sale', [SaleController::class, 'createFromProforma'])->name('proforma-invoice.convert-to-sale');
     Route::get('/proforma-invoice/{sale}/convert-to-sale-order', [SaleOrderController::class, 'createFromProforma'])->name('proforma-invoice.convert-to-sale-order');
+    Route::get('/proforma-invoice/{sale}/react-preview', [InvoiceController::class, 'proforma'])->name('proforma-invoice.react');
     // Sale Return
     Route::get('/sale-return', [SaleReturnController::class, 'saleReturn'])->name('sale-return');
     Route::get('/sale-return/create', [SaleReturnController::class, 'salereturncreate'])->name('sale-return.create');
@@ -141,6 +143,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     // Invoice
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice');
     Route::get('/invoice/print', [InvoiceController::class, 'print'])->name('invoice.print');
+    Route::get('/invoice/payment-in', [InvoiceController::class, 'paymentIn'])->name('invoice.payment-in');
 
     // Loan Accounts
     Route::get('/loan-accounts', [LoanAccountController::class, 'index'])->name('loan-accounts');
@@ -218,7 +221,44 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
 Route::get('reports', [ReportController::class, 'index'])->name('reports');
+Route::get('reports', [ReportController::class, 'index'])->name('reports');
 Route::get('/reports/sale', [ReportController::class, 'saleReport'])->name('reports.sale');
+Route::get('reports/all-transactions', [ReportController::class, 'allTransactions'])->name('reports.all-transactions');
+Route::get('/reports/purchase', [ReportController::class, 'purchaseReport'])->name('reports.purchase');
+
+// Cash Flow
+Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow']);
+Route::get('/reports/cash-flow/export', [ReportController::class, 'cashFlowExport']);
+
+Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])->name('reports.item-wise-discount');
+Route::get('reports/party-statement/{partyId}', [ReportController::class, 'partyStatement']);
+Route::get('reports/all-parties', [ReportController::class, 'allParties']);
+Route::get('reports/party-report-by-items', [ReportController::class, 'partyReportByItems']);
+Route::get('reports/sale-purchase-by-party', [ReportController::class, 'salePurchaseByParty']);
+Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
+Route::get('/reports/profit-loss', [ReportController::class, 'profitAndLoss']);
+Route::get('/reports/profit-loss/export', [ReportController::class, 'profitAndLossExport']);
+Route::get('/reports/bill-wise-profit', [ReportController::class, 'billWiseProfit']);
+Route::get('/reports/bill-wise-profit/export', [ReportController::class, 'billWiseProfitExport']);
+Route::get('/reports/bill-wise-profit/{id}/items', [ReportController::class, 'billWiseProfitItems']);
+Route::get('/reports/bank-statement', [ReportController::class, 'bankStatement']);
+Route::get('/reports/bank-statement/export', [ReportController::class, 'bankStatementExport']);
+Route::get('/reports/discount-report', [ReportController::class, 'discountReport']);
+Route::get('/reports/discount-report/export', [ReportController::class, 'discountReportExport']);
+Route::get('/reports/tax-report', [ReportController::class, 'taxReport']);
+Route::get('/reports/tax-report/export', [ReportController::class, 'taxReportExport']);
+Route::get('/reports/tax-rate-report', [ReportController::class, 'taxRateReport']);
+Route::get('/reports/tax-rate-report/export', [ReportController::class, 'taxRateReportExport']);
+Route::get('/reports/expense', [ReportController::class, 'expenseReport']);
+Route::get('/reports/expense/export', [ReportController::class, 'expenseReportExport']);
+Route::get('/reports/expense-category-report', [ReportController::class, 'expenseCategoryReport']);
+Route::get('/reports/expense-category-report/export', [ReportController::class, 'expenseCategoryReportExport']);
+Route::get('/reports/expense-item-report', [ReportController::class, 'expenseItemReport']);
+Route::get('/reports/expense-item-report/export', [ReportController::class, 'expenseItemReportExport']);
+Route::get('/reports/sale-order-items', [ReportController::class, 'saleOrderItems'])->name('reports.sale-order-items');
+
+// Loan Statement JSON
+Route::get('/loan-accounts-json', [LoanAccountController::class, 'allJson'])->name('loan-accounts.json');
 Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])
     ->name('reports.item-wise-discount');
 Route::get('reports/party-statement/{partyId}',   [ReportController::class, 'partyStatement']);
@@ -300,10 +340,16 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::post('/brokers', [BrokerController::class, 'store'])->name('brokers.store');
     Route::put('/brokers/{broker}', [BrokerController::class, 'update'])->name('brokers.update');
     Route::delete('/brokers/{broker}', [BrokerController::class, 'destroy'])->name('brokers.destroy');
+    Route::post('/warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
     Route::post('/bank-accounts/bulk-status', [BankAccountController::class, 'bulkStatus'])->name('bank-accounts.bulk-status');
     // payment-in
-    Route::get('/payment-in', [SaleSectionController::class, 'paymentIn'])->name('payment-in');
-Route::post('/payments-in', [BankAccountController::class, 'paymentIn'])->name('payments-in.store');
+Route::post('/payments-in', [PaymentInController::class, 'store'])->name('payments-in.store');
+Route::get('/payments-in/{paymentIn}/edit', [PaymentInController::class, 'edit'])->name('payments-in.edit');
+Route::put('/payments-in/{paymentIn}', [PaymentInController::class, 'update'])->name('payments-in.update');
+Route::delete('/payments-in/{paymentIn}', [PaymentInController::class, 'destroy'])->name('payments-in.destroy');
+Route::get('/payments-in/{paymentIn}/print', [PaymentInController::class, 'print'])->name('payments-in.print');
+Route::get('/payments-in/{paymentIn}/pdf', [PaymentInController::class, 'pdf'])->name('payments-in.pdf');
+Route::get('/payments-in/{paymentIn}/history', [PaymentInController::class, 'getHistory'])->name('payments-in.history');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

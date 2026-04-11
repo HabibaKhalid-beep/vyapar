@@ -1,0 +1,276 @@
+.t1-wrapper {
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  padding: 24px 28px 32px;
+}
+
+/* HEADER */
+.t1-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.t1-logo {
+  width: 80px;
+  height: 70px;
+  background-color: #888;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 13px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.t1-company-info {
+  text-align: right;
+}
+
+.t1-company-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.t1-company-phone {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+}
+
+/* TITLE ROW */
+.t1-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.t1-hr {
+  flex: 1;
+  border: none;
+  border-top: 1px solid #bbb;
+  margin: 0;
+}
+
+.t1-title {
+    text-align: center;
+    width: 100%;
+    border-top: 1px solid #888;
+    border-bottom: 1px solid #888;
+  font-size: 15px;
+  font-weight: 400;
+  color: #888;
+  margin: 0;
+
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+/* INFO ROW: Bill To | Invoice Details */
+.t1-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 14px;
+}
+
+.t1-billto-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.t1-billto-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  color: #111;
+}
+
+.t1-invoice-details {
+  text-align: right;
+}
+
+.t1-details-heading {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.t1-details-line {
+  font-size: 13px;
+  color: #444;
+  margin: 2px 0;
+}
+
+/* TABLE */
+.t1-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.t1-th-left,
+.t1-th-right {
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #888;
+  color: #fff;
+}
+
+.t1-th-left {
+  text-align: left;
+}
+
+.t1-th-right {
+  text-align: right;
+}
+
+.t1-col-num    { width: 50px; }
+.t1-col-qty    { width: 110px; }
+.t1-col-price  { width: 150px; }
+.t1-col-amount { width: 130px; }
+
+.t1-td-left,
+.t1-td-right {
+  padding: 9px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #ddd;
+}
+
+.t1-td-left {
+  text-align: left;
+}
+
+.t1-td-right {
+  text-align: right;
+}
+
+.t1-total-row .t1-td-left,
+.t1-total-row .t1-td-right {
+  border-top: 1px solid #bbb;
+  border-bottom: 1px solid #bbb;
+}
+
+/* BOTTOM SECTION */
+.t1-bottom {
+  display: flex;
+  gap: 0;
+  margin-top: 0;
+}
+
+.t1-bottom-left {
+  flex: 1;
+  padding-right: 16px;
+}
+
+.t1-bottom-right {
+  width: 44%;
+  flex-shrink: 0;
+}
+
+/* Section header (gray bar) */
+.t1-section-header {
+  background: #888;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  margin-top: 0;
+}
+
+.t1-section-body {
+  padding: 10px 12px;
+}
+
+.t1-words-body {
+  min-height: 36px;
+}
+
+.t1-words-text {
+  font-size: 14px;
+  color: #111;
+  margin: 0;
+}
+
+.t1-terms-body {
+  min-height: 60px;
+  position: relative;
+}
+
+.t1-terms-text {
+  font-size: 14px;
+  color: #444;
+  margin: 0;
+}
+
+.t1-edit-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 14px;
+  color: #aaa;
+}
+
+/* Amounts */
+.t1-amounts-body {
+  padding: 0 12px;
+}
+
+.t1-amount-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+  color: #111;
+}
+
+.t1-amount-bold {
+  font-weight: 700;
+}
+
+.t1-amount-last {
+  border-bottom: none;
+}
+
+/* Signature */
+.t1-sign-area {
+  padding: 16px 12px 8px;
+  text-align: right;
+}
+
+.t1-for-text {
+  font-size: 14px;
+  color: #555;
+  margin: 0 0 40px;
+}
+
+.t1-sign-space {
+  min-height: 50px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.t1-signatory {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+  margin: 8px 0 0;
+}

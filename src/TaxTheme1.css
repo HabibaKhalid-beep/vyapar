@@ -1,0 +1,204 @@
+.tax1-wrapper {
+  padding: 30px;
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+}
+
+/* HEADER */
+.tax1-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 20px;
+}
+
+.tax1-company h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #1a1a2e;
+}
+
+.tax1-company p {
+  font-size: 14px;
+  color: #555;
+  margin: 0;
+}
+
+.tax1-logo {
+  width: 90px;
+  height: 75px;
+  background-color: #888;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* TITLE */
+.tax1-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 400;
+  color: #888;
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+
+/* BILL TO + INVOICE DETAILS */
+.tax1-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.tax1-bill {
+  flex: 1;
+}
+
+.tax1-invoice-details {
+  flex: 1;
+  text-align: right;
+}
+
+.tax1-invoice-details p {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.tax1-label {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+
+.tax1-value {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* TABLE */
+.tax1-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+
+.tax1-table thead tr th {
+  color: white;
+  border: 1px solid #aaa;
+  padding: 10px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.tax1-table thead tr th:nth-child(1),
+.tax1-table thead tr th:nth-child(2) {
+  text-align: left;
+}
+
+.tax1-table tbody td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.tax1-table tbody td:nth-child(1),
+.tax1-table tbody td:nth-child(2) {
+  text-align: left;
+}
+
+.tax1-total-row td {
+  border: none;
+  border-top: 2px solid #bbb;
+  padding: 10px;
+}
+
+/* BOTTOM TWO COLUMN LAYOUT */
+.tax1-bottom {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 24px;
+}
+
+.tax1-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tax1-words p,
+.tax1-terms p {
+  font-size: 14px;
+  margin: 0;
+}
+
+.tax1-terms {
+  position: relative;
+}
+
+.edit-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.tax1-right {
+  flex: 1;
+}
+
+.tax1-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.tax1-summary-row.total-highlight {
+  color: white;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-bottom: none;
+}
+
+/* SIGNATURE */
+.tax1-sign {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 10px;
+}
+
+.tax1-for {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 50px;
+}
+
+.tax1-sign-box {
+  border-top: 1px solid #ccc;
+  padding-top: 8px;
+  min-width: 220px;
+  text-align: center;
+}
+
+.tax1-sign-box p {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}

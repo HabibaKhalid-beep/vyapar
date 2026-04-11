@@ -1,0 +1,212 @@
+.divine-wrapper {
+  font-family: sans-serif;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* Full width colored header */
+.divine-header {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  min-height: 120px;
+  /* height: 60px; */
+}
+
+/* Navy block: left side, curved bottom-right corner */
+.divine-navy-block {
+  background-color: #1e2a38;
+  border-radius: 0 0 50px 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 20px 16px 12px;
+  /* min-width: 280px; */
+  /* max-width: 380px; */
+  width: 500px;
+  gap: 8px;
+  z-index: 2;
+}
+
+.divine-logo {
+  width: 65px;
+  height: 60px;
+  background-color: #888;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 13px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.divine-company-block {
+    
+  padding: 0;
+}
+
+
+.divine-company-name {
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Phone on right inside green */
+.divine-phone {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 18px 20px 0 0;
+  align-self: flex-start;
+}
+
+.phone-icon {
+  display: flex;
+  align-items: center;
+  margin-top: 1px;
+}
+
+/* Invoice details below header */
+.divine-invoice-block {
+  padding: 14px 20px 0;
+}
+
+.divine-title {
+  font-size: 26px;
+  font-weight: 400;
+  color: #222;
+  margin-bottom: 8px;
+}
+
+.divine-meta-table {
+  font-size: 14px;
+  border-collapse: collapse;
+}
+
+.divine-meta-table td {
+  padding: 3px 16px 3px 0;
+}
+
+.divine-bill-row {
+  padding: 15px 20px 5px;
+}
+
+.divine-bill-label {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.divine-bill-value {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  padding-left: 20px;
+}
+
+.divine-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 25px;
+}
+
+.divine-table thead tr th {
+  color: white;
+  padding: 12px 10px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.divine-table thead tr th:nth-child(1),
+.divine-table thead tr th:nth-child(2) {
+  text-align: left;
+}
+
+.divine-table tbody td {
+  padding: 10px;
+  font-size: 14px;
+  text-align: right;
+  border-bottom: 1px solid #eee;
+}
+
+.divine-table tbody td:nth-child(1),
+.divine-table tbody td:nth-child(2) {
+  text-align: left;
+}
+
+.divine-total-row td {
+  color: white;
+  font-weight: 700;
+}
+
+.divine-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 0 20px;
+  margin-bottom: 40px;
+}
+
+.divine-left-bottom {
+  font-size: 14px;
+  flex: 1;
+  line-height: 1.8;
+}
+
+.divine-section-label {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.divine-right-bottom {
+  width: 340px;
+  border: 1px solid #ddd;
+}
+
+.divine-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #ddd;
+}
+
+.divine-total-highlight {
+  color: white;
+  font-weight: 700;
+}
+
+.divine-terms {
+  position: relative;
+  font-size: 14px;
+}
+
+.divine-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 20px 30px;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+.divine-sign {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.edit-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 16px;
+  color: #888;
+}

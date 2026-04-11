@@ -1,0 +1,222 @@
+.t4-wrapper {
+  font-family: sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  padding: 24px 28px 32px;
+}
+
+/* HEADER */
+.t4-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.t4-company-info {
+  text-align: left;
+}
+
+.t4-company-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.t4-company-phone {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+}
+
+.t4-logo {
+  width: 80px;
+  height: 70px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 13px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* TITLE SECTION */
+.t4-title-section {
+  margin-bottom: 16px;
+}
+
+.t4-hr {
+  border: none;
+  border-top: 1px solid #bbb;
+  margin: 0 0 0 0;
+}
+
+.t4-title {
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  margin: 10px 0 0;
+  letter-spacing: 0.5px;
+}
+
+/* INFO ROW */
+.t4-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 14px;
+}
+
+.t4-billto-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.t4-billto-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  color: #111;
+}
+
+.t4-invoice-details {
+  text-align: right;
+}
+
+.t4-details-heading {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.t4-details-line {
+  font-size: 13px;
+  color: #444;
+  margin: 2px 0;
+}
+
+/* TABLE */
+.t4-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.t4-th-left,
+.t4-th-right {
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.t4-th-left { text-align: left; }
+.t4-th-right { text-align: right; }
+
+.t4-col-num    { width: 50px; }
+.t4-col-qty    { width: 110px; }
+.t4-col-price  { width: 150px; }
+.t4-col-amount { width: 130px; }
+
+.t4-td-left,
+.t4-td-right {
+  padding: 9px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #ddd;
+}
+
+.t4-td-left { text-align: left; }
+.t4-td-right { text-align: right; }
+
+.t4-total-row .t4-td-left,
+.t4-total-row .t4-td-right {
+  border-top: 1px solid #bbb;
+  border-bottom: 1px solid #bbb;
+}
+
+/* BOTTOM */
+.t4-bottom {
+  display: flex;
+  gap: 0;
+  margin-top: 0;
+}
+
+.t4-bottom-left {
+  flex: 1;
+  padding-right: 24px;
+  border-right: 1px solid #ddd;
+  padding-top: 12px;
+}
+
+.t4-bottom-right {
+  width: 44%;
+  flex-shrink: 0;
+  padding-left: 0;
+}
+
+/* Inline label + text rows */
+.t4-inline-row {
+  font-size: 14px;
+  color: #111;
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+/* Amounts */
+.t4-amounts-body {
+  padding: 0 12px;
+  border-top: 1px solid #ddd;
+}
+
+.t4-amount-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+  color: #111;
+}
+
+.t4-amount-bold {
+  font-weight: 700;
+}
+
+.t4-amount-last {
+  border-bottom: none;
+}
+
+/* Signature */
+.t4-sign-area {
+  padding: 16px 12px 8px;
+  text-align: right;
+}
+
+.t4-for-text {
+  font-size: 14px;
+  color: #555;
+  margin: 0 0 40px;
+}
+
+.t4-sign-space {
+  min-height: 50px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.t4-signatory {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+  margin: 8px 0 0;
+}

@@ -7,6 +7,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
+    @php
+        $previewImages = collect($sale->image_paths ?? [])->filter();
+        if ($previewImages->isEmpty() && !empty($sale->image_path)) {
+            $previewImages = collect([$sale->image_path]);
+        }
+    @endphp
     <div class="container py-4">
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
@@ -21,12 +27,22 @@
                     </div>
                 </div>
 
-                <div class="row mb-4">
+                <div class="row mb-4 g-4">
                     <div class="col-md-6">
                         <h6 class="text-muted">Party</h6>
                         <div>{{ $sale->display_party_name }}</div>
                         <div>{{ $sale->phone ?? '-' }}</div>
                         <div>{{ $sale->billing_address ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Logistics</h6>
+                        <div><strong>Broker:</strong> {{ $sale->challanDetail?->broker_name ?: '-' }}</div>
+                        <div><strong>Broker Phone:</strong> {{ $sale->challanDetail?->broker_phone ?: '-' }}</div>
+                        <div><strong>Warehouse:</strong> {{ $sale->challanDetail?->warehouse_name ?: '-' }}</div>
+                        <div><strong>Handler:</strong> {{ $sale->challanDetail?->warehouse_handler_name ?: '-' }}</div>
+                        <div><strong>Vehicle:</strong> {{ $sale->challanDetail?->vehicle_number ?: '-' }}</div>
+                        <div><strong>Destination:</strong> {{ $sale->challanDetail?->destination ?: '-' }}</div>
+                        <div><strong>Delivery Expense:</strong> {{ number_format((float) ($sale->challanDetail?->delivery_expenses ?? 0), 2) }}</div>
                     </div>
                 </div>
 
@@ -71,6 +87,19 @@
                         </table>
                     </div>
                 </div>
+
+                @if($previewImages->isNotEmpty())
+                    <div class="mt-4">
+                        <h6 class="text-muted">Attachments</h6>
+                        <div class="row g-3">
+                            @foreach($previewImages as $path)
+                                <div class="col-md-3 col-6">
+                                    <img src="{{ Storage::disk('public')->url($path) }}" alt="Attachment" class="img-fluid rounded border">
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -84,3 +113,4 @@
     @endif
 </body>
 </html>
+

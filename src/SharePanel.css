@@ -1,0 +1,102 @@
+.share-panel {
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid #e0e0e0;
+  background-color: #f5f5f5;
+  padding: 20px 15px;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.share-heading {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Roboto', sans-serif;
+  color: darkslategray;
+  margin-bottom: 20px;
+}
+
+.share-section {
+  margin-bottom: 20px;
+}
+
+.share-icons {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.action-icons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.share-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.share-item p {
+  font-size: 12px;
+  font-family: 'Roboto', sans-serif;
+  color: darkslategray;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.share-item p span {
+  color: #2563eb;
+  font-size: 11px;
+}
+
+.share-icon-box {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  border: 1.5px solid #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+}
+
+.action-box {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  border: 1.5px solid #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+}
+
+.action-box-filled {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  border: 1.5px solid #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2563eb;
+}
+
+.share-icon-box:hover,
+.action-box:hover {
+  background-color: #eff6ff;
+}
+
+.action-box-filled:hover {
+  background-color: #1d4ed8;
+}
+
+.share-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 10px 0 20px;
+}

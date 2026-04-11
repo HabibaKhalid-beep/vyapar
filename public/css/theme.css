@@ -376,10 +376,14 @@
         }
 
         .share-item {
+            border: 0;
+            background: transparent;
+            padding: 0;
             text-align: center;
             color: #333;
             font-size: 16px;
             min-width: 70px;
+            cursor: pointer;
         }
 
         .share-icon {

@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vyapar — Delivery Challan</title>
   <meta name="description" content="Record supplier purchase bills with live preview in Vyapar.">
@@ -15,8 +16,93 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <!-- Custom Styles -->
   <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
+  <style>
+    .search-container {
+      position: relative;
+      width: 50px;
+      transition: all 0.3s ease;
+    }
 
+    .search-container.active {
+      width: 250px;
+    }
 
+    .search-input {
+      width: 100%;
+      height: 40px;
+      border: none;
+      outline: none;
+      padding: 0 40px 0 10px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: 0.3s;
+    }
+
+    .search-container.active .search-input {
+      opacity: 1;
+    }
+
+    .search-btn {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      width: 30px;
+      height: 30px;
+      background: #6C757D;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .filter-pill {
+      background-color: #E4F2FF;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      height: 38px;
+      padding: 0 8px;
+    }
+
+    .filter-left {
+      border-right: 1px solid #ccc;
+      padding: 0 10px;
+    }
+
+    .filter-right {
+      padding: 0 10px;
+      min-width: 210px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .filter-select {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 13px;
+      padding: 0;
+      margin: 0;
+    }
+
+    .small-pill {
+      padding: 0 12px;
+      min-width: 120px;
+    }
+
+    .date-input {
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      width: 110px;
+      outline: none;
+    }
+  </style>
    <script>
     // Ensure window.App is always initialized, even if Auth is null
     const authUser = @json(Auth::user());
@@ -53,44 +139,41 @@
       </div>
 
     </div>
-    <div class="d-flex align-items-center bg-light px-4 py-2 rounded mb-2">
-      <div class="d-flex">
-        <!-- <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div> -->
-        <select name="" id="" class="bg-transparent border-0 fs-5 fw-bold" style="outline:none;">
-          <option value="">All Purchase Invoices</option>
-          <option value="" selected>This Month</option>
-          <option value="">Last Month</option>
-          <option value="">This Quarter</option>
-          <option value="">This Year</option>
-          <option value="">Custom</option>
-        </select>
-      </div>
-      <div class="d-flex pt-3 ps-2">
-        <p class="text-center pt-2 text-white fw-bold"
-          style="width: 6rem; height: 40px; background-color: #AAAAAA; border-radius: 5px 0px 0px 5px">Between</p>
-        <div class="d-flex justify-content-center pt-2 gap-3"
-          style="width: 20rem; height: 40px; border-radius: 0px 5px 5px 0px; border: 1px solid #AAAAAA">
-          <p>01/03/2026</p>
-          <p>To</p>
-          <p>31/03/2026</p>
+    <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-3 py-2 rounded">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="small fw-semibold">Filter By:</span>
+
+        <div class="d-flex rounded-pill filter-pill">
+          <div class="filter-left">
+            <select id="challanPeriodSelect" class="filter-select">
+              <option value="all" selected>All Delivery Challans</option>
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="this_quarter">This Quarter</option>
+              <option value="this_year">This Year</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div class="filter-right">
+            <span id="challanDateRangeDisplay"></span>
+            <div id="challanCustomDateRange" class="d-none align-items-center gap-1">
+              <input id="challanCustomFrom" type="date" class="date-input" />
+              <span>to</span>
+              <input id="challanCustomTo" type="date" class="date-input" />
+            </div>
+          </div>
         </div>
 
+        <div class="filter-pill small-pill">
+          <select id="challanFirmSelect" class="filter-select text-center">
+            <option value="" selected>All Firms</option>
+            @foreach($challans->map(fn($challan) => $challan->display_party_name)->filter()->unique()->values() as $firm)
+              <option value="{{ $firm }}">{{ $firm }}</option>
+            @endforeach
+          </select>
+        </div>
       </div>
-      <div class="d-flex justify-content-center align-items-center ms-4"
-        style="border: 1px solid #AAAAAA;border-radius: 5px; width: 8rem; height: 40px;"><select name="" id=""
-          class="bg-transparent border-0" style="outline:none;">
-          <option value="" selected>All Firms</option>
-          <option value=""><a href="">Firm 1</a></option>
-          <option value=""><a href="">Firm 2</a></option>
-          <option value=""><a href="">Firm 3</a></option>
-
-        </select></div>
-      <div class="px-5 mx-5"></div>
-      <div class="d-flex gap-5 text-secondary">
-        <i class="fa-solid fa-file-excel fs-5"></i>
-        <i class="fa-solid fa-print fs-5"></i>
-      </div>
-
     </div>
 
 
@@ -136,7 +219,7 @@
                   $convertedInvoiceNumber = $convertedInvoice->bill_number ?? null;
                   $overdueDays = $isOverdue ? max(1, $challan->due_date->copy()->startOfDay()->diffInDays(now()->copy()->startOfDay())) : 0;
                 @endphp
-                <tr>
+                <tr class="challan-row">
                   <td>{{ optional($challan->invoice_date)->format('d/m/Y') ?? '-' }}</td>
                   <td>{{ $challan->display_party_name }}</td>
                   <td>{{ $challan->bill_number ?? '-' }}</td>
@@ -174,10 +257,9 @@
                       <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                         <li><a class="dropdown-item" href="{{ route('delivery-challan.edit', $challan->id) }}">View/Edit</a></li>
                         <li><a class="dropdown-item" href="#" onclick="deleteChallan('{{ route('delivery-challan.destroy', $challan->id) }}'); return false;">Delete</a></li>
-                        <li><a class="dropdown-item" href="{{ route('delivery-challan.pdf', $challan->id) }}" target="_blank">Open PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openDeliveryChallanPdf('{{ route('invoice', ['sale_id' => $challan->id]) }}'); return false;">Open PDF</a></li>
                         <li><a class="dropdown-item" href="{{ route('delivery-challan.preview', $challan->id) }}" target="_blank">Preview</a></li>
-                        <li><a class="dropdown-item" href="{{ route('delivery-challan.print', $challan->id) }}" target="_blank">Print</a></li>
-                        <li><a class="dropdown-item" href="{{ route('delivery-challan.duplicate', $challan->id) }}">Duplicate</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="printDeliveryChallan('{{ route('invoice', ['sale_id' => $challan->id, 'print' => 1]) }}'); return false;">Print</a></li>
                       </ul>
                     </div>
                   </td>
@@ -204,9 +286,210 @@
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script src="{{ asset('js/delivery_challan.js') }}"></script>
+  <script>
+    function openDeliveryChallanPdf(url) {
+      window.open(url, '_blank');
+    }
+
+    function printDeliveryChallan(url) {
+      window.open(url, '_blank');
+    }
+
+    function deleteChallan(url) {
+      if (!confirm('Are you sure you want to delete this delivery challan?')) {
+        return;
+      }
+
+      const csrfToken =
+        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || window.App?.csrfToken
+        || '';
+
+      fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRF-TOKEN': csrfToken,
+          'Accept': 'application/json',
+        },
+      })
+        .then(async (response) => {
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data?.message || 'Delete failed');
+          }
+
+          window.location.reload();
+        })
+        .catch((error) => {
+          alert(error.message || 'Unable to delete delivery challan.');
+        });
+    }
+
+    // Filter functionality
+    $(document).ready(function () {
+      const $periodSelect = $("#challanPeriodSelect");
+      const $firmSelect = $("#challanFirmSelect");
+      const $dateRangeDisplay = $("#challanDateRangeDisplay");
+      const $customDateRange = $("#challanCustomDateRange");
+      const $customFrom = $("#challanCustomFrom");
+      const $customTo = $("#challanCustomTo");
+
+      let periodFilter = $periodSelect.val() || "all";
+      let firmFilter = $firmSelect.val() || "";
+      let customFrom = "";
+      let customTo = "";
+
+      function formatDisplayDate(date) {
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const yyyy = date.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+      }
+
+      function formatIsoDate(date) {
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const yyyy = date.getFullYear();
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      function parseRowDate(value) {
+        const parts = (value || "").trim().split(/[-\/]/);
+        if (parts.length !== 3) return null;
+
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+
+        if ([day, month, year].some(Number.isNaN)) return null;
+        return new Date(year, month, day);
+      }
+
+      function updateRangeDisplay(from, to) {
+        if (!from || !to) {
+          $dateRangeDisplay.text("");
+          return;
+        }
+
+        $dateRangeDisplay.text(`${formatDisplayDate(from)} To ${formatDisplayDate(to)}`);
+      }
+
+      function getPeriodRange(period) {
+        const now = new Date();
+        let start = null;
+        let end = null;
+
+        if (period === "this_month") {
+          start = new Date(now.getFullYear(), now.getMonth(), 1);
+          end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        } else if (period === "last_month") {
+          start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          end = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else if (period === "this_quarter") {
+          const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+          start = new Date(now.getFullYear(), quarterStartMonth, 1);
+          end = new Date(now.getFullYear(), quarterStartMonth + 3, 0);
+        } else if (period === "this_year") {
+          start = new Date(now.getFullYear(), 0, 1);
+          end = new Date(now.getFullYear(), 11, 31);
+        }
+
+        return { start, end };
+      }
+
+      function setCustomMode(isCustom) {
+        $dateRangeDisplay.toggleClass("d-none", isCustom);
+        $customDateRange.toggleClass("d-none", !isCustom).toggleClass("d-flex", isCustom);
+      }
+
+      function applyChallanFilters() {
+        $("#challanTable tbody tr.challan-row").each(function () {
+          const $row = $(this);
+          const rowText = $row.text().toLowerCase().replace(/\s+/g, " ").trim();
+          const partyName = $row.find("td").eq(1).text().trim().toLowerCase();
+          const rowDateText = $row.find("td").eq(0).text().trim();
+          const rowDate = parseRowDate(rowDateText);
+
+          let visible = true;
+
+          if (visible && firmFilter && partyName !== firmFilter.toLowerCase()) {
+            visible = false;
+          }
+
+          if (visible && periodFilter !== "all") {
+            let rangeStart = null;
+            let rangeEnd = null;
+
+            if (periodFilter === "custom") {
+              rangeStart = customFrom ? new Date(customFrom) : null;
+              rangeEnd = customTo ? new Date(customTo) : null;
+            } else {
+              const range = getPeriodRange(periodFilter);
+              rangeStart = range.start;
+              rangeEnd = range.end;
+            }
+
+            if (!rowDate || !rangeStart || !rangeEnd) {
+              visible = false;
+            } else {
+              rangeStart.setHours(0, 0, 0, 0);
+              rangeEnd.setHours(23, 59, 59, 999);
+              rowDate.setHours(12, 0, 0, 0);
+
+              if (rowDate < rangeStart || rowDate > rangeEnd) {
+                visible = false;
+              }
+            }
+          }
+
+          $row.toggle(visible);
+        });
+      }
+
+      function initializePeriodFilter() {
+        if (periodFilter === "custom") {
+          const today = new Date();
+          const todayIso = formatIsoDate(today);
+          $customFrom.val(todayIso);
+          $customTo.val(todayIso);
+          customFrom = todayIso;
+          customTo = todayIso;
+          setCustomMode(true);
+          return;
+        }
+
+        const range = getPeriodRange(periodFilter);
+        setCustomMode(false);
+        updateRangeDisplay(range.start, range.end);
+      }
+
+      initializePeriodFilter();
+      applyChallanFilters();
+
+      $periodSelect.on("change", function () {
+        periodFilter = $(this).val() || "all";
+        initializePeriodFilter();
+        applyChallanFilters();
+      });
+
+      $firmSelect.on("change", function () {
+        firmFilter = $(this).val() || "";
+        applyChallanFilters();
+      });
+
+      $customFrom.on("change", function () {
+        customFrom = $(this).val() || "";
+        applyChallanFilters();
+      });
+
+      $customTo.on("change", function () {
+        customTo = $(this).val() || "";
+        applyChallanFilters();
+      });
+    });
+  </script>
 
 </body>
 
 </html>
-
-
