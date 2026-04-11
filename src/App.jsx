@@ -6,6 +6,7 @@ import SharePanel from './SharePanel'
 import BusinessModal from './BusinessModal'
 import SignatureModal from './SignatureModal'
 import LogoModal from './LogoModal'
+import { exportInvoicePdf } from './pdfExport'
 import './App.css'
 
 const appData = window.invoiceAppData || {}
@@ -94,13 +95,11 @@ const App = () => {
         const printable = document.querySelector('.right-panel')
         if (!printable) return
         const isThermal = (selectedTheme || '').startsWith('thermal')
-        await window.html2pdf().set({
-          margin: isThermal ? [2, 2, 2, 2] : [6, 6, 6, 6],
+        await exportInvoicePdf({
+          element: printable,
           filename: `invoice-${invoiceData.invoiceNo || appData.saleId || 'invoice'}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-          jsPDF: { unit: 'mm', format: isThermal ? [80, 297] : 'a4', orientation: 'portrait' },
-        }).from(printable).save()
+          isThermal,
+        })
         return
       }
       if (shouldPrint) {

@@ -1,4 +1,5 @@
 import './SharePanel.css'
+import { exportInvoicePdf } from './pdfExport'
 
 const SharePanel = ({ invoiceData, saleId, selectedTheme, selectedColor }) => {
   const invoiceNumber = invoiceData?.invoiceNo || saleId || 'Invoice'
@@ -107,13 +108,7 @@ Preview: ${previewUrl}`
     if (window.html2pdf) {
       const isThermal = (selectedTheme || '').startsWith('thermal')
       const filename = `invoice-${invoiceNumber}.pdf`
-      await window.html2pdf().set({
-        margin: isThermal ? [2, 2, 2, 2] : [6, 6, 6, 6],
-        filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: isThermal ? [80, 297] : 'a4', orientation: 'portrait' },
-      }).from(printable).save()
+      await exportInvoicePdf({ element: printable, filename, isThermal })
       return
     }
 
