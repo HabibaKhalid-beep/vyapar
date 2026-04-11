@@ -75,6 +75,52 @@
       align-items: center;
       cursor: pointer;
     }
+
+    .filter-pill {
+      background-color: #E4F2FF;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      height: 38px;
+      padding: 0 8px;
+    }
+
+    .filter-left {
+      border-right: 1px solid #ccc;
+      padding: 0 10px;
+    }
+
+    .filter-right {
+      padding: 0 10px;
+      min-width: 210px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .filter-select {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 13px;
+      padding: 0;
+      margin: 0;
+    }
+
+    .small-pill {
+      padding: 0 12px;
+      min-width: 120px;
+    }
+
+    .date-input {
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      width: 110px;
+      outline: none;
+    }
   </style>
 </head>
 
@@ -327,34 +373,40 @@
 
 
     </div>
-    <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-4 py-2 rounded">
-      <div class="d-flex">
-        <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div>
-        <div class="d-flex rounded-pill" style="background-color:#E4F2FF;">
-          <div class="d-flex justify-content-center align-items-center text-center"
-            style="width: 9rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;"><select name=""
-              id="" class="bg-transparent border-0" style="outline:none;">
-              <option value="">All Estimates</option>
-              <option value="" selected>This Month</option>
-              <option value="">Last Month</option>
-              <option value="">This Quarter</option>
-              <option value="">This Year</option>
-              <option value="">Custom</option>
-            </select></div>
-          <div class="d-flex justify-content-center align-items-center" style="width: 16rem; height: 40px;">01/03/2026
-            To 31/03/2026</div>
+    <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-3 py-2 rounded">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="small fw-semibold">Filter By:</span>
 
+        <div class="d-flex rounded-pill filter-pill">
+          <div class="filter-left">
+            <select id="paymentInPeriodSelect" class="filter-select">
+              <option value="all" selected>All Payment In</option>
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="this_quarter">This Quarter</option>
+              <option value="this_year">This Year</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div class="filter-right">
+            <span id="paymentInDateRangeDisplay"></span>
+            <div id="paymentInCustomDateRange" class="d-none align-items-center gap-1">
+              <input id="paymentInCustomFrom" type="date" class="date-input" />
+              <span>to</span>
+              <input id="paymentInCustomTo" type="date" class="date-input" />
+            </div>
+          </div>
         </div>
-        <div class="d-flex justify-content-center align-items-center rounded-pill ms-4"
-          style="background-color:#E4F2FF; width: 8rem; height: 40px;"><select name="" id=""
-            class="bg-transparent border-0" style="outline:none;">
+
+        <div class="filter-pill small-pill">
+          <select id="paymentInFirmSelect" class="filter-select text-center">
             <option value="" selected>All Firms</option>
-            <option value=""><a href="">Firm 1</a></option>
-            <option value=""><a href="">Firm 2</a></option>
-            <option value=""><a href="">Firm 3</a></option>
-
-          </select></div>
-
+            @foreach($paymentIns->map(fn($paymentIn) => $paymentIn->party?->name)->filter()->unique()->values() as $firm)
+              <option value="{{ $firm }}">{{ $firm }}</option>
+            @endforeach
+          </select>
+        </div>
       </div>
     </div>
     <div class="bg-light mb-2 px-4 py-3 rounded">
@@ -493,10 +545,10 @@
                         <i class="fa-solid fa-ellipsis-vertical"></i>
                       </button>
                       <ul class="dropdown-menu dropdown-menu-end">
-                        <!-- <li><a class="dropdown-item" href="{{ route('invoice', ['payment_in' => $paymentIn->id]) }}"><i class="fa-solid fa-eye me-2"></i>Open</a></li> -->
+                        <li><a class="dropdown-item" href="{{ route('invoice', ['payment_in' => $paymentIn->id]) }}"><i class="fa-solid fa-eye me-2"></i>Open</a></li>
                         <li><a class="dropdown-item" href="{{ route('payments-in.edit', $paymentIn) }}"><i class="fa-solid fa-pen-to-square me-2"></i>Edit</a></li>
-                        <li><a class="dropdown-item" href="{{ route('invoice.payment-in', ['payment_in' => $paymentIn->id]) }}" target="_blank"><i class="fa-solid fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="{{ route('invoice.payment-in', ['payment_in' => $paymentIn->id]) }}" target="_blank"><i class="fa-solid fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPaymentInPdf('{{ route('invoice.payment-in', ['payment_in' => $paymentIn->id]) }}'); return false;"><i class="fa-solid fa-file-pdf me-2"></i>Open PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="printPaymentInInvoice('{{ route('payments-in.print', $paymentIn) }}'); return false;"><i class="fa-solid fa-print me-2"></i>Print</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#" onclick="viewPaymentHistory({{ $paymentIn->id }})"><i class="fa-solid fa-history me-2"></i>View History</a></li>
                         <li>
@@ -692,18 +744,194 @@
   <script src="{{ asset('js/payment_in.js') }}"></script>
   <script>
     $(document).ready(function () {
+      const $searchInput = $("#paymentInSearch");
+      const $periodSelect = $("#paymentInPeriodSelect");
+      const $firmSelect = $("#paymentInFirmSelect");
+      const $dateRangeDisplay = $("#paymentInDateRangeDisplay");
+      const $customDateRange = $("#paymentInCustomDateRange");
+      const $customFrom = $("#paymentInCustomFrom");
+      const $customTo = $("#paymentInCustomTo");
+
+      let globalSearch = "";
+      let periodFilter = $periodSelect.val() || "all";
+      let firmFilter = $firmSelect.val() || "";
+      let customFrom = "";
+      let customTo = "";
+
+      function formatDisplayDate(date) {
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const yyyy = date.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+      }
+
+      function formatIsoDate(date) {
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const yyyy = date.getFullYear();
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      function parseRowDate(value) {
+        const parts = (value || "").trim().split(/[-\/]/);
+        if (parts.length !== 3) return null;
+
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+
+        if ([day, month, year].some(Number.isNaN)) return null;
+        return new Date(year, month, day);
+      }
+
+      function updateRangeDisplay(from, to) {
+        if (!from || !to) {
+          $dateRangeDisplay.text("");
+          return;
+        }
+
+        $dateRangeDisplay.text(`${formatDisplayDate(from)} To ${formatDisplayDate(to)}`);
+      }
+
+      function getPeriodRange(period) {
+        const now = new Date();
+        let start = null;
+        let end = null;
+
+        if (period === "this_month") {
+          start = new Date(now.getFullYear(), now.getMonth(), 1);
+          end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        } else if (period === "last_month") {
+          start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          end = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else if (period === "this_quarter") {
+          const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+          start = new Date(now.getFullYear(), quarterStartMonth, 1);
+          end = new Date(now.getFullYear(), quarterStartMonth + 3, 0);
+        } else if (period === "this_year") {
+          start = new Date(now.getFullYear(), 0, 1);
+          end = new Date(now.getFullYear(), 11, 31);
+        }
+
+        return { start, end };
+      }
+
+      function setCustomMode(isCustom) {
+        $dateRangeDisplay.toggleClass("d-none", isCustom);
+        $customDateRange.toggleClass("d-none", !isCustom).toggleClass("d-flex", isCustom);
+      }
+
+      function applyPaymentInFilters() {
+        $("#paymentInTable tbody tr.payment-in-row").each(function () {
+          const $row = $(this);
+          const rowText = $row.text().toLowerCase().replace(/\s+/g, " ").trim();
+          const partyName = $row.find("td").eq(2).text().trim().toLowerCase();
+          const rowDateText = $row.find("td").eq(0).text().trim();
+          const rowDate = parseRowDate(rowDateText);
+
+          let visible = true;
+
+          if (globalSearch && !rowText.includes(globalSearch)) {
+            visible = false;
+          }
+
+          if (visible && firmFilter && partyName !== firmFilter.toLowerCase()) {
+            visible = false;
+          }
+
+          if (visible && periodFilter !== "all") {
+            let rangeStart = null;
+            let rangeEnd = null;
+
+            if (periodFilter === "custom") {
+              rangeStart = customFrom ? new Date(customFrom) : null;
+              rangeEnd = customTo ? new Date(customTo) : null;
+            } else {
+              const range = getPeriodRange(periodFilter);
+              rangeStart = range.start;
+              rangeEnd = range.end;
+            }
+
+            if (!rowDate || !rangeStart || !rangeEnd) {
+              visible = false;
+            } else {
+              rangeStart.setHours(0, 0, 0, 0);
+              rangeEnd.setHours(23, 59, 59, 999);
+              rowDate.setHours(12, 0, 0, 0);
+
+              if (rowDate < rangeStart || rowDate > rangeEnd) {
+                visible = false;
+              }
+            }
+          }
+
+          $row.toggle(visible);
+        });
+      }
+
+      function initializePeriodFilter() {
+        if (periodFilter === "custom") {
+          const today = new Date();
+          const todayIso = formatIsoDate(today);
+          $customFrom.val(todayIso);
+          $customTo.val(todayIso);
+          customFrom = todayIso;
+          customTo = todayIso;
+          setCustomMode(true);
+          return;
+        }
+
+        const range = getPeriodRange(periodFilter);
+        setCustomMode(false);
+        updateRangeDisplay(range.start, range.end);
+      }
+
       $(".search-btn").click(function () {
         $(".search-container").toggleClass("active");
         $(".search-input").focus();
       });
 
-      $("#paymentInSearch").on("input", function () {
-        const query = $(this).val().toLowerCase().trim();
+      initializePeriodFilter();
+      applyPaymentInFilters();
 
-        $("#paymentInTable tbody tr.payment-in-row").each(function () {
-          const rowText = $(this).text().toLowerCase().replace(/\s+/g, " ").trim();
-          $(this).toggle(rowText.includes(query));
-        });
+      $searchInput.on("input", function () {
+        globalSearch = $(this).val().toLowerCase().trim();
+        applyPaymentInFilters();
+      });
+
+      $periodSelect.on("change", function () {
+        periodFilter = $(this).val() || "all";
+
+        if (periodFilter === "custom") {
+          const today = new Date();
+          const todayIso = formatIsoDate(today);
+          $customFrom.val(todayIso);
+          $customTo.val(todayIso);
+          customFrom = todayIso;
+          customTo = todayIso;
+          setCustomMode(true);
+        } else {
+          const range = getPeriodRange(periodFilter);
+          setCustomMode(false);
+          updateRangeDisplay(range.start, range.end);
+        }
+
+        applyPaymentInFilters();
+      });
+
+      $firmSelect.on("change", function () {
+        firmFilter = $(this).val() || "";
+        applyPaymentInFilters();
+      });
+
+      $customFrom.on("change", function () {
+        customFrom = $(this).val() || "";
+        applyPaymentInFilters();
+      });
+
+      $customTo.on("change", function () {
+        customTo = $(this).val() || "";
+        applyPaymentInFilters();
       });
 
       $("#exportPaymentInExcel").on("click", function () {
@@ -976,6 +1204,14 @@ document.getElementById('paymentImageInput')?.addEventListener('change', functio
         selectedName.classList.remove('d-none');
     }
 });
+
+function printPaymentInInvoice(url) {
+    window.open(url, '_blank');
+}
+
+function openPaymentInPdf(url) {
+    window.open(url, '_blank');
+}
 
 const editPaymentIn = @json($editPaymentIn ?? null);
 

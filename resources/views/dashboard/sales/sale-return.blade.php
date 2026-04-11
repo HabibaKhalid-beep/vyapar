@@ -210,7 +210,7 @@
                     <span class="status-pill {{ $statusClass }}">{{ ucfirst($status) }}</span>
                   </td>
                   <td>
-                    <a href="{{ route('sale-return.print', $saleReturn->id) }}" target="_blank" class="icon-action" title="Print">
+                    <a href="#" onclick="openSaleReturnPrint('{{ route('invoice', ['sale_id' => $saleReturn->id, 'print' => 1]) }}'); return false;" class="icon-action" title="Print">
                       <i class="fa-solid fa-print"></i>
                     </a>
                     <a href="{{ route('sale-return.preview', $saleReturn->id) }}" target="_blank" class="icon-action" title="Preview">
@@ -224,10 +224,9 @@
                       </button>
                       <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                         <li><a class="dropdown-item" href="{{ route('sale-return.edit', $saleReturn->id) }}"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                        <li><a class="dropdown-item" href="{{ route('sale-return.pdf', $saleReturn->id) }}" target="_blank"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openSaleReturnPdf('{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
                         <li><a class="dropdown-item" href="{{ route('sale-return.preview', $saleReturn->id) }}" target="_blank"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="{{ route('sale-return.print', $saleReturn->id) }}" target="_blank"><i class="fas fa-print me-2"></i>Print</a></li>
-                        <li><a class="dropdown-item" href="{{ route('sale-return.duplicate', $saleReturn->id) }}"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openSaleReturnPrint('{{ route('invoice', ['sale_id' => $saleReturn->id, 'print' => 1]) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteSaleReturn('{{ route('sale-return.destroy', $saleReturn->id) }}'); return false;"><i class="fas fa-trash me-2"></i>Delete</a></li>
                       </ul>
@@ -251,6 +250,14 @@
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script>
+    function openSaleReturnPdf(url) {
+      window.open(url, '_blank');
+    }
+
+    function openSaleReturnPrint(url) {
+      window.open(url, '_blank');
+    }
+
     function deleteSaleReturn(url) {
       if (!confirm('Are you sure you want to delete this credit note?')) {
         return;

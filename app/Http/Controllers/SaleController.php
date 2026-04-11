@@ -754,7 +754,7 @@ private function posData(): array
         }
 
         $redirectUrl = match ($sale->type) {
-            'estimate' => route('sale.estimate'),
+            'estimate' => route('sale.invoice-preview', $sale),
             'sale_order' => route('sale-order'),
             'proforma' => route('proforma-invoice'),
             default => route('sale.index'),

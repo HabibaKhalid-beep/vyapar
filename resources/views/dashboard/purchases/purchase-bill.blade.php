@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vyapar - Purchase Bills</title>
     <meta name="description" content="Manage purchase bills in Vyapar.">
@@ -107,6 +108,46 @@
             padding: 48px 16px;
             color: #7b8794;
         }
+        .filter-pill {
+            background-color: #E4F2FF;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            height: 38px;
+            padding: 0 8px;
+        }
+        .filter-left {
+            border-right: 1px solid #ccc;
+            padding: 0 10px;
+        }
+        .filter-right {
+            padding: 0 10px;
+            min-width: 210px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .filter-select {
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 13px;
+            padding: 0;
+            margin: 0;
+        }
+        .small-pill {
+            padding: 0 12px;
+            min-width: 120px;
+        }
+        .date-input {
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            width: 110px;
+            outline: none;
+        }
     </style>
 </head>
 <body data-page="purchase-bill">
@@ -135,14 +176,50 @@
         </div>
     </div>
 
+    <div class="d-flex justify-content-between align-items-center bg-light mb-3 px-3 py-2 rounded">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="small fw-semibold">Filter By:</span>
+
+            <div class="d-flex rounded-pill filter-pill">
+                <div class="filter-left">
+                    <select id="purchaseBillPeriodSelect" class="filter-select">
+                        <option value="all" selected>All Purchase Invoices</option>
+                        <option value="this_month">This Month</option>
+                        <option value="last_month">Last Month</option>
+                        <option value="this_quarter">This Quarter</option>
+                        <option value="this_year">This Year</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="filter-right">
+                    <span id="purchaseBillDateRangeDisplay"></span>
+                    <div id="purchaseBillCustomDateRange" class="d-none align-items-center gap-1">
+                        <input id="purchaseBillCustomFrom" type="date" class="date-input" />
+                        <span>to</span>
+                        <input id="purchaseBillCustomTo" type="date" class="date-input" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-pill small-pill">
+                <select id="purchaseBillFirmSelect" class="filter-select text-center">
+                    <option value="">All Firms</option>
+                    @foreach($purchases->map(fn($purchase) => $purchase->party_name ?: ($purchase->party?->name))->filter()->unique()->values() as $firm)
+                        <option value="{{ $firm }}">{{ $firm }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+    </div>
+
     <div class="purchase-page-card p-3">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
             <h5 class="mb-0">Transactions</h5>
             <div class="d-flex align-items-center gap-2">
-                <form method="GET" action="{{ route('purchase-expenses') }}" class="position-relative purchase-search">
+                <div class="position-relative purchase-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" name="search" value="{{ $search ?? '' }}" class="form-control" placeholder="Search by invoice or party">
-                </form>
+                    <input type="text" id="purchaseBillSearch" value="{{ $search ?? '' }}" class="form-control" placeholder="Search by invoice or party">
+                </div>
                 <button type="button" class="action-icon-btn" onclick="window.print()" title="Print list">
                     <i class="fa-solid fa-print"></i>
                 </button>
@@ -172,7 +249,7 @@
                                 ?? '-';
                             $status = (float) ($purchase->balance ?? 0) <= 0 ? 'Paid' : 'Unpaid';
                         @endphp
-                        <tr>
+                        <tr class="purchase-bill-row">
                             <td>{{ optional($purchase->bill_date)->format('d/m/Y') ?? '-' }}</td>
                             <td>{{ $purchase->bill_number ?? '-' }}</td>
                             <td>{{ $purchase->party_name ?: ($purchase->party?->name ?? '-') }}</td>
@@ -266,6 +343,186 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+        const searchInput = document.getElementById('purchaseBillSearch');
+        const periodSelect = document.getElementById('purchaseBillPeriodSelect');
+        const firmSelect = document.getElementById('purchaseBillFirmSelect');
+        const dateRangeDisplay = document.getElementById('purchaseBillDateRangeDisplay');
+        const customDateRange = document.getElementById('purchaseBillCustomDateRange');
+        const customFromInput = document.getElementById('purchaseBillCustomFrom');
+        const customToInput = document.getElementById('purchaseBillCustomTo');
+
+        let globalSearch = (searchInput?.value || '').toLowerCase().trim();
+        let periodFilter = periodSelect?.value || 'all';
+        let firmFilter = firmSelect?.value || '';
+        let customFrom = '';
+        let customTo = '';
+
+        function formatDisplayDate(date) {
+            const dd = String(date.getDate()).padStart(2, '0');
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const yyyy = date.getFullYear();
+            return `${dd}/${mm}/${yyyy}`;
+        }
+
+        function formatIsoDate(date) {
+            const dd = String(date.getDate()).padStart(2, '0');
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const yyyy = date.getFullYear();
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function parseRowDate(value) {
+            const parts = (value || '').trim().split(/[\/-]/);
+            if (parts.length !== 3) return null;
+
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+
+            if ([day, month, year].some(Number.isNaN)) return null;
+            return new Date(year, month, day);
+        }
+
+        function updateRangeDisplay(from, to) {
+            if (!dateRangeDisplay) return;
+            dateRangeDisplay.textContent = from && to ? `${formatDisplayDate(from)} To ${formatDisplayDate(to)}` : '';
+        }
+
+        function getPeriodRange(period) {
+            const now = new Date();
+            let start = null;
+            let end = null;
+
+            if (period === 'this_month') {
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            } else if (period === 'last_month') {
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                end = new Date(now.getFullYear(), now.getMonth(), 0);
+            } else if (period === 'this_quarter') {
+                const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+                start = new Date(now.getFullYear(), quarterStartMonth, 1);
+                end = new Date(now.getFullYear(), quarterStartMonth + 3, 0);
+            } else if (period === 'this_year') {
+                start = new Date(now.getFullYear(), 0, 1);
+                end = new Date(now.getFullYear(), 11, 31);
+            }
+
+            return { start, end };
+        }
+
+        function setCustomMode(isCustom) {
+            if (!dateRangeDisplay || !customDateRange) return;
+            dateRangeDisplay.classList.toggle('d-none', isCustom);
+            customDateRange.classList.toggle('d-none', !isCustom);
+            customDateRange.classList.toggle('d-flex', isCustom);
+        }
+
+        function applyPurchaseBillFilters() {
+            document.querySelectorAll('.purchase-bill-row').forEach((row) => {
+                const cells = row.querySelectorAll('td');
+                const rowText = (row.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                const rowDate = parseRowDate(cells[0]?.textContent || '');
+                const rowFirm = (cells[2]?.textContent || '').trim().toLowerCase();
+                let visible = true;
+
+                if (globalSearch && !rowText.includes(globalSearch)) {
+                    visible = false;
+                }
+
+                if (visible && firmFilter && rowFirm !== firmFilter.toLowerCase()) {
+                    visible = false;
+                }
+
+                if (visible && periodFilter !== 'all') {
+                    let rangeStart = null;
+                    let rangeEnd = null;
+
+                    if (periodFilter === 'custom') {
+                        rangeStart = customFrom ? new Date(customFrom) : null;
+                        rangeEnd = customTo ? new Date(customTo) : null;
+                    } else {
+                        const range = getPeriodRange(periodFilter);
+                        rangeStart = range.start;
+                        rangeEnd = range.end;
+                    }
+
+                    if (!rowDate || !rangeStart || !rangeEnd) {
+                        visible = false;
+                    } else {
+                        rangeStart.setHours(0, 0, 0, 0);
+                        rangeEnd.setHours(23, 59, 59, 999);
+                        rowDate.setHours(12, 0, 0, 0);
+
+                        if (rowDate < rangeStart || rowDate > rangeEnd) {
+                            visible = false;
+                        }
+                    }
+                }
+
+                row.style.display = visible ? '' : 'none';
+            });
+        }
+
+        function initializePeriodFilter() {
+            if (periodFilter === 'custom') {
+                const today = new Date();
+                const todayIso = formatIsoDate(today);
+                customFromInput.value = todayIso;
+                customToInput.value = todayIso;
+                customFrom = todayIso;
+                customTo = todayIso;
+                setCustomMode(true);
+                return;
+            }
+
+            const range = getPeriodRange(periodFilter);
+            setCustomMode(false);
+            updateRangeDisplay(range.start, range.end);
+        }
+
+        initializePeriodFilter();
+        applyPurchaseBillFilters();
+
+        searchInput?.addEventListener('input', function () {
+            globalSearch = this.value.toLowerCase().trim();
+            applyPurchaseBillFilters();
+        });
+
+        periodSelect?.addEventListener('change', function () {
+            periodFilter = this.value || 'all';
+
+            if (periodFilter === 'custom') {
+                const today = new Date();
+                const todayIso = formatIsoDate(today);
+                customFromInput.value = todayIso;
+                customToInput.value = todayIso;
+                customFrom = todayIso;
+                customTo = todayIso;
+                setCustomMode(true);
+            } else {
+                const range = getPeriodRange(periodFilter);
+                setCustomMode(false);
+                updateRangeDisplay(range.start, range.end);
+            }
+
+            applyPurchaseBillFilters();
+        });
+
+        firmSelect?.addEventListener('change', function () {
+            firmFilter = this.value || '';
+            applyPurchaseBillFilters();
+        });
+
+        customFromInput?.addEventListener('change', function () {
+            customFrom = this.value || '';
+            applyPurchaseBillFilters();
+        });
+
+        customToInput?.addEventListener('change', function () {
+            customTo = this.value || '';
+            applyPurchaseBillFilters();
+        });
 
         document.querySelectorAll('.js-delete-purchase').forEach((button) => {
             button.addEventListener('click', async function () {

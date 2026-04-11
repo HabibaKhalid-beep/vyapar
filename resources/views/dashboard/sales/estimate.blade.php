@@ -32,34 +32,40 @@
         <button class="btn rounded-pill" style="background-color: #D4112E;" onclick="window.location='{{ route('estimates.create') }}'"><span class="text-light">+ Add
             Estimate</span></button>
       </div>
-      <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-4 py-2 rounded">
-        <div class="d-flex">
-          <div class="d-flex justify-content-center align-items-center me-2">Filter By: </div>
-          <div class="d-flex rounded-pill" style="background-color:#E4F2FF;">
-            <div class="d-flex justify-content-center align-items-center text-center"
-              style="width: 9rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;"><select name=""
-                id="" class="bg-transparent border-0" style="outline:none;">
-                <option value="">All Estimates</option>
-                <option value="" selected>This Month</option>
-                <option value="">Last Month</option>
-                <option value="">This Quarter</option>
-                <option value="">This Year</option>
-                <option value="">Custom</option>
-              </select></div>
-            <div class="d-flex justify-content-center align-items-center" style="width: 16rem; height: 40px;">01/03/2026
-              To 31/03/2026</div>
+      <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-3 py-2 rounded">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="small fw-semibold">Filter By:</span>
 
+          <div class="d-flex rounded-pill filter-pill">
+            <div class="filter-left">
+              <select id="estimatePeriodSelect" class="filter-select">
+                <option value="all">All Estimates</option>
+                <option value="this_month">This Month</option>
+                <option value="last_month">Last Month</option>
+                <option value="this_quarter">This Quarter</option>
+                <option value="this_year">This Year</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div class="filter-right">
+              <div id="estimateDateRangeDisplay" class="small text-nowrap"></div>
+              <div id="estimateCustomDateRange" class="d-flex align-items-center gap-1" style="display:none;">
+                <input id="estimateCustomFrom" type="date" class="date-input" />
+                <span>to</span>
+                <input id="estimateCustomTo" type="date" class="date-input" />
+              </div>
+            </div>
           </div>
-          <div class="d-flex justify-content-center align-items-center rounded-pill ms-4"
-            style="background-color:#E4F2FF; width: 8rem; height: 40px;"><select name="" id=""
-              class="bg-transparent border-0" style="outline:none;">
-              <option value="" selected>All Firms</option>
-              <option value=""><a href="">Firm 1</a></option>
-              <option value=""><a href="">Firm 2</a></option>
-              <option value=""><a href="">Firm 3</a></option>
 
-            </select></div>
-
+          <div class="filter-pill small-pill">
+            <select id="estimateFirmSelect" class="filter-select text-center">
+              <option value="">All Firms</option>
+              @foreach((($allEstimates ?? $estimates)->map(fn($estimate) => $estimate->party?->name)->filter()->unique()->values()) as $firm)
+                <option value="{{ $firm }}">{{ $firm }}</option>
+              @endforeach
+            </select>
+          </div>
         </div>
       </div>
       <div class="bg-light mb-2 px-4 py-3 rounded">
@@ -159,15 +165,17 @@
                         </li>
                       </ul>
                     </div>
-                    <div class="dropdown d-inline">
+                    <div class="dropdown d-inline estimate-action-menu"
+                         data-estimate-id="{{ $estimate->id }}"
+                         data-invoice-url="{{ route('invoice', ['sale_id' => $estimate->id]) }}">
                       <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{{ route('estimates.edit', $estimate->id) }}"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="printEstimate('{{ route('estimates.print', $estimate->id) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="previewEstimate('{{ route('estimates.preview', $estimate->id) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openPdf('{{ route('estimates.pdf', $estimate->id) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="printEstimate(this); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="previewEstimate(this); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPdf(this); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteEstimate('{{ route('estimates.destroy', $estimate->id) }}'); return false;"><i class="fas fa-trash me-2"></i>Delete</a></li>
                       </ul>
@@ -193,6 +201,53 @@
 @endsection
 
 @push('scripts')
+<style>
+.filter-pill {
+  background-color: #e4f2ff;
+  border-radius: 999px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-left {
+  border-right: 1px solid #ccc;
+  padding: 0 10px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-right {
+  padding: 0 12px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-select {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  padding: 0;
+  margin: 0;
+}
+
+.small-pill {
+  padding: 0 12px;
+  min-width: 130px;
+}
+
+.date-input {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  width: 120px;
+  outline: none;
+}
+</style>
+
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
@@ -205,6 +260,110 @@
 
 <script>
 $(document).ready(function() {
+  function parseDateDMY(value) {
+    const parts = (value || '').split('/');
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+
+    return new Date(year, month, day);
+  }
+
+  function getPeriodRange(period) {
+    const now = new Date();
+    let start = null;
+    let end = null;
+
+    if (period === 'this_month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (period === 'last_month') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (period === 'this_quarter') {
+      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      start = new Date(now.getFullYear(), quarterStartMonth, 1);
+      end = new Date(now.getFullYear(), quarterStartMonth + 3, 0);
+    } else if (period === 'this_year') {
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date(now.getFullYear(), 11, 31);
+    }
+
+    return { start, end };
+  }
+
+  function formatDisplayDate(date) {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  function updateEstimateRangeDisplay(from, to) {
+    const display = $('#estimateDateRangeDisplay');
+    if (!display.length) return;
+
+    if (!from || !to) {
+      display.text('');
+      return;
+    }
+
+    display.text(`${formatDisplayDate(from)} To ${formatDisplayDate(to)}`);
+  }
+
+  let estimatePeriodFilter = $('#estimatePeriodSelect').val() || 'all';
+  let estimateFirmFilter = $('#estimateFirmSelect').val() || '';
+  let estimateCustomFrom = $('#estimateCustomFrom').val() || null;
+  let estimateCustomTo = $('#estimateCustomTo').val() || null;
+
+  $.fn.dataTable.ext.search.push(function(settings, data) {
+    if (settings.nTable.id !== 'estimatesTable') {
+      return true;
+    }
+
+    const rowDate = parseDateDMY(data[0] || '');
+    const partyName = (data[2] || '').trim().toLowerCase();
+
+    if (estimateFirmFilter && partyName !== estimateFirmFilter.toLowerCase()) {
+      return false;
+    }
+
+    if (!estimatePeriodFilter || estimatePeriodFilter === 'all') {
+      return true;
+    }
+
+    if (!rowDate) {
+      return false;
+    }
+
+    let rangeStart = null;
+    let rangeEnd = null;
+
+    if (estimatePeriodFilter === 'custom') {
+      rangeStart = estimateCustomFrom ? new Date(estimateCustomFrom) : null;
+      rangeEnd = estimateCustomTo ? new Date(estimateCustomTo) : null;
+    } else {
+      const range = getPeriodRange(estimatePeriodFilter);
+      rangeStart = range.start;
+      rangeEnd = range.end;
+    }
+
+    if (!rangeStart || !rangeEnd) {
+      return true;
+    }
+
+    rangeStart.setHours(0, 0, 0, 0);
+    rangeEnd.setHours(23, 59, 59, 999);
+    rowDate.setHours(12, 0, 0, 0);
+
+    return rowDate >= rangeStart && rowDate <= rangeEnd;
+  });
+
   var table = $('#estimatesTable').DataTable({
     responsive: true,
     pageLength: 10,
@@ -224,6 +383,66 @@ $(document).ready(function() {
         next: "Next",
         previous: "Previous"
       }
+    }
+  });
+
+  function syncEstimateFilterUi() {
+    if (estimatePeriodFilter === 'custom') {
+      $('#estimateDateRangeDisplay').hide();
+      $('#estimateCustomDateRange').show();
+    } else {
+      $('#estimateCustomDateRange').hide();
+      $('#estimateDateRangeDisplay').show();
+      const range = getPeriodRange(estimatePeriodFilter);
+      updateEstimateRangeDisplay(range.start, range.end);
+    }
+
+    if (estimatePeriodFilter === 'all') {
+      $('#estimateDateRangeDisplay').text('');
+    }
+  }
+
+  syncEstimateFilterUi();
+
+  $('#estimatePeriodSelect').on('change', function() {
+    estimatePeriodFilter = $(this).val() || 'all';
+
+    if (estimatePeriodFilter === 'custom') {
+      const today = new Date();
+      const iso = today.toISOString().split('T')[0];
+
+      if (!$('#estimateCustomFrom').val()) {
+        $('#estimateCustomFrom').val(iso);
+      }
+
+      if (!$('#estimateCustomTo').val()) {
+        $('#estimateCustomTo').val(iso);
+      }
+
+      estimateCustomFrom = $('#estimateCustomFrom').val();
+      estimateCustomTo = $('#estimateCustomTo').val();
+    }
+
+    syncEstimateFilterUi();
+    table.draw();
+  });
+
+  $('#estimateFirmSelect').on('change', function() {
+    estimateFirmFilter = $(this).val() || '';
+    table.draw();
+  });
+
+  $('#estimateCustomFrom').on('change', function() {
+    estimateCustomFrom = $(this).val() || null;
+    if (estimatePeriodFilter === 'custom') {
+      table.draw();
+    }
+  });
+
+  $('#estimateCustomTo').on('change', function() {
+    estimateCustomTo = $(this).val() || null;
+    if (estimatePeriodFilter === 'custom') {
+      table.draw();
     }
   });
 
@@ -287,16 +506,89 @@ $(document).ready(function() {
   });
 });
 
-function previewEstimate(url) {
-  window.open(url, '_blank');
+function getEstimateThemeState(estimateId) {
+  if (!estimateId) return null;
+
+  try {
+    const raw = window.localStorage.getItem(`saleInvoiceTheme:${estimateId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
 }
 
-function printEstimate(url) {
-  window.open(url, '_blank');
+function buildEstimateInvoiceUrl(baseUrl, estimateId, extraParams = {}) {
+  if (!baseUrl) return '';
+
+  const url = new URL(baseUrl, window.location.origin);
+  const savedTheme = getEstimateThemeState(estimateId);
+
+  if (savedTheme) {
+    if (savedTheme.mode === 'thermal') {
+      url.searchParams.set('theme', `thermal${savedTheme.thermalThemeId || 1}`);
+    } else if (savedTheme.regularThemeId) {
+      const map = {
+        1: 'tally',
+        2: 'LandScapeTheme1',
+        3: 'LandScapeTheme2',
+        4: 'tax1',
+        5: 'tax2',
+        6: 'tax3',
+        7: 'tax4',
+        8: 'tax5',
+        9: 'tax6',
+        10: 'divine',
+        11: 'french',
+        12: 'theme1',
+        13: 'theme2',
+        14: 'theme3',
+        15: 'theme4',
+      };
+
+      url.searchParams.set('theme', map[savedTheme.regularThemeId] || 'tally');
+    }
+
+    if (savedTheme.accent) {
+      url.searchParams.set('accent', savedTheme.accent);
+    }
+  }
+
+  Object.entries(extraParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  return url.toString();
 }
 
-function openPdf(url) {
-  window.open(url, '_blank');
+function resolveEstimateInvoiceUrl(trigger, extraParams = {}) {
+  const menu = trigger?.closest('.estimate-action-menu');
+  const estimateId = menu?.dataset?.estimateId;
+  const invoiceUrl = menu?.dataset?.invoiceUrl;
+
+  return buildEstimateInvoiceUrl(invoiceUrl, estimateId, extraParams);
+}
+
+function previewEstimate(trigger) {
+  const url = resolveEstimateInvoiceUrl(trigger);
+  if (url) {
+    window.open(url, '_blank');
+  }
+}
+
+function printEstimate(trigger) {
+  const url = resolveEstimateInvoiceUrl(trigger, { print: 1 });
+  if (url) {
+    window.open(url, '_blank');
+  }
+}
+
+function openPdf(trigger) {
+  const url = resolveEstimateInvoiceUrl(trigger);
+  if (url) {
+    window.open(url, '_blank');
+  }
 }
 
 function deleteEstimate(url) {
