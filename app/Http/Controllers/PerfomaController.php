@@ -83,7 +83,7 @@ class PerfomaController extends Controller
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
-            'redirect_url' => route('proforma-invoice'),
+            'redirect_url' => route('proforma-invoice.react', $sale),
         ]);
     }
 
@@ -101,7 +101,7 @@ class PerfomaController extends Controller
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
-            'redirect_url' => route('proforma-invoice'),
+            'redirect_url' => route('proforma-invoice.react', $sale),
         ]);
     }
 

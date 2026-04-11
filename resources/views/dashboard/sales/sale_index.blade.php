@@ -293,19 +293,19 @@
       <div class="filter-left">
         <select id="salesPeriodSelect" class="filter-select">
           <option value="all">All Sales Invoices</option>
-          <option value="this_month">This Month</option>
-          <option value="last_month">Last Month</option>
-          <option value="this_quarter">This Quarter</option>
-          <option value="this_year">This Year</option>
-          <option value="custom">Custom</option>
+          <option value="this_month" {{ ($period ?? '') === 'this_month' ? 'selected' : '' }}>This Month</option>
+          <option value="last_month" {{ ($period ?? '') === 'last_month' ? 'selected' : '' }}>Last Month</option>
+          <option value="this_quarter" {{ ($period ?? '') === 'this_quarter' ? 'selected' : '' }}>This Quarter</option>
+          <option value="this_year" {{ ($period ?? '') === 'this_year' ? 'selected' : '' }}>This Year</option>
+          <option value="custom" {{ ($period ?? '') === 'custom' ? 'selected' : '' }}>Custom</option>
         </select>
       </div>
 
       <div class="filter-right">
         <div id="customDateRange" class="d-flex align-items-center gap-1" style="display:none;">
-          <input id="salesCustomFrom" type="date" class="date-input" />
+          <input id="salesCustomFrom" type="date" class="date-input" value="{{ $from ?? '' }}" />
           <span>to</span>
-          <input id="salesCustomTo" type="date" class="date-input" />
+          <input id="salesCustomTo" type="date" class="date-input" value="{{ $to ?? '' }}" />
         </div>
       </div>
 
@@ -315,8 +315,10 @@
     <div class="filter-pill small-pill">
       <select id="salesFirmSelect" class="filter-select text-center">
         <option value="">All Firms</option>
-        @foreach($sales->getCollection()->map(fn($sale) => $sale->party?->name)->filter()->unique()->values() as $firm)
-          <option value="{{ $firm }}">{{ $firm }}</option>
+        @foreach(\App\Models\Party::orderBy('name')->get(['name']) as $party)
+          @if(!empty($party->name))
+            <option value="{{ $party->name }}" {{ ($firm ?? '') === $party->name ? 'selected' : '' }}>{{ $party->name }}</option>
+          @endif
         @endforeach
       </select>
     </div>
@@ -330,11 +332,17 @@
 
 </div>
       <div class="bg-white mb-2 px-4 py-3 rounded">
+        @php
+          $salesCollection = $sales->getCollection();
+          $totalSalesAmount = $salesCollection->sum(fn($sale) => (float) ($sale->grand_total ?? $sale->total_amount ?? 0));
+          $convertedAmount = $salesCollection->sum(fn($sale) => (float) ($sale->received_amount ?? 0));
+          $openAmount = $salesCollection->sum(fn($sale) => (float) ($sale->balance ?? 0));
+        @endphp
         <div class="border rounded p-1" style="width: 25rem; height: 8rem; background-color: #FCF8FF;">
           <div class="w-100 d-flex">
             <div class="w-50 mt-2">
               <p class="ps-3 text-secondary m-0">Total Sales Amount</p>
-              <p class="ps-3 h4">Rs 1,111.00</p>
+              <p class="ps-3 h4">Rs {{ number_format($totalSalesAmount, 2) }}</p>
             </div>
             <div class="w-50 mt-2 d-flex align-items-end justify-content-center flex-column">
               <div class="col-5 h-50 rounded-pill d-flex justify-content-center align-item-center me-4"
@@ -346,8 +354,8 @@
           </div>
           <div class="w-100 d-flex mt-3">
             <p class="ps-3 pe-3 text-secondary" style="border-right:1px solid rgb(45, 44, 44);">Converted : <span
-                class="fw-bold text-dark">Rs 0.00</span></p>
-            <p class="ps-3 text-secondary">Open : <span class="fw-bold text-dark">Rs 1,111.00</span></p>
+                class="fw-bold text-dark">Rs {{ number_format($convertedAmount, 2) }}</span></p>
+            <p class="ps-3 text-secondary">Open : <span class="fw-bold text-dark">Rs {{ number_format($openAmount, 2) }}</span></p>
 
           </div>
         </div>

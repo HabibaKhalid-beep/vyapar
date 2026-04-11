@@ -23,6 +23,38 @@ class SaleController extends Controller
             ->where('type', 'invoice')
             ->whereNotIn('status', ['returned']);
 
+        $period = (string) $request->query('period', 'all');
+        $firm = (string) $request->query('firm', '');
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        if ($firm !== '') {
+            $salesQuery->whereHas('party', function ($query) use ($firm) {
+                $query->where('name', $firm);
+            });
+        }
+
+        $today = now();
+        if ($period === 'this_month') {
+            $salesQuery->whereDate('invoice_date', '>=', $today->copy()->startOfMonth()->toDateString())
+                ->whereDate('invoice_date', '<=', $today->copy()->endOfMonth()->toDateString());
+        } elseif ($period === 'last_month') {
+            $last = $today->copy()->subMonth();
+            $salesQuery->whereDate('invoice_date', '>=', $last->copy()->startOfMonth()->toDateString())
+                ->whereDate('invoice_date', '<=', $last->copy()->endOfMonth()->toDateString());
+        } elseif ($period === 'this_quarter') {
+            $start = $today->copy()->firstOfQuarter();
+            $end = $today->copy()->lastOfQuarter();
+            $salesQuery->whereDate('invoice_date', '>=', $start->toDateString())
+                ->whereDate('invoice_date', '<=', $end->toDateString());
+        } elseif ($period === 'this_year') {
+            $salesQuery->whereDate('invoice_date', '>=', $today->copy()->startOfYear()->toDateString())
+                ->whereDate('invoice_date', '<=', $today->copy()->endOfYear()->toDateString());
+        } elseif ($period === 'custom' && $from && $to) {
+            $salesQuery->whereDate('invoice_date', '>=', $from)
+                ->whereDate('invoice_date', '<=', $to);
+        }
+
         if ($request->boolean('overdue')) {
             $salesQuery
                 ->where('balance', '>', 0)
@@ -36,6 +68,10 @@ class SaleController extends Controller
         return view('dashboard.sales.sale_index', [
             'sales' => $sales,
             'showOverdueOnly' => $request->boolean('overdue'),
+            'period' => $period,
+            'firm' => $firm,
+            'from' => $from,
+            'to' => $to,
         ]);
     }
 

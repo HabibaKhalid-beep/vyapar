@@ -79,6 +79,43 @@ class InvoiceController extends Controller
         return view('invoice.print');
     }
 
+    public function proforma(Request $request, Sale $sale)
+    {
+        abort_unless($sale->type === 'proforma', 404);
+
+        $reactCss = collect(glob(public_path('react-invoice/assets/index-*.css')))
+            ->sortByDesc(fn ($path) => filemtime($path))
+            ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
+            ->first();
+
+        $reactJs = collect(glob(public_path('react-invoice/assets/index-*.js')))
+            ->sortByDesc(fn ($path) => filemtime($path))
+            ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
+            ->first();
+
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount']);
+        $invoiceData = $this->mapSaleToReactInvoiceData($sale);
+        $invoiceData['title'] = 'Proforma Invoice';
+
+        $invoiceAppData = [
+            'saleId' => $sale->id,
+            'invoiceData' => $invoiceData,
+            'initialTheme' => (string) $request->query('theme', 'tally'),
+            'initialColor' => (string) $request->query('accent', '#707070'),
+            'invoicePdfUrl' => null,
+            'browserTabLabel' => 'Proforma #' . ($sale->bill_number ?: $sale->id),
+            'saveCloseUrl' => route('proforma-invoice'),
+        ];
+
+        return view('invoice.proforma', [
+            'reactCss' => $reactCss,
+            'reactJs' => $reactJs,
+            'invoiceAppData' => $invoiceAppData,
+            'paymentIn' => null,
+            'allPaymentIns' => collect(),
+        ]);
+    }
+
     public function paymentIn(Request $request)
     {
         return $this->index($request);
