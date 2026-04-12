@@ -4,122 +4,133 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Party;
 use App\Models\Category;
 
 class ReportController extends Controller
 {
+    // ─── COLUMN MAP (verified from phpMyAdmin screenshots) ────────────────────
+    // sales        : invoice_date, total_amount, payment_type, discount_pct,
+    //                discount_rs, tax_amount, tax_pct, received_amount, balance,
+    //                status, type, bill_number, party_id, grand_total
+    // purchases    : bill_date, total_amount, payment_type, discount_pct,
+    //                discount_rs, tax_amount, tax_pct, paid_amount, balance,
+    //                status, type, bill_number, party_id, grand_total
+    // expenses     : expense_date (NOT "date"), total_amount (NOT "amount"),
+    //                payment_type, expense_category_id, expense_no, party
+    // payment_ins  : date, amount, payment_type, party_id, reference_no
+    // payment_outs : date, amount, payment_type, party_id, reference_no
+    // ─────────────────────────────────────────────────────────────────────────
 
-   public function index()
-{
-    $categories = Category::all();
-    $parties    = Party::all();
+    public function index()
+    {
+        $categories = Category::all();
+        $parties    = Party::all();
+        $items      = DB::table('items')->orderBy('name')->get(['id', 'name', 'category_id']);
 
-    $items = \DB::table('items')->orderBy('name')->get(['id', 'name', 'category_id']);
+        // Stock Summary
+        $stockSummary = DB::table('items')
+            ->select(
+                'id', 'name', 'category_id',
+                'sale_price', 'purchase_price',
+                DB::raw('opening_qty as stock_qty'),
+                DB::raw('opening_qty * purchase_price as stock_value')
+            )->get();
 
-    // Stock Summary
-    $stockSummary = \DB::table('items')
-        ->select(
-            'id', 'name', 'category_id',
-            'sale_price', 'purchase_price',
-            \DB::raw('opening_qty as stock_qty'),
-            \DB::raw('opening_qty * purchase_price as stock_value')
-        )
-        ->get();
+        $stockSummaryTotals = [
+            'qty'   => $stockSummary->sum('stock_qty'),
+            'value' => $stockSummary->sum('stock_value'),
+        ];
 
-    $stockSummaryTotals = [
-        'qty'   => $stockSummary->sum('stock_qty'),
-        'value' => $stockSummary->sum('stock_value'),
-    ];
+        // Low Stock
+        $lowStock = DB::table('items')
+            ->select(
+                'id', 'name', 'category_id',
+                DB::raw('opening_qty as stock_qty'),
+                DB::raw('min_stock as min_stock_qty'),
+                DB::raw('opening_qty * purchase_price as stock_value')
+            )
+            ->whereRaw('opening_qty <= min_stock')
+            ->get();
 
-    // Low Stock
-    $lowStock = \DB::table('items')
-        ->select('id', 'name', 'category_id',
-            \DB::raw('opening_qty as stock_qty'),
-            \DB::raw('min_stock as min_stock_qty'),
-            \DB::raw('opening_qty * purchase_price as stock_value')
-        )
-        ->whereRaw('opening_qty <= min_stock')
-        ->get();
+        // Stock Detail
+        $stockDetail = DB::table('items')
+            ->select(
+                'id', 'name', 'category_id',
+                DB::raw('opening_qty as beginning_qty'),
+                DB::raw('0 as qty_in'),
+                DB::raw('0 as qty_out'),
+                DB::raw('0 as purchase_amount'),
+                DB::raw('0 as sale_amount'),
+                DB::raw('opening_qty as closing_qty')
+            )->get();
 
-    // Stock Detail
-    $stockDetail = \DB::table('items')
-        ->select(
-            'id', 'name', 'category_id',
-            \DB::raw('opening_qty as beginning_qty'),
-            \DB::raw('0 as qty_in'),
-            \DB::raw('0 as qty_out'),
-            \DB::raw('0 as purchase_amount'),
-            \DB::raw('0 as sale_amount'),
-            \DB::raw('opening_qty as closing_qty')
-        )
-        ->get();
+        $stockDetailTotals = [
+            'beginning_qty'   => $stockDetail->sum('beginning_qty'),
+            'qty_in'          => 0,
+            'qty_out'         => 0,
+            'purchase_amount' => 0,
+            'sale_amount'     => 0,
+            'closing_qty'     => $stockDetail->sum('closing_qty'),
+        ];
 
-    $stockDetailTotals = [
-        'beginning_qty'   => $stockDetail->sum('beginning_qty'),
-        'qty_in'          => 0,
-        'qty_out'         => 0,
-        'purchase_amount' => 0,
-        'sale_amount'     => 0,
-        'closing_qty'     => $stockDetail->sum('closing_qty'),
-    ];
+        // Item Wise P&L
+        $itemWisePnL = DB::table('items')
+            ->select(
+                'name',
+                DB::raw('0 as sale'),
+                DB::raw('0 as cr_note'),
+                DB::raw('0 as purchase'),
+                DB::raw('0 as dr_note'),
+                DB::raw('opening_qty * purchase_price as opening_stock'),
+                DB::raw('opening_qty * purchase_price as closing_stock'),
+                DB::raw('0 as tax_receivable'),
+                DB::raw('0 as tax_payable'),
+                DB::raw('0 as mfg_cost'),
+                DB::raw('0 as consumption_cost'),
+                DB::raw('0 as net_profit')
+            )->get();
 
-    // Item Wise P&L (basic)
-    $itemWisePnL = \DB::table('items')
-        ->select(
-            'name',
-            \DB::raw('0 as sale'),
-            \DB::raw('0 as cr_note'),
-            \DB::raw('0 as purchase'),
-            \DB::raw('0 as dr_note'),
-            \DB::raw('opening_qty * purchase_price as opening_stock'),
-            \DB::raw('opening_qty * purchase_price as closing_stock'),
-            \DB::raw('0 as tax_receivable'),
-            \DB::raw('0 as tax_payable'),
-            \DB::raw('0 as mfg_cost'),
-            \DB::raw('0 as consumption_cost'),
-            \DB::raw('0 as net_profit')
-        )
-        ->get();
+        $itemWisePnLTotal = 0;
 
-    $itemWisePnLTotal = 0;
+        $stockSummaryByCat = DB::table('items')
+            ->join('categories', 'categories.id', '=', 'items.category_id')
+            ->select(
+                'categories.name as category_name',
+                DB::raw('SUM(opening_qty) as stock_qty'),
+                DB::raw('SUM(opening_qty * purchase_price) as stock_value')
+            )
+            ->groupBy('categories.id', 'categories.name')
+            ->get();
 
-    $stockSummaryByCat = \DB::table('items')
-        ->join('categories', 'categories.id', '=', 'items.category_id')
-        ->select(
-            'categories.name as category_name',
-            \DB::raw('SUM(opening_qty) as stock_qty'),
-            \DB::raw('SUM(opening_qty * purchase_price) as stock_value')
-        )
-        ->groupBy('categories.id', 'categories.name')
-        ->get();
+        $partyReport        = collect();
+        $partyReportTotals  = ['sale_qty' => 0, 'sale_amount' => 0, 'purchase_qty' => 0, 'purchase_amount' => 0];
+        $itemCategoryPnL    = collect();
+        $salePurchaseByCat  = collect();
+        $itemWiseDiscount   = collect();
+        $itemDetail         = collect();
 
-    $partyReport = collect();
-    $partyReportTotals = ['sale_qty' => 0, 'sale_amount' => 0, 'purchase_qty' => 0, 'purchase_amount' => 0];
-    $itemCategoryPnL = collect();
-    $salePurchaseByCat = collect();
-    $itemWiseDiscount = collect();
-    $itemDetail = collect();
+        return view('dashboard.report', compact(
+            'categories', 'parties', 'items',
+            'stockSummary', 'stockSummaryTotals',
+            'lowStock', 'stockDetail', 'stockDetailTotals',
+            'itemWisePnL', 'itemWisePnLTotal',
+            'stockSummaryByCat', 'partyReport', 'partyReportTotals',
+            'itemCategoryPnL', 'salePurchaseByCat',
+            'itemWiseDiscount', 'itemDetail'
+        ));
+    }
 
-    return view('dashboard.report', compact(
-        'categories', 'parties', 'items',
-        'stockSummary', 'stockSummaryTotals',
-        'lowStock', 'stockDetail', 'stockDetailTotals',
-        'itemWisePnL', 'itemWisePnLTotal',
-        'stockSummaryByCat', 'partyReport', 'partyReportTotals',
-        'itemCategoryPnL', 'salePurchaseByCat',
-        'itemWiseDiscount', 'itemDetail'
-    ));
-}
-    // ─── HELPER: parse date range from request ───────────────
+    // ─── HELPER: parse date range ─────────────────────────────────────────────
     private function dateRange(Request $request): array
     {
-        $from = $request->input('from', now()->startOfMonth()->toDateString());
-        $to   = $request->input('to',   now()->toDateString());
+        $from = $request->input('from', '2000-01-01');
+        $to   = $request->input('to', now()->toDateString());
         return [$from, $to];
     }
 
-    // ─── HELPER: format amount ────────────────────────────────
+    // ─── HELPER: safe float format ────────────────────────────────────────────
     private function fmt($val): float
     {
         return round((float) ($val ?? 0), 2);
@@ -135,75 +146,98 @@ class ReportController extends Controller
 
         $rows = collect();
 
-        if (\Schema::hasTable('sales')) {
-            $sales = DB::table('sales')
-                ->where('party_id', $partyId)
-                ->whereBetween('invoice_date', [$from, $to])
-                ->select(
-                    'invoice_date as date',
-                    DB::raw("'Sale' as type"),
-                    'bill_number as reference',
-                    DB::raw("'Cash' as payment_type"),
-                    'total_amount as debit',
-                    DB::raw('0 as credit')
-                )->get();
-            $rows = $rows->merge($sales);
+        // Sales — invoice_date, total_amount
+        if (Schema::hasTable('sales')) {
+            $rows = $rows->merge(
+                DB::table('sales')
+                    ->where('party_id', $partyId)
+                    ->whereBetween('invoice_date', [$from, $to])
+                    ->select(
+                        'invoice_date as date',
+                        DB::raw("'Sale' as type"),
+                        'bill_number as reference',
+                        DB::raw("COALESCE(payment_type, 'Cash') as payment_type"),
+                        'total_amount as debit',
+                        DB::raw('0 as credit')
+                    )->get()
+            );
         }
 
-        if (\Schema::hasTable('purchases')) {
-            $purchases = DB::table('purchases')
-                ->where('party_id', $partyId)
-                ->whereBetween('bill_date', [$from, $to])
-                ->select(
-                    'bill_date as date',
-                    DB::raw("'Purchase' as type"),
-                    'bill_number as reference',
-                    DB::raw("'Cash' as payment_type"),
-                    DB::raw('0 as debit'),
-                    'total_amount as credit'
-                )->get();
-            $rows = $rows->merge($purchases);
+        // Purchases — bill_date, total_amount
+        if (Schema::hasTable('purchases')) {
+            $rows = $rows->merge(
+                DB::table('purchases')
+                    ->where('party_id', $partyId)
+                    ->whereBetween('bill_date', [$from, $to])
+                    ->select(
+                        'bill_date as date',
+                        DB::raw("'Purchase' as type"),
+                        'bill_number as reference',
+                        DB::raw("COALESCE(payment_type, 'Cash') as payment_type"),
+                        DB::raw('0 as debit'),
+                        'total_amount as credit'
+                    )->get()
+            );
         }
 
-        if (\Schema::hasTable('payment_ins')) {
-            $payIn = DB::table('payment_ins')
-                ->where('party_id', $partyId)
-                ->whereBetween('date', [$from, $to])
-                ->select(
-                    'date as date',
-                    DB::raw("'Payment-In' as type"),
-                    'reference_no as reference',
-                    'payment_type',
-                    'amount as debit',
-                    DB::raw('0 as credit')
-                )->get();
-            $rows = $rows->merge($payIn);
+        // Payment Ins — date, amount, payment_type
+        if (Schema::hasTable('payment_ins')) {
+            $rows = $rows->merge(
+                DB::table('payment_ins')
+                    ->where('party_id', $partyId)
+                    ->whereBetween('date', [$from, $to])
+                    ->select(
+                        'date',
+                        DB::raw("'Payment-In' as type"),
+                        'reference_no as reference',
+                        'payment_type',
+                        'amount as debit',
+                        DB::raw('0 as credit')
+                    )->get()
+            );
+        }
+
+        // Payment Outs — date, amount, payment_type
+        if (Schema::hasTable('payment_outs')) {
+            $rows = $rows->merge(
+                DB::table('payment_outs')
+                    ->where('party_id', $partyId)
+                    ->whereBetween('date', [$from, $to])
+                    ->select(
+                        'date',
+                        DB::raw("'Payment-Out' as type"),
+                        'reference_no as reference',
+                        'payment_type',
+                        DB::raw('0 as debit'),
+                        'amount as credit'
+                    )->get()
+            );
         }
 
         $rows = $rows->sortBy('date')->values();
 
         $openingBalance = $this->fmt($party->opening_balance ?? 0);
-        $running = $openingBalance;
-        $totalDebit = 0;
-        $totalCredit = 0;
-        $totalSale = 0;
-        $totalPurchase = 0;
+        $running        = $openingBalance;
+        $totalDebit     = 0;
+        $totalCredit    = 0;
+        $totalSale      = 0;
+        $totalPurchase  = 0;
 
         $transactions = $rows->map(function ($r) use (&$running, &$totalDebit, &$totalCredit, &$totalSale, &$totalPurchase) {
-            $debit  = $this->fmt($r->debit ?? 0);
+            $debit  = $this->fmt($r->debit  ?? 0);
             $credit = $this->fmt($r->credit ?? 0);
-            $running += ($debit - $credit);
-            $totalDebit   += $debit;
-            $totalCredit  += $credit;
-            if (str_contains(strtolower($r->type ?? ''), 'sale')) $totalSale += $debit;
+            $running     += ($debit - $credit);
+            $totalDebit  += $debit;
+            $totalCredit += $credit;
+            if (str_contains(strtolower($r->type ?? ''), 'sale'))     $totalSale     += $debit;
             if (str_contains(strtolower($r->type ?? ''), 'purchase')) $totalPurchase += $credit;
 
             return [
                 'date'            => $r->date,
                 'type'            => $r->type,
-                'reference'       => $r->reference ?? '-',
+                'reference'       => $r->reference    ?? '-',
                 'payment_type'    => $r->payment_type ?? 'Cash',
-                'debit'           => $debit ?: null,
+                'debit'           => $debit  ?: null,
                 'credit'          => $credit ?: null,
                 'running_balance' => $this->fmt($running),
             ];
@@ -263,7 +297,7 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        if (!\Schema::hasTable('sales') || !\Schema::hasTable('sale_items')) {
+        if (!Schema::hasTable('sales') || !Schema::hasTable('sale_items')) {
             return response()->json(['success' => true, 'rows' => []]);
         }
 
@@ -279,9 +313,7 @@ class ReportController extends Controller
             )
             ->groupBy('p.id', 'p.name');
 
-        if ($request->filled('item')) {
-            $query->where('si.item_id', $request->item);
-        }
+        if ($request->filled('item'))     $query->where('si.item_id', $request->item);
         if ($request->filled('category')) {
             $query->join('items as it', 'it.id', '=', 'si.item_id')
                   ->where('it.category_id', $request->category);
@@ -290,7 +322,7 @@ class ReportController extends Controller
         $saleRows = $query->get()->keyBy('party_id');
 
         $purchaseRows = collect();
-        if (\Schema::hasTable('purchase_items')) {
+        if (Schema::hasTable('purchase_items')) {
             $purchaseRows = DB::table('purchase_items as pi')
                 ->join('purchases as pu', 'pu.id', '=', 'pi.purchase_id')
                 ->join('parties as p', 'p.id', '=', 'pu.party_id')
@@ -331,16 +363,16 @@ class ReportController extends Controller
         $parties = Party::all();
 
         $saleMap = collect();
-        if (\Schema::hasTable('sales')) {
+        if (Schema::hasTable('sales')) {
             $saleMap = DB::table('sales')
-               ->whereBetween('invoice_date', [$from, $to])
+                ->whereBetween('invoice_date', [$from, $to])
                 ->select('party_id', DB::raw('SUM(total_amount) as sale_amount'))
                 ->groupBy('party_id')
                 ->get()->keyBy('party_id');
         }
 
         $purchaseMap = collect();
-        if (\Schema::hasTable('purchases')) {
+        if (Schema::hasTable('purchases')) {
             $purchaseMap = DB::table('purchases')
                 ->whereBetween('bill_date', [$from, $to])
                 ->select('party_id', DB::raw('SUM(total_amount) as purchase_amount'))
@@ -354,7 +386,7 @@ class ReportController extends Controller
             return [
                 'party_id'        => $p->id,
                 'party_name'      => $p->name,
-                'sale_amount'     => $this->fmt($s ? $s->sale_amount : 0),
+                'sale_amount'     => $this->fmt($s  ? $s->sale_amount     : 0),
                 'purchase_amount' => $this->fmt($pu ? $pu->purchase_amount : 0),
             ];
         })->filter(fn($r) => $r['sale_amount'] > 0 || $r['purchase_amount'] > 0)->values();
@@ -371,7 +403,7 @@ class ReportController extends Controller
         $parties = Party::all();
 
         $saleMap = collect();
-        if (\Schema::hasTable('sales')) {
+        if (Schema::hasTable('sales')) {
             $saleMap = DB::table('sales')
                 ->whereBetween('invoice_date', [$from, $to])
                 ->select('party_id', DB::raw('SUM(total_amount) as sale_amount'))
@@ -380,7 +412,7 @@ class ReportController extends Controller
         }
 
         $purchaseMap = collect();
-        if (\Schema::hasTable('purchases')) {
+        if (Schema::hasTable('purchases')) {
             $purchaseMap = DB::table('purchases')
                 ->whereBetween('bill_date', [$from, $to])
                 ->select('party_id', DB::raw('SUM(total_amount) as purchase_amount'))
@@ -410,76 +442,1034 @@ class ReportController extends Controller
 
         return response()->json(['success' => true, 'rows' => $rows]);
     }
+
+    // ============================================================
+    // 6. SALE REPORT
+    // ============================================================
     public function saleReport(Request $request)
-{
-    [$from, $to] = $this->dateRange($request);
- 
-    // ── Guard: table must exist ─────────────────────────────
-    if (!\Schema::hasTable('sales')) {
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('sales')) {
+            return response()->json([
+                'success' => true, 'transactions' => [],
+                'total_amount' => 0, 'total_received' => 0,
+                'total_balance' => 0, 'growth_pct' => 0,
+            ]);
+        }
+
+        $query = DB::table('sales as s')
+            ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+            ->whereBetween('s.invoice_date', [$from, $to])
+            ->select(
+                's.id',
+                's.bill_number',
+                's.invoice_date',
+                's.total_amount',
+                's.grand_total',
+                DB::raw("COALESCE(s.payment_type, 'Cash') as payment_type"),
+                DB::raw('COALESCE(s.received_amount, 0) as received_paid'),
+                DB::raw('COALESCE(s.balance, 0) as balance_due'),
+                'p.name as party_name',
+                'p.phone as party_phone',
+                's.status',
+                's.description',
+                's.order_date'
+            )
+            ->orderByDesc('s.invoice_date')
+            ->orderByDesc('s.id');
+
+        if ($request->filled('party')) $query->where('s.party_id', $request->party);
+        if ($request->filled('type'))  $query->where('s.type', $request->type);
+
+        $rows = $query->get();
+
+        $totalAmount   = $rows->sum('total_amount');
+        $totalReceived = $rows->sum('received_paid');
+        $totalBalance  = $rows->sum('balance_due');
+
+        $fromDate = new \DateTime($from);
+        $toDate   = new \DateTime($to);
+        $diffDays = $fromDate->diff($toDate)->days + 1;
+        $prevFrom = (clone $fromDate)->modify("-{$diffDays} days")->format('Y-m-d');
+        $prevTo   = (clone $fromDate)->modify('-1 day')->format('Y-m-d');
+
+        $prevTotal = DB::table('sales')
+            ->whereBetween('invoice_date', [$prevFrom, $prevTo])
+            ->sum('total_amount');
+
+        $growthPct = 0;
+        if ($prevTotal > 0) {
+            $growthPct = round((($totalAmount - $prevTotal) / $prevTotal) * 100, 1);
+        } elseif ($totalAmount > 0) {
+            $growthPct = 100;
+        }
+
         return response()->json([
             'success'        => true,
-            'transactions'   => [],
-            'total_amount'   => 0,
-            'total_received' => 0,
-            'total_balance'  => 0,
-            'growth_pct'     => 0,
+            'transactions'   => $rows->toArray(),
+            'total_amount'   => $this->fmt($totalAmount),
+            'total_received' => $this->fmt($totalReceived),
+            'total_balance'  => $this->fmt($totalBalance),
+            'growth_pct'     => $growthPct,
+            'period'         => ['from' => $from, 'to' => $to],
         ]);
     }
- 
-    // ── Base query ─────────────────────────────────────────
-    $query = DB::table('sales as s')
-        ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
-        ->whereBetween('s.invoice_date', [$from, $to])
-        ->select(
-            's.id',
-            's.bill_number',
-            's.invoice_date',
-            's.total_amount',
-            's.payment_type',
-            DB::raw("COALESCE(s.received_amount, 0) as received_paid"),
-            DB::raw("COALESCE(s.total_amount, 0) - COALESCE(s.received_amount, 0) as balance_due"),
-            'p.name as party_name',
-            'p.phone as party_phone',
-            's.status',
-            's.description',
-            's.order_number'
-        )
-        ->orderByDesc('s.invoice_date')
-        ->orderByDesc('s.id');
- 
-    $rows = $query->get();
- 
-    // ── Summary ────────────────────────────────────────────
-    $totalAmount   = $rows->sum('total_amount');
-    $totalReceived = $rows->sum('received_paid');
-    $totalBalance  = $rows->sum('balance_due');
- 
-    // ── Growth % vs previous period ───────────────────────
-    $fromDate  = new \DateTime($from);
-    $toDate    = new \DateTime($to);
-    $diffDays  = $fromDate->diff($toDate)->days + 1;
-    $prevFrom  = (clone $fromDate)->modify("-{$diffDays} days")->format('Y-m-d');
-    $prevTo    = (clone $fromDate)->modify('-1 day')->format('Y-m-d');
- 
-    $prevTotal = DB::table('sales')
-        ->whereBetween('invoice_date', [$prevFrom, $prevTo])
-        ->sum('total_amount');
- 
-    $growthPct = 0;
-    if ($prevTotal > 0) {
-        $growthPct = round((($totalAmount - $prevTotal) / $prevTotal) * 100, 1);
-    } elseif ($totalAmount > 0) {
-        $growthPct = 100;
+
+    // ============================================================
+    // 7. PURCHASE REPORT
+    // ============================================================
+    public function purchaseReport(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('purchases')) {
+            return response()->json(['success' => true, 'transactions' => [], 'total_amount' => 0]);
+        }
+
+        $query = DB::table('purchases as pu')
+            ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
+            ->whereBetween('pu.bill_date', [$from, $to])
+            ->select(
+                'pu.id',
+                'pu.bill_number',
+                'pu.bill_date',
+                'pu.total_amount',
+                'pu.grand_total',
+                DB::raw("COALESCE(pu.payment_type, 'Cash') as payment_type"),
+                DB::raw('COALESCE(pu.paid_amount, 0) as paid_amount'),
+                DB::raw('COALESCE(pu.balance, 0) as balance_due'),
+                'p.name as party_name',
+                'p.phone as party_phone',
+                'pu.status'
+            )
+            ->orderByDesc('pu.bill_date')
+            ->orderByDesc('pu.id');
+
+        if ($request->filled('party')) $query->where('pu.party_id', $request->party);
+
+        $rows = $query->get();
+
+        return response()->json([
+            'success'       => true,
+            'transactions'  => $rows->toArray(),
+            'total_amount'  => $this->fmt($rows->sum('total_amount')),
+            'total_paid'    => $this->fmt($rows->sum('paid_amount')),
+            'total_balance' => $this->fmt($rows->sum('balance_due')),
+            'period'        => ['from' => $from, 'to' => $to],
+        ]);
     }
- 
-    return response()->json([
-        'success'        => true,
-        'transactions'   => $rows->toArray(),
-        'total_amount'   => $this->fmt($totalAmount),
-        'total_received' => $this->fmt($totalReceived),
-        'total_balance'  => $this->fmt($totalBalance),
-        'growth_pct'     => $growthPct,
-        'period'         => ['from' => $from, 'to' => $to],
-    ]);
-}
+
+    // ============================================================
+    // 8. ALL TRANSACTIONS
+    // ============================================================
+    public function allTransactions(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+        $rows = collect();
+
+        if (Schema::hasTable('sales')) {
+            $rows = $rows->merge(
+                DB::table('sales as s')
+                    ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+                    ->whereBetween('s.invoice_date', [$from, $to])
+                    ->select(
+                        's.id',
+                        DB::raw("'Sale' as type"),
+                        's.bill_number as reference',
+                        's.invoice_date as date',
+                        'p.name as party_name',
+                        's.total_amount as amount',
+                        DB::raw("COALESCE(s.payment_type, 'Cash') as payment_type")
+                    )->get()
+            );
+        }
+
+        if (Schema::hasTable('purchases')) {
+            $rows = $rows->merge(
+                DB::table('purchases as pu')
+                    ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
+                    ->whereBetween('pu.bill_date', [$from, $to])
+                    ->select(
+                        'pu.id',
+                        DB::raw("'Purchase' as type"),
+                        'pu.bill_number as reference',
+                        'pu.bill_date as date',
+                        'p.name as party_name',
+                        'pu.total_amount as amount',
+                        DB::raw("COALESCE(pu.payment_type, 'Cash') as payment_type")
+                    )->get()
+            );
+        }
+
+        if (Schema::hasTable('payment_ins')) {
+            $rows = $rows->merge(
+                DB::table('payment_ins as pi')
+                    ->leftJoin('parties as p', 'p.id', '=', 'pi.party_id')
+                    ->whereBetween('pi.date', [$from, $to])
+                    ->select(
+                        'pi.id',
+                        DB::raw("'Payment In' as type"),
+                        'pi.reference_no as reference',
+                        'pi.date as date',
+                        'p.name as party_name',
+                        'pi.amount as amount',
+                        'pi.payment_type'
+                    )->get()
+            );
+        }
+
+        if (Schema::hasTable('payment_outs')) {
+            $rows = $rows->merge(
+                DB::table('payment_outs as po')
+                    ->leftJoin('parties as p', 'p.id', '=', 'po.party_id')
+                    ->whereBetween('po.date', [$from, $to])
+                    ->select(
+                        'po.id',
+                        DB::raw("'Payment Out' as type"),
+                        'po.reference_no as reference',
+                        'po.date as date',
+                        'p.name as party_name',
+                        'po.amount as amount',
+                        'po.payment_type'
+                    )->get()
+            );
+        }
+
+        // expenses: expense_date, total_amount, payment_type
+        if (Schema::hasTable('expenses')) {
+            $rows = $rows->merge(
+                DB::table('expenses as e')
+                    ->whereBetween('e.expense_date', [$from, $to])
+                    ->select(
+                        'e.id',
+                        DB::raw("'Expense' as type"),
+                        DB::raw("COALESCE(e.expense_no, '') as reference"),
+                        'e.expense_date as date',
+                        DB::raw("COALESCE(e.party, '') as party_name"),
+                        'e.total_amount as amount',
+                        DB::raw("COALESCE(e.payment_type, 'Cash') as payment_type")
+                    )->get()
+            );
+        }
+
+        $rows = $rows->sortByDesc('date')->values();
+
+        return response()->json([
+            'success'      => true,
+            'transactions' => $rows->toArray(),
+            'total_amount' => $this->fmt($rows->sum('amount')),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    // ============================================================
+    // 9. CASH FLOW
+    // ─ sales        → payment_type column EXISTS ✓
+    // ─ purchases    → payment_type column EXISTS ✓
+    // ─ payment_ins  → payment_type column EXISTS ✓
+    // ─ payment_outs → payment_type column EXISTS ✓
+    // ─ expenses     → expense_date / total_amount / payment_type ✓
+    // ============================================================
+    public function cashFlow(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        $cashIn  = 0;
+        $cashOut = 0;
+        $rows    = collect();
+
+        // Sales cash-in
+        if (Schema::hasTable('sales')) {
+            $sale = DB::table('sales')
+                ->whereBetween('invoice_date', [$from, $to])
+                ->where('payment_type', 'Cash')
+                ->select(
+                    DB::raw("'Sale' as category"),
+                    DB::raw('SUM(total_amount) as amount'),
+                    DB::raw("'in' as flow")
+                )
+                ->groupBy(DB::raw("'Sale'"))
+                ->first();
+            if ($sale && $sale->amount) { $cashIn += $sale->amount; $rows->push($sale); }
+        }
+
+        // Payment-ins cash-in
+        if (Schema::hasTable('payment_ins')) {
+            $payIn = DB::table('payment_ins')
+                ->whereBetween('date', [$from, $to])
+                ->where('payment_type', 'Cash')
+                ->select(
+                    DB::raw("'Payment In' as category"),
+                    DB::raw('SUM(amount) as amount'),
+                    DB::raw("'in' as flow")
+                )
+                ->groupBy(DB::raw("'Payment In'"))
+                ->first();
+            if ($payIn && $payIn->amount) { $cashIn += $payIn->amount; $rows->push($payIn); }
+        }
+
+        // Purchases cash-out
+        if (Schema::hasTable('purchases')) {
+            $purchase = DB::table('purchases')
+                ->whereBetween('bill_date', [$from, $to])
+                ->where('payment_type', 'Cash')
+                ->select(
+                    DB::raw("'Purchase' as category"),
+                    DB::raw('SUM(total_amount) as amount'),
+                    DB::raw("'out' as flow")
+                )
+                ->groupBy(DB::raw("'Purchase'"))
+                ->first();
+            if ($purchase && $purchase->amount) { $cashOut += $purchase->amount; $rows->push($purchase); }
+        }
+
+        // Payment-outs cash-out
+        if (Schema::hasTable('payment_outs')) {
+            $payOut = DB::table('payment_outs')
+                ->whereBetween('date', [$from, $to])
+                ->where('payment_type', 'Cash')
+                ->select(
+                    DB::raw("'Payment Out' as category"),
+                    DB::raw('SUM(amount) as amount'),
+                    DB::raw("'out' as flow")
+                )
+                ->groupBy(DB::raw("'Payment Out'"))
+                ->first();
+            if ($payOut && $payOut->amount) { $cashOut += $payOut->amount; $rows->push($payOut); }
+        }
+
+        // Expenses cash-out — uses expense_date and total_amount (verified)
+        if (Schema::hasTable('expenses')) {
+            $expense = DB::table('expenses')
+                ->whereBetween('expense_date', [$from, $to])
+                ->where('payment_type', 'Cash')
+                ->select(
+                    DB::raw("'Expense' as category"),
+                    DB::raw('SUM(total_amount) as amount'),
+                    DB::raw("'out' as flow")
+                )
+                ->groupBy(DB::raw("'Expense'"))
+                ->first();
+            if ($expense && $expense->amount) { $cashOut += $expense->amount; $rows->push($expense); }
+        }
+
+        return response()->json([
+            'success'   => true,
+            'rows'      => $rows->toArray(),
+            'total_in'  => $this->fmt($cashIn),
+            'total_out' => $this->fmt($cashOut),
+            'net_flow'  => $this->fmt($cashIn - $cashOut),
+            'period'    => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function cashFlowExport(Request $request)
+    {
+        return $this->cashFlow($request);
+    }
+
+    // ============================================================
+    // 10. PROFIT AND LOSS
+    // ============================================================
+    public function profitAndLoss(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        $totalSales           = 0;
+        $totalPurchases       = 0;
+        $totalExpenses        = 0;
+        $totalSaleReturns     = 0;
+        $totalPurchaseReturns = 0;
+
+        if (Schema::hasTable('sales')) {
+            $totalSales = DB::table('sales')
+                ->whereBetween('invoice_date', [$from, $to])
+                ->sum('total_amount');
+        }
+
+        if (Schema::hasTable('purchases')) {
+            $totalPurchases = DB::table('purchases')
+                ->whereBetween('bill_date', [$from, $to])
+                ->sum('total_amount');
+        }
+
+        // expenses: expense_date, total_amount
+        if (Schema::hasTable('expenses')) {
+            $totalExpenses = DB::table('expenses')
+                ->whereBetween('expense_date', [$from, $to])
+                ->sum('total_amount');
+        }
+
+        if (Schema::hasTable('sale_returns')) {
+            $totalSaleReturns = DB::table('sale_returns')
+                ->whereBetween('date', [$from, $to])
+                ->sum('total_amount');
+        }
+
+        if (Schema::hasTable('purchase_returns')) {
+            $totalPurchaseReturns = DB::table('purchase_returns')
+                ->whereBetween('date', [$from, $to])
+                ->sum('total_amount');
+        }
+
+        $grossProfit = $totalSales - $totalSaleReturns - $totalPurchases + $totalPurchaseReturns;
+        $netProfit   = $grossProfit - $totalExpenses;
+
+        return response()->json([
+            'success'                => true,
+            'total_sales'            => $this->fmt($totalSales),
+            'total_purchases'        => $this->fmt($totalPurchases),
+            'total_expenses'         => $this->fmt($totalExpenses),
+            'total_sale_returns'     => $this->fmt($totalSaleReturns),
+            'total_purchase_returns' => $this->fmt($totalPurchaseReturns),
+            'gross_profit'           => $this->fmt($grossProfit),
+            'net_profit'             => $this->fmt($netProfit),
+            'period'                 => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function profitAndLossExport(Request $request)
+    {
+        return $this->profitAndLoss($request);
+    }
+
+    // ============================================================
+    // 11. BILL WISE PROFIT
+    // ============================================================
+    public function billWiseProfit(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('sales') || !Schema::hasTable('sale_items')) {
+            return response()->json(['success' => true, 'rows' => [], 'total_profit' => 0]);
+        }
+
+        $rows = DB::table('sales as s')
+            ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+            ->leftJoin('sale_items as si', 'si.sale_id', '=', 's.id')
+            ->leftJoin('items as i', 'i.id', '=', 'si.item_id')
+            ->whereBetween('s.invoice_date', [$from, $to])
+            ->select(
+                's.id',
+                's.bill_number',
+                's.invoice_date',
+                'p.name as party_name',
+                DB::raw('SUM(si.quantity * si.price) as sale_amount'),
+                DB::raw('SUM(si.quantity * COALESCE(i.purchase_price, 0)) as cost_amount'),
+                DB::raw('SUM(si.quantity * si.price) - SUM(si.quantity * COALESCE(i.purchase_price, 0)) as profit')
+            )
+            ->groupBy('s.id', 's.bill_number', 's.invoice_date', 'p.name')
+            ->orderByDesc('s.invoice_date')
+            ->get();
+
+        return response()->json([
+            'success'      => true,
+            'rows'         => $rows->toArray(),
+            'total_sale'   => $this->fmt($rows->sum('sale_amount')),
+            'total_cost'   => $this->fmt($rows->sum('cost_amount')),
+            'total_profit' => $this->fmt($rows->sum('profit')),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function billWiseProfitExport(Request $request)
+    {
+        return $this->billWiseProfit($request);
+    }
+
+    public function billWiseProfitItems(Request $request, $id)
+    {
+        if (!Schema::hasTable('sale_items')) {
+            return response()->json(['success' => true, 'items' => []]);
+        }
+
+        $items = DB::table('sale_items as si')
+            ->leftJoin('items as i', 'i.id', '=', 'si.item_id')
+            ->where('si.sale_id', $id)
+            ->select(
+                'i.name as item_name',
+                'si.quantity',
+                'si.price as sale_price',
+                DB::raw('COALESCE(i.purchase_price, 0) as purchase_price'),
+                DB::raw('si.quantity * si.price as sale_amount'),
+                DB::raw('si.quantity * COALESCE(i.purchase_price, 0) as cost_amount'),
+                DB::raw('(si.quantity * si.price) - (si.quantity * COALESCE(i.purchase_price, 0)) as profit')
+            )
+            ->get();
+
+        return response()->json(['success' => true, 'items' => $items->toArray()]);
+    }
+
+    // ============================================================
+    // 12. BANK STATEMENT
+    // ============================================================
+    public function bankStatement(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+        $bankId = $request->input('bank_id');
+        $rows   = collect();
+
+        if (Schema::hasTable('bank_transactions')) {
+            $query = DB::table('bank_transactions as bt')
+                ->leftJoin('bank_accounts as ba', 'ba.id', '=', 'bt.bank_account_id')
+                ->whereBetween('bt.date', [$from, $to])
+                ->select(
+                    'bt.date',
+                    'bt.type',
+                    'bt.description',
+                    'bt.amount',
+                    'ba.display_name as bank_name',
+                    'bt.reference'
+                )
+                ->orderBy('bt.date');
+
+            if ($bankId) $query->where('bt.bank_account_id', $bankId);
+
+            $rows = $query->get();
+        }
+
+        $totalIn  = $rows->where('type', 'credit')->sum('amount');
+        $totalOut = $rows->where('type', 'debit')->sum('amount');
+
+        return response()->json([
+            'success'   => true,
+            'rows'      => $rows->toArray(),
+            'total_in'  => $this->fmt($totalIn),
+            'total_out' => $this->fmt($totalOut),
+            'net'       => $this->fmt($totalIn - $totalOut),
+            'period'    => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function bankStatementExport(Request $request)
+    {
+        return $this->bankStatement($request);
+    }
+
+    // ============================================================
+    // 13. DISCOUNT REPORT
+    // ─ sales uses discount_rs (discount_pct & discount_rs exist, no plain "discount")
+    // ─ purchases same
+    // ============================================================
+    public function discountReport(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        // Sale discounts grouped by party — use discount_rs
+        $saleDiscounts = collect();
+        if (Schema::hasTable('sales')) {
+            $saleDiscounts = DB::table('sales as s')
+                ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+                ->whereBetween('s.invoice_date', [$from, $to])
+                ->where('s.discount_rs', '>', 0)
+                ->select(
+                    DB::raw('COALESCE(p.id, 0) as party_id'),
+                    DB::raw("COALESCE(p.name, 'Walk-in') as party_name"),
+                    DB::raw('SUM(s.discount_rs) as sale_discount')
+                )
+                ->groupBy('p.id', 'p.name')
+                ->get()
+                ->keyBy('party_id');
+        }
+
+        // Purchase discounts grouped by party — use discount_rs
+        $purchaseDiscounts = collect();
+        if (Schema::hasTable('purchases')) {
+            $purchaseDiscounts = DB::table('purchases as pu')
+                ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
+                ->whereBetween('pu.bill_date', [$from, $to])
+                ->where('pu.discount_rs', '>', 0)
+                ->select(
+                    DB::raw('COALESCE(p.id, 0) as party_id'),
+                    DB::raw("COALESCE(p.name, 'Walk-in') as party_name"),
+                    DB::raw('SUM(pu.discount_rs) as purchase_discount')
+                )
+                ->groupBy('p.id', 'p.name')
+                ->get()
+                ->keyBy('party_id');
+        }
+
+        $allPartyIds = $saleDiscounts->keys()->merge($purchaseDiscounts->keys())->unique();
+
+        $rows = $allPartyIds->map(function ($id) use ($saleDiscounts, $purchaseDiscounts) {
+            $s  = $saleDiscounts->get($id);
+            $pu = $purchaseDiscounts->get($id);
+            $sd = $s  ? (float) $s->sale_discount     : 0;
+            $pd = $pu ? (float) $pu->purchase_discount : 0;
+            return [
+                'party_name'        => $s ? $s->party_name : ($pu ? $pu->party_name : '-'),
+                'sale_discount'     => $this->fmt($sd),
+                'purchase_discount' => $this->fmt($pd),
+                'total_discount'    => $this->fmt($sd + $pd),
+            ];
+        })->sortByDesc('total_discount')->values();
+
+        return response()->json([
+            'success'                 => true,
+            'rows'                    => $rows->toArray(),
+            'total_sale_discount'     => $this->fmt($rows->sum('sale_discount')),
+            'total_purchase_discount' => $this->fmt($rows->sum('purchase_discount')),
+            'total_discount'          => $this->fmt($rows->sum('total_discount')),
+            'period'                  => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function discountReportExport(Request $request)
+    {
+        return $this->discountReport($request);
+    }
+
+    // ============================================================
+    // 14. ITEM WISE DISCOUNT
+    // ============================================================
+    public function itemWiseDiscount(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('sale_items')) {
+            return response()->json(['success' => true, 'rows' => []]);
+        }
+
+        $rows = DB::table('sale_items as si')
+            ->join('sales as s', 's.id', '=', 'si.sale_id')
+            ->join('items as i', 'i.id', '=', 'si.item_id')
+            ->whereBetween('s.invoice_date', [$from, $to])
+            ->where('si.discount', '>', 0)
+            ->select(
+                'i.name as item_name',
+                DB::raw('SUM(si.quantity) as total_qty'),
+                DB::raw('SUM(si.amount) as total_amount'),
+                DB::raw('SUM(si.discount) as total_discount')
+            )
+            ->groupBy('i.id', 'i.name')
+            ->orderByDesc('total_discount')
+            ->get();
+
+        return response()->json([
+            'success'        => true,
+            'rows'           => $rows->toArray(),
+            'total_discount' => $this->fmt($rows->sum('total_discount')),
+            'period'         => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    // ============================================================
+    // 15. TAX REPORT
+    // ─ sales: tax_amount, tax_pct ✓
+    // ─ purchases: tax_amount, tax_pct ✓
+    // ============================================================
+    public function taxReport(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+        $saleTax     = 0;
+        $purchaseTax = 0;
+        $rows        = collect();
+
+        if (Schema::hasTable('sales')) {
+            $salesTaxRows = DB::table('sales as s')
+                ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+                ->whereBetween('s.invoice_date', [$from, $to])
+                ->where('s.tax_amount', '>', 0)
+                ->select(
+                    's.bill_number',
+                    's.invoice_date as date',
+                    'p.name as party_name',
+                    DB::raw("'Sale' as type"),
+                    's.total_amount',
+                    's.tax_amount',
+                    DB::raw('COALESCE(s.tax_pct, 0) as tax_rate')
+                )
+                ->get();
+            $saleTax = $salesTaxRows->sum('tax_amount');
+            $rows    = $rows->merge($salesTaxRows);
+        }
+
+        if (Schema::hasTable('purchases')) {
+            $purchaseTaxRows = DB::table('purchases as pu')
+                ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
+                ->whereBetween('pu.bill_date', [$from, $to])
+                ->where('pu.tax_amount', '>', 0)
+                ->select(
+                    'pu.bill_number',
+                    'pu.bill_date as date',
+                    'p.name as party_name',
+                    DB::raw("'Purchase' as type"),
+                    'pu.total_amount',
+                    'pu.tax_amount',
+                    DB::raw('COALESCE(pu.tax_pct, 0) as tax_rate')
+                )
+                ->get();
+            $purchaseTax = $purchaseTaxRows->sum('tax_amount');
+            $rows        = $rows->merge($purchaseTaxRows);
+        }
+
+        $rows = $rows->sortByDesc('date')->values();
+
+        return response()->json([
+            'success'      => true,
+            'rows'         => $rows->toArray(),
+            'sale_tax'     => $this->fmt($saleTax),
+            'purchase_tax' => $this->fmt($purchaseTax),
+            'net_tax'      => $this->fmt($saleTax - $purchaseTax),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function taxReportExport(Request $request)
+    {
+        return $this->taxReport($request);
+    }
+
+    // ============================================================
+    // 16. TAX RATE REPORT
+    // ============================================================
+    public function taxRateReport(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+        $rows = collect();
+
+        if (Schema::hasTable('sales')) {
+            $rows = $rows->merge(
+                DB::table('sales')
+                    ->whereBetween('invoice_date', [$from, $to])
+                    ->whereNotNull('tax_pct')
+                    ->where('tax_pct', '>', 0)
+                    ->select(
+                        'tax_pct as tax_rate',
+                        DB::raw('SUM(tax_amount) as tax_amount'),
+                        DB::raw('SUM(total_amount) as taxable_amount'),
+                        DB::raw("'Sale' as type")
+                    )
+                    ->groupBy('tax_pct')
+                    ->get()
+            );
+        }
+
+        if (Schema::hasTable('purchases')) {
+            $rows = $rows->merge(
+                DB::table('purchases')
+                    ->whereBetween('bill_date', [$from, $to])
+                    ->whereNotNull('tax_pct')
+                    ->where('tax_pct', '>', 0)
+                    ->select(
+                        'tax_pct as tax_rate',
+                        DB::raw('SUM(tax_amount) as tax_amount'),
+                        DB::raw('SUM(total_amount) as taxable_amount'),
+                        DB::raw("'Purchase' as type")
+                    )
+                    ->groupBy('tax_pct')
+                    ->get()
+            );
+        }
+
+        return response()->json([
+            'success'   => true,
+            'rows'      => $rows->toArray(),
+            'total_tax' => $this->fmt($rows->sum('tax_amount')),
+            'period'    => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function taxRateReportExport(Request $request)
+    {
+        return $this->taxRateReport($request);
+    }
+
+    // ============================================================
+    // 17. EXPENSE REPORT
+    // ─ expenses: expense_date, total_amount, payment_type,
+    //             expense_category_id, expense_no, party
+    // ============================================================
+    public function expenseReport(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('expenses')) {
+            return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0]);
+        }
+
+        $rows = DB::table('expenses as e')
+            ->leftJoin('expense_categories as ec', 'ec.id', '=', 'e.expense_category_id')
+            ->whereBetween('e.expense_date', [$from, $to])
+            ->select(
+                'e.id',
+                'e.expense_date as date',
+                'e.expense_no',
+                'e.total_amount as amount',
+                DB::raw("COALESCE(e.payment_type, 'Cash') as payment_type"),
+                'e.party',
+                'ec.name as category_name'
+            )
+            ->orderByDesc('e.expense_date')
+            ->get();
+
+        return response()->json([
+            'success'      => true,
+            'rows'         => $rows->toArray(),
+            'total_amount' => $this->fmt($rows->sum('amount')),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function expenseReportExport(Request $request)
+    {
+        return $this->expenseReport($request);
+    }
+
+    // ============================================================
+    // 18. EXPENSE CATEGORY REPORT
+    // ============================================================
+    public function expenseCategoryReport(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('expenses')) {
+            return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0]);
+        }
+
+        $rows = DB::table('expenses as e')
+            ->leftJoin('expense_categories as ec', 'ec.id', '=', 'e.expense_category_id')
+            ->whereBetween('e.expense_date', [$from, $to])
+            ->select(
+                DB::raw("COALESCE(ec.name, 'Uncategorized') as category_name"),
+                DB::raw('COUNT(e.id) as count'),
+                DB::raw('SUM(e.total_amount) as total_amount')
+            )
+            ->groupBy('ec.id', 'ec.name')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        return response()->json([
+            'success'      => true,
+            'rows'         => $rows->toArray(),
+            'total_amount' => $this->fmt($rows->sum('total_amount')),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function expenseCategoryReportExport(Request $request)
+    {
+        return $this->expenseCategoryReport($request);
+    }
+
+    // ============================================================
+    // 19. EXPENSE ITEM REPORT
+    // ============================================================
+    public function expenseItemReport(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('expense_items')) {
+            return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0]);
+        }
+
+        $rows = DB::table('expense_items as ei')
+            ->leftJoin('expenses as e', 'e.id', '=', 'ei.expense_id')
+            ->whereBetween('e.expense_date', [$from, $to])
+            ->select(
+                'ei.name as item_name',
+                DB::raw('COUNT(ei.id) as count'),
+                DB::raw('SUM(ei.amount) as total_amount')
+            )
+            ->groupBy('ei.name')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        return response()->json([
+            'success'      => true,
+            'rows'         => $rows->toArray(),
+            'total_amount' => $this->fmt($rows->sum('total_amount')),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    public function expenseItemReportExport(Request $request)
+    {
+        return $this->expenseItemReport($request);
+    }
+
+    // ============================================================
+    // 20. SALE ORDER REPORT
+    // ─ sales.type enum includes 'sale_order' ✓
+    // ============================================================
+    public function saleOrder(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('sales')) {
+            return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0]);
+        }
+
+        $query = DB::table('sales as s')
+            ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+            ->whereBetween('s.invoice_date', [$from, $to])
+            ->where('s.type', 'sale_order')
+            ->select(
+                's.id',
+                's.bill_number',
+                's.reference_bill_number',
+                's.invoice_date as date',
+                's.order_date',
+                'p.name as party_name',
+                's.total_amount',
+                's.grand_total',
+                's.status',
+                DB::raw("COALESCE(s.payment_type, 'Cash') as payment_type")
+            )
+            ->orderByDesc('s.invoice_date');
+
+        if ($request->filled('party'))  $query->where('s.party_id', $request->party);
+        if ($request->filled('status')) $query->where('s.status', $request->status);
+
+        $rows = $query->get();
+
+        return response()->json([
+            'success'      => true,
+            'rows'         => $rows->toArray(),
+            'total_amount' => $this->fmt($rows->sum('total_amount')),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    // ============================================================
+    // 21. SALE ORDER ITEMS
+    // ============================================================
+    public function saleOrderItems(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        if (!Schema::hasTable('sales') || !Schema::hasTable('sale_items')) {
+            return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0, 'total_qty' => 0]);
+        }
+
+        $query = DB::table('sale_items as si')
+            ->join('sales as s', 's.id', '=', 'si.sale_id')
+            ->leftJoin('items as i', 'i.id', '=', 'si.item_id')
+            ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+            ->whereBetween('s.invoice_date', [$from, $to])
+            ->where('s.type', 'sale_order')
+            ->select(
+                's.id as sale_id',
+                's.bill_number',
+                's.invoice_date as date',
+                'p.name as party_name',
+                'i.name as item_name',
+                'si.quantity',
+                'si.price',
+                DB::raw('COALESCE(si.amount, si.quantity * si.price) as amount'),
+                's.status',
+                's.type'
+            )
+            ->orderByDesc('s.invoice_date');
+
+        if ($request->filled('item'))   $query->where('si.item_id', $request->item);
+        if ($request->filled('party'))  $query->where('s.party_id', $request->party);
+        if ($request->filled('status')) $query->where('s.status', $request->status);
+
+        $rows = $query->get();
+
+        return response()->json([
+            'success'      => true,
+            'rows'         => $rows->toArray(),
+            'total_amount' => $this->fmt($rows->sum('amount')),
+            'total_qty'    => $rows->sum('quantity'),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    // ============================================================
+    // 22. STOCK SUMMARY BY CATEGORY
+    // ============================================================
+    public function stockSummaryByCategory(Request $request)
+    {
+        $rows = DB::table('items')
+            ->join('categories', 'categories.id', '=', 'items.category_id')
+            ->select(
+                'categories.name as category_name',
+                DB::raw('SUM(opening_qty) as stock_qty'),
+                DB::raw('SUM(opening_qty * purchase_price) as stock_value')
+            )
+            ->groupBy('categories.id', 'categories.name')
+            ->get();
+
+        return response()->json([
+            'success'     => true,
+            'rows'        => $rows->toArray(),
+            'total_qty'   => $this->fmt($rows->sum('stock_qty')),
+            'total_value' => $this->fmt($rows->sum('stock_value')),
+        ]);
+    }
+
+    // ============================================================
+    // 23. LOW STOCK
+    // ============================================================
+    public function lowStock(Request $request)
+    {
+        $rows = DB::table('items')
+            ->select(
+                'id', 'name', 'category_id',
+                DB::raw('opening_qty as stock_qty'),
+                DB::raw('min_stock as min_stock_qty'),
+                DB::raw('opening_qty * purchase_price as stock_value')
+            )
+            ->whereRaw('opening_qty <= min_stock')
+            ->get();
+
+        return response()->json(['success' => true, 'rows' => $rows->toArray()]);
+    }
+
+    // ============================================================
+    // 24. ITEM CATEGORY WISE P&L
+    // ============================================================
+    public function itemCategoryPnL(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+        $rows = collect();
+
+        if (Schema::hasTable('sale_items') && Schema::hasTable('sales')) {
+            $rows = DB::table('sale_items as si')
+                ->join('sales as s', 's.id', '=', 'si.sale_id')
+                ->join('items as i', 'i.id', '=', 'si.item_id')
+                ->leftJoin('categories as c', 'c.id', '=', 'i.category_id')
+                ->whereBetween('s.invoice_date', [$from, $to])
+                ->select(
+                    DB::raw("COALESCE(c.name, 'Uncategorized') as category_name"),
+                    DB::raw('SUM(si.quantity * si.price) as sale_amount'),
+                    DB::raw('SUM(si.quantity * COALESCE(i.purchase_price, 0)) as cost_amount'),
+                    DB::raw('SUM(si.quantity * si.price) - SUM(si.quantity * COALESCE(i.purchase_price, 0)) as profit')
+                )
+                ->groupBy('c.id', 'c.name')
+                ->get();
+        }
+
+        return response()->json([
+            'success'      => true,
+            'rows'         => $rows->toArray(),
+            'total_profit' => $this->fmt($rows->sum('profit')),
+            'period'       => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
+    // ============================================================
+    // DEBUG — helpful while testing
+    // ============================================================
+    public function debugSaleTypes()
+    {
+        $types = DB::table('sales')
+            ->select('type', DB::raw('COUNT(*) as count'))
+            ->groupBy('type')
+            ->get();
+
+        $samples = DB::table('sales')
+            ->select('id', 'bill_number', 'type', 'status', 'invoice_date')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'all_types' => $types,
+            'samples'   => $samples,
+        ]);
+    }
 }

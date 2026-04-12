@@ -334,44 +334,37 @@
                   class="fa-regular fa-file-lines me-2 text-secondary"></i>Expense item Report</a></li>
 
           </ul>
-
-        <li class="nav-item">
-    <a href="#" class="nav-link py-2 px-4 report-nav-link"
-       data-tab="sale-order"
-
-     {{-- REPLACE WITH --}}
-<li class="nav-item">
-    <a href="#" class="nav-link py-2 px-4 report-nav-link"
-       data-tab="sale-order"
-       onclick="showTab('sale-order'); return false;">
-        <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Order
-    </a>
-</li>
-<li class="nav-item">
-    <a href="#" class="nav-link py-2 px-4 report-nav-link"
-       data-tab="sale-order-item"
-       onclick="showTab('sale-order-item'); return false;">
-        <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Order Item
-    </a>
-</li>
-
-
-          </ul>
-          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
-            style="font-size: 11px; letter-spacing: 0.5px;">Loan Accounts</h6>
+<h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+              style="font-size: 11px; letter-spacing: 0.5px;">Sale Order Report</h6>
           <ul class="nav flex-column mb-4 reports-nav">
-{{-- REPLACE WITH --}}
-<li class="nav-item">
-    <a href="#" class="nav-link py-2 px-4 report-nav-link"
-       data-tab="loan-statement"
-       onclick="showTab('loan-statement'); return false;">
-        <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Loan Statement
-    </a>
-</li>
-
-
-
+              <li class="nav-item">
+                  <a href="#" class="nav-link py-2 px-4 report-nav-link"
+                     data-tab="sale-order"
+                     onclick="showTab('sale-order'); return false;">
+                      <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Order
+                  </a>
+              </li>
+              <li class="nav-item">
+                  <a href="#" class="nav-link py-2 px-4 report-nav-link"
+                     data-tab="sale-order-item"
+                     onclick="showTab('sale-order-item'); return false;">
+                      <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Order Item
+                  </a>
+              </li>
           </ul>
+
+          <h6 class="text-secondary text-uppercase fw-bold px-4 mb-3 mt-4"
+              style="font-size: 11px; letter-spacing: 0.5px;">Loan Accounts</h6>
+          <ul class="nav flex-column mb-4 reports-nav">
+              <li class="nav-item">
+                  <a href="#" class="nav-link py-2 px-4 report-nav-link"
+                     data-tab="loan-statement"
+                     onclick="showTab('loan-statement'); return false;">
+                      <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Loan Statement
+                  </a>
+              </li>
+          </ul>
+
         </div>
       </aside>
 
