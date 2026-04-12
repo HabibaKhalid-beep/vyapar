@@ -189,62 +189,42 @@ function soiFmt(val) {
 
 /* ── Load data from API ───────────────────────────────────── */
 function loadSaleOrderItemReport() {
-    const from  = document.getElementById('soi-from').value;
-    const to    = document.getElementById('soi-to').value;
+    const from  = document.getElementById('soi-from-date')?.value 
+                  || document.getElementById('soi-from')?.value;
+    const to    = document.getElementById('soi-to-date')?.value 
+                  || document.getElementById('soi-to')?.value;
     const tbody = document.getElementById('soi-table-body');
+    const tfoot = document.getElementById('soi-table-foot');
 
     tbody.innerHTML = `
         <tr>
-          <td colspan="3" style="padding:60px; text-align:center; color:#9ca3af; font-size:13px;">
+          <td colspan="4" style="padding:60px; text-align:center; color:#9ca3af; font-size:13px;">
             <i class="fa-solid fa-spinner fa-spin me-2"></i> Loading…
           </td>
         </tr>`;
 
-    /* ── hit the sale-order items endpoint ─────────────────
-       If you have a dedicated sale_order_items API, use that.
-       Falling back to /reports/sale and extracting order items. */
-    fetch(`/dashboard/reports/sale?from=${from}&to=${to}`, {
+    fetch(`/dashboard/reports/sale-order-items?from=${from}&to=${to}`, {
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
     })
     .then(r => r.json())
     .then(data => {
         if (!data.success) throw new Error('API error');
 
-        /* Build item-level rows from sale transactions that have order_number */
-        const sales = (data.transactions || []).filter(t => t.order_number);
+        _soiRawData = (data.rows || []).map(r => ({
+            item_name  : r.item_name  || '—',
+            quantity   : parseFloat(r.quantity  || 0),
+            amount     : parseFloat(r.amount    || 0),
+            status     : r.status     || '',
+            party_name : r.party_name || '',
+        }));
 
-        /* If your API returns sale_items array per transaction, use that */
-        let items = [];
-        sales.forEach(sale => {
-            if (sale.items && Array.isArray(sale.items)) {
-                sale.items.forEach(item => {
-                    items.push({
-                        item_name  : item.item_name || item.name || '—',
-                        quantity   : parseFloat(item.quantity  || item.qty || 0),
-                        amount     : parseFloat(item.amount    || item.total || 0),
-                        status     : sale.status || '',
-                        party_name : sale.party_name || '',
-                    });
-                });
-            } else {
-                /* No item breakdown — show one row per order */
-                items.push({
-                    item_name  : sale.order_number || sale.bill_number || '—',
-                    quantity   : parseFloat(sale.quantity || 1),
-                    amount     : parseFloat(sale.total_amount || 0),
-                    status     : sale.status || '',
-                    party_name : sale.party_name || '',
-                });
-            }
-        });
-
-        _soiRawData = items;
+        if (tfoot) tfoot.style.display = '';
         renderSaleOrderItemTable();
     })
     .catch(() => {
         tbody.innerHTML = `
             <tr>
-              <td colspan="3" style="padding:60px; text-align:center; color:#ef4444; font-size:13px;">
+              <td colspan="4" style="padding:60px; text-align:center; color:#ef4444; font-size:13px;">
                 Failed to load data. Please try again.
               </td>
             </tr>`;

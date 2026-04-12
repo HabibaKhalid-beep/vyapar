@@ -1,10 +1,7 @@
-{{-- Day Book Tab --}}
+{{-- Day Book / All Transactions Tab --}}
+<div id="tab-Alltransactions" class="report-tab-content d-none" style="background:#f3f4f6; height:calc(100vh - 60px); overflow-y:auto;">
 
-   <div id="tab-Alltransactions" class="report-tab-content d-none" style="background:#f3f4f6; height:calc(100vh - 60px); overflow-y:auto;">
-
-    {{-- ══════════════════════════════════════════════
-         TOP FILTER BAR
-    ══════════════════════════════════════════════ --}}
+    {{-- TOP FILTER BAR --}}
     <div class="d-flex flex-wrap align-items-center gap-2 px-4 py-2 bg-white border-bottom" style="position:sticky;top:0;z-index:10;">
 
         {{-- Date picker --}}
@@ -19,9 +16,6 @@
         <div class="d-flex align-items-center border rounded px-2 py-1" style="background:#fff;">
             <select id="db-firm" class="border-0 bg-transparent text-dark" style="font-size:13px; outline:none;">
                 <option value="">All Firms</option>
-                <option value="firm1">Firm 1</option>
-                <option value="firm2">Firm 2</option>
-                <option value="firm3">Firm 3</option>
             </select>
         </div>
 
@@ -54,11 +48,9 @@
                 <option value="Cheque">Cheque</option>
                 <option value="Online">Online</option>
                 <option value="HBL">HBL</option>
-                <option value="hasnain">hasnain</option>
             </select>
         </div>
 
-        {{-- Spacer --}}
         <div class="flex-grow-1"></div>
 
         {{-- Search bar --}}
@@ -69,30 +61,25 @@
         </div>
 
         {{-- Excel --}}
-        <button id="db-excel-btn" class="btn d-flex align-items-center justify-content-center p-0"
-                title="Export to Excel"
+        <button id="db-excel-btn" class="btn d-flex align-items-center justify-content-center p-0" title="Export to Excel"
                 style="width:36px;height:36px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;">
             <i class="fa-solid fa-file-excel" style="color:#10b981;font-size:17px;"></i>
         </button>
 
         {{-- Print --}}
-        <button id="db-print-btn" class="btn d-flex align-items-center justify-content-center p-0"
-                title="Print"
+        <button id="db-print-btn" class="btn d-flex align-items-center justify-content-center p-0" title="Print"
                 style="width:36px;height:36px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;">
             <i class="fa-solid fa-print" style="color:#4b5563;font-size:17px;"></i>
         </button>
 
-        {{-- Expand / Full screen --}}
-        <button id="db-fullscreen-btn" class="btn d-flex align-items-center justify-content-center p-0"
-                title="Full screen"
+        {{-- Fullscreen --}}
+        <button id="db-fullscreen-btn" class="btn d-flex align-items-center justify-content-center p-0" title="Full screen"
                 style="width:36px;height:36px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;">
             <i class="fa-solid fa-expand" style="color:#4b5563;font-size:15px;"></i>
         </button>
     </div>
 
-    {{-- ══════════════════════════════════════════════
-         SUMMARY CARDS
-    ══════════════════════════════════════════════ --}}
+    {{-- SUMMARY CARDS --}}
     <div class="d-flex flex-wrap gap-3 px-4 pt-3 pb-2">
         <div class="rounded-3 p-3 flex-fill" style="background:#fff;border:1px solid #e5e7eb;min-width:160px;">
             <p class="mb-1 text-secondary" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Money In</p>
@@ -112,21 +99,16 @@
         </div>
     </div>
 
-    {{-- ══════════════════════════════════════════════
-         MAIN TABLE CARD
-    ══════════════════════════════════════════════ --}}
+    {{-- MAIN TABLE CARD --}}
     <div class="mx-4 mb-4 rounded-3 overflow-hidden" style="background:#fff;border:1px solid #e5e7eb;">
 
-        {{-- Table header title --}}
         <div class="d-flex align-items-center justify-content-between px-4 py-3 border-bottom">
-           <span class="fw-bold text-dark" style="font-size:15px;">All Transactions</span>
+            <span class="fw-bold text-dark" style="font-size:15px;">All Transactions</span>
             <span id="db-row-count" class="badge bg-secondary-subtle text-secondary rounded-pill" style="font-size:12px;">0 records</span>
         </div>
 
         <div class="table-responsive" style="height:calc(100vh - 320px); overflow-y:auto;">
             <table class="table table-hover mb-0 align-middle" style="border-collapse:collapse; font-size:13px;">
-
-                {{-- ── THEAD ── --}}
                 <thead style="position:sticky;top:0;z-index:5;">
                     <tr style="background:#f3f4f6; border-bottom:2px solid #e5e7eb;">
 
@@ -317,16 +299,12 @@
                             </div>
                         </th>
 
-                        {{-- PRINT / SHARE --}}
                         <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:center;">
                             PRINT / SHARE
                         </th>
                     </tr>
                 </thead>
-
-                {{-- ── TBODY ── --}}
                 <tbody id="db-tbody">
-                    {{-- Populated by JS --}}
                     <tr id="db-empty-row">
                         <td colspan="8" class="text-center text-muted py-5">
                             <i class="fa-regular fa-folder-open fs-3 d-block mb-2 text-secondary opacity-50"></i>
@@ -334,8 +312,6 @@
                         </td>
                     </tr>
                 </tbody>
-
-                {{-- ── TFOOT ── --}}
                 <tfoot id="db-tfoot" style="display:none; background:#f9fafb; border-top:2px solid #e5e7eb;">
                     <tr>
                         <td colspan="4" class="px-4 py-3 fw-bold text-dark" style="font-size:13px;">Totals</td>
@@ -346,38 +322,11 @@
                     </tr>
                 </tfoot>
             </table>
-        </div>{{-- end table-responsive --}}
-    </div>{{-- end card --}}
-
-</div>{{-- end tab-Daybook --}}
-
-
-{{-- ══════════════════════════════════════════════════════
-     PRINT MODAL
-══════════════════════════════════════════════════════ --}}
-<div class="modal fade" id="dbPrintModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">Day Book — Print Preview</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="dbPrintArea" style="font-size:13px;">
-                {{-- filled by JS --}}
-            </div>
-            <div class="modal-footer border-0">
-                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                <button class="btn btn-dark btn-sm" onclick="window.print()">
-                    <i class="fa-solid fa-print me-1"></i> Print
-                </button>
-            </div>
         </div>
     </div>
 </div>
 
-{{-- ══════════════════════════════════════════════════════
-     ROW ACTION MODAL  (Print / Share per row)
-══════════════════════════════════════════════════════ --}}
+{{-- ROW ACTION MODAL --}}
 <div class="modal fade" id="dbRowActionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:340px;">
         <div class="modal-content rounded-4">
@@ -396,100 +345,121 @@
                     <button class="btn btn-outline-primary btn-sm text-start" onclick="dbRowShare('email')">
                         <i class="fa-regular fa-envelope me-2 text-primary"></i> Share via Email
                     </button>
-                    <button class="btn btn-outline-secondary btn-sm text-start" onclick="dbRowDownloadPdf()">
-                        <i class="fa-regular fa-file-pdf me-2 text-danger"></i> Download PDF
-                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-
-{{-- ══════════════════════════════════════════════════════
-     DAY BOOK JAVASCRIPT
-══════════════════════════════════════════════════════ --}}
 <script>
 (function () {
     'use strict';
 
-    /* ─── sample / mock data (replace with real API call) ─── */
-    const DB_MOCK = [
-        { id:1,  name:'hasnain',           ref:'',  type:'Cash Withdraw',   pay_type:'',      total:100,   money_in:0,    money_out:0 },
-        { id:2,  name:'hasnain',           ref:'',  type:'Cash Withdraw',   pay_type:'',      total:100,   money_in:0,    money_out:0 },
-        { id:3,  name:'hasnain',           ref:'',  type:'Cash Deposit',    pay_type:'',      total:100,   money_in:0,    money_out:0 },
-        { id:4,  name:'hasnain TO HBL',    ref:'',  type:'Bank to Bank',    pay_type:'',      total:1000,  money_in:0,    money_out:0 },
-        { id:5,  name:'[Loan Acc] ok ha',  ref:'',  type:'Opening Loan',    pay_type:'HBL',   total:5000,  money_in:5000, money_out:0 },
-        { id:6,  name:'[Loan Acc] ok ha',  ref:'',  type:'Processing Fee',  pay_type:'hasnain',total:100,  money_in:0,    money_out:100 },
-        { id:7,  name:'[Loan Acc] maleeq azhar',ref:'',type:'Loan Adjustment',pay_type:'hasnain',total:100,money_in:100, money_out:0 },
-        { id:8,  name:'Party 1',            ref:'16',type:'Sale',            pay_type:'hasnain',total:700,  money_in:700,  money_out:0 },
-        { id:9,  name:'Party 1',            ref:'1', type:'Credit Note',     pay_type:'hasnain',total:700,  money_in:0,    money_out:0 },
-        { id:10, name:'Party 1',            ref:'17',type:'Sale',            pay_type:'hasnain',total:600,  money_in:600,  money_out:0 },
-        { id:11, name:'Party 1',            ref:'18',type:'Sale',            pay_type:'Cash',   total:700,  money_in:600,  money_out:0 },
-        { id:12, name:'maleeq',             ref:'1', type:'Payment-In',      pay_type:'Cash',   total:100,  money_in:100,  money_out:0 },
-        { id:13, name:'dodh patya',         ref:'2', type:'Delivery Challan',pay_type:'',       total:600,  money_in:0,    money_out:0 },
-        { id:14, name:'dodh patya',         ref:'19',type:'Sale',            pay_type:'hasnain',total:700,  money_in:500,  money_out:0 },
-    ];
-
-    let dbAllRows   = [...DB_MOCK];
-    let dbFiltered  = [...DB_MOCK];
-    let dbActiveRow = null;   // for print/share modal
+    /* ─── state ─── */
+    let dbAllRows  = [];
+    let dbFiltered = [];
+    let dbActiveRow = null;
+    let dbInitialized = false;
 
     /* ─── helpers ─── */
     const fmt = v => 'Rs ' + Number(v || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
 
+    /**
+     * Determine money_in / money_out from transaction type.
+     * Adjust the arrays below to match your business logic.
+     */
+    const MONEY_IN_TYPES  = ['Sale', 'Payment In', 'Payment-In', 'Cash Deposit',
+                              'Opening Loan', 'Loan Adjustment', 'Credit Note'];
+    const MONEY_OUT_TYPES = ['Purchase', 'Payment Out', 'Payment-Out', 'Cash Withdraw',
+                              'Bank to Bank', 'Processing Fee', 'Debit Note', 'Expense'];
+
+    function moneyIn(r) {
+        if (r.money_in != null) return parseFloat(r.money_in);
+        return MONEY_IN_TYPES.includes(r.type) ? parseFloat(r.amount || r.total || 0) : 0;
+    }
+    function moneyOut(r) {
+        if (r.money_out != null) return parseFloat(r.money_out);
+        return MONEY_OUT_TYPES.includes(r.type) ? parseFloat(r.amount || r.total || 0) : 0;
+    }
+
     const typeColor = t => {
         const map = {
-            'Sale':'#10b981','Purchase':'#ef4444','Payment-In':'#3b82f6',
-            'Payment-Out':'#f59e0b','Credit Note':'#8b5cf6','Debit Note':'#ec4899',
-            'Cash Withdraw':'#64748b','Cash Deposit':'#22c55e','Bank to Bank':'#0ea5e9',
-            'Opening Loan':'#6366f1','Processing Fee':'#f97316','Loan Adjustment':'#14b8a6',
-            'Delivery Challan':'#84cc16','Expense':'#ef4444'
+            'Sale':'#10b981','Purchase':'#ef4444','Payment-In':'#3b82f6','Payment In':'#3b82f6',
+            'Payment-Out':'#f59e0b','Payment Out':'#f59e0b','Credit Note':'#8b5cf6',
+            'Debit Note':'#ec4899','Cash Withdraw':'#64748b','Cash Deposit':'#22c55e',
+            'Bank to Bank':'#0ea5e9','Opening Loan':'#6366f1','Processing Fee':'#f97316',
+            'Loan Adjustment':'#14b8a6','Delivery Challan':'#84cc16','Expense':'#ef4444'
         };
         return map[t] || '#6b7280';
     };
 
-    /* ─── init on tab show ─── */
+    /* ─── INIT ─── */
     function dbInit() {
-        // set today's date
-        const today = new Date().toISOString().slice(0,10);
-        document.getElementById('db-date').value = today;
-
+        if (!dbInitialized) {
+            dbBindEvents();
+            dbInitialized = true;
+        }
         dbFetchData();
-        dbBindEvents();
     }
 
-    /* ─── fetch (replace with real AJAX) ─── */
- function dbFetchData() {
-    const date  = document.getElementById('db-date').value;
-    const today = new Date().toISOString().slice(0,10);
-    const from  = date || '2000-01-01';
-    const to    = date || today;
+    /* ─── FETCH from real API ─── */
+    function dbFetchData() {
+        const dateVal = document.getElementById('db-date').value;
+        const typeVal = document.getElementById('db-type').value;
+        const payVal  = document.getElementById('db-payment-type').value;
 
-    fetch(`/dashboard/reports/all-transactions?from=${from}&to=${to}`, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        dbAllRows = (data.transactions || []).map(r => ({
-            id:        r.id,
-            name:      r.party_name || '—',
-            ref:       r.bill_number || '',
-            type:      r.type || '',
-            pay_type:  r.payment_type || '',
-            total:     parseFloat(r.total_amount || 0),
-            money_in:  r.type === 'Sale' || r.type === 'Payment-In' ? parseFloat(r.total_amount || 0) : 0,
-            money_out: r.type === 'Purchase' || r.type === 'Payment-Out' || r.type === 'Expense' ? parseFloat(r.total_amount || 0) : 0,
-        }));
-        dbApplyFilters();
-    })
-    .catch(() => {
-        dbAllRows = [];
-        dbApplyFilters();
-    });
-}
+        // Show loading state
+        const tbody = document.getElementById('db-tbody');
+        tbody.querySelectorAll('.db-data-row').forEach(el => el.remove());
+        document.getElementById('db-empty-row').innerHTML =
+            '<td colspan="8" class="text-center text-muted py-5">' +
+            '<i class="fa-solid fa-spinner fa-spin fs-4 d-block mb-2"></i>Loading transactions…</td>';
+        document.getElementById('db-empty-row').style.display = '';
 
-    /* ─── apply column-level filters ─── */
+        const params = new URLSearchParams();
+        if (dateVal) {
+            params.append('from', dateVal);
+            params.append('to',   dateVal);
+        } else {
+            params.append('from', '2000-01-01');
+            params.append('to',   new Date().toISOString().slice(0, 10));
+        }
+        if (typeVal) params.append('type', typeVal);
+        if (payVal)  params.append('payment_type', payVal);
+
+        fetch(`{{ route('reports.all-transactions') }}?${params}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            dbAllRows = (data.transactions || []).map(r => ({
+                id:        r.id,
+                name:      r.party_name || r.reference || '—',
+                ref:       r.bill_number || r.reference || '',
+                type:      r.type || '',
+                pay_type:  r.payment_type || '',
+                total:     parseFloat(r.total_amount || r.amount || 0),
+                money_in:  moneyIn(r),
+                money_out: moneyOut(r),
+            }));
+            // Reset the empty row text for when there's genuinely no data
+            document.getElementById('db-empty-row').innerHTML =
+                '<td colspan="8" class="text-center text-muted py-5">' +
+                '<i class="fa-regular fa-folder-open fs-3 d-block mb-2 text-secondary opacity-50"></i>' +
+                'No transactions found for the selected filters.</td>';
+            dbApplyFilters();
+        })
+        .catch(err => {
+            console.error('All Transactions fetch error:', err);
+            document.getElementById('db-empty-row').innerHTML =
+                '<td colspan="8" class="text-center text-danger py-5">Error loading transactions. Please try again.</td>';
+            document.getElementById('db-empty-row').style.display = '';
+            dbAllRows = [];
+            dbFiltered = [];
+        });
+    }
+
+    /* ─── apply all column filters ─── */
     window.dbApplyFilters = function () {
         let rows = [...dbAllRows];
 
@@ -498,8 +468,16 @@
         if (q) rows = rows.filter(r =>
             r.name.toLowerCase().includes(q) ||
             r.type.toLowerCase().includes(q) ||
-            String(r.ref).includes(q)
+            String(r.ref).toLowerCase().includes(q)
         );
+
+        // top-bar type dropdown (if set)
+        const topType = document.getElementById('db-type').value;
+        if (topType) rows = rows.filter(r => r.type === topType);
+
+        // top-bar payment type dropdown
+        const topPay = document.getElementById('db-payment-type').value;
+        if (topPay) rows = rows.filter(r => r.pay_type === topPay);
 
         // name column filter
         const nameVal   = (document.getElementById('db-name-val').value || '').toLowerCase();
@@ -515,7 +493,7 @@
         const refVal = (document.getElementById('db-ref-val').value || '').toLowerCase();
         if (refVal) rows = rows.filter(r => String(r.ref).toLowerCase().includes(refVal));
 
-        // type checkboxes
+        // type checkboxes (column header)
         const typeChecked = [...document.querySelectorAll('.db-type-chk:checked')].map(c => c.value);
         if (typeChecked.length) rows = rows.filter(r => typeChecked.includes(r.type));
 
@@ -532,7 +510,7 @@
                 if (totalCond === 'gte')   return r.total >= totalVal;
                 if (totalCond === 'lte')   return r.total <= totalVal;
                 if (totalCond === 'eq')    return r.total === totalVal;
-                if (totalCond === 'range') return r.total >= totalVal && r.total <= (isNaN(totalVal2)?Infinity:totalVal2);
+                if (totalCond === 'range') return r.total >= totalVal && r.total <= (isNaN(totalVal2) ? Infinity : totalVal2);
                 return true;
             });
         }
@@ -565,10 +543,9 @@
         const emptyRow = document.getElementById('db-empty-row');
         const tfoot    = document.getElementById('db-tfoot');
 
-        // update summary cards
-        const totalMoneyIn  = dbFiltered.reduce((s,r) => s + r.money_in,  0);
-        const totalMoneyOut = dbFiltered.reduce((s,r) => s + r.money_out, 0);
-        const totalAmount   = dbFiltered.reduce((s,r) => s + r.total,     0);
+        const totalMoneyIn  = dbFiltered.reduce((s, r) => s + r.money_in,  0);
+        const totalMoneyOut = dbFiltered.reduce((s, r) => s + r.money_out, 0);
+        const totalAmount   = dbFiltered.reduce((s, r) => s + r.total,     0);
 
         document.getElementById('db-total-money-in').textContent  = fmt(totalMoneyIn);
         document.getElementById('db-total-money-out').textContent = fmt(totalMoneyOut);
@@ -576,7 +553,6 @@
         document.getElementById('db-total-count').textContent     = dbFiltered.length;
         document.getElementById('db-row-count').textContent       = dbFiltered.length + ' records';
 
-        // remove old dynamic rows
         tbody.querySelectorAll('.db-data-row').forEach(el => el.remove());
 
         if (!dbFiltered.length) {
@@ -587,19 +563,15 @@
         emptyRow.style.display = 'none';
         tfoot.style.display = '';
 
-        // footer totals
         document.getElementById('db-foot-total').textContent    = fmt(totalAmount);
         document.getElementById('db-foot-moneyin').textContent  = fmt(totalMoneyIn);
         document.getElementById('db-foot-moneyout').textContent = fmt(totalMoneyOut);
 
-        // rows
         dbFiltered.forEach((r, idx) => {
             const tr = document.createElement('tr');
             tr.className = 'db-data-row';
-            tr.style.cssText = 'border-bottom:1px solid #f3f4f6; cursor:pointer;';
+            tr.style.cssText = 'border-bottom:1px solid #f3f4f6;';
             tr.setAttribute('data-id', r.id);
-
-            // highlight first row (like screenshot)
             const rowBg = idx === 0 ? '#eff6ff' : '#fff';
 
             tr.innerHTML = `
@@ -615,42 +587,20 @@
                 </td>
                 <td style="padding:12px 14px; color:#6b7280; background:${rowBg};">${r.pay_type || '—'}</td>
                 <td style="padding:12px 14px; color:#1f2937; text-align:right; font-weight:500; background:${rowBg};">${fmt(r.total)}</td>
-                <td style="padding:12px 14px; color:${r.money_in>0?'#10b981':'#9ca3af'}; text-align:right; font-weight:${r.money_in>0?'600':'400'}; background:${rowBg};">${fmt(r.money_in)}</td>
-                <td style="padding:12px 14px; color:${r.money_out>0?'#ef4444':'#9ca3af'}; text-align:right; font-weight:${r.money_out>0?'600':'400'}; background:${rowBg};">${fmt(r.money_out)}</td>
+                <td style="padding:12px 14px; color:${r.money_in > 0 ? '#10b981' : '#9ca3af'}; text-align:right; font-weight:${r.money_in > 0 ? '600' : '400'}; background:${rowBg};">${fmt(r.money_in)}</td>
+                <td style="padding:12px 14px; color:${r.money_out > 0 ? '#ef4444' : '#9ca3af'}; text-align:right; font-weight:${r.money_out > 0 ? '600' : '400'}; background:${rowBg};">${fmt(r.money_out)}</td>
                 <td style="padding:12px 14px; text-align:center; background:${rowBg};">
-                    <div class="d-flex align-items-center justify-content-center gap-2">
-                        <button class="btn btn-sm p-0 border-0 bg-transparent" title="Print"
-                                onclick="dbOpenRowAction(event, ${r.id})">
-                            <i class="fa-solid fa-print" style="color:#6b7280;font-size:14px;"></i>
-                        </button>
-                        <button class="btn btn-sm p-0 border-0 bg-transparent" title="Share"
-                                onclick="dbOpenRowAction(event, ${r.id})">
-                            <i class="fa-solid fa-share-nodes" style="color:#6b7280;font-size:14px;"></i>
-                        </button>
-                        <div class="dropdown">
-                            <button class="btn btn-sm p-0 border-0 bg-transparent" data-bs-toggle="dropdown">
-                                <i class="fa-solid fa-ellipsis-vertical" style="color:#9ca3af;font-size:14px;"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:13px;min-width:160px;">
-                                <li><a class="dropdown-item" href="#" onclick="dbOpenRowAction(event,${r.id})">
-                                    <i class="fa-solid fa-print me-2 text-secondary"></i>Print</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="dbOpenRowAction(event,${r.id})">
-                                    <i class="fa-brands fa-whatsapp me-2 text-success"></i>WhatsApp</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="dbOpenRowAction(event,${r.id})">
-                                    <i class="fa-regular fa-envelope me-2 text-primary"></i>Email</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="#">
-                                    <i class="fa-solid fa-trash me-2"></i>Delete</a></li>
-                            </ul>
-                        </div>
-                    </div>
+                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Print / Share"
+                            onclick="dbOpenRowAction(event, ${r.id})">
+                        <i class="fa-solid fa-print" style="color:#6b7280;font-size:14px;"></i>
+                    </button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
     }
 
-    /* ─── clear individual column filter ─── */
+    /* ─── clear column filter ─── */
     window.dbClearColFilter = function (col) {
         const map = {
             name:     () => { document.getElementById('db-name-val').value = ''; document.getElementById('db-name-match').value = 'contains'; },
@@ -667,12 +617,10 @@
 
     /* ─── row action modal ─── */
     window.dbOpenRowAction = function (e, id) {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         dbActiveRow = dbAllRows.find(r => r.id === id);
         if (!dbActiveRow) return;
-        document.getElementById('dbRowActionTitle').textContent =
-            dbActiveRow.type + ' — ' + dbActiveRow.name;
+        document.getElementById('dbRowActionTitle').textContent = dbActiveRow.type + ' — ' + dbActiveRow.name;
         new bootstrap.Modal(document.getElementById('dbRowActionModal')).show();
     };
 
@@ -689,22 +637,14 @@
             <p><b>Money In:</b> Rs ${dbActiveRow.money_in}</p>
             <p><b>Money Out:</b> Rs ${dbActiveRow.money_out}</p>
         </body></html>`);
-        w.document.close();
-        w.print();
+        w.document.close(); w.print();
     };
 
     window.dbRowShare = function (method) {
         if (!dbActiveRow) return;
         const text = `Day Book Entry\nName: ${dbActiveRow.name}\nType: ${dbActiveRow.type}\nTotal: Rs ${dbActiveRow.total}`;
-        if (method === 'whatsapp') {
-            window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
-        } else {
-            window.location.href = 'mailto:?subject=Day Book Entry&body=' + encodeURIComponent(text);
-        }
-    };
-
-    window.dbRowDownloadPdf = function () {
-        alert('PDF download: connect your server-side PDF route here.');
+        if (method === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+        else window.location.href = 'mailto:?subject=Day Book Entry&body=' + encodeURIComponent(text);
     };
 
     /* ─── excel export ─── */
@@ -714,80 +654,69 @@
             csv += `"${r.name}","${r.ref}","${r.type}","${r.pay_type}",${r.total},${r.money_in},${r.money_out}\n`;
         });
         const blob = new Blob([csv], {type:'text/csv'});
-        const url  = URL.createObjectURL(blob);
-        const a    = Object.assign(document.createElement('a'), {href:url, download:'daybook.csv'});
+        const a = Object.assign(document.createElement('a'), {href: URL.createObjectURL(blob), download:'all-transactions.csv'});
         document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
     }
 
     /* ─── print all ─── */
     function dbPrintAll() {
-        const date = document.getElementById('db-date').value;
-        let html = `<html><head><title>Day Book</title>
+        const date = document.getElementById('db-date').value || 'All dates';
+        let html = `<html><head><title>All Transactions</title>
         <style>body{font-family:sans-serif;font-size:12px;padding:24px}
         table{width:100%;border-collapse:collapse}
         th{background:#f3f4f6;padding:8px;text-align:left;border:1px solid #e5e7eb;font-size:11px;}
         td{padding:8px;border:1px solid #e5e7eb;}
-        h2{margin-bottom:4px} p{margin:0 0 16px;color:#666}
         tfoot td{font-weight:700;background:#f9fafb}</style></head>
-        <body>
-        <h2>Day Book Report</h2>
-        <p>Date: ${date}</p>
-        <table>
-        <thead><tr><th>Name</th><th>Ref</th><th>Type</th><th>Payment Type</th><th style="text-align:right">Total</th><th style="text-align:right">Money In</th><th style="text-align:right">Money Out</th></tr></thead>
-        <tbody>`;
+        <body><h2>All Transactions</h2><p>Date: ${date}</p>
+        <table><thead><tr><th>Name</th><th>Ref</th><th>Type</th><th>Payment Type</th>
+        <th style="text-align:right">Total</th><th style="text-align:right">Money In</th>
+        <th style="text-align:right">Money Out</th></tr></thead><tbody>`;
 
         dbFiltered.forEach(r => {
-            html += `<tr>
-                <td>${r.name}</td><td>${r.ref||''}</td><td>${r.type}</td><td>${r.pay_type||'—'}</td>
+            html += `<tr><td>${r.name}</td><td>${r.ref||''}</td><td>${r.type}</td><td>${r.pay_type||'—'}</td>
                 <td style="text-align:right">Rs ${r.total.toLocaleString()}</td>
                 <td style="text-align:right">Rs ${r.money_in.toLocaleString()}</td>
-                <td style="text-align:right">Rs ${r.money_out.toLocaleString()}</td>
-            </tr>`;
+                <td style="text-align:right">Rs ${r.money_out.toLocaleString()}</td></tr>`;
         });
 
-        const mi  = dbFiltered.reduce((s,r) => s+r.money_in,  0);
-        const mo  = dbFiltered.reduce((s,r) => s+r.money_out, 0);
-        const tot = dbFiltered.reduce((s,r) => s+r.total,     0);
+        const mi  = dbFiltered.reduce((s, r) => s + r.money_in,  0);
+        const mo  = dbFiltered.reduce((s, r) => s + r.money_out, 0);
+        const tot = dbFiltered.reduce((s, r) => s + r.total,     0);
 
-        html += `</tbody>
-        <tfoot><tr><td colspan="4">Totals</td>
-        <td style="text-align:right">Rs ${tot.toLocaleString()}</td>
-        <td style="text-align:right">Rs ${mi.toLocaleString()}</td>
-        <td style="text-align:right">Rs ${mo.toLocaleString()}</td>
-        </tr></tfoot>
-        </table></body></html>`;
+        html += `</tbody><tfoot><tr><td colspan="4">Totals</td>
+            <td style="text-align:right">Rs ${tot.toLocaleString()}</td>
+            <td style="text-align:right">Rs ${mi.toLocaleString()}</td>
+            <td style="text-align:right">Rs ${mo.toLocaleString()}</td>
+        </tr></tfoot></table></body></html>`;
 
-        const w = window.open('', '_blank');
-        w.document.write(html);
-        w.document.close();
-        w.print();
+        const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
     }
 
-    /* ─── bind events ─── */
+    /* ─── bind events (called ONCE) ─── */
     function dbBindEvents() {
-        // top-bar filters trigger fetch
-        ['db-date','db-firm','db-type','db-payment-type'].forEach(id => {
+        // Top-bar filters re-fetch from server
+        ['db-date', 'db-firm'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', dbFetchData);
         });
 
-        // search bar — live filter
-        document.getElementById('db-search').addEventListener('input', dbApplyFilters);
+        // Type & payment type dropdowns just re-filter client side
+        // (data is already fetched; re-fetch only if you want server-side filtering)
+        ['db-type', 'db-payment-type'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', dbApplyFilters);
+        });
 
-        // total range toggle
-        document.getElementById('db-total-cond').addEventListener('change', function () {
+        document.getElementById('db-search')?.addEventListener('input', dbApplyFilters);
+
+        document.getElementById('db-total-cond')?.addEventListener('change', function () {
             document.getElementById('db-total-range-row').classList.toggle('d-none', this.value !== 'range');
         });
 
-        // excel
-        document.getElementById('db-excel-btn').addEventListener('click', dbExportExcel);
+        document.getElementById('db-excel-btn')?.addEventListener('click', dbExportExcel);
+        document.getElementById('db-print-btn')?.addEventListener('click', dbPrintAll);
 
-        // print
-        document.getElementById('db-print-btn').addEventListener('click', dbPrintAll);
-
-        // fullscreen
-        document.getElementById('db-fullscreen-btn').addEventListener('click', function () {
+        document.getElementById('db-fullscreen-btn')?.addEventListener('click', function () {
             const tab = document.getElementById('tab-Alltransactions');
             if (!document.fullscreenElement) {
                 tab.requestFullscreen && tab.requestFullscreen();
@@ -799,12 +728,23 @@
         });
     }
 
-   /* ─── hook into tab activation ─── */
-/* ─── hook into tab activation ─── */
-document.addEventListener('click', function(e) {
-    var link = e.target.closest('.nav-link[data-target="Alltransactions"]');
-    if (link) setTimeout(dbInit, 100);
-});
+    /* ─── hook into tab activation ─── */
+    document.addEventListener('click', function (e) {
+        // Adjust selector to match your nav tab links
+        const link = e.target.closest('[data-target="Alltransactions"], [href="#tab-Alltransactions"]');
+        if (link) setTimeout(dbInit, 150);
+    });
+
+    // Auto-init if this tab is already visible on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const tab = document.getElementById('tab-Alltransactions');
+        if (tab && !tab.classList.contains('d-none')) dbInit();
+    });
+
+    if (document.readyState !== 'loading') {
+        const tab = document.getElementById('tab-Alltransactions');
+        if (tab && !tab.classList.contains('d-none')) dbInit();
+    }
 
 })();
 </script>

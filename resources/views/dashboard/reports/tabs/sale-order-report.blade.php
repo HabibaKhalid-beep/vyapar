@@ -3,7 +3,7 @@
      resources/views/dashboard/reports/tabs/sale-order-report.blade.php
      ============================================================ --}}
 
-<div id="tab-sale order" class="report-tab-content d-none">
+<div id="tab-sale-order" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height:100vh; padding:24px; background:#fff; border:1px solid #e5e7eb;">
 
         {{-- ── Filters & Actions Row ──────────────────────────────── --}}
@@ -131,7 +131,7 @@
      Sale Order Item Report Tab
      ============================================================ --}}
 
-<div id="tab-sale order item" class="report-tab-content d-none">
+<div id="tab-sale-order-item" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height:100vh; padding:24px; background:#fff; border:1px solid #e5e7eb;">
 
         {{-- Filters & Actions --}}
@@ -230,8 +230,7 @@
      Loan Statement Tab
      ============================================================ --}}
 
-<div id="tab-loan statement" class="report-tab-content d-none">
-    <div class="d-flex flex-column" style="min-height:100vh; padding:24px; background:#fff; border:1px solid #e5e7eb;">
+<div id="tab-loan-statement" class="report-tab-content d-none">    <div class="d-flex flex-column" style="min-height:100vh; padding:24px; background:#fff; border:1px solid #e5e7eb;">
 
         {{-- Filters & Actions --}}
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -386,4 +385,321 @@
         </div>
 
     </div>
-</div>
+</div><script>
+/* ============================================================
+   SALE ORDER REPORT
+   ============================================================ */
+let _soRawData = [];
+
+function loadSaleOrderReport() {
+    const from  = document.getElementById('so-from-date').value;
+    const to    = document.getElementById('so-to-date').value;
+    const tbody = document.getElementById('so-table-body');
+    const tfoot = document.getElementById('so-table-foot');
+
+    tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="padding:48px; text-align:center; color:#9ca3af; font-size:13px;">
+            <i class="fa-solid fa-spinner fa-spin me-2"></i> Loading…
+          </td>
+        </tr>`;
+
+    /* Use the dedicated sale-order endpoint in ReportController */
+    fetch(`/dashboard/reports/sale-order-items?from=${from}&to=${to}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) throw new Error('API error');
+
+        /* Group rows by bill_number to get one row per order */
+        const orderMap = {};
+        (data.rows || []).forEach(r => {
+            const key = r.bill_number || r.date;
+            if (!orderMap[key]) {
+                orderMap[key] = {
+                    bill_number  : r.bill_number,
+                    invoice_date : r.date,
+                    order_number : r.bill_number,
+                    party_name   : r.party_name,
+                    status       : r.status,
+                    total_amount : 0,
+                };
+            }
+            orderMap[key].total_amount += parseFloat(r.amount || 0);
+        });
+
+        _soRawData = Object.values(orderMap);
+
+        /* Summary cards */
+        const totalAmt = _soRawData.reduce((s, r) => s + r.total_amount, 0);
+        document.getElementById('so-total-count').textContent  = _soRawData.length;
+        document.getElementById('so-total-amount').textContent =
+            'Rs ' + totalAmt.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        document.getElementById('so-open-count').textContent   =
+            _soRawData.filter(r => (r.status || '').toLowerCase() === 'open').length;
+
+        if (tfoot) tfoot.style.display = '';
+        renderSaleOrderTable();
+    })
+    .catch(() => {
+        tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="padding:48px; text-align:center;
+                                     color:#ef4444; font-size:13px;">
+                Failed to load data. Please try again.
+              </td>
+            </tr>`;
+    });
+}
+
+function renderSaleOrderTable() {
+    const partyF  = (document.getElementById('so-party-filter')?.value || '').toLowerCase();
+    const statusF = document.getElementById('so-status-filter')?.value || '';
+    const tbody   = document.getElementById('so-table-body');
+
+    const rows = _soRawData.filter(r => {
+        if (partyF  && !(r.party_name || '').toLowerCase().includes(partyF)) return false;
+        if (statusF && (r.status || '') !== statusF) return false;
+        return true;
+    });
+
+    if (!rows.length) {
+        tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="padding:48px; text-align:center;
+                                     color:#9ca3af; font-size:13px;">
+                No sale orders found for the selected period.
+              </td>
+            </tr>`;
+        document.getElementById('so-grand-total').textContent = 'Rs 0.00';
+        return;
+    }
+
+    let grandTotal = 0;
+    tbody.innerHTML = rows.map((r, idx) => {
+        const amt = parseFloat(r.total_amount || 0);
+        grandTotal += amt;
+        const statusColor = r.status === 'Open'   ? '#ca8a04'
+                          : r.status === 'Closed' ? '#16a34a' : '#6b7280';
+        return `
+        <tr style="border-bottom:1px solid #e5e7eb;"
+            onmouseover="this.style.background='#f9fafb'"
+            onmouseout="this.style.background=''">
+            <td style="padding:11px 14px; font-size:13px; color:#6b7280;">${idx + 1}</td>
+            <td style="padding:11px 14px; font-size:13px; color:#374151;">${r.invoice_date || ''}</td>
+            <td style="padding:11px 14px; font-size:13px; color:#374151;">${r.order_number || '—'}</td>
+            <td style="padding:11px 14px; font-size:13px; color:#374151;">${r.party_name || '—'}</td>
+            <td style="padding:11px 14px; font-size:13px;">
+                <span style="color:${statusColor}; font-weight:600;">${r.status || '—'}</span>
+            </td>
+            <td style="padding:11px 14px; font-size:13px; color:#374151; text-align:right;">
+                Rs ${amt.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+            </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('so-grand-total').textContent =
+        'Rs ' + grandTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function exportSaleOrderCSV() {
+    const table = document.getElementById('so-main-table');
+    if (!table) return;
+    let csv = '';
+    table.querySelectorAll('tr').forEach(tr => {
+        const cells = [...tr.querySelectorAll('th,td')]
+            .map(td => '"' + td.innerText.trim().replace(/"/g, '""') + '"');
+        if (cells.length) csv += cells.join(',') + '\n';
+    });
+    const a = document.createElement('a');
+    a.href     = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = 'sale_order_report.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function printSaleOrderReport() {
+    const from = document.getElementById('so-from-date').value;
+    const to   = document.getElementById('so-to-date').value;
+    const w    = window.open('', '_blank');
+    w.document.write(`
+        <!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>Sale Orders Report</title>
+        <style>
+          body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}
+          h2{font-size:18px;font-weight:700;margin-bottom:4px}
+          p{font-size:12px;color:#6b7280;margin:0 0 20px}
+          table{width:100%;border-collapse:collapse;font-size:13px}
+          th{padding:10px 14px;font-weight:700;border-bottom:1px solid #e5e7eb;text-align:left}
+          td{padding:10px 14px;border-bottom:1px solid #e5e7eb}
+          tfoot td{font-weight:700}
+        </style></head><body>
+        <h2>Sale Orders Report</h2>
+        <p>From ${from} To ${to}</p>
+        ${document.getElementById('so-main-table').outerHTML}
+        <script>window.onload=function(){window.print()}<\/script>
+        </body></html>`);
+    w.document.close();
+}
+
+/* ============================================================
+   SALE ORDER ITEM REPORT
+   ============================================================ */
+let _soiRawData = [];
+
+function loadSaleOrderItemReport() {
+    const from  = document.getElementById('soi-from-date').value;
+    const to    = document.getElementById('soi-to-date').value;
+    const tbody = document.getElementById('soi-table-body');
+    const tfoot = document.getElementById('soi-table-foot');
+
+    tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="padding:60px; text-align:center; color:#9ca3af; font-size:13px;">
+            <i class="fa-solid fa-spinner fa-spin me-2"></i> Loading…
+          </td>
+        </tr>`;
+
+    fetch(`/dashboard/reports/sale-order-items?from=${from}&to=${to}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) throw new Error('API error');
+
+        _soiRawData = (data.rows || []).map(r => ({
+            item_name  : r.item_name  || '—',
+            quantity   : parseFloat(r.quantity  || 0),
+            amount     : parseFloat(r.amount    || 0),
+            status     : r.status     || '',
+            party_name : r.party_name || '',
+        }));
+
+        if (tfoot) tfoot.style.display = '';
+        renderSaleOrderItemTable();
+    })
+    .catch(() => {
+        tbody.innerHTML = `
+            <tr>
+              <td colspan="4" style="padding:60px; text-align:center;
+                                     color:#ef4444; font-size:13px;">
+                Failed to load data. Please try again.
+              </td>
+            </tr>`;
+    });
+}
+
+function renderSaleOrderItemTable() {
+    const partyF  = (document.getElementById('soi-party-filter')?.value || '').toLowerCase();
+    const statusF = document.getElementById('soi-status-filter')?.value || '';
+    const tbody   = document.getElementById('soi-table-body');
+
+    const rows = _soiRawData.filter(r => {
+        if (partyF  && !(r.item_name   || '').toLowerCase().includes(partyF)
+                    && !(r.party_name  || '').toLowerCase().includes(partyF)) return false;
+        if (statusF && (r.status || '') !== statusF) return false;
+        return true;
+    });
+
+    if (!rows.length) {
+        tbody.innerHTML = `
+            <tr>
+              <td colspan="4" style="padding:60px; text-align:center;
+                                     color:#9ca3af; font-size:13px;">
+                No sale order items found for the selected period.
+              </td>
+            </tr>`;
+        document.getElementById('soi-total-qty').textContent = '0';
+        document.getElementById('soi-total-amt').textContent = 'Rs 0.00';
+        return;
+    }
+
+    let totalQty = 0, totalAmt = 0;
+    tbody.innerHTML = rows.map((r, idx) => {
+        totalQty += r.quantity;
+        totalAmt += r.amount;
+        return `
+        <tr style="border-bottom:1px solid #e5e7eb;"
+            onmouseover="this.style.background='#f9fafb'"
+            onmouseout="this.style.background=''">
+            <td style="padding:11px 14px; font-size:13px; color:#6b7280;">${idx + 1}</td>
+            <td style="padding:11px 14px; font-size:14px; color:#374151;">${r.item_name}</td>
+            <td style="padding:11px 14px; font-size:14px; color:#374151; text-align:right;">
+                ${r.quantity % 1 === 0 ? r.quantity : r.quantity.toFixed(2)}
+            </td>
+            <td style="padding:11px 14px; font-size:14px; color:#374151; text-align:right;">
+                Rs ${r.amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+            </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('soi-total-qty').textContent =
+        totalQty % 1 === 0 ? totalQty : totalQty.toFixed(2);
+    document.getElementById('soi-total-amt').textContent =
+        'Rs ' + totalAmt.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function exportSaleOrderItemCSV() {
+    const table = document.getElementById('soi-main-table');
+    if (!table) return;
+    let csv = '';
+    table.querySelectorAll('tr').forEach(tr => {
+        const cells = [...tr.querySelectorAll('th,td')]
+            .map(td => '"' + td.innerText.trim().replace(/"/g, '""') + '"');
+        if (cells.length) csv += cells.join(',') + '\n';
+    });
+    const a = document.createElement('a');
+    a.href     = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = 'sale_order_item_report.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function printSaleOrderItemReport() {
+    const from = document.getElementById('soi-from-date').value;
+    const to   = document.getElementById('soi-to-date').value;
+    const w    = window.open('', '_blank');
+    w.document.write(`
+        <!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>Sale Order Items Report</title>
+        <style>
+          body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}
+          h2{font-size:18px;font-weight:700;margin-bottom:4px}
+          p{font-size:12px;color:#6b7280;margin:0 0 20px}
+          table{width:100%;border-collapse:collapse;font-size:13px}
+          th{padding:10px 14px;font-weight:700;border-bottom:1px solid #e5e7eb;text-align:left}
+          td{padding:10px 14px;border-bottom:1px solid #e5e7eb}
+          tfoot td{font-weight:700}
+        </style></head><body>
+        <h2>Sale Order Items Report</h2>
+        <p>From ${from} To ${to}</p>
+        ${document.getElementById('soi-main-table').outerHTML}
+        <script>window.onload=function(){window.print()}<\/script>
+        </body></html>`);
+    w.document.close();
+}/* ============================================================
+   TAB AUTO-LOAD LISTENERS
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* Sale Order tab */
+    document.querySelectorAll('[data-target="sale-order"], [data-tab="sale-order"]')
+        .forEach(link => {
+            link.addEventListener('click', function () {
+                setTimeout(loadSaleOrderReport, 100);
+            });
+        });
+
+    /* Sale Order Item tab */
+    document.querySelectorAll('[data-target="sale-order-item"], [data-tab="sale-order-item"]')
+        .forEach(link => {
+            link.addEventListener('click', function () {
+                setTimeout(loadSaleOrderItemReport, 100);
+            });
+        });
+
+});
+</script>  {{-- ← this is the EXISTING closing tag, don't add another --}}
