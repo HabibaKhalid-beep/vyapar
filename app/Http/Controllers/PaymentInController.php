@@ -7,7 +7,11 @@ use App\Models\Party;
 use App\Models\Transaction;
 use App\Models\BankAccount;
 use App\Models\PaymentIn;
+use App\Models\PaymentInLink;
+use App\Models\Sale;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class PaymentInController extends Controller
 {
@@ -18,8 +22,61 @@ class PaymentInController extends Controller
             'bankAccounts' => BankAccount::active()->get(),
             'paymentIns'   => PaymentIn::with(['party', 'bankAccount'])->latest()->get(),
             'editPaymentIn' => $request->filled('edit_payment_in')
-                ? PaymentIn::with(['party', 'bankAccount'])->find($request->integer('edit_payment_in'))
+                ? PaymentIn::with(['party', 'bankAccount', 'links.sale'])->find($request->integer('edit_payment_in'))
                 : null,
+        ]);
+    }
+
+    public function linkableSales(Request $request, Party $party)
+    {
+        $paymentInId = $request->integer('payment_in_id');
+        $existingLinks = collect();
+
+        if ($paymentInId > 0) {
+            $existingLinks = PaymentInLink::query()
+                ->selectRaw('sale_id, SUM(linked_amount) as linked_amount')
+                ->where('payment_in_id', $paymentInId)
+                ->groupBy('sale_id')
+                ->pluck('linked_amount', 'sale_id');
+        }
+
+        $sales = Sale::query()
+            ->where('party_id', $party->id)
+            ->whereIn('type', ['invoice', 'pos'])
+            ->where(function ($query) use ($existingLinks) {
+                $query->where('balance', '>', 0);
+
+                if ($existingLinks->isNotEmpty()) {
+                    $query->orWhereIn('id', $existingLinks->keys());
+                }
+            })
+            ->orderByDesc('invoice_date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (Sale $sale) use ($existingLinks) {
+                $existingAmount = (float) ($existingLinks[$sale->id] ?? 0);
+                $currentBalance = (float) ($sale->balance ?? max(0, (float) ($sale->grand_total ?? 0) - (float) ($sale->received_amount ?? 0)));
+                $availableBalance = $currentBalance + $existingAmount;
+
+                return [
+                    'sale_id' => $sale->id,
+                    'date' => optional($sale->invoice_date)->format('d/m/Y') ?: '-',
+                    'type' => strtoupper($sale->type === 'pos' ? 'POS' : 'Sale'),
+                    'ref_no' => $sale->bill_number ?: ('INV-' . $sale->id),
+                    'total' => round((float) ($sale->grand_total ?? $sale->total_amount ?? 0), 2),
+                    'balance' => round($availableBalance, 2),
+                    'linked_amount' => round($existingAmount, 2),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'party' => [
+                'id' => $party->id,
+                'name' => $party->name,
+            ],
+            'rows' => $sales,
         ]);
     }
 
@@ -35,6 +92,9 @@ class PaymentInController extends Controller
             'reference_no'               => 'nullable|string',
             'receipt_no'                 => 'nullable|string',
             'description'                => 'nullable|string',
+            'linked_rows'                => 'nullable|array',
+            'linked_rows.*.sale_id'      => 'required|exists:sales,id',
+            'linked_rows.*.amount'       => 'required|numeric|min:0.01',
         ]);
 
         try {
@@ -42,6 +102,8 @@ class PaymentInController extends Controller
             $savedPayments = collect();
 
             DB::transaction(function () use ($request, $party, &$savedPayments) {
+                $this->validateLinkedRows($request, collect());
+
                 foreach ($request->payments as $pay) {
                     $paymentIn = PaymentIn::create([
                         'party_id'        => $party->id,
@@ -79,6 +141,8 @@ class PaymentInController extends Controller
                         $bank->save();
                     }
                 }
+
+                $this->attachLinkedRows($savedPayments, $request->input('linked_rows', []));
             });
 
             $latestPayment = $savedPayments->last();
@@ -116,6 +180,9 @@ class PaymentInController extends Controller
             'reference_no'               => 'nullable|string',
             'receipt_no'                 => 'nullable|string',
             'description'                => 'nullable|string',
+            'linked_rows'                => 'nullable|array',
+            'linked_rows.*.sale_id'      => 'required|exists:sales,id',
+            'linked_rows.*.amount'       => 'required|numeric|min:0.01',
         ]);
 
         try {
@@ -123,6 +190,7 @@ class PaymentInController extends Controller
                 $oldAmount = (float) ($paymentIn->amount ?? 0);
                 $newPayment = $request->payments[0];
                 $newAmount = (float) ($newPayment['amount'] ?? 0);
+                $existingLinks = $paymentIn->links()->get();
 
                 $oldParty = Party::find($paymentIn->party_id);
                 if ($oldParty) {
@@ -138,6 +206,7 @@ class PaymentInController extends Controller
                     }
                 }
 
+                $this->rollbackLinkedRows($existingLinks);
                 $paymentIn->update([
                     'party_id'        => $request->party_id,
                     'bank_account_id' => $newPayment['bank_account_id'] ?? null,
@@ -179,6 +248,9 @@ class PaymentInController extends Controller
                         ),
                     ]);
                 }
+
+                $this->validateLinkedRows($request, $existingLinks);
+                $this->attachLinkedRows(collect([$paymentIn->fresh()]), $request->input('linked_rows', []));
             });
 
             return response()->json([
@@ -199,6 +271,7 @@ class PaymentInController extends Controller
         try {
             DB::transaction(function () use ($paymentIn) {
                 $amount = (float) ($paymentIn->amount ?? 0);
+                $existingLinks = $paymentIn->links()->get();
                 $party = Party::find($paymentIn->party_id);
                 if ($party) {
                     $party->opening_balance = (float) ($party->opening_balance ?? 0) + $amount;
@@ -218,6 +291,7 @@ class PaymentInController extends Controller
                     $transaction->delete();
                 }
 
+                $this->rollbackLinkedRows($existingLinks);
                 $paymentIn->delete();
             });
 
@@ -317,5 +391,146 @@ class PaymentInController extends Controller
                 'message' => 'Showing basic information. Full history unavailable.',
             ]);
         }
+    }
+
+    private function validateLinkedRows(Request $request, Collection $existingLinks): void
+    {
+        $linkedRows = collect($request->input('linked_rows', []))
+            ->map(function ($row) {
+                return [
+                    'sale_id' => (int) ($row['sale_id'] ?? 0),
+                    'amount' => round((float) ($row['amount'] ?? 0), 2),
+                ];
+            })
+            ->filter(fn ($row) => $row['sale_id'] > 0 && $row['amount'] > 0)
+            ->values();
+
+        if ($linkedRows->isEmpty()) {
+            return;
+        }
+
+        $paymentsTotal = collect($request->input('payments', []))
+            ->sum(fn ($payment) => (float) ($payment['amount'] ?? 0));
+        $linkedTotal = $linkedRows->sum('amount');
+
+        if ($linkedTotal - $paymentsTotal > 0.001) {
+            throw ValidationException::withMessages([
+                'linked_rows' => ['Linked amount received amount se zyada nahi ho sakta.'],
+            ]);
+        }
+
+        $existingBySale = $existingLinks
+            ->groupBy('sale_id')
+            ->map(fn ($rows) => (float) $rows->sum('linked_amount'));
+
+        foreach ($linkedRows as $row) {
+            $sale = Sale::query()
+                ->whereKey($row['sale_id'])
+                ->whereIn('type', ['invoice', 'pos'])
+                ->first();
+
+            if (!$sale) {
+                throw ValidationException::withMessages([
+                    'linked_rows' => ['Selected transaction available nahi hai.'],
+                ]);
+            }
+
+            $availableBalance = (float) ($sale->balance ?? 0) + (float) ($existingBySale[$sale->id] ?? 0);
+            if ($row['amount'] - $availableBalance > 0.001) {
+                throw ValidationException::withMessages([
+                    'linked_rows' => ['Linked amount selected transaction ke balance se zyada hai.'],
+                ]);
+            }
+        }
+    }
+
+    private function attachLinkedRows(Collection $paymentIns, array $linkedRows): void
+    {
+        $payments = $paymentIns->values();
+        if ($payments->isEmpty()) {
+            return;
+        }
+
+        $rows = collect($linkedRows)
+            ->map(function ($row) {
+                return [
+                    'sale_id' => (int) ($row['sale_id'] ?? 0),
+                    'amount' => round((float) ($row['amount'] ?? 0), 2),
+                ];
+            })
+            ->filter(fn ($row) => $row['sale_id'] > 0 && $row['amount'] > 0)
+            ->values();
+
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        $paymentIndex = 0;
+        $remainingPaymentAmount = (float) ($payments[$paymentIndex]->amount ?? 0);
+
+        foreach ($rows as $row) {
+            $sale = Sale::query()->lockForUpdate()->findOrFail($row['sale_id']);
+            $remainingLinkAmount = (float) $row['amount'];
+
+            while ($remainingLinkAmount > 0.001) {
+                while ($paymentIndex < $payments->count() && $remainingPaymentAmount <= 0.001) {
+                    $paymentIndex++;
+                    $remainingPaymentAmount = $paymentIndex < $payments->count()
+                        ? (float) ($payments[$paymentIndex]->amount ?? 0)
+                        : 0;
+                }
+
+                if ($paymentIndex >= $payments->count()) {
+                    throw new \RuntimeException('Linked amount ko save karne ke liye enough payment rows available nahi hain.');
+                }
+
+                $allocate = min($remainingLinkAmount, $remainingPaymentAmount);
+
+                PaymentInLink::create([
+                    'payment_in_id' => $payments[$paymentIndex]->id,
+                    'sale_id' => $sale->id,
+                    'linked_amount' => $allocate,
+                ]);
+
+                $remainingLinkAmount -= $allocate;
+                $remainingPaymentAmount -= $allocate;
+            }
+
+            $this->applySaleLinkDelta($sale, (float) $row['amount']);
+        }
+    }
+
+    private function rollbackLinkedRows(Collection $links): void
+    {
+        if ($links->isEmpty()) {
+            return;
+        }
+
+        $grouped = $links->groupBy('sale_id');
+
+        foreach ($grouped as $saleId => $saleLinks) {
+            $sale = Sale::query()->lockForUpdate()->find($saleId);
+            if ($sale) {
+                $this->applySaleLinkDelta($sale, -1 * (float) $saleLinks->sum('linked_amount'));
+            }
+        }
+
+        PaymentInLink::query()
+            ->whereIn('id', $links->pluck('id'))
+            ->delete();
+    }
+
+    private function applySaleLinkDelta(Sale $sale, float $delta): void
+    {
+        $receivedAmount = max(0, (float) ($sale->received_amount ?? 0) + $delta);
+        $grandTotal = (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
+        $balance = max(0, $grandTotal - $receivedAmount);
+        $status = $balance <= 0.001 ? 'paid' : ($receivedAmount > 0 ? 'partially paid' : 'unpaid');
+
+        $sale->update([
+            'received_amount' => round($receivedAmount, 2),
+            'balance' => round($balance, 2),
+            'status' => $status,
+        ]);
     }
 }

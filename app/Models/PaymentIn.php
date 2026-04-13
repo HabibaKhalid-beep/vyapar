@@ -24,4 +24,9 @@ class PaymentIn extends Model
     public function bankAccount() {
         return $this->belongsTo(BankAccount::class);
     }
+
+    public function links()
+    {
+        return $this->hasMany(PaymentInLink::class);
+    }
 }

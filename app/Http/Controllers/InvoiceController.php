@@ -36,7 +36,7 @@ class InvoiceController extends Controller
         $allPaymentIns = collect();
 
         if ($request->filled('sale_id')) {
-            $sale = Sale::with(['items.item', 'party', 'payments.bankAccount'])
+            $sale = Sale::with(['items.item', 'party', 'broker', 'challanDetail', 'payments.bankAccount'])
                 ->findOrFail($request->integer('sale_id'));
 
             $invoiceAppData = [
@@ -148,6 +148,8 @@ class InvoiceController extends Controller
 
         $createdAt = $sale->created_at instanceof Carbon ? $sale->created_at : Carbon::parse($sale->created_at);
         $invoiceDate = $sale->invoice_date ? Carbon::parse($sale->invoice_date) : $createdAt;
+        $challanDetail = $sale->challanDetail;
+        $partyCity = (string) ($sale->party?->city ?: '');
 
         $paymentsReceived = (float) $sale->payments
             ->sum('amount');
@@ -181,6 +183,11 @@ class InvoiceController extends Controller
             'bankName' => (string) ($bankAccount?->bank_name ?: $bankAccount?->display_name ?: ''),
             'bankAccountNumber' => (string) ($bankAccount?->account_number ?: ''),
             'bankAccountHolder' => (string) ($bankAccount?->account_holder_name ?: ''),
+            'brokerName' => (string) ($challanDetail?->broker_name ?: $sale->broker?->name ?: ''),
+            'brokerPhone' => (string) ($challanDetail?->broker_phone ?: $sale->broker?->phone ?: ''),
+            'city' => $partyCity,
+            'warehouseName' => (string) ($challanDetail?->warehouse_name ?: ''),
+            'holderName' => (string) ($challanDetail?->warehouse_handler_name ?: ''),
         ];
     }
 

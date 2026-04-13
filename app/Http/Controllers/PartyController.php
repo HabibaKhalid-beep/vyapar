@@ -25,6 +25,13 @@ class PartyController extends Controller
         return view('parties.index', compact('parties'));
     }
 
+    // Show create party form
+    public function create(Request $request)
+    {
+        $returnUrl = $request->query('return_url');
+        return view('parties.create', compact('returnUrl'));
+    }
+
     // Store a new party
     public function store(Request $request)
     {
@@ -53,7 +60,7 @@ class PartyController extends Controller
         if (empty($data['credit_limit_enabled'])) {
             $data['credit_limit_amount'] = null;
         }
-      
+
 
 // Party create ke baad
 
@@ -61,7 +68,7 @@ class PartyController extends Controller
         $transaction = Transaction::create([
     'party_id' => $party->id,
     'type'     => $request->input('transaction_type'), // receive/pay
-    'number'   => 'TXN' . time(), 
+    'number'   => 'TXN' . time(),
     'date'     => $request->input('as_of_date') ?? now(),
     'total'    => $request->input('opening_balance') ?? 0,
     'debit'    => $request->input('transaction_type') === 'receive' ? ($request->input('opening_balance') ?? 0) : 0,
@@ -73,15 +80,14 @@ class PartyController extends Controller
 
         $this->syncPartyCurrentBalance($party->id);
 
-
         $party->load('sales');
 
         return response()->json([
             'success' => true,
             'party' => $party
         ]);
- 
-        
+
+
     }
 
     // Show single party

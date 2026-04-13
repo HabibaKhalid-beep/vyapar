@@ -1339,25 +1339,42 @@ function selectItem(idx) {
     document.getElementById('detail-name').textContent     = item.name;
     document.getElementById('detail-sale').textContent     = item.sale_price     ? 'Rs ' + parseFloat(item.sale_price).toFixed(2)     : '—';
     document.getElementById('detail-purchase').textContent = item.purchase_price ? 'Rs ' + parseFloat(item.purchase_price).toFixed(2) : '—';
-const stockQty = parseFloat(item.stock_qty ?? item.opening_qty ?? 0);
-document.getElementById('detail-stock-qty').textContent = stockQty;
-document.getElementById('detail-stock-val').textContent = 'Rs ' + (parseFloat(item.purchase_price || 0) * stockQty).toFixed(2);
+
+    const stockQty = parseFloat(item.stock_qty ?? item.opening_qty ?? 0);
+    document.getElementById('detail-stock-qty').textContent = stockQty;
+    document.getElementById('detail-stock-val').textContent = 'Rs ' + (parseFloat(item.purchase_price || 0) * stockQty).toFixed(2);
 
     // Show loading
     document.getElementById('txn-tbody').innerHTML = `
         <tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">Loading transactions...</td></tr>
     `;
 
-    // Fetch real transactions from server
-    fetch(`/dashboard/items/${item.id}/transactions`, {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+    // Fetch fresh item data and transactions from server
+    Promise.all([
+        fetch(`/dashboard/items/${item.id}?details=true`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        }).then(r => r.json()),
+        fetch(`/dashboard/items/${item.id}/transactions`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        }).then(r => r.json())
+    ])
+    .then(([freshItem, txnData]) => {
+        // Update allItems with fresh data
+        if (freshItem && freshItem.id) {
+            allItems[idx] = { ...allItems[idx], ...freshItem };
+            const updatedStockQty = parseFloat(freshItem.stock_qty ?? freshItem.opening_qty ?? 0);
+            document.getElementById('detail-stock-qty').textContent = updatedStockQty;
+            document.getElementById('detail-stock-val').textContent = 'Rs ' + (parseFloat(freshItem.purchase_price || 0) * updatedStockQty).toFixed(2);
         }
-    })
-    .then(r => r.json())
-    .then(data => {
-        transactions[idx] = data;
+
+        // Update transactions
+        transactions[idx] = txnData;
         renderTxns(idx);
     })
     .catch(() => {
@@ -1400,9 +1417,8 @@ function renderTxns(idx) {
                         <div class="il-row-menu-item danger" onclick="deleteTxn(${idx},${ti})">Delete</div>
                         <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'duplicate')">Duplicate</div>
                         <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'pdf')">Open PDF</div>
-                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'preview')">Preview</div>
                         <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'print')">Print</div>
-                        <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'payment')">Receive Payment</div>
+
                         <div class="il-row-menu-item" onclick="openTxnAction(${idx},${ti},'history')">View History</div>
                     </div>
                 </div>
@@ -1752,12 +1768,15 @@ function openTxnAction(idx, ti, action) {
         window.location.href = url;
         return;
     }
-    if (action === 'pdf') {
-        window.location.href = url;
-        return;
-    }
-    if (action === 'print') {
-        openPrintView(url);
+    if (action === 'pdf' || action === 'print') {
+        // For invoices and POS, redirect to the invoice view
+        const type = String(txn.raw_type || '').toLowerCase();
+        if (type === 'invoice' || type === 'pos') {
+            window.location.href = `{{ url('dashboard') }}/invoice?sale_id=${txn.id}&print=1`;
+        } else {
+            // For other types, use the original URLs
+            window.location.href = url;
+        }
         return;
     }
     openUrlInNewTab(url);

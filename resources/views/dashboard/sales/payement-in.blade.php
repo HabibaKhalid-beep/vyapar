@@ -121,6 +121,77 @@
       width: 110px;
       outline: none;
     }
+
+    .link-payment-modal .modal-dialog {
+      max-width: 1120px;
+    }
+
+    .link-payment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+    }
+
+    .link-payment-summary {
+      display: flex;
+      gap: 40px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .link-payment-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .link-payment-label {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .link-payment-tools {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .link-payment-grid thead th {
+      font-size: 13px;
+      color: #6b7280;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
+    }
+
+    .link-payment-grid tbody td {
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    .link-payment-grid-wrap {
+      max-height: 360px;
+      overflow: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+    }
+
+    .link-payment-empty {
+      padding: 36px 12px;
+      text-align: center;
+      color: #94a3b8;
+    }
+
+    .unused-amount-negative {
+      color: #dc2626;
+    }
   </style>
 </head>
 
@@ -165,7 +236,7 @@
       <div class="modal-header d-flex justify-content-between align-items-center">
         <h5 class="modal-title" id="addPaymentInModalLabel">Payment-in</h5>
         <div class="d-flex gap-2">
-          <button type="button" class="btn btn-light">
+          <button type="button" class="btn btn-light" onclick="openCalculator()">
             <i class="fa-solid fa-calculator"></i>
           </button>
           <button type="button" class="btn btn-light">
@@ -179,9 +250,14 @@
 
       <!-- Modal Body -->
       <div class="modal-body">
+        @php
+          $nextReceiptNo = ((int) $paymentIns->max(fn ($paymentIn) => (int) ($paymentIn->receipt_no ?? 0))) + 1;
+          $todayDate = now()->format('Y-m-d');
+        @endphp
         <form id="paymentInForm" action="{{ route('payments-in.store') }}" method="POST">
            @csrf
           <input type="hidden" id="paymentInId" value="">
+          <input type="hidden" id="linkedRowsJson" value="[]">
 
           <div class="row">
 
@@ -312,12 +388,12 @@
 
               <div class="mb-3">
                 <label class="form-label text-secondary">Receipt No</label>
-              <input type="text" class="form-control" id="receiptNo" name="receipt_no" placeholder="Receipt No">
+              <input type="text" class="form-control" id="receiptNo" name="receipt_no" placeholder="Receipt No" value="{{ old('receipt_no', $nextReceiptNo > 0 ? $nextReceiptNo : 1) }}">
               </div>
 
               <div class="mb-3">
                 <label class="form-label text-secondary">Date</label>
-                <input type="date" class="form-control" name="date">
+                <input type="date" class="form-control" name="date" value="{{ old('date', $todayDate) }}">
               </div>
 
               <div class="mb-3">
@@ -338,7 +414,7 @@
 <div class="modal-footer d-flex justify-content-between align-items-center">
 
   <!-- Top-left green button -->
-  <button type="button" class="btn text-white" style="background-color: #28a745;">
+  <button type="button" class="btn text-white" style="background-color: #28a745;" id="openLinkPaymentBtn">
     Link Payment
   </button>
 
@@ -364,6 +440,136 @@
   </div>
 
 </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade link-payment-modal" id="linkPaymentModal" tabindex="-1" aria-labelledby="linkPaymentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header">
+        <h5 class="modal-title" id="linkPaymentModalLabel">Link Payment to Txns</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="link-payment-header">
+          <div class="link-payment-summary">
+            <div>
+              <span class="link-payment-label">Party</span>
+              <div class="link-payment-value fs-4" id="linkPaymentPartyName">-</div>
+            </div>
+            <div>
+              <span class="link-payment-label">Received</span>
+              <div class="input-group">
+                <input type="number" class="form-control" id="linkPaymentReceivedInput" min="0" step="0.01" />
+                <span class="input-group-text"><i class="fa-solid fa-pen"></i></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="link-payment-tools">
+            <button type="button" class="btn btn-info text-white" id="linkPaymentAutoBtn">AUTO LINK</button>
+            <button type="button" class="btn btn-light" id="linkPaymentResetBtn" title="Reset">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+          <select class="form-select" id="linkPaymentTypeFilter" style="max-width: 280px;">
+            <option value="all">All transactions</option>
+            <option value="sale">Sale</option>
+            <option value="pos">POS</option>
+          </select>
+
+          <input type="text" class="form-control" id="linkPaymentSearch" placeholder="Search transaction" style="max-width: 290px;">
+        </div>
+
+        <div class="link-payment-grid-wrap">
+          <table class="table mb-0 link-payment-grid">
+            <thead>
+              <tr>
+                <th style="width: 54px;"></th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Ref/Inv No.</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Balance</th>
+                <th style="width: 180px;">Linked Amount</th>
+              </tr>
+            </thead>
+            <tbody id="linkPaymentRows">
+              <tr>
+                <td colspan="7" class="link-payment-empty">Select a party to load transactions.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <div class="fw-semibold">
+          Unused Amount :
+          <span id="linkPaymentUnusedAmount">0</span>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="linkPaymentDoneBtn">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="paymentInPrintOptionsModal" tabindex="-1" aria-labelledby="paymentInPrintOptionsLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header">
+        <h4 class="modal-title fw-semibold" id="paymentInPrintOptionsLabel">Select Print Options</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-4">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="form-check mb-3">
+              <input class="form-check-input payment-print-option" type="checkbox" value="date" id="printOptionDate" checked>
+              <label class="form-check-label" for="printOptionDate">Date</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input payment-print-option" type="checkbox" value="reference" id="printOptionReference" checked>
+              <label class="form-check-label" for="printOptionReference">Invoice No.</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input payment-print-option" type="checkbox" value="party" id="printOptionParty" checked>
+              <label class="form-check-label" for="printOptionParty">Party Name</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input payment-print-option" type="checkbox" value="amount" id="printOptionAmount" checked>
+              <label class="form-check-label" for="printOptionAmount">Total</label>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="form-check mb-3">
+              <input class="form-check-input payment-print-option" type="checkbox" value="bank" id="printOptionBank" checked>
+              <label class="form-check-label" for="printOptionBank">Bank Account</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input payment-print-option" type="checkbox" value="payment_type" id="printOptionType" checked>
+              <label class="form-check-label" for="printOptionType">Payment Type</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input payment-print-option" type="checkbox" value="description" id="printOptionDescription">
+              <label class="form-check-label" for="printOptionDescription">Description</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input payment-print-option" type="checkbox" value="status" id="printOptionStatus">
+              <label class="form-check-label" for="printOptionStatus">Payment Status</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn text-white px-4 rounded-pill" style="background:#f43f5e;" id="confirmPaymentInPrint">Get Print</button>
+      </div>
     </div>
   </div>
 </div>
@@ -548,7 +754,7 @@
                         <li><a class="dropdown-item" href="{{ route('invoice', ['payment_in' => $paymentIn->id]) }}"><i class="fa-solid fa-eye me-2"></i>Open</a></li>
                         <li><a class="dropdown-item" href="{{ route('payments-in.edit', $paymentIn) }}"><i class="fa-solid fa-pen-to-square me-2"></i>Edit</a></li>
                         <li><a class="dropdown-item" href="#" onclick="openPaymentInPdf('{{ route('invoice.payment-in', ['payment_in' => $paymentIn->id]) }}'); return false;"><i class="fa-solid fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="printPaymentInInvoice('{{ route('payments-in.print', $paymentIn) }}'); return false;"><i class="fa-solid fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPaymentInPdf('{{ route('invoice.payment-in', ['payment_in' => $paymentIn->id]) }}'); return false;"><i class="fa-solid fa-print me-2"></i>Print</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#" onclick="viewPaymentHistory({{ $paymentIn->id }})"><i class="fa-solid fa-history me-2"></i>View History</a></li>
                         <li>
@@ -577,6 +783,138 @@
       </div>
     </div>
   </main>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--        CALCULATOR MODAL               -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="modal fade" id="calculatorModal" tabindex="-1" aria-labelledby="calculatorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="calculatorModalLabel">Calculator</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3">
+          <style>
+            .calculator-container {
+              background: #f8f9fa;
+              border-radius: 8px;
+              padding: 15px;
+            }
+
+            .calc-display {
+              background: #2c3e50;
+              color: #fff;
+              font-size: 24px;
+              padding: 15px;
+              border-radius: 6px;
+              text-align: right;
+              margin-bottom: 15px;
+              min-height: 50px;
+              word-wrap: break-word;
+              word-break: break-all;
+              font-weight: bold;
+            }
+
+            .calc-buttons {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 8px;
+            }
+
+            .calc-btn {
+              padding: 15px;
+              border: 1px solid #ddd;
+              border-radius: 6px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              background: #fff;
+              transition: all 0.2s;
+              border: none;
+            }
+
+            .calc-btn:hover {
+              background: #e9ecef;
+              transform: translateY(-2px);
+            }
+
+            .calc-btn:active {
+              transform: translateY(0);
+            }
+
+            .calc-btn.operator {
+              background: #2563eb;
+              color: white;
+            }
+
+            .calc-btn.operator:hover {
+              background: #1d4ed8;
+            }
+
+            .calc-btn.equals {
+              background: #10b981;
+              color: white;
+              grid-column: span 2;
+            }
+
+            .calc-btn.equals:hover {
+              background: #059669;
+            }
+
+            .calc-btn.clear {
+              background: #ef4444;
+              color: white;
+              grid-column: span 2;
+            }
+
+            .calc-btn.clear:hover {
+              background: #dc2626;
+            }
+
+            .calc-btn.use-amount {
+              background: #f59e0b;
+              color: white;
+              grid-column: span 4;
+              margin-top: 10px;
+            }
+
+            .calc-btn.use-amount:hover {
+              background: #d97706;
+            }
+          </style>
+
+          <div class="calculator-container">
+            <div class="calc-display" id="calcDisplay">0</div>
+            <div class="calc-buttons">
+              <button type="button" class="calc-btn" onclick="appendToCalc('7')">7</button>
+              <button type="button" class="calc-btn" onclick="appendToCalc('8')">8</button>
+              <button type="button" class="calc-btn" onclick="appendToCalc('9')">9</button>
+              <button type="button" class="calc-btn operator" onclick="appendToCalc('/')">/</button>
+
+              <button type="button" class="calc-btn" onclick="appendToCalc('4')">4</button>
+              <button type="button" class="calc-btn" onclick="appendToCalc('5')">5</button>
+              <button type="button" class="calc-btn" onclick="appendToCalc('6')">6</button>
+              <button type="button" class="calc-btn operator" onclick="appendToCalc('*')">×</button>
+
+              <button type="button" class="calc-btn" onclick="appendToCalc('1')">1</button>
+              <button type="button" class="calc-btn" onclick="appendToCalc('2')">2</button>
+              <button type="button" class="calc-btn" onclick="appendToCalc('3')">3</button>
+              <button type="button" class="calc-btn operator" onclick="appendToCalc('-')">−</button>
+
+              <button type="button" class="calc-btn" onclick="appendToCalc('0')">0</button>
+              <button type="button" class="calc-btn" onclick="appendToCalc('.')">.</button>
+              <button type="button" class="calc-btn operator" onclick="appendToCalc('+')">+</button>
+              <button type="button" class="calc-btn clear" onclick="clearCalc()">C</button>
+
+              <button type="button" class="calc-btn equals" onclick="calculateResult()">=</button>
+            </div>
+            <button type="button" class="calc-btn use-amount" onclick="useCalculatorResult()">Use Amount</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ADD PARTY MODAL -->
 <div class="modal fade" id="addPartyModal" tabindex="-1" >
@@ -974,40 +1312,282 @@
         URL.revokeObjectURL(url);
       });
 
+      const paymentPrintModalEl = document.getElementById("paymentInPrintOptionsModal");
+      const paymentPrintModal = paymentPrintModalEl ? new bootstrap.Modal(paymentPrintModalEl) : null;
+      const paymentPrintColumns = {
+        date: { label: "DATE", index: 0 },
+        reference: { label: "Ref No.", index: 1 },
+        party: { label: "Party Name", index: 2 },
+        amount: { label: "TOTAL", index: 3 },
+        bank: { label: "BANK ACCOUNT", index: 4 },
+        payment_type: { label: "PAYMENT TYPE", index: 5 },
+        description: { label: "DESCRIPTION", index: null, getValue: () => "-" },
+        status: { label: "PAYMENT STATUS", index: null, getValue: () => "Used" },
+      };
+
+      function getSelectedPaymentPrintColumns() {
+        return Array.from(document.querySelectorAll(".payment-print-option:checked"))
+          .map((checkbox) => checkbox.value)
+          .filter((key) => paymentPrintColumns[key]);
+      }
+
       $("#printPaymentInTable").on("click", function () {
-        const tableHtml = document.getElementById("paymentInTableWrap")?.innerHTML || "";
-        const printWindow = window.open("", "_blank", "width=1200,height=800");
-        if (!printWindow) {
-          alert("Please allow popups to print the table.");
+        const visibleRows = Array.from(document.querySelectorAll("#paymentInTable tbody tr.payment-in-row"))
+          .filter((row) => $(row).is(":visible"));
+
+        if (!visibleRows.length) {
+          alert("No visible records found to print.");
           return;
         }
 
-        printWindow.document.write(`
-          <html>
+        paymentPrintModal?.show();
+      });
+
+      $("#confirmPaymentInPrint").on("click", function () {
+        const visibleRows = Array.from(document.querySelectorAll("#paymentInTable tbody tr.payment-in-row"))
+          .filter((row) => $(row).is(":visible"));
+
+        if (!visibleRows.length) {
+          alert("No visible records found to print.");
+          return;
+        }
+
+        const selectedColumns = getSelectedPaymentPrintColumns();
+        if (!selectedColumns.length) {
+          alert("Print ke liye kam az kam aik option select karein.");
+          return;
+        }
+
+        paymentPrintModal?.hide();
+
+        const partyName = $("#paymentInFirmSelect").val() || "All Parties";
+        const rangeDisplay = ($("#paymentInDateRangeDisplay").text() || "All Time").trim();
+        const reportDate = new Date().toLocaleDateString("en-GB");
+        const companyName = @json(config('app.name', 'My Company'));
+
+        const headerHtml = selectedColumns
+          .map((key) => `<th>${paymentPrintColumns[key].label}</th>`)
+          .join("");
+
+        const previewRowsHtml = visibleRows.map((row) => {
+          const cells = row.querySelectorAll("td");
+          const colsHtml = selectedColumns.map((key) => {
+            const config = paymentPrintColumns[key];
+            const value = typeof config.getValue === "function"
+              ? config.getValue(row, cells)
+              : (cells[config.index]?.textContent.trim() || "-");
+            return `<td>${value}</td>`;
+          }).join("");
+
+          return `<tr>${colsHtml}</tr>`;
+        }).join("");
+
+        const totalAmount = visibleRows.reduce((sum, row) => {
+          const amountText = row.querySelectorAll("td")[3]?.textContent || "0";
+          const numeric = parseFloat(amountText.replace(/[^\d.-]/g, "")) || 0;
+          return sum + numeric;
+        }, 0);
+
+        const previewHtml = `
+          <!DOCTYPE html>
+          <html lang="en">
             <head>
-              <title>Payment In Transactions</title>
-              <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Payment-In Preview</title>
               <style>
-                body { font-family: Arial, sans-serif; padding: 24px; }
-                h2 { margin-bottom: 16px; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
-                th:last-child, td:last-child { display: none; }
-                .dropdown, .btn, form { display: none !important; }
+                * { box-sizing: border-box; }
+                body {
+                  margin: 0;
+                  font-family: Arial, sans-serif;
+                  background: #f3f4f6;
+                  color: #111827;
+                }
+                .preview-shell {
+                  max-width: 1180px;
+                  margin: 24px auto;
+                  background: #ffffff;
+                  border: 1px solid #e5e7eb;
+                  border-radius: 18px;
+                  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+                  overflow: hidden;
+                }
+                .preview-header {
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  padding: 18px 28px;
+                  border-bottom: 1px solid #e5e7eb;
+                }
+                .preview-title {
+                  font-size: 18px;
+                  font-weight: 700;
+                }
+                .close-icon {
+                  border: none;
+                  background: transparent;
+                  font-size: 28px;
+                  line-height: 1;
+                  color: #6b7280;
+                  cursor: pointer;
+                }
+                .report-area {
+                  padding: 40px 38px 28px;
+                }
+                .company-block {
+                  text-align: center;
+                  margin-bottom: 28px;
+                }
+                .company-block h2 {
+                  margin: 0;
+                  font-size: 20px;
+                  font-weight: 700;
+                }
+                .company-block p {
+                  margin: 6px 0 0;
+                  color: #4b5563;
+                  font-size: 13px;
+                }
+                .report-heading {
+                  text-align: center;
+                  font-size: 20px;
+                  font-weight: 700;
+                  text-decoration: underline;
+                  margin: 0 0 28px;
+                }
+                .report-meta {
+                  margin-bottom: 24px;
+                }
+                .report-meta p {
+                  margin: 0 0 10px;
+                  font-size: 15px;
+                  font-weight: 700;
+                }
+                table {
+                  width: 100%;
+                  border-collapse: collapse;
+                }
+                thead th {
+                  background: #e5e7eb;
+                  font-size: 13px;
+                  font-weight: 700;
+                  padding: 12px 10px;
+                  text-align: left;
+                  border-bottom: 1px solid #d1d5db;
+                }
+                tbody td {
+                  padding: 12px 10px;
+                  border-bottom: 1px solid #e5e7eb;
+                  font-size: 14px;
+                }
+                .total-row {
+                  text-align: right;
+                  font-size: 18px;
+                  font-weight: 700;
+                  margin-top: 20px;
+                }
+                .preview-actions {
+                  display: flex;
+                  justify-content: flex-end;
+                  gap: 12px;
+                  padding: 16px 28px 22px;
+                  border-top: 1px solid #eef2f7;
+                  flex-wrap: wrap;
+                }
+                .preview-actions button,
+                .preview-actions a {
+                  appearance: none;
+                  border: 1px solid #f43f5e;
+                  background: #fff;
+                  color: #e11d48;
+                  border-radius: 999px;
+                  padding: 10px 18px;
+                  font-size: 15px;
+                  line-height: 1;
+                  text-decoration: none;
+                  cursor: pointer;
+                }
+                .preview-actions .primary-close {
+                  background: #f43f5e;
+                  color: #fff;
+                }
+                @media print {
+                  body {
+                    background: #fff;
+                  }
+                  .preview-shell {
+                    margin: 0;
+                    max-width: none;
+                    border: none;
+                    border-radius: 0;
+                    box-shadow: none;
+                  }
+                  .preview-header,
+                  .preview-actions {
+                    display: none !important;
+                  }
+                  .report-area {
+                    padding: 0;
+                  }
+                }
               </style>
             </head>
             <body>
-              <h2>Payment In Transactions</h2>
-              ${tableHtml}
+              <div class="preview-shell">
+                <div class="preview-header">
+                  <div class="preview-title">Preview</div>
+                  <button type="button" class="close-icon" onclick="window.close()">&times;</button>
+                </div>
+
+                <div class="report-area" id="paymentInPrintableArea">
+                  <div class="company-block">
+                    <h2>${companyName}</h2>
+                    <p>Generated on: ${reportDate}</p>
+                  </div>
+
+                  <h1 class="report-heading">All Transactions Report</h1>
+
+                  <div class="report-meta">
+                    <p>Party name: ${partyName}</p>
+                    <p>Transaction type: Payment-In</p>
+                    <p>Duration: ${rangeDisplay}</p>
+                  </div>
+
+                  <table>
+                    <thead>
+                      <tr>
+                        ${headerHtml}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${previewRowsHtml}
+                    </tbody>
+                  </table>
+
+                  <div class="total-row">Total: Rs ${totalAmount.toFixed(2)}</div>
+                </div>
+
+                <div class="preview-actions">
+                  <button type="button" onclick="window.print()">Open PDF</button>
+                  <button type="button" onclick="window.print()">Print</button>
+                  <button type="button" onclick="window.print()">Save PDF</button>
+                  <a href="mailto:?subject=Payment-In Report&amp;body=Please find the Payment-In report attached after saving it as PDF from preview.">Email PDF</a>
+                  <button type="button" class="primary-close" onclick="window.close()">Close</button>
+                </div>
+              </div>
             </body>
           </html>
-        `);
+        `;
 
+        const printWindow = window.open("", "_blank", "width=1280,height=900");
+        if (!printWindow) {
+          alert("Please allow popups to preview the report.");
+          return;
+        }
+
+        printWindow.document.open();
+        printWindow.document.write(previewHtml);
         printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-        }, 400);
       });
     });
   </script>
@@ -1050,6 +1630,7 @@
                 partyIdInput.value = partyId;
                 phoneInput.value = phone;
                 billingInput.value = billing;
+                resetLinkPaymentState();
 
                 // Balance display
                 balanceDisplay.innerHTML = type === 'pay'
@@ -1057,9 +1638,8 @@
                     : `<span class="text-success">₹${opening}</span>`;
             }
 
-            if(addNew && addModal) {
-                addModal.show();
-                document.getElementById("addPartyForm").reset();
+            if(addNew) {
+                window.location.href = '/dashboard/parties';
             }
         });
     }
@@ -1091,10 +1671,49 @@
         })
         .then(res => res.json())
         .then(res => {
-            if(res.success) {
-                alert("Party saved successfully!");
-                if(closeAfterSave) addModal?.hide();
-                else form.reset();
+            if(res.success && res.party) {
+                // Add the new party to the dropdown
+                const party = res.party;
+                const newOption = document.createElement('li');
+                newOption.className = 'party-option dropdown-item d-flex justify-content-between align-items-center';
+                newOption.style.cursor = 'pointer';
+                newOption.dataset.id = party.id;
+                newOption.dataset.opening = party.opening_balance || 0;
+                newOption.dataset.type = party.transaction_type || '';
+                newOption.dataset.phone = party.phone || '';
+                newOption.dataset.billing = party.billing_address || '';
+                newOption.innerHTML = `
+                    <span class="party-name cursor-pointer">${party.name}</span>
+                    <span class="party-balance small text-muted">₹${parseFloat(party.opening_balance || 0).toFixed(2)}</span>
+                `;
+
+                // Insert before the "Add New Party" button
+                const addNewBtn = document.getElementById('addNewPartyBtn');
+                addNewBtn.parentNode.insertBefore(newOption, addNewBtn);
+
+                // Auto-select the newly created party
+                const partyName = party.name;
+                dropdownBtnText.innerText = partyName;
+                partyIdInput.value = party.id;
+                phoneInput.value = party.phone || '';
+                billingInput.value = party.billing_address || '';
+                resetLinkPaymentState();
+
+                // Close the modal
+                addModal?.hide();
+
+                // Show success message (simple notification)
+                const successMsg = document.createElement('div');
+                successMsg.style.cssText = 'position:fixed; top:20px; right:20px; background:#10b981; color:white; padding:12px 20px; border-radius:6px; z-index:9999; font-weight:600;';
+                successMsg.textContent = 'Party created successfully!';
+                document.body.appendChild(successMsg);
+                setTimeout(() => successMsg.remove(), 3000);
+
+                // Reset form for next use
+                form.reset();
+
+                // Close party dropdown
+                document.body.click();
             } else {
                 alert(res.message || "Error saving party");
             }
@@ -1173,6 +1792,13 @@ function updateReceivedTotal() {
     if (receivedInput) {
         receivedInput.value = total.toFixed(2).replace(/\.00$/, '');
     }
+
+    const linkReceivedInput = document.getElementById('linkPaymentReceivedInput');
+    if (linkReceivedInput) {
+        linkReceivedInput.value = total.toFixed(2);
+    }
+
+    refreshLinkPaymentSummary();
 }
 
 document.addEventListener('input', function(e) {
@@ -1214,6 +1840,200 @@ function openPaymentInPdf(url) {
 }
 
 const editPaymentIn = @json($editPaymentIn ?? null);
+let linkPaymentRows = [];
+let appliedLinkPaymentRows = [];
+
+function resetLinkPaymentState() {
+    linkPaymentRows = [];
+    appliedLinkPaymentRows = [];
+
+    const hiddenField = document.getElementById('linkedRowsJson');
+    if (hiddenField) {
+        hiddenField.value = '[]';
+    }
+
+    const tbody = document.getElementById('linkPaymentRows');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" class="link-payment-empty">Select a party to load transactions.</td></tr>';
+    }
+
+    refreshLinkPaymentSummary();
+}
+
+function getLinkPaymentModalInstance() {
+    const modalElement = document.getElementById('linkPaymentModal');
+    return modalElement && window.bootstrap ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+}
+
+function formatLinkPaymentCurrency(value) {
+    return Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function getCurrentReceivedAmount() {
+    return parseFloat(document.getElementById('receivedAmount')?.value || 0) || 0;
+}
+
+function getLinkReceivedAmount() {
+    return parseFloat(document.getElementById('linkPaymentReceivedInput')?.value || 0) || 0;
+}
+
+function calculateLinkedTotal() {
+    return linkPaymentRows.reduce((sum, row) => sum + (parseFloat(row.selected_amount || 0) || 0), 0);
+}
+
+function refreshLinkPaymentSummary() {
+    const receivedAmount = getLinkReceivedAmount() || getCurrentReceivedAmount();
+    const linkedTotal = calculateLinkedTotal();
+    const unusedAmount = receivedAmount - linkedTotal;
+    const unusedEl = document.getElementById('linkPaymentUnusedAmount');
+
+    if (unusedEl) {
+        unusedEl.textContent = formatLinkPaymentCurrency(unusedAmount);
+        unusedEl.classList.toggle('unused-amount-negative', unusedAmount < 0);
+    }
+}
+
+function persistAppliedLinkRows() {
+    const cleaned = linkPaymentRows
+        .filter(row => (parseFloat(row.selected_amount || 0) || 0) > 0)
+        .map(row => ({
+            sale_id: row.sale_id,
+            amount: Number(parseFloat(row.selected_amount).toFixed(2)),
+        }));
+
+    appliedLinkPaymentRows = cleaned;
+    const hiddenField = document.getElementById('linkedRowsJson');
+    if (hiddenField) {
+        hiddenField.value = JSON.stringify(cleaned);
+    }
+}
+
+function renderLinkPaymentRows() {
+    const tbody = document.getElementById('linkPaymentRows');
+    if (!tbody) return;
+
+    const typeFilter = (document.getElementById('linkPaymentTypeFilter')?.value || 'all').toLowerCase();
+    const search = (document.getElementById('linkPaymentSearch')?.value || '').trim().toLowerCase();
+
+    const filteredRows = linkPaymentRows.filter((row) => {
+        const matchesType = typeFilter === 'all' || row.type.toLowerCase() === typeFilter;
+        const haystack = `${row.date} ${row.type} ${row.ref_no}`.toLowerCase();
+        const matchesSearch = !search || haystack.includes(search);
+        return matchesType && matchesSearch;
+    });
+
+    if (!filteredRows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="link-payment-empty">No transactions found.</td></tr>';
+        refreshLinkPaymentSummary();
+        return;
+    }
+
+    tbody.innerHTML = filteredRows.map((row) => {
+        const selectedAmount = parseFloat(row.selected_amount || 0) || 0;
+        const maxAmount = parseFloat(row.balance || 0) || 0;
+
+        return `
+            <tr data-sale-id="${row.sale_id}">
+                <td>
+                    <input type="checkbox" class="form-check-input link-payment-check" data-sale-id="${row.sale_id}" ${selectedAmount > 0 ? 'checked' : ''}>
+                </td>
+                <td>${row.date}</td>
+                <td>${row.type}</td>
+                <td>${row.ref_no}</td>
+                <td class="text-end">${formatLinkPaymentCurrency(row.total)}</td>
+                <td class="text-end">${formatLinkPaymentCurrency(row.balance)}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm link-payment-amount" data-sale-id="${row.sale_id}" min="0" max="${maxAmount}" step="0.01" value="${selectedAmount > 0 ? selectedAmount.toFixed(2) : ''}" ${selectedAmount > 0 ? '' : 'disabled'}>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    refreshLinkPaymentSummary();
+}
+
+function loadLinkableSales(partyId, options = {}) {
+    const tbody = document.getElementById('linkPaymentRows');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" class="link-payment-empty">Loading transactions...</td></tr>';
+    }
+
+    const query = new URLSearchParams();
+    if (options.paymentInId) {
+        query.set('payment_in_id', options.paymentInId);
+    }
+
+    fetch(`/dashboard/payments-in/linkable-sales/${partyId}?${query.toString()}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        }
+    })
+    .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Transactions load nahi ho sakin.');
+        }
+        return data;
+    })
+    .then((data) => {
+        document.getElementById('linkPaymentPartyName').textContent = data.party?.name || '-';
+
+        linkPaymentRows = (data.rows || []).map((row) => {
+            const applied = appliedLinkPaymentRows.find((item) => String(item.sale_id) === String(row.sale_id));
+            return {
+                ...row,
+                selected_amount: applied ? applied.amount : (parseFloat(row.linked_amount || 0) || 0),
+            };
+        });
+
+        renderLinkPaymentRows();
+    })
+    .catch((error) => {
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" class="link-payment-empty">${error.message || 'Transactions load nahi ho sakin.'}</td></tr>`;
+        }
+    });
+}
+
+function openLinkPaymentModal() {
+    const partyId = $('.party-id').val();
+    const partyName = $('#partyDropdownBtnText').text().trim();
+
+    if (!partyId) {
+        alert('Pehle party select karein.');
+        return;
+    }
+
+    updateReceivedTotal();
+    document.getElementById('linkPaymentPartyName').textContent = partyName || '-';
+    document.getElementById('linkPaymentReceivedInput').value = (getCurrentReceivedAmount() || 0).toFixed(2);
+    document.getElementById('linkPaymentTypeFilter').value = 'all';
+    document.getElementById('linkPaymentSearch').value = '';
+
+    loadLinkableSales(partyId, {
+        paymentInId: $('#paymentInId').val() || '',
+    });
+
+    getLinkPaymentModalInstance()?.show();
+}
+
+function autoAllocateLinkPayments() {
+    let remaining = getLinkReceivedAmount();
+
+    linkPaymentRows = linkPaymentRows.map((row) => {
+        const available = parseFloat(row.balance || 0) || 0;
+        const allocate = Math.max(0, Math.min(remaining, available));
+        remaining -= allocate;
+
+        return {
+            ...row,
+            selected_amount: Number(allocate.toFixed(2)),
+        };
+    });
+
+    renderLinkPaymentRows();
+}
 
 function populateEditPaymentIn(paymentIn) {
     if (!paymentIn) return;
@@ -1229,6 +2049,11 @@ function populateEditPaymentIn(paymentIn) {
     $('input[name="date"]').val(paymentIn.date || '');
     $('#paymentDescription').val(paymentIn.description || '');
     $('#referenceNo').val(paymentIn.reference_no || '');
+    appliedLinkPaymentRows = (paymentIn.links || []).map((link) => ({
+        sale_id: link.sale_id,
+        amount: Number(parseFloat(link.linked_amount || 0).toFixed(2)),
+    }));
+    $('#linkedRowsJson').val(JSON.stringify(appliedLinkPaymentRows));
 
     $('#paymentContainer .payment-row').not(':first').remove();
     firstRow.find('.payment-bank').val(paymentIn.bank_account_id || '');
@@ -1243,6 +2068,65 @@ function populateEditPaymentIn(paymentIn) {
 if (editPaymentIn) {
     populateEditPaymentIn(editPaymentIn);
 }
+
+document.getElementById('openLinkPaymentBtn')?.addEventListener('click', openLinkPaymentModal);
+document.getElementById('linkPaymentAutoBtn')?.addEventListener('click', autoAllocateLinkPayments);
+document.getElementById('linkPaymentResetBtn')?.addEventListener('click', function() {
+    linkPaymentRows = linkPaymentRows.map((row) => ({ ...row, selected_amount: 0 }));
+    renderLinkPaymentRows();
+});
+document.getElementById('linkPaymentTypeFilter')?.addEventListener('change', renderLinkPaymentRows);
+document.getElementById('linkPaymentSearch')?.addEventListener('input', renderLinkPaymentRows);
+document.getElementById('linkPaymentReceivedInput')?.addEventListener('input', refreshLinkPaymentSummary);
+document.getElementById('linkPaymentDoneBtn')?.addEventListener('click', function() {
+    const received = getLinkReceivedAmount();
+    const linked = calculateLinkedTotal();
+
+    if (linked - received > 0.001) {
+        alert('Linked amount received amount se zyada nahi ho sakta.');
+        return;
+    }
+
+    persistAppliedLinkRows();
+    getLinkPaymentModalInstance()?.hide();
+});
+
+document.addEventListener('change', function(event) {
+    if (event.target.classList.contains('link-payment-check')) {
+        const saleId = event.target.dataset.saleId;
+        const row = linkPaymentRows.find((item) => String(item.sale_id) === String(saleId));
+        if (!row) return;
+
+        if (event.target.checked) {
+            const currentSelected = parseFloat(row.selected_amount || 0) || 0;
+            if (currentSelected <= 0) {
+                row.selected_amount = Number((Math.min(parseFloat(row.balance || 0) || 0, Math.max(getLinkReceivedAmount() - calculateLinkedTotal(), 0))).toFixed(2));
+            }
+        } else {
+            row.selected_amount = 0;
+        }
+
+        renderLinkPaymentRows();
+    }
+});
+
+document.addEventListener('input', function(event) {
+    if (event.target.classList.contains('link-payment-amount')) {
+        const saleId = event.target.dataset.saleId;
+        const row = linkPaymentRows.find((item) => String(item.sale_id) === String(saleId));
+        if (!row) return;
+
+        const max = parseFloat(row.balance || 0) || 0;
+        let value = parseFloat(event.target.value || 0) || 0;
+        value = Math.max(0, Math.min(value, max));
+        row.selected_amount = Number(value.toFixed(2));
+        const checkbox = document.querySelector(`.link-payment-check[data-sale-id="${saleId}"]`);
+        if (checkbox) {
+            checkbox.checked = value > 0;
+        }
+        refreshLinkPaymentSummary();
+    }
+});
 
 
 $('#paymentInForm').on('submit', function(e) {
@@ -1262,6 +2146,13 @@ $('#paymentInForm').on('submit', function(e) {
 
     $('#referenceNo').val($('.payment-reference').first().val() || '');
     updateReceivedTotal();
+
+    let linkedRows = [];
+    try {
+        linkedRows = JSON.parse($('#linkedRowsJson').val() || '[]');
+    } catch (error) {
+        linkedRows = [];
+    }
 
     const paymentInId = $('#paymentInId').val();
     const requestUrl = paymentInId ? `/dashboard/payments-in/${paymentInId}` : '/dashboard/payments-in';
@@ -1283,6 +2174,7 @@ $('#paymentInForm').on('submit', function(e) {
             date: $('input[name="date"]').val(),
             received: $('#receivedAmount').val(),
             description: $('#paymentDescription').val(),
+            linked_rows: linkedRows,
             _method: spoofMethod,
             _token: $('meta[name="csrf-token"]').attr('content')
         }),
@@ -1444,7 +2336,89 @@ function viewPaymentHistory(paymentInId) {
 
 </script>
 
+<!-- CALCULATOR FUNCTIONS -->
+<script>
+let calcExpression = '';
 
-</body>
+function openCalculator() {
+    window.open('https://www.google.com/search?q=calculator', 'googleCalculator', 'width=400,height=600,resizable=yes');
+}
 
-</html>
+function appendToCalc(value) {
+    const display = document.getElementById('calcDisplay');
+
+    if(value === '.') {
+        // Prevent multiple decimal points in a number
+        const lastOperator = Math.max(
+            calcExpression.lastIndexOf('+'),
+            calcExpression.lastIndexOf('-'),
+            calcExpression.lastIndexOf('*'),
+            calcExpression.lastIndexOf('/')
+        );
+        const lastNumber = calcExpression.substring(lastOperator + 1);
+        if(lastNumber.includes('.')) return;
+    }
+
+    calcExpression += value;
+    // Replace * and / with × and − for display
+    display.textContent = calcExpression.replace(/\*/g, '×').replace(/\//g, '÷');
+}
+
+function clearCalc() {
+    calcExpression = '';
+    document.getElementById('calcDisplay').textContent = '0';
+}
+
+function calculateResult() {
+    try {
+        if(calcExpression.trim() === '') return;
+
+        // Replace × and ÷ with * and / for calculation
+        let expression = calcExpression.replace(/×/g, '*').replace(/÷/g, '/');
+
+        // Evaluate the expression safely (basic validation)
+        const result = Function('"use strict"; return (' + expression + ')')();
+
+        calcExpression = String(result);
+        document.getElementById('calcDisplay').textContent = result.toFixed(2);
+    } catch(e) {
+        document.getElementById('calcDisplay').textContent = 'Error';
+        calcExpression = '';
+    }
+}
+
+function useCalculatorResult() {
+    try {
+        // Get the display value and remove any formatting
+        const displayValue = document.getElementById('calcDisplay').textContent;
+
+        if(displayValue === '0' || displayValue === 'Error' || displayValue === '') {
+            alert('Please calculate a value first');
+            return;
+        }
+
+        // Parse the value
+        const amount = parseFloat(displayValue);
+        if(isNaN(amount)) {
+            alert('Invalid amount');
+            return;
+        }
+
+        // Find the first payment amount field and set it
+        const paymentAmountField = document.querySelector('.payment-amount');
+        if(paymentAmountField) {
+            paymentAmountField.value = amount.toFixed(2);
+            paymentAmountField.dispatchEvent(new Event('input', { bubbles: true }));
+            updateReceivedTotal();
+        }
+
+        // Close calculator modal
+        const calculatorModal = bootstrap.Modal.getInstance(document.getElementById('calculatorModal'));
+        if(calculatorModal) calculatorModal.hide();
+
+        clearCalc();
+    } catch(e) {
+        alert('Error setting amount: ' + e.message);
+    }
+}
+</script>

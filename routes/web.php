@@ -334,7 +334,7 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::get('parties/{party}/ledger', [PartyController::class, 'ledger'])->name('parties.ledger');
     Route::get('parties/{party}/transfer-history', [PartyController::class, 'transferHistory'])->name('parties.transfer-history');
     Route::post('parties/transfer', [PartyController::class, 'storeTransfer'])->name('parties.transfer.store');
-
+ Route::get('/parties/create', [PartyController::class, 'create'])->name('parties.create');
     // Brokers
     Route::get('/brokers', [BrokerController::class, 'index'])->name('brokers.index');
     Route::post('/brokers', [BrokerController::class, 'store'])->name('brokers.store');
@@ -350,6 +350,7 @@ Route::delete('/payments-in/{paymentIn}', [PaymentInController::class, 'destroy'
 Route::get('/payments-in/{paymentIn}/print', [PaymentInController::class, 'print'])->name('payments-in.print');
 Route::get('/payments-in/{paymentIn}/pdf', [PaymentInController::class, 'pdf'])->name('payments-in.pdf');
 Route::get('/payments-in/{paymentIn}/history', [PaymentInController::class, 'getHistory'])->name('payments-in.history');
+Route::get('/payments-in/linkable-sales/{party}', [PaymentInController::class, 'linkableSales'])->name('payments-in.linkable-sales');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

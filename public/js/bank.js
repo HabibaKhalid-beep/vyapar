@@ -231,12 +231,73 @@ document.addEventListener('DOMContentLoaded', () => {
   const bankFormMethod = document.getElementById('bankFormMethod');
   const bankIdField = document.getElementById('bankIdField');
   const modalTitle = document.getElementById('addBankModalLabel');
+  const bankDeleteBtn = document.getElementById('bankDeleteBtn');
+
+  function showBankModal() {
+    const modalEl = document.getElementById('addBankModal');
+    if (modalEl && window.bootstrap) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
+  }
+
+  function hideBankModal() {
+    const modalEl = document.getElementById('addBankModal');
+    if (modalEl && window.bootstrap) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.hide();
+    }
+  }
+
+  function deleteBankAccount(bankId) {
+    if (!bankId) return;
+
+    fetch(`/dashboard/bank-accounts/${bankId}`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const message = data?.message || 'Could not delete bank account.';
+          throw new Error(message);
+        }
+        return data;
+      })
+      .then(() => {
+        const listItem = document.querySelector(`li[data-bank="${bankId}"]`);
+        if (listItem) listItem.remove();
+
+        document.querySelectorAll(`tr[data-bank-id="${bankId}"]`).forEach((row) => row.remove());
+
+        hideBankModal();
+        showToast('Bank account deleted successfully.');
+
+        const remaining = document.querySelector('li[data-bank]');
+        if (remaining) {
+          selectBankItem(remaining);
+        } else {
+          detailName.textContent = 'Select a bank account';
+          detailAccountNumber.textContent = '-';
+          detailBankName.textContent = '-';
+          detailOpeningBalance.textContent = '₹ 0.00';
+        }
+      })
+      .catch((error) => {
+        showToast(error?.message || 'Could not delete bank account.', 'danger');
+      });
+  }
 
   if (list) {
     list.addEventListener('click', (event) => {
       const item = event.target.closest('li');
-      if (!item) return;
+      if (!item || !item.dataset.bank) return;
       selectBankItem(item);
+      openBankModal('edit', item.dataset.bank);
+      showBankModal();
     });
 
     // Auto-select first item on load
@@ -592,11 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!activeItem) return;
       const bankId = activeItem.dataset.bank;
       openBankModal('edit', bankId);
-      const editModalEl = document.getElementById('addBankModal');
-      if (editModalEl && window.bootstrap) {
-        const modal = bootstrap.Modal.getOrCreateInstance(editModalEl);
-        modal.show();
-      }
+      showBankModal();
     });
   }
 
@@ -609,6 +666,10 @@ document.addEventListener('DOMContentLoaded', () => {
     bankFormMethod.value = 'POST';
     bankIdField.value = '';
     bankForm.action = '/dashboard/bank-accounts';
+    if (bankDeleteBtn) {
+      bankDeleteBtn.classList.add('d-none');
+      bankDeleteBtn.dataset.bankId = '';
+    }
 
     const submitButton = bankForm.querySelector('#bankFormSubmit');
 
@@ -636,6 +697,10 @@ document.addEventListener('DOMContentLoaded', () => {
       bankFormMethod.value = 'PUT';
       bankIdField.value = bankId;
       bankForm.action = `/dashboard/bank-accounts/${bankId}`;
+      if (bankDeleteBtn) {
+        bankDeleteBtn.classList.remove('d-none');
+        bankDeleteBtn.dataset.bankId = bankId;
+      }
 
       // Load bank data via AJAX
       loadBankDetails(bankId);
@@ -645,6 +710,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Default: add new bank
     modalTitle.textContent = 'Add Bank Account';
     submitButton.textContent = 'Save Details';
+  }
+
+  if (bankDeleteBtn) {
+    bankDeleteBtn.addEventListener('click', () => {
+      const bankId = bankDeleteBtn.dataset.bankId || bankIdField.value;
+      if (!bankId) return;
+
+      if (!confirm('Are you sure you want to delete this bank account?')) {
+        return;
+      }
+
+      deleteBankAccount(bankId);
+    });
   }
 
   function loadBankDetails(bankId) {
@@ -840,11 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = document.querySelector(`li[data-bank="${bankId}"]`);
       if (item) selectBankItem(item);
       openBankModal('view', bankId);
-      const viewModalEl = document.getElementById('addBankModal');
-      if (viewModalEl && window.bootstrap) {
-        const modal = bootstrap.Modal.getOrCreateInstance(viewModalEl);
-        modal.show();
-      }
+      showBankModal();
       return;
     }
 
@@ -852,11 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = document.querySelector(`li[data-bank="${bankId}"]`);
       if (item) selectBankItem(item);
       openBankModal('edit', bankId);
-      const editModalEl = document.getElementById('addBankModal');
-      if (editModalEl && window.bootstrap) {
-        const modal = bootstrap.Modal.getOrCreateInstance(editModalEl);
-        modal.show();
-      }
+      showBankModal();
       return;
     }
 
@@ -864,41 +934,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirm('Are you sure you want to delete this bank account?')) {
         return;
       }
-
-      fetch(`/dashboard/bank-accounts/${bankId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-CSRF-TOKEN': csrfToken,
-          'Accept': 'application/json',
-        },
-      })
-        .then(async (res) => {
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            const message = data?.message || 'Could not delete bank account.';
-            throw new Error(message);
-          }
-          return data;
-        })
-        .then(() => {
-          // Remove from sidebar list
-          const listItem = document.querySelector(`li[data-bank="${bankId}"]`);
-          if (listItem) listItem.remove();
-
-          // Remove from table
-          const tableRow = document.querySelector(`tr[data-bank-id="${bankId}"]`);
-          if (tableRow) tableRow.remove();
-
-          showToast('Bank account deleted successfully.');
-
-          // If the deleted account was selected, pick the first remaining
-          const remaining = document.querySelector('li[data-bank]');
-          if (remaining) selectBankItem(remaining);
-        })
-        .catch((error) => {
-          showToast(error?.message || 'Could not delete bank account.', 'danger');
-        });
-
+      deleteBankAccount(bankId);
       return;
     }
 
@@ -918,11 +954,10 @@ document.addEventListener('DOMContentLoaded', () => {
       event.preventDefault();
 
       const url = bankForm.action;
-      const method = bankFormMethod.value || 'POST';
       const formData = new FormData(bankForm);
 
       fetch(url, {
-        method: method,
+        method: 'POST',
         headers: {
           'X-CSRF-TOKEN': csrfToken,
           'Accept': 'application/json',

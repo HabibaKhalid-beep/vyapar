@@ -364,27 +364,6 @@ $(document).ready(function() {
     return rowDate >= rangeStart && rowDate <= rangeEnd;
   });
 
-  var table = $('#estimatesTable').DataTable({
-    responsive: true,
-    pageLength: 10,
-    lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-    order: [[0, 'desc']],
-    columnDefs: [
-      { orderable: false, targets: 6 }
-    ],
-    dom: 'lftip',
-    language: {
-      search: "Search:",
-      lengthMenu: "Show _MENU_ entries",
-      info: "Showing _START_ to _END_ of _TOTAL_ entries",
-      paginate: {
-        first: "First",
-        last: "Last",
-        next: "Next",
-        previous: "Previous"
-      }
-    }
-  });
 
   function syncEstimateFilterUi() {
     if (estimatePeriodFilter === 'custom') {

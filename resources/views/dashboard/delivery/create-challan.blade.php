@@ -225,7 +225,7 @@
 
                         <div class="bottom-section">
                             <div class="bottom-left">
-                                
+
 
                                 <button type="button" class="btn-action-light w-50 add-description"><i class="fa-solid fa-align-left"></i>ADD DESCRIPTION</button>
                                 <button type="button" class="btn-action-light w-50 add-image"><i class="fa-solid fa-camera"></i>ADD IMAGE</button>

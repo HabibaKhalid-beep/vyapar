@@ -1,4 +1,5 @@
 import './RightPanel.css'
+import { getInvoiceViewModel } from './invoiceData'
 import TallyTheme from './TallyTheme'
 import TaxTheme1 from './TaxTheme1'
 import TaxTheme2 from './TaxTheme2'
@@ -21,6 +22,14 @@ import DoubleDivine from './DoubleDivine'
 const RightPanel = ({ selectedTheme, selectedColor, businessInfo, signature, onCompanyClick, onSignatureClick, terms, onTermsClick, logo, onLogoClick, invoiceData }) => {
   const classicProps = { businessInfo, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick, invoiceData }
   const vintageProps = { businessInfo, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick, invoiceData }
+  const view = getInvoiceViewModel(invoiceData)
+  const challanMeta = [
+    { label: 'Broker Name', value: view.brokerName },
+    { label: 'Broker Phone', value: view.brokerPhone },
+    { label: 'City', value: view.city },
+    { label: 'Warehouse', value: view.warehouseName },
+    { label: 'Holder Name', value: view.holderName },
+  ].filter((item) => item.value)
 
   const renderTheme = () => {
     if (selectedTheme === 'tally') return <TallyTheme {...classicProps} />
@@ -48,6 +57,16 @@ const RightPanel = ({ selectedTheme, selectedColor, businessInfo, signature, onC
 
   return (
     <div className="right-panel">
+      {challanMeta.length > 0 && (
+        <div className="invoice-meta-card">
+          {challanMeta.map((item) => (
+            <div className="invoice-meta-item" key={item.label}>
+              <span className="invoice-meta-label">{item.label}</span>
+              <span className="invoice-meta-value">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {renderTheme()}
     </div>
   )

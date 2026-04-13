@@ -813,11 +813,26 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
         </div>
     </div>
 
-    {{-- Item Code --}}
+    {{-- Item Code & Image --}}
     <div class="vy-code-row">
         <div class="vy-code-wrap">
             <input type="text" id="item-code" placeholder="Item Code"/>
             <button type="button" class="vy-assign-btn" onclick="assignCode()">Assign Code</button>
+        </div>
+        <div style="display: inline-flex; align-items: center; gap: 12px; margin-left: 16px; padding: 8px 12px; background: linear-gradient(135deg, #f0f9ff 0%, #f9fafb 100%); border: 1.5px solid #e0e7ff; border-radius: 6px; transition: all 0.2s ease;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #2563eb; font-size: 14px; font-weight: 500; transition: color 0.2s ease;" onmouseover="this.style.color='#1d4ed8'" onmouseout="this.style.color='#2563eb'">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="transition: transform 0.2s ease;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span>Item Image</span>
+                <input type="file" id="item-image" name="item_image" accept="image/*" style="display: none;" onchange="previewItemImage(event)"/>
+            </label>
+            <div style="width: 1px; height: 20px; background: #e0e7ff;"></div>
+            <div id="item-image-thumb" style="width: 40px; height: 40px; border: 1.5px solid #93c5fd; border-radius: 6px; background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; cursor: pointer; transition: all 0.2s ease;" onclick="document.getElementById('item-image').click()" title="Click to change image">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+            </div>
         </div>
     </div>
 
@@ -1594,6 +1609,13 @@ function buildItemFormData(){
     }
     const imageFiles = Array.from(document.getElementById('img-file').files || []);
     imageFiles.forEach(file => fd.append('images[]', file));
+
+    // Add item image (main image)
+    const itemImageInput = document.getElementById('item-image');
+    if (itemImageInput && itemImageInput.files && itemImageInput.files.length) {
+        fd.append('item_image', itemImageInput.files[0]);
+    }
+
     return fd;
 }
 function resetForm(){
@@ -1618,6 +1640,14 @@ function resetForm(){
     document.getElementById('img-label').textContent = 'Add Item Images';
     const imageInput = document.getElementById('img-file');
     if (imageInput) imageInput.value = '';
+    const itemImageInput = document.getElementById('item-image');
+    if (itemImageInput) itemImageInput.value = '';
+    const itemImageThumb = document.getElementById('item-image-thumb');
+    if (itemImageThumb) {
+        itemImageThumb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
+        itemImageThumb.style.border = '1.5px solid #93c5fd';
+        itemImageThumb.style.boxShadow = 'none';
+    }
     const previewList = document.getElementById('image-preview-list');
     if (previewList) {
         previewList.innerHTML = '';
@@ -1657,12 +1687,25 @@ function resetForm(){
     switchTab('pricing'); renderCats(); updateSaveBtn();
 }
 
-/* ─── SAVE ITEM (go to list after) ──────── */
-function saveItem(){
-    if(!validate()) return;
-    const formData = buildItemFormData();
-    const form = document.createElement('form');
-    form.method = 'POST';
+/* ─── Preview Item Image ────────────────── */
+function previewItemImage(event) {
+    const file = event.target.files[0];
+    const thumb = document.getElementById('item-image-thumb');
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            thumb.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;"/>`;
+            thumb.style.border = '1.5px solid #60a5fa';
+            thumb.style.boxShadow = '0 0 0 2px #e0f2fe';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        thumb.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>`;
+        thumb.style.border = '1.5px solid #93c5fd';
+        thumb.style.boxShadow = 'none';
     form.action = '{{ route("items.store") }}';
     form.enctype = 'multipart/form-data';
     form.style.display = 'none';

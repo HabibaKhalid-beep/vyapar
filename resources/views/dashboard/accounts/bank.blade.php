@@ -1412,6 +1412,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
           </div>
         </div>
         <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger me-auto d-none" id="bankDeleteBtn">Delete</button>
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary" id="bankFormSubmit">Save Details</button>
         </div>

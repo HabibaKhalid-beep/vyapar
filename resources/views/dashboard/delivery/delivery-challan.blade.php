@@ -102,6 +102,30 @@
       width: 110px;
       outline: none;
     }
+
+    .challan-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .challan-action-btn {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .challan-action-btn.print-btn {
+      color: #6c757d;
+    }
+
+    .challan-action-btn.excel-btn {
+      color: #198754;
+    }
   </style>
    <script>
     // Ensure window.App is always initialized, even if Auth is null
@@ -139,7 +163,7 @@
       </div>
 
     </div>
-    <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-3 py-2 rounded">
+    <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-3 py-2 rounded gap-3 flex-wrap">
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <span class="small fw-semibold">Filter By:</span>
 
@@ -173,6 +197,15 @@
             @endforeach
           </select>
         </div>
+      </div>
+
+      <div class="challan-header-actions">
+        <button type="button" class="challan-action-btn print-btn" id="challanPrintBtn" title="Print">
+          <i class="fas fa-print fs-5"></i>
+        </button>
+        <button type="button" class="challan-action-btn excel-btn" id="challanExcelBtn" title="Export Excel">
+          <i class="fas fa-file-excel fs-5"></i>
+        </button>
       </div>
     </div>
 
@@ -295,6 +328,105 @@
       window.open(url, '_blank');
     }
 
+    function getVisibleChallanRows() {
+      return Array.from(document.querySelectorAll('#challanTable tbody tr.challan-row'))
+        .filter((row) => row.style.display !== 'none');
+    }
+
+    function exportVisibleChallansToExcel() {
+      const table = document.getElementById('challanTable');
+      const rows = getVisibleChallanRows();
+
+      if (!table || !rows.length) {
+        alert('Export ke liye koi delivery challan available nahi hai.');
+        return;
+      }
+
+      const headerCells = Array.from(table.querySelectorAll('thead th'))
+        .slice(0, 7)
+        .map((cell) => `"${cell.innerText.trim().replace(/"/g, '""')}"`);
+
+      const csvLines = [headerCells.join(',')];
+
+      rows.forEach((row) => {
+        const cells = Array.from(row.querySelectorAll('td')).slice(0, 7);
+        const values = cells.map((cell) => {
+          const text = cell.innerText.replace(/\s+/g, ' ').trim();
+          return `"${text.replace(/"/g, '""')}"`;
+        });
+
+        csvLines.push(values.join(','));
+      });
+
+      const now = new Date();
+      const filename = `delivery-challans-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.csv`;
+      const blob = new Blob(["\uFEFF" + csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    }
+
+    function printVisibleChallans() {
+      const table = document.getElementById('challanTable');
+      const rows = getVisibleChallanRows();
+
+      if (!table || !rows.length) {
+        alert('Print ke liye koi delivery challan available nahi hai.');
+        return;
+      }
+
+      const headerHtml = Array.from(table.querySelectorAll('thead th'))
+        .slice(0, 7)
+        .map((cell) => `<th>${cell.innerText.trim()}</th>`)
+        .join('');
+
+      const bodyHtml = rows.map((row) => {
+        const cols = Array.from(row.querySelectorAll('td'))
+          .slice(0, 7)
+          .map((cell) => `<td>${cell.innerText.replace(/\n+/g, '<br>')}</td>`)
+          .join('');
+
+        return `<tr>${cols}</tr>`;
+      }).join('');
+
+      const printWindow = window.open('', '_blank', 'width=1000,height=700');
+
+      if (!printWindow) {
+        alert('Print window open nahi ho saki. Browser popup allow karein.');
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Delivery Challans Print</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+              h2 { margin-bottom: 16px; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid #d1d5db; padding: 10px; text-align: left; font-size: 13px; vertical-align: top; }
+              th { background: #f3f4f6; }
+            </style>
+          </head>
+          <body>
+            <h2>Delivery Challans</h2>
+            <table>
+              <thead><tr>${headerHtml}</tr></thead>
+              <tbody>${bodyHtml}</tbody>
+            </table>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+
     function deleteChallan(url) {
       if (!confirm('Are you sure you want to delete this delivery challan?')) {
         return;
@@ -334,6 +466,8 @@
       const $customDateRange = $("#challanCustomDateRange");
       const $customFrom = $("#challanCustomFrom");
       const $customTo = $("#challanCustomTo");
+      const $printBtn = $("#challanPrintBtn");
+      const $excelBtn = $("#challanExcelBtn");
 
       let periodFilter = $periodSelect.val() || "all";
       let firmFilter = $firmSelect.val() || "";
@@ -486,6 +620,14 @@
       $customTo.on("change", function () {
         customTo = $(this).val() || "";
         applyChallanFilters();
+      });
+
+      $printBtn.on("click", function () {
+        printVisibleChallans();
+      });
+
+      $excelBtn.on("click", function () {
+        exportVisibleChallansToExcel();
       });
     });
   </script>

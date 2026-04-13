@@ -39,7 +39,13 @@ class ItemController extends Controller
     {
         $imagePaths = [];
 
-        if ($request->hasFile('images')) {
+        // Handle the main item image first (from the new item image field)
+        if ($request->hasFile('item_image')) {
+            $image = $request->file('item_image');
+            if ($image) {
+                $imagePaths[] = $image->store('items', 'public');
+            }
+        } elseif ($request->hasFile('images')) {
             foreach ((array) $request->file('images') as $image) {
                 if ($image) {
                     $imagePaths[] = $image->store('items', 'public');
@@ -269,6 +275,12 @@ class ItemController extends Controller
     public function show(string $id)
     {
         $item = Item::with('category')->findOrFail($id);
+
+        // If details are requested, return JSON
+        if (request()->boolean('details')) {
+            return response()->json($item);
+        }
+
         return view('items.show', compact('item'));
     }
 
