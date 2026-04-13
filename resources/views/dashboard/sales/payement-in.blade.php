@@ -212,14 +212,14 @@
             <span class="h4">Payment In</span>
           </button>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="invoice.html">Sale Invoice</a></li>
-            <li><a class="dropdown-item" href="sale-estimate.html">Estimate / Quotation</a></li>
-            <li><a class="dropdown-item" href="sale-return.html">Sale Return / Cr. Note</a></li>
-            <li><a class="dropdown-item" href="payment_in.html">Payment In</a></li>
-            <li><a class="dropdown-item" href="payment-out.html">Payment out</a></li>
-            <li><a class="dropdown-item" href="purchase-bill.html">Purchase Bill</a></li>
-            <li><a class="dropdown-item" href="purchase-return.html">Purchase Return / Dr. Note</a></li>
-            <li><a class="dropdown-item" href="expenses.html">Expenses</a></li>
+            <li><a class="dropdown-item" href="{{ route('sale.index') }}">Sale Invoice</a></li>
+            <li><a class="dropdown-item" href="{{ route('sale.estimate') }}">Estimate / Quotation</a></li>
+            <li><a class="dropdown-item" href="{{ route('sale-return') }}">Sale Return / Cr. Note</a></li>
+            <li><a class="dropdown-item" href="{{ route('payment-in') }}">Payment In</a></li>
+            <li><a class="dropdown-item" href="{{ route('payment-out') }}">Payment out</a></li>
+            <li><a class="dropdown-item" href="{{ route('purchase-expenses') }}">Purchase Bill</a></li>
+            <li><a class="dropdown-item" href="{{ route('purchase-return') }}">Purchase Return / Dr. Note</a></li>
+            <li><a class="dropdown-item" href="{{ route('expense') }}">Expenses</a></li>
 
           </ul>
         </div>
