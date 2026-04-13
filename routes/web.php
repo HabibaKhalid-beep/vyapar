@@ -221,6 +221,44 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
 Route::get('reports', [ReportController::class, 'index'])->name('reports');
+Route::get('reports', [ReportController::class, 'index'])->name('reports');
+Route::get('/reports/sale', [ReportController::class, 'saleReport'])->name('reports.sale');
+Route::get('reports/all-transactions', [ReportController::class, 'allTransactions'])->name('reports.all-transactions');
+Route::get('/reports/purchase', [ReportController::class, 'purchaseReport'])->name('reports.purchase');
+
+// Cash Flow
+Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow']);
+Route::get('/reports/cash-flow/export', [ReportController::class, 'cashFlowExport']);
+
+Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])->name('reports.item-wise-discount');
+Route::get('reports/party-statement/{partyId}', [ReportController::class, 'partyStatement']);
+Route::get('reports/all-parties', [ReportController::class, 'allParties']);
+Route::get('reports/party-report-by-items', [ReportController::class, 'partyReportByItems']);
+Route::get('reports/sale-purchase-by-party', [ReportController::class, 'salePurchaseByParty']);
+Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
+Route::get('/reports/profit-loss', [ReportController::class, 'profitAndLoss']);
+Route::get('/reports/profit-loss/export', [ReportController::class, 'profitAndLossExport']);
+Route::get('/reports/bill-wise-profit', [ReportController::class, 'billWiseProfit']);
+Route::get('/reports/bill-wise-profit/export', [ReportController::class, 'billWiseProfitExport']);
+Route::get('/reports/bill-wise-profit/{id}/items', [ReportController::class, 'billWiseProfitItems']);
+Route::get('/reports/bank-statement', [ReportController::class, 'bankStatement']);
+Route::get('/reports/bank-statement/export', [ReportController::class, 'bankStatementExport']);
+Route::get('/reports/discount-report', [ReportController::class, 'discountReport']);
+Route::get('/reports/discount-report/export', [ReportController::class, 'discountReportExport']);
+Route::get('/reports/tax-report', [ReportController::class, 'taxReport']);
+Route::get('/reports/tax-report/export', [ReportController::class, 'taxReportExport']);
+Route::get('/reports/tax-rate-report', [ReportController::class, 'taxRateReport']);
+Route::get('/reports/tax-rate-report/export', [ReportController::class, 'taxRateReportExport']);
+Route::get('/reports/expense', [ReportController::class, 'expenseReport']);
+Route::get('/reports/expense/export', [ReportController::class, 'expenseReportExport']);
+Route::get('/reports/expense-category-report', [ReportController::class, 'expenseCategoryReport']);
+Route::get('/reports/expense-category-report/export', [ReportController::class, 'expenseCategoryReportExport']);
+Route::get('/reports/expense-item-report', [ReportController::class, 'expenseItemReport']);
+Route::get('/reports/expense-item-report/export', [ReportController::class, 'expenseItemReportExport']);
+Route::get('/reports/sale-order-items', [ReportController::class, 'saleOrderItems'])->name('reports.sale-order-items');
+
+// Loan Statement JSON
+Route::get('/loan-accounts-json', [LoanAccountController::class, 'allJson'])->name('loan-accounts.json');
 Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])
     ->name('reports.item-wise-discount');
 Route::get('reports/party-statement/{partyId}',   [ReportController::class, 'partyStatement']);
