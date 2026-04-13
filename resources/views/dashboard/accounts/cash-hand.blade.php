@@ -73,6 +73,35 @@
       align-items: center;
       cursor: pointer;
     }
+
+    .cash-table thead th {
+      font-size: 0.85rem;
+      color: #0f172a;
+      font-weight: 700;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .cash-table tbody td {
+      font-size: 0.9rem;
+      color: #0f172a;
+      vertical-align: middle;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .cash-table .filter-btn {
+      border: 0;
+      background: transparent;
+      color: #111827;
+      padding: 0;
+      margin-left: 6px;
+    }
+
+    .cash-table .amount-cell {
+      text-align: right;
+      font-weight: 600;
+    }
   </style>
 </head>
 
@@ -176,148 +205,22 @@
         </div>
 
         <div class="table-responsive small-table">
-          <table class="table table-hover mb-0 align-middle table-clean">
+          <table class="table table-hover mb-0 align-middle cash-table">
             <thead>
-              <tr class="d-flex gap-2">
-                <th class="d-flex col-3">
-                  <p class="pt-1">Type</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <input type="checkbox"><span class="ms-1">Sale</span>
-                      </li>
-                      <li class="dropdown-item">
-                        <input type="checkbox"><span class="ms-1">Purchase</span>
-                      </li>
-                      <li class="dropdown-item">
-                        <input type="checkbox"><span class="ms-1">Payment In</span>
-                      </li>
-                      <li class="dropdown-item">
-                        <input type="checkbox"><span class="ms-1">Payment Out</span>
-                      </li>
-                      <li class="dropdown-item">
-                        <input type="checkbox"><span class="ms-1">Expense</span>
-                      </li>
-                      <li class="dropdown-item">
-                        <input type="checkbox"><span class="ms-1">Cash Deposit</span>
-                      </li>
-                      <div class="mt-2 ms-4">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
-                  </div>
-                </th>
-                <th class="d-flex col-3">
-                  <p class="pt-1">Name</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Category:</p>
-                        <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                          <option value="" selected>Contains</option>
-                          <option value=""><a href="">Exact Match</a></option>
-
-                        </select>
-                      </li>
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Name</p>
-                        <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                      </li>
-                      <div class="mt-2 ms-3">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
-                  </div>
-                </th>
-
-                <th class="d-flex col-3">
-                  <p class="pt-1">Date</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Category:</p>
-                        <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                          <option value="" selected>Equal to</option>
-                          <option value=""><a href="">Less than</a></option>
-                          <option value=""><a href="">Greater than</a></option>
-                          <option value=""><a href="">Range</a></option>
-                        </select>
-                      </li>
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Date:</p>
-                        <input type="date" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                      </li>
-                      <div class="mt-2 ms-4">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
-                  </div>
-                </th>
-                <th class="d-flex col-3">
-                  <p class="pt-1">Amount</p>
-                  <div class="dropdown ms-3">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="fa-solid fa-filter"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Select Category:</p>
-                        <select name="" id="" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                          <option value="" selected>Equal to</option>
-                          <option value=""><a href="">Less than</a></option>
-                          <option value=""><a href="">Greater than</a></option>
-
-                        </select>
-                      </li>
-                      <li class="dropdown-item">
-                        <p class="mb-0" style="font-size: 11px;">Name</p>
-                        <input type="text" class="bg-transparent border py-2 rounded w-100" style="outline:none;">
-                      </li>
-                      <div class="mt-2 ms-3">
-                        <button class="btn rounded-pill" style="background-color: #EBEAEA;"><span
-                            style="color: #71748E;">Clear</span></button>
-                        <button class="btn rounded-pill" style="background-color: #D4112E;"><span
-                            class="text-light">Apply</span></button>
-                      </div>
-
-                    </ul>
-                  </div>
-                </th>
-
-
-
-
-
+              <tr>
+                <th style="width: 18%;">Type <button class="filter-btn" type="button"><i class="fa-solid fa-filter"></i></button></th>
+                <th>Name <button class="filter-btn" type="button"><i class="fa-solid fa-filter"></i></button></th>
+                <th style="width: 18%;">Date <button class="filter-btn" type="button"><i class="fa-solid fa-filter"></i></button></th>
+                <th style="width: 18%;" class="text-end">Amount <button class="filter-btn" type="button"><i class="fa-solid fa-filter"></i></button></th>
               </tr>
             </thead>
             <tbody>
               @forelse($cashTransactions as $transaction)
                 <tr>
-                  <td class="col-3">{{ strtoupper(str_replace('_', ' ', $transaction->type ?? 'cash')) }}</td>
-                  <td class="col-3">{{ $transaction->description ?? '-' }}</td>
-                  <td class="col-3">{{ \Illuminate\Support\Carbon::parse($transaction->transaction_date ?? $transaction->created_at)->format('d/m/Y') }}</td>
-                  <td class="col-3">Rs {{ number_format($transaction->amount ?? 0, 2) }}</td>
+                  <td>{{ strtoupper(str_replace('_', ' ', $transaction->type ?? 'cash')) }}</td>
+                  <td>{{ $transaction->description ?? '-' }}</td>
+                  <td>{{ \Illuminate\Support\Carbon::parse($transaction->transaction_date ?? $transaction->created_at)->format('d/m/Y') }}</td>
+                  <td class="amount-cell">Rs {{ number_format($transaction->amount ?? 0, 2) }}</td>
                 </tr>
               @empty
                 <tr>
