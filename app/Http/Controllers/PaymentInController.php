@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Party;
 use App\Models\Transaction;
 use App\Models\BankAccount;
+use App\Models\BankTransaction;
 use App\Models\PaymentIn;
 use App\Models\PaymentInLink;
 use App\Models\Sale;
@@ -105,11 +106,16 @@ class PaymentInController extends Controller
                 $this->validateLinkedRows($request, collect());
 
                 foreach ($request->payments as $pay) {
+                    $paymentType = strtolower((string) ($pay['type'] ?? ''));
+                    $isCash = $paymentType === 'cash';
+                    $cashAccount = $isCash ? BankAccount::cashAccount() : null;
+                    $bankAccountId = $isCash ? $cashAccount->id : ($pay['bank_account_id'] ?? null);
+
                     $paymentIn = PaymentIn::create([
                         'party_id'        => $party->id,
-                        'bank_account_id' => $pay['bank_account_id'] ?? null,
+                        'bank_account_id' => $bankAccountId,
                         'amount'          => $pay['amount'],
-                        'payment_type'    => $pay['type'],
+                        'payment_type'    => $paymentType ?: ($pay['type'] ?? null),
                         'reference_no'    => $request->reference_no ?? null,
                         'receipt_no'      => $request->receipt_no ?? null,
                         'date'            => $request->date,
@@ -135,8 +141,22 @@ class PaymentInController extends Controller
                     $party->opening_balance = (float) ($party->opening_balance ?? 0) - (float) $pay['amount'];
                     $party->save();
 
-                    if (!empty($pay['bank_account_id'])) {
-                        $bank = BankAccount::findOrFail($pay['bank_account_id']);
+                    if ($isCash && $cashAccount) {
+                        $cashAccount->opening_balance = (float) ($cashAccount->opening_balance ?? 0) + (float) $pay['amount'];
+                        $cashAccount->save();
+
+                        BankTransaction::create([
+                            'from_bank_account_id' => $cashAccount->id,
+                            'to_bank_account_id' => null,
+                            'type' => 'cash_in',
+                            'amount' => (float) $pay['amount'],
+                            'transaction_date' => $request->date ?? now()->toDateString(),
+                            'reference_type' => 'payment_in',
+                            'reference_id' => $paymentIn->id,
+                            'description' => 'Cash received from payment in',
+                        ]);
+                    } elseif (!empty($bankAccountId)) {
+                        $bank = BankAccount::findOrFail($bankAccountId);
                         $bank->opening_balance = (float) ($bank->opening_balance ?? 0) + (float) $pay['amount'];
                         $bank->save();
                     }
@@ -188,9 +208,12 @@ class PaymentInController extends Controller
         try {
             DB::transaction(function () use ($request, $paymentIn) {
                 $oldAmount = (float) ($paymentIn->amount ?? 0);
+                $oldType = strtolower((string) ($paymentIn->payment_type ?? ''));
                 $newPayment = $request->payments[0];
                 $newAmount = (float) ($newPayment['amount'] ?? 0);
                 $existingLinks = $paymentIn->links()->get();
+                $newType = strtolower((string) ($newPayment['type'] ?? ''));
+                $newIsCash = $newType === 'cash';
 
                 $oldParty = Party::find($paymentIn->party_id);
                 if ($oldParty) {
@@ -198,7 +221,11 @@ class PaymentInController extends Controller
                     $oldParty->save();
                 }
 
-                if ($paymentIn->bank_account_id) {
+                if ($oldType === 'cash') {
+                    $cashAccount = BankAccount::cashAccount();
+                    $cashAccount->opening_balance = (float) ($cashAccount->opening_balance ?? 0) - $oldAmount;
+                    $cashAccount->save();
+                } elseif ($paymentIn->bank_account_id) {
                     $oldBank = BankAccount::find($paymentIn->bank_account_id);
                     if ($oldBank) {
                         $oldBank->opening_balance = (float) ($oldBank->opening_balance ?? 0) - $oldAmount;
@@ -207,11 +234,14 @@ class PaymentInController extends Controller
                 }
 
                 $this->rollbackLinkedRows($existingLinks);
+                $cashAccount = $newIsCash ? BankAccount::cashAccount() : null;
+                $bankAccountId = $newIsCash ? $cashAccount->id : ($newPayment['bank_account_id'] ?? null);
+
                 $paymentIn->update([
                     'party_id'        => $request->party_id,
-                    'bank_account_id' => $newPayment['bank_account_id'] ?? null,
+                    'bank_account_id' => $bankAccountId,
                     'amount'          => $newAmount,
-                    'payment_type'    => $newPayment['type'],
+                    'payment_type'    => $newType ?: ($newPayment['type'] ?? null),
                     'reference_no'    => $request->reference_no ?? null,
                     'receipt_no'      => $request->receipt_no ?? null,
                     'date'            => $request->date,
@@ -224,7 +254,10 @@ class PaymentInController extends Controller
                     $newParty->save();
                 }
 
-                if ($paymentIn->bank_account_id) {
+                if ($newIsCash && $cashAccount) {
+                    $cashAccount->opening_balance = (float) ($cashAccount->opening_balance ?? 0) + $newAmount;
+                    $cashAccount->save();
+                } elseif ($paymentIn->bank_account_id) {
                     $newBank = BankAccount::find($paymentIn->bank_account_id);
                     if ($newBank) {
                         $newBank->opening_balance = (float) ($newBank->opening_balance ?? 0) + $newAmount;
@@ -272,13 +305,18 @@ class PaymentInController extends Controller
             DB::transaction(function () use ($paymentIn) {
                 $amount = (float) ($paymentIn->amount ?? 0);
                 $existingLinks = $paymentIn->links()->get();
+                $paymentType = strtolower((string) ($paymentIn->payment_type ?? ''));
                 $party = Party::find($paymentIn->party_id);
                 if ($party) {
                     $party->opening_balance = (float) ($party->opening_balance ?? 0) + $amount;
                     $party->save();
                 }
 
-                if ($paymentIn->bank_account_id) {
+                if ($paymentType === 'cash') {
+                    $cashAccount = BankAccount::cashAccount();
+                    $cashAccount->opening_balance = (float) ($cashAccount->opening_balance ?? 0) - $amount;
+                    $cashAccount->save();
+                } elseif ($paymentIn->bank_account_id) {
                     $bank = BankAccount::find($paymentIn->bank_account_id);
                     if ($bank) {
                         $bank->opening_balance = (float) ($bank->opening_balance ?? 0) - $amount;

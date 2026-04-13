@@ -215,11 +215,13 @@ class BankAccountController extends Controller
 
     public function cashInHand()
     {
-        // For simplicity, we can treat "Cash in Hand" as a special bank account with a fixed ID (e.g., 0).
-        // Alternatively, you could have a separate model/table for cash transactions.
+        $cashAccount = BankAccount::cashAccount();
+        $cashTransactions = BankTransaction::where('from_bank_account_id', $cashAccount->id)
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->get();
 
-
-        return view('dashboard.accounts.cash-hand');
+        return view('dashboard.accounts.cash-hand', compact('cashAccount', 'cashTransactions'));
     }
   public function paymentIn(Request $request)
 {

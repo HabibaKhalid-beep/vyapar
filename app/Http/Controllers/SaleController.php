@@ -9,6 +9,7 @@ use App\Models\Broker;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -178,6 +179,112 @@ class SaleController extends Controller
             'convertedSaleData',
             'type'
         ));
+    }
+
+    public function bulkConvertSaleOrders(Request $request)
+    {
+        $data = $request->validate([
+            'sale_order_ids' => 'required|array|min:1',
+            'sale_order_ids.*' => 'integer|exists:sales,id',
+        ]);
+
+        $saleOrders = Sale::with(['items', 'payments'])
+            ->where('type', 'sale_order')
+            ->whereIn('id', $data['sale_order_ids'])
+            ->get();
+
+        if ($saleOrders->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No sale orders found for conversion.',
+            ], 422);
+        }
+
+        $createdSaleIds = [];
+
+        DB::transaction(function () use ($saleOrders, &$createdSaleIds) {
+            $nextSaleId = (Sale::max('id') ?? 0) + 1;
+
+            foreach ($saleOrders as $saleOrder) {
+                if ($saleOrder->status === 'completed') {
+                    continue;
+                }
+
+                $nextInvoiceNumber = (string) $nextSaleId;
+                $nextSaleId += 1;
+
+                $draft = $this->mapSaleOrderToSaleDraft($saleOrder, $nextInvoiceNumber);
+
+                $paymentsReceived = (float) $saleOrder->payments->sum('amount');
+                $receivedAmount = (float) ($saleOrder->received_amount ?? 0);
+                $grandTotal = (float) ($draft['grand_total'] ?? $saleOrder->grand_total ?? 0);
+                $balanceStored = (float) ($saleOrder->balance ?? 0);
+                $receivedFromBalance = $grandTotal > 0 ? max($grandTotal - $balanceStored, 0) : 0;
+                $receivedAmount = max($receivedAmount, $paymentsReceived, $receivedFromBalance);
+                $balance = max(0, $grandTotal - $receivedAmount);
+
+                $sale = Sale::create([
+                    'type' => 'invoice',
+                    'party_id' => $draft['party_id'] ?? $saleOrder->party_id,
+                    'broker_id' => $saleOrder->broker_id,
+                    'phone' => $draft['phone'] ?? $saleOrder->phone,
+                    'billing_address' => $draft['billing_address'] ?? $saleOrder->billing_address,
+                    'shipping_address' => $draft['shipping_address'] ?? $saleOrder->shipping_address,
+                    'bill_number' => $draft['bill_number'] ?? $nextInvoiceNumber,
+                    'invoice_date' => $draft['invoice_date'] ?? now()->toDateString(),
+                    'order_date' => $saleOrder->order_date,
+                    'due_date' => $saleOrder->due_date,
+                    'reference_id' => $saleOrder->id,
+                    'total_qty' => $draft['total_qty'] ?? $saleOrder->total_qty,
+                    'total_amount' => $draft['total_amount'] ?? $saleOrder->total_amount,
+                    'discount_pct' => $draft['discount_pct'] ?? $saleOrder->discount_pct,
+                    'discount_rs' => $draft['discount_rs'] ?? $saleOrder->discount_rs,
+                    'tax_pct' => $draft['tax_pct'] ?? $saleOrder->tax_pct,
+                    'tax_amount' => $draft['tax_amount'] ?? $saleOrder->tax_amount,
+                    'round_off' => $draft['round_off'] ?? $saleOrder->round_off,
+                    'grand_total' => $grandTotal,
+                    'received_amount' => $receivedAmount,
+                    'balance' => $balance,
+                    'status' => $balance <= 0 ? 'Paid' : 'Unpaid',
+                    'description' => $draft['description'] ?? $saleOrder->description,
+                    'image_path' => $draft['image_path'] ?? $saleOrder->image_path,
+                ]);
+
+                foreach ($draft['items'] as $item) {
+                    SaleItem::create([
+                        'sale_id' => $sale->id,
+                        'item_name' => $item['item_name'] ?? '',
+                        'item_category' => $item['item_category'] ?? '',
+                        'item_code' => $item['item_code'] ?? '',
+                        'item_description' => $item['item_description'] ?? '',
+                        'quantity' => $item['quantity'] ?? 0,
+                        'unit' => $item['unit'] ?? '',
+                        'unit_price' => $item['unit_price'] ?? 0,
+                        'discount' => $item['discount'] ?? 0,
+                        'amount' => $item['amount'] ?? 0,
+                    ]);
+                }
+
+                $saleOrder->update(['status' => 'completed']);
+                $sale->load('payments');
+                $this->syncSaleLedgerEntries($sale, []);
+                $this->recalculatePartyLedgerBalances($sale->party_id);
+
+                $createdSaleIds[] = $sale->id;
+            }
+        });
+
+        if (empty($createdSaleIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Selected sale orders are already converted.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'created_sale_ids' => $createdSaleIds,
+        ]);
     }
 
     public function createFromDeliveryChallan(Sale $sale)
@@ -481,48 +588,71 @@ private function posData(): array
         // Append new payments (maintain payment history; edit mode treats payments as additional amounts)
         if (!empty($data['payments']) && is_array($data['payments'])) {
             foreach ($data['payments'] as $payment) {
-                // Skip empty or incomplete payment entries
-                if (empty($payment['bank_account_id']) || empty($payment['amount'])) {
+                $paymentAmount = floatval($payment['amount'] ?? 0);
+                $rawPaymentType = (string) ($payment['payment_type'] ?? '');
+                $normalizedPaymentType = strtolower($rawPaymentType);
+                $isCash = $normalizedPaymentType === 'cash';
+                $bankId = $payment['bank_account_id'] ?? null;
+                $storePaymentType = $isCash ? 'cash' : $rawPaymentType;
+
+                if ($paymentAmount <= 0) {
                     continue;
                 }
 
-            $direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
+                if (!$isCash && empty($bankId)) {
+                    continue;
+                }
+
+                $direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
+
+                $cashAccount = null;
+                if ($isCash) {
+                    $cashAccount = BankAccount::cashAccount();
+                    $bankId = $cashAccount->id;
+                }
 
                 $sale->payments()->create([
-                    'payment_type' => $payment['payment_type'],
+                    'payment_type' => $storePaymentType,
                     'direction' => $direction,
-                    'bank_account_id' => $payment['bank_account_id'] ?? null,
-                    'amount' => $payment['amount'],
+                    'bank_account_id' => $bankId,
+                    'amount' => $paymentAmount,
                     'reference' => $payment['reference'] ?? null,
                 ]);
 
-                if (!empty($payment['bank_account_id']) && !empty($payment['amount'])) {
-                    $bank = BankAccount::find($payment['bank_account_id']);
-                    if ($bank) {
-                        $paymentAmount = floatval($payment['amount'] ?? 0);
-                        $bank->opening_balance = ($bank->opening_balance ?? 0)
-                            + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);
-                        $bank->save();
+                $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
+                if ($bank) {
+                    $bank->opening_balance = ($bank->opening_balance ?? 0)
+                        + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);
+                    $bank->save();
 
-                        BankTransaction::create([
-                            'from_bank_account_id' => $bank->id,
-                            'to_bank_account_id' => null,
-                            'type' => $direction === 'payment_out' ? 'sale_payment_out' : 'sale_payment',
-                            'amount' => $paymentAmount,
-                            'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
-                            'reference_type' => 'sale',
-                            'reference_id' => $sale->id,
-                            'description' => $direction === 'payment_out'
-                                ? 'Payment paid to party for invoice #' . ($sale->bill_number ?: $sale->id)
-                                : 'Sale payment received for invoice #' . ($sale->bill_number ?: $sale->id),
-                            'meta' => [
-                                'party_id' => $sale->party_id,
-                                'payment_type' => $payment['payment_type'] ?? null,
-                                'reference' => $payment['reference'] ?? null,
-                                'direction' => $direction,
-                            ],
-                        ]);
-                    }
+                    $transactionType = $isCash
+                        ? ($direction === 'payment_out' ? 'cash_out' : 'cash_in')
+                        : ($direction === 'payment_out' ? 'sale_payment_out' : 'sale_payment');
+
+                    $transactionDescription = $isCash
+                        ? ($direction === 'payment_out'
+                            ? 'Cash paid for invoice #' . ($sale->bill_number ?: $sale->id)
+                            : 'Cash received for invoice #' . ($sale->bill_number ?: $sale->id))
+                        : ($direction === 'payment_out'
+                            ? 'Payment paid to party for invoice #' . ($sale->bill_number ?: $sale->id)
+                            : 'Sale payment received for invoice #' . ($sale->bill_number ?: $sale->id));
+
+                    BankTransaction::create([
+                        'from_bank_account_id' => $bank->id,
+                        'to_bank_account_id' => null,
+                        'type' => $transactionType,
+                        'amount' => $paymentAmount,
+                        'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
+                        'reference_type' => 'sale',
+                        'reference_id' => $sale->id,
+                        'description' => $transactionDescription,
+                        'meta' => [
+                            'party_id' => $sale->party_id,
+                            'payment_type' => $storePaymentType,
+                            'reference' => $payment['reference'] ?? null,
+                            'direction' => $direction,
+                        ],
+                    ]);
                 }
 
             }
@@ -668,44 +798,71 @@ private function posData(): array
 
         if (!empty($data['payments']) && is_array($data['payments'])) {
             foreach ($data['payments'] as $payment) {
-            $direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
+                $paymentAmount = floatval($payment['amount'] ?? 0);
+                $rawPaymentType = (string) ($payment['payment_type'] ?? '');
+                $normalizedPaymentType = strtolower($rawPaymentType);
+                $isCash = $normalizedPaymentType === 'cash';
+                $bankId = $payment['bank_account_id'] ?? null;
+                $storePaymentType = $isCash ? 'cash' : $rawPaymentType;
+
+                if ($paymentAmount <= 0) {
+                    continue;
+                }
+
+                if (!$isCash && empty($bankId)) {
+                    continue;
+                }
+
+                $direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
+
+                $cashAccount = null;
+                if ($isCash) {
+                    $cashAccount = BankAccount::cashAccount();
+                    $bankId = $cashAccount->id;
+                }
 
                 $sale->payments()->create([
-                    'payment_type' => $payment['payment_type'],
+                    'payment_type' => $storePaymentType,
                     'direction' => $direction,
-                    'bank_account_id' => $payment['bank_account_id'] ?? null,
-                    'amount' => $payment['amount'],
+                    'bank_account_id' => $bankId,
+                    'amount' => $paymentAmount,
                     'reference' => $payment['reference'] ?? null,
                 ]);
 
-                // If payment is for a bank account, update the opening balance
-                if (!empty($payment['bank_account_id']) && !empty($payment['amount'])) {
-                    $bank = BankAccount::find($payment['bank_account_id']);
-                    if ($bank) {
-                        $paymentAmount = floatval($payment['amount'] ?? 0);
-                        $bank->opening_balance = ($bank->opening_balance ?? 0)
-                            + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);
-                        $bank->save();
+                $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
+                if ($bank) {
+                    $bank->opening_balance = ($bank->opening_balance ?? 0)
+                        + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);
+                    $bank->save();
 
-                        BankTransaction::create([
-                            'from_bank_account_id' => $bank->id,
-                            'to_bank_account_id' => null,
-                            'type' => $direction === 'payment_out' ? 'sale_payment_out' : 'sale_payment',
-                            'amount' => $paymentAmount,
-                            'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
-                            'reference_type' => 'sale',
-                            'reference_id' => $sale->id,
-                            'description' => $direction === 'payment_out'
-                                ? 'Payment paid to party for invoice #' . ($sale->bill_number ?: $sale->id)
-                                : 'Additional payment received for invoice #' . ($sale->bill_number ?: $sale->id),
-                            'meta' => [
-                                'party_id' => $sale->party_id,
-                                'payment_type' => $payment['payment_type'] ?? null,
-                                'reference' => $payment['reference'] ?? null,
-                                'direction' => $direction,
-                            ],
-                        ]);
-                    }
+                    $transactionType = $isCash
+                        ? ($direction === 'payment_out' ? 'cash_out' : 'cash_in')
+                        : ($direction === 'payment_out' ? 'sale_payment_out' : 'sale_payment');
+
+                    $transactionDescription = $isCash
+                        ? ($direction === 'payment_out'
+                            ? 'Cash paid for invoice #' . ($sale->bill_number ?: $sale->id)
+                            : 'Cash received for invoice #' . ($sale->bill_number ?: $sale->id))
+                        : ($direction === 'payment_out'
+                            ? 'Payment paid to party for invoice #' . ($sale->bill_number ?: $sale->id)
+                            : 'Additional payment received for invoice #' . ($sale->bill_number ?: $sale->id));
+
+                    BankTransaction::create([
+                        'from_bank_account_id' => $bank->id,
+                        'to_bank_account_id' => null,
+                        'type' => $transactionType,
+                        'amount' => $paymentAmount,
+                        'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
+                        'reference_type' => 'sale',
+                        'reference_id' => $sale->id,
+                        'description' => $transactionDescription,
+                        'meta' => [
+                            'party_id' => $sale->party_id,
+                            'payment_type' => $storePaymentType,
+                            'reference' => $payment['reference'] ?? null,
+                            'direction' => $direction,
+                        ],
+                    ]);
                 }
 
             }
@@ -754,8 +911,8 @@ private function posData(): array
         }
 
         $redirectUrl = match ($sale->type) {
-            'estimate' => route('invoice', ['sale_id' => $sale->id, 'print' => 1]),
-            'sale_order' => route('invoice', ['sale_id' => $sale->id, 'print' => 1]),
+            'estimate' => route('invoice', ['sale_id' => $sale->id]),
+            'sale_order' => route('invoice', ['sale_id' => $sale->id]),
             'proforma' => route('proforma-invoice'),
             default => route('sale.index'),
         };

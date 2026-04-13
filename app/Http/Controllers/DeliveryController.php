@@ -97,7 +97,8 @@ class DeliveryController extends Controller
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
-            'redirect_url' => route('invoice', ['sale_id' => $sale->id, 'print' => 1]),
+            'redirect_url' => route('invoice', ['sale_id' => $sale->id, 'doc' => 'delivery_challan']),
+            'share_url' => route('invoice', ['sale_id' => $sale->id, 'doc' => 'delivery_challan']),
         ]);
     }
 
@@ -139,6 +140,7 @@ class DeliveryController extends Controller
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => route('delivery-challan'),
+            'share_url' => route('invoice', ['sale_id' => $sale->id, 'doc' => 'delivery_challan']),
         ]);
     }
 

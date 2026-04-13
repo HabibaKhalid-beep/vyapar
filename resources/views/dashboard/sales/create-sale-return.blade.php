@@ -221,6 +221,7 @@
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control default-payment-type">
                                             <option value="" selected disabled>Select Payment Type</option>
+                                            <option value="cash">Cash</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
@@ -243,6 +244,7 @@
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control payment-type-entry">
                                             <option value="" selected disabled>Select Bank Account</option>
+                                            <option value="cash">Cash</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
@@ -719,7 +721,6 @@
 </body>
 
 </html>
-
 
 
 

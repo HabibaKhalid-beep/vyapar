@@ -213,9 +213,16 @@
                     <a href="#" onclick="openSaleReturnPrint('{{ route('invoice', ['sale_id' => $saleReturn->id, 'print' => 1]) }}'); return false;" class="icon-action" title="Print">
                       <i class="fa-solid fa-print"></i>
                     </a>
-                    <a href="{{ route('sale-return.preview', $saleReturn->id) }}" target="_blank" class="icon-action" title="Preview">
-                      <i class="fa-solid fa-share-nodes"></i>
-                    </a>
+                    <div class="dropdown d-inline">
+                      <button class="icon-action dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Share">
+                        <i class="fa-solid fa-share-nodes"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('whatsapp', '{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fa-brands fa-whatsapp me-2"></i>WhatsApp</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('gmail', '{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fa-solid fa-envelope me-2"></i>Gmail</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('copy', '{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fa-regular fa-copy me-2"></i>Copy Link</a></li>
+                      </ul>
+                    </div>
                   </td>
                   <td class="text-center">
                     <div class="dropdown">
@@ -225,8 +232,9 @@
                       <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                         <li><a class="dropdown-item" href="{{ route('sale-return.edit', $saleReturn->id) }}"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
                         <li><a class="dropdown-item" href="#" onclick="openSaleReturnPdf('{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="{{ route('sale-return.preview', $saleReturn->id) }}" target="_blank"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openSaleReturnPreview('{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
                         <li><a class="dropdown-item" href="#" onclick="openSaleReturnPrint('{{ route('invoice', ['sale_id' => $saleReturn->id, 'print' => 1]) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="viewSaleReturnHistory('{{ route('sale-return.bank-history', $saleReturn->id) }}'); return false;"><i class="fas fa-clock-rotate-left me-2"></i>View History</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteSaleReturn('{{ route('sale-return.destroy', $saleReturn->id) }}'); return false;"><i class="fas fa-trash me-2"></i>Delete</a></li>
                       </ul>
@@ -245,17 +253,111 @@
     </div>
   </main>
 
+  <div class="modal fade" id="saleReturnHistoryModal" tabindex="-1" aria-labelledby="saleReturnHistoryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="saleReturnHistoryLabel">View History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Bank</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Reference</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="saleReturnHistoryBody">
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-4">No history to show.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script>
+    const saleReturnCsrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
     function openSaleReturnPdf(url) {
+      window.open(url, '_blank');
+    }
+
+    function openSaleReturnPreview(url) {
       window.open(url, '_blank');
     }
 
     function openSaleReturnPrint(url) {
       window.open(url, '_blank');
+    }
+
+    function shareSaleReturn(channel, url) {
+      const encoded = encodeURIComponent(url);
+      if (channel === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encoded}`, '_blank');
+        return;
+      }
+
+      if (channel === 'gmail') {
+        window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=Sale%20Return&body=${encoded}`, '_blank');
+        return;
+      }
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard.'));
+      } else {
+        window.prompt('Copy this link:', url);
+      }
+    }
+
+    function viewSaleReturnHistory(historyUrl) {
+      const modalEl = document.getElementById('saleReturnHistoryModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      const tbody = document.getElementById('saleReturnHistoryBody');
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>`;
+
+      fetch(historyUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': saleReturnCsrf,
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          const rows = (data.entries || []).map((entry, index) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${entry.bank_name || '-'}</td>
+              <td>${entry.type || '-'}</td>
+              <td>Rs ${Number(entry.amount || 0).toFixed(2)}</td>
+              <td>${entry.reference || '-'}</td>
+              <td>${entry.date || '-'}</td>
+            </tr>
+          `).join('');
+
+          tbody.innerHTML = rows || `<tr><td colspan="6" class="text-center text-muted py-4">No history found.</td></tr>`;
+          modal.show();
+        })
+        .catch(() => {
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Unable to load history.</td></tr>`;
+          modal.show();
+        });
     }
 
     function deleteSaleReturn(url) {
@@ -266,7 +368,7 @@
       fetch(url, {
         method: 'DELETE',
         headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+          'X-CSRF-TOKEN': saleReturnCsrf,
           'Accept': 'application/json',
         },
       })

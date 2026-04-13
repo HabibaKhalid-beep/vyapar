@@ -79,15 +79,15 @@
 
 <div class="filter-dropdown" id="filterDropdown">
 
-<label><input type="checkbox"> All</label>
-<label><input type="checkbox"> Active</label>
-<label><input type="checkbox"> Inactive</label>
-<label><input type="checkbox"> To Receive</label>
-<label><input type="checkbox"> To Pay</label>
+<label><input type="checkbox" data-party-filter="all" checked> All</label>
+<label><input type="checkbox" data-party-filter="active"> Active</label>
+<label><input type="checkbox" data-party-filter="inactive"> Inactive</label>
+<label><input type="checkbox" data-party-filter="receive"> To Receive</label>
+<label><input type="checkbox" data-party-filter="pay"> To Pay</label>
 
 <div class="filter-actions">
-<button class="clear-btn">Clear</button>
-<button class="apply-btn">Apply</button>
+<button class="clear-btn" type="button" id="partyFilterClear">Clear</button>
+<button class="apply-btn" type="button" id="partyFilterApply">Apply</button>
 </div>
 
 </div>
@@ -1845,6 +1845,69 @@ document.addEventListener("DOMContentLoaded", function () {
         { key: 'balance', label: 'Balance' },
         { key: 'status', label: 'Status' }
     ];
+    const partyFilterDropdown = document.getElementById("filterDropdown");
+    const partyFilterApply = document.getElementById("partyFilterApply");
+    const partyFilterClear = document.getElementById("partyFilterClear");
+    const partyFilterInputs = partyFilterDropdown
+        ? Array.from(partyFilterDropdown.querySelectorAll('input[data-party-filter]'))
+        : [];
+
+    function parseBalance(value) {
+        const numeric = parseFloat(String(value || '').replace(/,/g, ''));
+        return Number.isFinite(numeric) ? numeric : 0;
+    }
+
+    function getSelectedPartyFilters() {
+        if (!partyFilterInputs.length) return ['all'];
+        const selected = partyFilterInputs.filter(input => input.checked).map(input => input.dataset.partyFilter);
+        if (!selected.length || selected.includes('all')) {
+            return ['all'];
+        }
+        return selected.filter(value => value !== 'all');
+    }
+
+    function applyPartyFilters() {
+        if (!partyList) return;
+        const selectedFilters = getSelectedPartyFilters();
+        const partyItems = Array.from(partyList.querySelectorAll('.party-item'));
+        let firstVisible = null;
+
+        partyItems.forEach(li => {
+            const balance = parseBalance(li.dataset.currentBalance);
+            const transactionType = String(li.dataset.transactionType || '').toLowerCase();
+            const isActive = Math.abs(balance) > 0.0001;
+            const isReceive = balance > 0 || transactionType === 'receive';
+            const isPay = balance < 0 || transactionType === 'pay';
+
+            const shouldShow = selectedFilters.includes('all') || selectedFilters.some(filter => {
+                if (filter === 'active') return isActive;
+                if (filter === 'inactive') return !isActive;
+                if (filter === 'receive') return isReceive;
+                if (filter === 'pay') return isPay;
+                return false;
+            });
+
+            li.style.display = shouldShow ? '' : 'none';
+            if (shouldShow && !firstVisible) {
+                firstVisible = li;
+            }
+        });
+
+        const activeLi = currentPartyId
+            ? partyList.querySelector(`.party-item[data-id="${currentPartyId}"]`)
+            : null;
+
+        if (!activeLi || activeLi.style.display === 'none') {
+            document.querySelectorAll('.party-item').forEach(item => item.classList.remove('active'));
+            currentPartyId = null;
+
+            if (firstVisible) {
+                firstVisible.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            } else {
+                showTxnMessage('fa-solid fa-receipt', 'No parties found', 'Try a different filter');
+            }
+        }
+    }
 
     // Checkbox mutually exclusive
     const toReceive = document.getElementById('toReceive');
@@ -1865,6 +1928,38 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
     creditLimitSwitch.addEventListener('change', syncCreditLimitVisibility);
+
+    if (partyFilterInputs.length) {
+        const allInput = partyFilterInputs.find(input => input.dataset.partyFilter === 'all');
+
+        partyFilterInputs.forEach(input => {
+            input.addEventListener('change', function () {
+                if (this.dataset.partyFilter === 'all' && this.checked) {
+                    partyFilterInputs.forEach(other => {
+                        if (other !== this) other.checked = false;
+                    });
+                    return;
+                }
+
+                if (this.dataset.partyFilter !== 'all' && this.checked && allInput) {
+                    allInput.checked = false;
+                }
+            });
+        });
+
+        partyFilterApply?.addEventListener('click', function () {
+            applyPartyFilters();
+            if (partyFilterDropdown) partyFilterDropdown.style.display = 'none';
+        });
+
+        partyFilterClear?.addEventListener('click', function () {
+            partyFilterInputs.forEach(input => {
+                input.checked = input.dataset.partyFilter === 'all';
+            });
+            applyPartyFilters();
+            if (partyFilterDropdown) partyFilterDropdown.style.display = 'none';
+        });
+    }
 
     document.querySelectorAll('[data-transfer-toggle]').forEach((toggle) => {
         toggle.addEventListener('click', function (event) {

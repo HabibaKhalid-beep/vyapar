@@ -10,6 +10,7 @@ class BankAccount extends Model
 
     protected $fillable = [
         'display_name',
+        'type',
         'opening_balance',
         'as_of_date',
         'account_number',
@@ -45,6 +46,21 @@ public function paymentIns() {
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public static function cashAccount(): self
+    {
+        return static::firstOrCreate(
+            ['type' => 'cash'],
+            [
+                'display_name' => 'Cash in Hand',
+                'opening_balance' => 0,
+                'bank_name' => 'Cash',
+                'account_holder_name' => 'Cash',
+                'print_on_invoice' => false,
+                'is_active' => true,
+            ]
+        );
     }
 
     public function getDisplayWithAccountAttribute(): string

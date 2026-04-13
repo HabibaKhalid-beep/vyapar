@@ -447,17 +447,19 @@ function initializeForm(context) {
         return data;
     }
 
-    // Save button
-    $ctx.on('click', '.btn-save', function() {
+    function submitEstimate(btn, options = {}) {
         const saleData = gatherSaleData();
+        const idleText = options.idleText || 'Save';
+        const loadingText = options.loadingText || 'Saving...';
+        const successMessage = options.successMessage || 'Estimate saved successfully! Redirecting...';
+        const redirectToShare = Boolean(options.redirectToShare);
 
         if (!saleData.items.length) {
             alert('Please add at least one item before saving.');
             return;
         }
 
-        const btn = $(this);
-        btn.prop('disabled', true).text('Saving...');
+        btn.prop('disabled', true).text(loadingText);
 
         fetch(window.saleStoreUrl, {
             method: window.saleMethod || 'POST',
@@ -491,11 +493,12 @@ function initializeForm(context) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
 
-                    showToast('Estimate saved successfully! Redirecting...', false);
+                    showToast(successMessage, false);
 
-                    if (data.redirect_url) {
+                    const targetUrl = redirectToShare ? (data.share_url || data.redirect_url) : data.redirect_url;
+                    if (targetUrl) {
                         setTimeout(() => {
-                            window.location.href = data.redirect_url;
+                            window.location.href = targetUrl;
                         }, 2000);
                     }
 
@@ -510,8 +513,25 @@ function initializeForm(context) {
                 showToast('Error saving estimate. ' + (err.message || ''), true);
             })
             .finally(() => {
-                btn.prop('disabled', false).text('Save');
+                btn.prop('disabled', false).text(idleText);
             });
+    }
+
+    $ctx.on('click', '.btn-save', function() {
+        submitEstimate($(this), {
+            idleText: 'Save',
+            loadingText: 'Saving...',
+            successMessage: 'Estimate saved successfully! Redirecting...',
+        });
+    });
+
+    $ctx.on('click', '.btn-share-main', function() {
+        submitEstimate($(this), {
+            redirectToShare: true,
+            idleText: 'Share',
+            loadingText: 'Saving...',
+            successMessage: 'Estimate saved successfully! Opening invoice preview...',
+        });
     });
 
     // Add description/image/document actions

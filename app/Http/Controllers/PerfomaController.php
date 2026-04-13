@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class PerfomaController extends Controller
@@ -12,10 +13,24 @@ class PerfomaController extends Controller
     public function proformaInvoice(Request $request)
     {
         $search = trim((string) $request->get('search', ''));
+        $dateRange = $request->get('date_range', 'all');
+        $partyId = $request->get('party_id', 'all');
+        $dateRangeLabel = $this->formatProformaDateRangeText($dateRange);
 
         $baseQuery = Sale::with(['items', 'payments', 'party'])
             ->where('type', 'proforma')
             ->orderByDesc('created_at');
+
+        if ($dateRange !== 'all') {
+            $range = $this->resolveProformaDateRange($dateRange);
+            if ($range) {
+                $baseQuery->whereBetween('invoice_date', [$range['from']->toDateString(), $range['to']->toDateString()]);
+            }
+        }
+
+        if ($partyId !== 'all') {
+            $baseQuery->where('party_id', $partyId);
+        }
 
         $allProformas = (clone $baseQuery)->get();
 
@@ -29,6 +44,10 @@ class PerfomaController extends Controller
         }
 
         $proformas = $baseQuery->get();
+
+        $partyOptions = Party::whereIn('id', $allProformas->pluck('party_id')->filter()->unique())
+            ->orderBy('name')
+            ->get();
 
         $convertedSales = Sale::where('type', 'invoice')
             ->whereNotNull('reference_id')
@@ -44,9 +63,42 @@ class PerfomaController extends Controller
             'proformas',
             'allProformas',
             'search',
+            'dateRange',
+            'dateRangeLabel',
+            'partyId',
+            'partyOptions',
             'convertedSales',
             'convertedSaleOrders'
         ));
+    }
+
+    private function resolveProformaDateRange(string $dateRange): ?array
+    {
+        $today = Carbon::today();
+
+        switch ($dateRange) {
+            case 'this_month':
+                return ['from' => $today->copy()->startOfMonth(), 'to' => $today->copy()->endOfMonth()];
+            case 'last_month':
+                $previous = $today->copy()->subMonthNoOverflow();
+                return ['from' => $previous->copy()->startOfMonth(), 'to' => $previous->copy()->endOfMonth()];
+            case 'this_quarter':
+                return ['from' => $today->copy()->startOfQuarter(), 'to' => $today->copy()->endOfQuarter()];
+            case 'this_year':
+                return ['from' => $today->copy()->startOfYear(), 'to' => $today->copy()->endOfYear()];
+            default:
+                return null;
+        }
+    }
+
+    private function formatProformaDateRangeText(string $dateRange): string
+    {
+        $range = $this->resolveProformaDateRange($dateRange);
+        if (! $range) {
+            return 'All dates';
+        }
+
+        return $range['from']->format('d/m/Y') . ' To ' . $range['to']->format('d/m/Y');
     }
 
     public function createProformaInvoice()
@@ -84,6 +136,7 @@ class PerfomaController extends Controller
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => route('proforma-invoice.react', $sale),
+            'share_url' => route('proforma-invoice.react', $sale),
         ]);
     }
 
@@ -102,6 +155,7 @@ class PerfomaController extends Controller
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => route('proforma-invoice.react', $sale),
+            'share_url' => route('proforma-invoice.react', $sale),
         ]);
     }
 

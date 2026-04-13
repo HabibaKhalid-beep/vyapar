@@ -37,15 +37,33 @@ class InvoiceController extends Controller
 
         if ($request->filled('sale_id')) {
             $sale = Sale::with(['items.item', 'party', 'broker', 'challanDetail', 'payments.bankAccount'])
+
                 ->findOrFail($request->integer('sale_id'));
+
+            $docType = $request->query('doc');
+            $invoiceSource = $sale;
+
+            if ($docType === 'delivery_challan') {
+                if ($sale->type === 'delivery_challan') {
+                    $invoiceSource = $sale;
+                } elseif ($sale->reference_id) {
+                    $sourceChallan = Sale::with(['items.item', 'party', 'challanDetail'])
+                        ->whereKey($sale->reference_id)
+                        ->where('type', 'delivery_challan')
+                        ->first();
+                    if ($sourceChallan) {
+                        $invoiceSource = $sourceChallan;
+                    }
+                }
+            }
 
             $invoiceAppData = [
                 'saleId' => $sale->id,
-                'invoiceData' => $this->mapSaleToReactInvoiceData($sale),
+                'invoiceData' => $this->mapSaleToReactInvoiceData($invoiceSource),
                 'initialTheme' => (string) $request->query('theme', 'tally'),
                 'initialColor' => (string) $request->query('accent', '#707070'),
                 'invoicePdfUrl' => route('sale.invoice-pdf', $sale),
-                'browserTabLabel' => 'Invoice #' . ($sale->bill_number ?: $sale->id),
+                'browserTabLabel' => ($invoiceSource->type === 'delivery_challan' ? 'Delivery Challan' : 'Invoice') . ' #' . ($invoiceSource->bill_number ?: $invoiceSource->id),
                 'saveCloseUrl' => route('sale.index'),
             ];
         } elseif ($request->filled('payment_in')) {
@@ -123,6 +141,7 @@ class InvoiceController extends Controller
 
     private function mapSaleToReactInvoiceData(Sale $sale): array
     {
+        $sale->loadMissing(['challanDetail']);
         $bankAccount = $sale->payments
             ->pluck('bankAccount')
             ->filter()
@@ -150,6 +169,9 @@ class InvoiceController extends Controller
         $invoiceDate = $sale->invoice_date ? Carbon::parse($sale->invoice_date) : $createdAt;
         $challanDetail = $sale->challanDetail;
         $partyCity = (string) ($sale->party?->city ?: '');
+        if ($sale->type === 'delivery_challan' && $sale->challanDetail?->invoice_date) {
+            $invoiceDate = Carbon::parse($sale->challanDetail->invoice_date);
+        }
 
         $paymentsReceived = (float) $sale->payments
             ->sum('amount');
@@ -161,11 +183,16 @@ class InvoiceController extends Controller
         $receivedFromBalance = $totalAmount > 0 ? max($totalAmount - $storedBalance, 0) : 0;
         $receivedAmount = max($receivedAmount, $paymentsReceived, $receivedFromBalance);
 
+        $invoiceNumber = $sale->bill_number ?: $sale->id;
+        if ($sale->type === 'delivery_challan' && $sale->challanDetail?->challan_number) {
+            $invoiceNumber = $sale->challanDetail->challan_number;
+        }
+
         return [
             'title' => $sale->type === 'invoice' ? 'Invoice' : ucwords(str_replace('_', ' ', (string) $sale->type)),
             'businessName' => (string) config('app.name', 'My Company'),
             'businessPhone' => (string) ($bankAccount?->phone ?: ''),
-            'invoiceNo' => (string) ($sale->bill_number ?: $sale->id),
+            'invoiceNo' => (string) $invoiceNumber,
             'date' => $invoiceDate->format('d/m/Y'),
             'time' => $createdAt->format('h:i A'),
             'billTo' => (string) ($sale->display_party_name !== '-' ? $sale->display_party_name : 'Walk-in Customer'),

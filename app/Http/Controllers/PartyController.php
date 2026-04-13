@@ -471,16 +471,25 @@ private function buildLedgerSourceKey(string $type, string $number): string
 
 private function saleActionUrls(Sale $sale): array
 {
+    $reactPreviewUrl = route('invoice', ['sale_id' => $sale->id]);
+    $reactPdfUrl = route('invoice', ['sale_id' => $sale->id]);
+    $reactPrintUrl = route('invoice', ['sale_id' => $sale->id, 'print' => 1]);
+    $reactDeliveryPreviewUrl = route('invoice', ['sale_id' => $sale->id, 'doc' => 'delivery_challan']);
+    $reactDeliveryPrintUrl = $reactDeliveryPreviewUrl . '&print=1';
+    $reactProformaPreviewUrl = route('proforma-invoice.react', $sale);
+    $reactProformaPdfUrl = $reactProformaPreviewUrl;
+    $reactProformaPrintUrl = $reactProformaPreviewUrl . '?print=1';
+
     return match ($sale->type) {
         'invoice', 'pos' => [
             'view' => route('sale.edit', $sale),
             'delete' => route('sale.destroy', $sale),
             'cancel' => route('sale.cancel', $sale),
             'duplicate' => route('sale.create', ['type' => $sale->type === 'pos' ? 'pos' : 'invoice']) . '?duplicate_sale_id=' . $sale->id,
-            'pdf' => route('sale.invoice-pdf', $sale),
-            'preview' => route('sale.invoice-preview', $sale),
-            'print' => route('sale.invoice-pdf', $sale),
-            'preview_delivery' => route('sale.delivery-preview', $sale),
+            'pdf' => $reactPdfUrl,
+            'preview' => $reactPreviewUrl,
+            'print' => $reactPrintUrl,
+            'preview_delivery' => $reactDeliveryPreviewUrl,
             'convert_return' => route('sale-return.create', ['sale_id' => $sale->id]),
             'history' => route('sale.bank-history', $sale),
         ],
@@ -513,9 +522,9 @@ private function saleActionUrls(Sale $sale): array
             'delete' => route('proforma-invoice.destroy', $sale),
             'cancel' => null,
             'duplicate' => route('proforma-invoice.duplicate', $sale),
-            'pdf' => route('proforma-invoice.pdf', $sale),
-            'preview' => route('proforma-invoice.preview', $sale),
-            'print' => route('proforma-invoice.print', $sale),
+            'pdf' => $reactProformaPdfUrl,
+            'preview' => $reactProformaPreviewUrl,
+            'print' => $reactProformaPrintUrl,
             'preview_delivery' => null,
             'convert_return' => null,
             'history' => null,
@@ -525,10 +534,10 @@ private function saleActionUrls(Sale $sale): array
             'delete' => route('delivery-challan.destroy', $sale),
             'cancel' => null,
             'duplicate' => route('delivery-challan.duplicate', $sale),
-            'pdf' => route('delivery-challan.pdf', $sale),
-            'preview' => route('delivery-challan.preview', $sale),
-            'print' => route('delivery-challan.print', $sale),
-            'preview_delivery' => route('delivery-challan.preview', $sale),
+            'pdf' => $reactDeliveryPreviewUrl,
+            'preview' => $reactDeliveryPreviewUrl,
+            'print' => $reactDeliveryPrintUrl,
+            'preview_delivery' => $reactDeliveryPreviewUrl,
             'convert_return' => null,
             'history' => null,
         ],

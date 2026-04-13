@@ -82,6 +82,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/estimates/{sale}/print', [SaleController::class, 'printEstimate'])->name('estimates.print');
     Route::get('/estimates/{sale}/pdf', [SaleController::class, 'pdfEstimate'])->name('estimates.pdf');
     Route::get('/sale-orders/{sale}/convert-to-sale', [SaleController::class, 'createFromSaleOrder'])->name('sale-orders.convert-to-sale');
+    Route::post('/sale-orders/bulk-convert', [SaleController::class, 'bulkConvertSaleOrders'])->name('sale-orders.bulk-convert');
     Route::get('/delivery-challans/{sale}/convert-to-sale', [SaleController::class, 'createFromDeliveryChallan'])->name('delivery-challans.convert-to-sale');
     Route::get('/sale-orders/{sale}/preview', [SaleController::class, 'previewSaleOrder'])->name('sale-orders.preview');
     Route::get('/sale-orders/{sale}/print', [SaleController::class, 'printSaleOrder'])->name('sale-orders.print');
@@ -121,6 +122,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/sale-return/{sale}/preview', [SaleReturnController::class, 'preview'])->name('sale-return.preview');
     Route::get('/sale-return/{sale}/print', [SaleReturnController::class, 'print'])->name('sale-return.print');
     Route::get('/sale-return/{sale}/pdf', [SaleReturnController::class, 'pdf'])->name('sale-return.pdf');
+    Route::get('/sale-return/{sale}/bank-history', [SaleReturnController::class, 'bankHistory'])->name('sale-return.bank-history');
     Route::get('/sale-return/{sale}/duplicate', [SaleReturnController::class, 'duplicate'])->name('sale-return.duplicate');
 
     // Delivery Challan

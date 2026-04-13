@@ -308,18 +308,21 @@
           <div class="row align-items-end payment-row mb-2">
 
   <div class="col-md-4">
-    <label class="form-label">Bank Account</label>
-    <input type="hidden" class="payment-type" value="bank">
-    <select class="form-select payment-bank" name="bank_account_id">
-    <option value="">-- Select Bank --</option>
-    @foreach($bankAccounts as $bank)
-       @php
-         $accountNumber = preg_replace('/\s+/', '', (string) ($bank->account_number ?? ''));
-         $bankLabel = trim($bank->display_name . ($accountNumber !== '' ? ' - ' . $accountNumber : ''));
-       @endphp
-       <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
-    @endforeach
-</select>
+    <label class="form-label">Payment Type</label>
+    <select class="form-select payment-type-select">
+      <option value="cash">Cash</option>
+      <option value="bank" selected>Bank</option>
+    </select>
+    <select class="form-select payment-bank mt-2" name="bank_account_id">
+      <option value="">-- Select Bank --</option>
+      @foreach($bankAccounts as $bank)
+         @php
+           $accountNumber = preg_replace('/\s+/', '', (string) ($bank->account_number ?? ''));
+           $bankLabel = trim($bank->display_name . ($accountNumber !== '' ? ' - ' . $accountNumber : ''));
+         @endphp
+         <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
+      @endforeach
+    </select>
   </div>
 
   <div class="col-md-3">
@@ -1740,9 +1743,12 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
 
     newRow.innerHTML = `
         <div class="col-md-4">
-            <label class="form-label">Bank Account</label>
-            <input type="hidden" class="payment-type" value="bank">
-            <select class="form-select payment-bank" name="bank_account_id">
+            <label class="form-label">Payment Type</label>
+            <select class="form-select payment-type-select">
+                <option value="cash">Cash</option>
+                <option value="bank" selected>Bank</option>
+            </select>
+            <select class="form-select payment-bank mt-2" name="bank_account_id">
                 <option value="">-- Select Bank --</option>
                 @foreach($bankAccounts as $bank)
                     @php
@@ -1771,6 +1777,8 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
         </div>
     `;
   $('#paymentContainer > div:first').append(newRow);
+  const $newRow = $(newRow);
+  togglePaymentBankRow($newRow);
   updateReceivedTotal();
 });
 
@@ -1779,6 +1787,30 @@ document.addEventListener("click", function (e) {
     if (e.target.closest(".remove-row")) {
         e.target.closest(".payment-row").remove();
         updateReceivedTotal();
+    }
+});
+
+function togglePaymentBankRow($row) {
+    const type = $row.find('.payment-type-select').val() || 'bank';
+    const $bankSelect = $row.find('.payment-bank');
+    if (type === 'cash') {
+        $bankSelect.val('');
+        $bankSelect.addClass('d-none');
+    } else {
+        $bankSelect.removeClass('d-none');
+    }
+}
+
+document.addEventListener("change", function (e) {
+    const select = e.target.closest('.payment-type-select');
+    if (!select) return;
+    togglePaymentBankRow($(select).closest('.payment-row'));
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const firstRow = $('#paymentContainer .payment-row').first();
+    if (firstRow.length) {
+        togglePaymentBankRow(firstRow);
     }
 });
 
@@ -2059,7 +2091,8 @@ function populateEditPaymentIn(paymentIn) {
     firstRow.find('.payment-bank').val(paymentIn.bank_account_id || '');
     firstRow.find('.payment-amount').val(paymentIn.amount || '');
     firstRow.find('.payment-reference').val(paymentIn.reference_no || '');
-    firstRow.find('.payment-type').val(paymentIn.payment_type || 'bank');
+    firstRow.find('.payment-type-select').val((paymentIn.payment_type || 'bank').toLowerCase());
+    togglePaymentBankRow(firstRow);
 
     updateReceivedTotal();
     modal?.show();
@@ -2134,7 +2167,7 @@ $('#paymentInForm').on('submit', function(e) {
 
     const payments = [];
     $('#paymentContainer .payment-row').each(function() {
-        const type = $(this).find('.payment-type').val();
+        const type = $(this).find('.payment-type-select').val();
         const amount = $(this).find('.payment-amount').val();
         const bank_account_id = $(this).find('.payment-bank').val();
         const reference = $(this).find('.payment-reference').val();

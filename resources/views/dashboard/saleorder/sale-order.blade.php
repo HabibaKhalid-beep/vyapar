@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vyapar — Sale Orders</title>
   <meta name="description" content="Record supplier purchase bills with live preview in Vyapar.">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -198,6 +199,9 @@
             <input type="text" placeholder="Search..." name="search" value="{{ $search ?? '' }}">
           </form>
           <div>
+            <button class="btn convert-btn me-2" id="bulkConvertTrigger" type="button">
+              Convert to Sale
+            </button>
             <button class="btn sale-order-add-btn" onclick="window.location='{{ route('sale-order.create') }}'">
               <i class="fa-solid fa-plus me-2"></i>Add Sale Order
             </button>
@@ -208,6 +212,9 @@
           <table class="table sale-order-table align-middle mb-0">
             <thead>
               <tr>
+                <th>
+                  <input type="checkbox" id="selectAllOrders">
+                </th>
                 <th>Party</th>
                 <th>No.</th>
                 <th>Date</th>
@@ -225,9 +232,22 @@
                   $isCompleted = $saleOrder->status === 'completed';
                   $isOverdue = !$isCompleted && $saleOrder->due_date && $saleOrder->due_date->isPast();
                   $statusLabel = $isCompleted ? 'Order Completed' : ($isOverdue ? 'Order Overdue' : ucfirst($saleOrder->status ?? 'pending'));
-                  $convertedInvoiceNumber = $convertedInvoices[$saleOrder->id] ?? $saleOrder->reference_id ?? null;
+                  $convertedInvoiceNumber = $convertedInvoiceNumbers[$saleOrder->id] ?? null;
+                  $convertedInvoiceId = $convertedInvoiceIds[$saleOrder->id] ?? null;
                 @endphp
                 <tr>
+                  <td>
+                    <input type="checkbox"
+                           class="sale-order-select"
+                           value="{{ $saleOrder->id }}"
+                           data-party="{{ $saleOrder->display_party_name }}"
+                           data-number="{{ $saleOrder->bill_number ?? '-' }}"
+                           data-date="{{ optional($saleOrder->order_date)->format('d/m/Y') ?? '-' }}"
+                           data-due="{{ optional($saleOrder->due_date)->format('d/m/Y') ?? '-' }}"
+                           data-total="{{ number_format($saleOrder->grand_total ?? 0, 2) }}"
+                           data-status="{{ $statusLabel }}"
+                           @if($isCompleted) disabled @endif>
+                  </td>
                   <td>{{ $saleOrder->display_party_name }}</td>
                   <td>{{ $saleOrder->bill_number ?? '-' }}</td>
                   <td>{{ optional($saleOrder->order_date)->format('d/m/Y') ?? '-' }}</td>
@@ -256,11 +276,10 @@
                       </button>
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{{ route('sale.edit', $saleOrder->id) }}"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="previewSaleOrder('{{ route('sale-orders.preview', $saleOrder->id) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="printSaleOrder('{{ route('sale-orders.print', $saleOrder->id) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openSaleOrderPdf('{{ route('sale-orders.pdf', $saleOrder->id) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="duplicateSaleOrder('{{ route('sale.edit', $saleOrder->id) }}'); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="viewSaleOrderHistory({{ $saleOrder->id }}); return false;"><i class="fas fa-clock-rotate-left me-2"></i>View History</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="previewSaleOrder('{{ route('invoice', ['sale_id' => $saleOrder->id]) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="printSaleOrder('{{ route('invoice', ['sale_id' => $saleOrder->id, 'print' => 1]) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="duplicateSaleOrder('{{ route('sale-order.create', ['duplicate_sale_id' => $saleOrder->id]) }}'); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="viewSaleOrderHistory('{{ $convertedInvoiceId ? route('sale.bank-history', $convertedInvoiceId) : '' }}'); return false;"><i class="fas fa-clock-rotate-left me-2"></i>View History</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteSaleOrder('{{ route('sale.destroy', $saleOrder->id) }}'); return false;"><i class="fas fa-trash me-2"></i>Delete</a></li>
                       </ul>
@@ -269,7 +288,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="9" class="text-center text-muted py-4">
+                  <td colspan="10" class="text-center text-muted py-4">
                     No sale orders found.
                   </td>
                 </tr>
@@ -283,6 +302,83 @@
 
   </main>
 
+  <!-- Bulk Convert Modal -->
+  <div class="modal fade" id="bulkConvertModal" tabindex="-1" aria-labelledby="bulkConvertModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="bulkConvertModalLabel">Select orders to attach</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="text-muted small">Selected orders</div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Party</th>
+                  <th>No.</th>
+                  <th>Date</th>
+                  <th>Due Date</th>
+                  <th class="text-end">Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="bulkConvertTableBody">
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">Select sale orders to convert.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="bulkConvertConfirm">Convert to Sale</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bank History Modal -->
+  <div class="modal fade" id="saleOrderHistoryModal" tabindex="-1" aria-labelledby="saleOrderHistoryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="saleOrderHistoryLabel">View History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Bank</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Reference</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="saleOrderHistoryBody">
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-4">No history to show.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════════════════════════════════════
      SCRIPTS
      ═══════════════════════════════════════════ -->
@@ -291,6 +387,9 @@
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script>
+    const bulkConvertUrl = "{{ route('sale-orders.bulk-convert') }}";
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
     function previewSaleOrder(url) {
       window.open(url, '_blank');
     }
@@ -307,8 +406,43 @@
       window.open(url, '_blank');
     }
 
-    function viewSaleOrderHistory(id) {
-      alert('History for sale order #' + id + ' will be added next.');
+    function viewSaleOrderHistory(historyUrl) {
+      if (!historyUrl) {
+        alert('No bank history available until the sale order is converted.');
+        return;
+      }
+
+      const modalEl = document.getElementById('saleOrderHistoryModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      const tbody = document.getElementById('saleOrderHistoryBody');
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>`;
+
+      fetch(historyUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          const rows = (data.entries || []).map((entry, index) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${entry.bank_name || '-'}</td>
+              <td>${entry.type || '-'}</td>
+              <td>Rs ${Number(entry.amount || 0).toFixed(2)}</td>
+              <td>${entry.reference || '-'}</td>
+              <td>${entry.date || '-'}</td>
+            </tr>
+          `).join('');
+
+          tbody.innerHTML = rows || `<tr><td colspan="6" class="text-center text-muted py-4">No history found.</td></tr>`;
+          modal.show();
+        })
+        .catch(() => {
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Unable to load history.</td></tr>`;
+          modal.show();
+        });
     }
 
     function deleteSaleOrder(url) {
@@ -336,6 +470,83 @@
           alert(error.message || 'Unable to delete sale order.');
         });
     }
+
+    function getSelectedOrderRows() {
+      return Array.from(document.querySelectorAll('.sale-order-select:checked'))
+        .filter(input => !input.disabled);
+    }
+
+    function populateBulkConvertModal() {
+      const tbody = document.getElementById('bulkConvertTableBody');
+      const rows = getSelectedOrderRows();
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Select sale orders to convert.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((input, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${input.dataset.party || '-'}</td>
+          <td>${input.dataset.number || '-'}</td>
+          <td>${input.dataset.date || '-'}</td>
+          <td>${input.dataset.due || '-'}</td>
+          <td class="text-end">Rs ${input.dataset.total || '0.00'}</td>
+          <td>${input.dataset.status || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('selectAllOrders')?.addEventListener('change', function () {
+      const checked = this.checked;
+      document.querySelectorAll('.sale-order-select').forEach(input => {
+        if (!input.disabled) input.checked = checked;
+      });
+    });
+
+    document.querySelectorAll('.sale-order-select').forEach(input => {
+      input.addEventListener('change', function () {
+        const allInputs = Array.from(document.querySelectorAll('.sale-order-select')).filter(i => !i.disabled);
+        const allChecked = allInputs.length && allInputs.every(i => i.checked);
+        const selectAll = document.getElementById('selectAllOrders');
+        if (selectAll) selectAll.checked = allChecked;
+      });
+    });
+
+    document.getElementById('bulkConvertTrigger')?.addEventListener('click', function () {
+      populateBulkConvertModal();
+      const modalEl = document.getElementById('bulkConvertModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    });
+
+    document.getElementById('bulkConvertConfirm')?.addEventListener('click', function () {
+      const rows = getSelectedOrderRows();
+      if (!rows.length) {
+        alert('Please select at least one sale order.');
+        return;
+      }
+
+      const ids = rows.map(input => Number(input.value));
+      fetch(bulkConvertUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ sale_order_ids: ids }),
+      })
+        .then(async res => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Bulk conversion failed.');
+          window.location.reload();
+        })
+        .catch(err => {
+          alert(err.message || 'Bulk conversion failed.');
+        });
+    });
   </script>
   <script src="{{ asset('js/sale-orders.js') }}"></script>
 

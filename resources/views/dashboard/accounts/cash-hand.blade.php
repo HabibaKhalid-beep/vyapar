@@ -89,7 +89,7 @@
     <div class="d-flex justify-content-between align-items-center bg-light mb-2 p-4">
       <div>
         <span class="mb-0 pe-3  border-end border-dark h4 fw-bold">Cash In Hand</span>
-        <span class="ps-3 fs-5 text-success">Rs 75,874</span>
+        <span class="ps-3 fs-5 text-success">Rs {{ number_format($cashAccount->opening_balance ?? 0, 2) }}</span>
         <!-- <div class="dropdown">
             <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
               <span class="h4"> Estimates / Quotations</span>
@@ -312,11 +312,20 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colspan="4" class="text-center text-muted py-4">
-                  No estimates yet. Click "New Estimate" to create one.
-                </td>
-              </tr>
+              @forelse($cashTransactions as $transaction)
+                <tr>
+                  <td class="col-3">{{ strtoupper(str_replace('_', ' ', $transaction->type ?? 'cash')) }}</td>
+                  <td class="col-3">{{ $transaction->description ?? '-' }}</td>
+                  <td class="col-3">{{ \Illuminate\Support\Carbon::parse($transaction->transaction_date ?? $transaction->created_at)->format('d/m/Y') }}</td>
+                  <td class="col-3">Rs {{ number_format($transaction->amount ?? 0, 2) }}</td>
+                </tr>
+              @empty
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    No cash transactions yet.
+                  </td>
+                </tr>
+              @endforelse
             </tbody>
           </table>
         </div>

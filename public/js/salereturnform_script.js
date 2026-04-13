@@ -233,13 +233,13 @@ function initializeForm(context) {
         let received = 0;
 
         const defaultType = $ctx.find('.default-payment-type').val() || '';
-        if (defaultType.startsWith('bank-')) {
+        if (defaultType.startsWith('bank-') || defaultType === 'cash') {
             received += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
         }
 
         received += Array.from($ctx.find('.payment-type-entry')).reduce((sum, el) => {
             const rawType = $(el).val() || '';
-            if (!rawType.startsWith('bank-')) {
+            if (!rawType.startsWith('bank-') && rawType !== 'cash') {
                 return sum;
             }
 
@@ -327,14 +327,15 @@ function initializeForm(context) {
         const defaultTypeVal = $ctx.find('.default-payment-type').val();
 
         if (defaultTypeVal) {
-            const bankId = parseInt(defaultTypeVal.replace('bank-', ''), 10);
-            const bank = (window.bankAccounts || []).find(b => b.id === bankId);
+            const isCash = defaultTypeVal === 'cash';
+            const bankId = isCash ? null : parseInt(defaultTypeVal.replace('bank-', ''), 10);
+            const bank = !isCash ? (window.bankAccounts || []).find(b => b.id === bankId) : null;
             const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
             const defaultReference = $ctx.find('.default-payment-reference').val() || null;
 
             if (defaultAmount > 0) {
                 payments.push({
-                    payment_type: bank?.display_with_account || bank?.display_name || 'Bank',
+                    payment_type: isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank'),
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -346,6 +347,7 @@ function initializeForm(context) {
             const $entry = $(entry);
             const rawType = $entry.find('.payment-type-entry').val() || '';
             const isBank = rawType.startsWith('bank-');
+            const isCash = rawType === 'cash';
             const bankId = isBank ? rawType.replace('bank-', '') : null;
             const bank = isBank ? (window.bankAccounts || []).find(b => String(b.id) === String(bankId)) : null;
             const amount = parseFloat($entry.find('.payment-amount').val() || 0) || 0;
@@ -356,7 +358,7 @@ function initializeForm(context) {
             }
 
             payments.push({
-                payment_type: isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType,
+                payment_type: isCash ? 'cash' : (isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType),
                 bank_account_id: bankId,
                 amount,
                 reference,
@@ -611,16 +613,19 @@ function initializeForm(context) {
         $ctx.find('.selected-document-name').text(fileName ? 'Document: ' + fileName : '');
     });
 
-    $ctx.on('click', '.btn-save', function() {
+    function submitSaleReturn(btn, options = {}) {
         const saleReturnData = gatherSaleReturnData();
+        const idleText = options.idleText || 'Save';
+        const loadingText = options.loadingText || 'Saving...';
+        const successMessage = options.successMessage || (docLabelTitle + ' saved successfully! Redirecting...');
+        const redirectToShare = Boolean(options.redirectToShare);
 
         if (!saleReturnData.items.length) {
             showToast('Please add at least one item before saving.', true);
             return;
         }
 
-        const btn = $(this);
-        btn.prop('disabled', true).text('Saving...');
+        btn.prop('disabled', true).text(loadingText);
 
         fetch(window.saleReturnStoreUrl, {
             method: window.saleReturnMethod || 'POST',
@@ -655,10 +660,11 @@ function initializeForm(context) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
 
-                    showToast(docLabelTitle + ' saved successfully! Redirecting...');
-                    if (data.redirect_url) {
+                    showToast(successMessage);
+                    const targetUrl = redirectToShare ? (data.share_url || data.redirect_url) : data.redirect_url;
+                    if (targetUrl) {
                         setTimeout(() => {
-                            window.location.href = data.redirect_url;
+                            window.location.href = targetUrl;
                         }, 1500);
                     }
                     return;
@@ -671,8 +677,25 @@ function initializeForm(context) {
                 showToast('Error saving ' + docLabel + '. ' + (err.message || ''), true);
             })
             .finally(() => {
-                btn.prop('disabled', false).text('Save');
+                btn.prop('disabled', false).text(idleText);
             });
+    }
+
+    $ctx.on('click', '.btn-save', function() {
+        submitSaleReturn($(this), {
+            idleText: 'Save',
+            loadingText: 'Saving...',
+            successMessage: docLabelTitle + ' saved successfully! Redirecting...',
+        });
+    });
+
+    $ctx.on('click', '.btn-share-main', function() {
+        submitSaleReturn($(this), {
+            redirectToShare: true,
+            idleText: 'Share',
+            loadingText: 'Saving...',
+            successMessage: docLabelTitle + ' saved successfully! Opening invoice preview...',
+        });
     });
 
     setupAdjustmentControls();

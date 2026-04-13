@@ -207,7 +207,7 @@
 
                 <div class="window-controls d-flex align-items-center px-2 gap-3">
                     <i id="calc-icon" class="fa-solid fa-calculator" title="Calculator"></i>
-                    <i class="fa-solid fa-gear" title="Settings"></i>
+                    <i class="fa-solid fa-gear" title="Settings" data-bs-toggle="offcanvas" data-bs-target="#saleSettingsSidebar" aria-controls="saleSettingsSidebar"></i>
                     <i class="fa-solid fa-xmark close-app-icon" title="Close Window"></i>
                 </div>
             </div>
@@ -353,6 +353,9 @@
                             </div>
 
                             <div class="header-right w-25">
+                                <div class="d-flex justify-content-end mb-2">
+                                   
+                                </div>
                                 <div class="input-group">
                                     <span>Invoice No.</span>
                                     <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
@@ -361,8 +364,16 @@
                                     <span>Invoice Date</span>
                                     <input type="date" class="input-control underline-input invoice-date">
                                 </div>
-                                <div class="input-group date-wrapper">
+                                <div class="input-group date-wrapper due-date-group">
                                     <span>Due Date</span>
+                                    <select class="input-control underline-input due-days-select">
+                                        <option value="0">Due on Receipt</option>
+                                        <option value="15">15 Days</option>
+                                        <option value="30">30 Days</option>
+                                        <option value="45">45 Days</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                    <input type="number" class="input-control underline-input due-days-custom d-none" placeholder="Custom days">
                                     <input type="date" class="input-control underline-input due-date">
                                 </div>
 
@@ -387,27 +398,9 @@
                                         <th>PRICE/UNIT</th>
                                         <th>AMOUNT</th>
                                         <th class="add-col" style="position: relative;">
-                                            <button type="button" class="btn-add-circle table-settings-btn"><i
-                                                    class="fa-solid fa-plus"></i></button>
-                                            <!-- Settings Box -->
-                                            <div class="settings-box">
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-category">
-                                                    <label>Item Category</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-item-code">
-                                                    <label>Item Code</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-description">
-                                                    <label>Description</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-discount">
-                                                    <label>Discount</label>
-                                                </div>
-                                            </div>
+                                            <button type="button" class="btn-add-circle table-settings-btn" data-bs-toggle="modal" data-bs-target="#itemColumnModal">
+                                                <i class="fa-solid fa-plus"></i>
+                                            </button>
                                         </th>
                                     </tr>
                                 </thead>
@@ -423,7 +416,21 @@
                                                 <option value="" selected disabled>Select Item</option>
                                                 @foreach($items as $item)
 
-                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>
+                                                    <option value="{{ $item->id }}"
+                                                        data-price="{{ $item->price }}"
+                                                        data-sale-price="{{ $item->sale_price }}"
+                                                        data-stock="{{ $item->opening_qty }}"
+                                                        data-location="{{ $item->location }}"
+                                                        data-label="{{ $item->name }}"
+                                                        data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}"
+                                                        data-unit="{{ $item->unit }}"
+                                                        data-category="{{ $item->category->name ?? $item->category_name ?? $item->category_id ?? '' }}"
+                                                        data-item-code="{{ $item->item_code ?? '' }}"
+                                                        data-description="{{ $item->description ?? $item->item_description ?? '' }}"
+                                                        data-discount="{{ $item->discount ?? 0 }}"
+                                                    >
+                                                        {{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}
+                                                    </option>
 
                                                     @endforeach
                                             </select>
@@ -493,12 +500,13 @@
                                             <option value="payment_in" selected>Payment In</option>
                                             <option value="payment_out">Payment Out</option>
                                         </select>
-                                        <select class="input-control default-payment-type">
-                                            <option value="" selected disabled>Select Payment Type</option>
-                                            @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
-                                            @endforeach
-                                        </select>
+                                         <select class="input-control default-payment-type">
+                                              <option value="" selected disabled>Select Payment Type</option>
+                                              <option value="cash">Cash</option>
+                                              @foreach($bankAccounts as $bank)
+                                                  <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
+                                              @endforeach
+                                          </select>
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
                                     </div>
@@ -521,12 +529,13 @@
                                             <option value="payment_in" selected>Payment In</option>
                                             <option value="payment_out">Payment Out</option>
                                         </select>
-                                        <select class="input-control payment-type-entry">
-                                            <option value="" selected disabled>Select Bank Account</option>
-                                            @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
-                                            @endforeach
-                                        </select>
+                                         <select class="input-control payment-type-entry">
+                                              <option value="" selected disabled>Select Bank Account</option>
+                                              <option value="cash">Cash</option>
+                                              @foreach($bankAccounts as $bank)
+                                                  <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
+                                              @endforeach
+                                          </select>
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control payment-reference" placeholder="Reference">
                                         <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
@@ -645,6 +654,194 @@
                 </div>
             </template>
         </main>
+    </div>
+
+    <!-- Item Column Settings Modal -->
+    <div class="modal fade" id="itemColumnModal" tabindex="-1" aria-labelledby="itemColumnModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="itemColumnModalLabel">Add fields to items</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input check-category" type="checkbox" id="colCategoryCheck">
+                        <label class="form-check-label" for="colCategoryCheck">Item Category</label>
+                    </div>
+                    <div class="mb-3">
+                        <select class="form-select form-select-sm item-filter-category" disabled>
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input check-item-code" type="checkbox" id="colItemCodeCheck">
+                        <label class="form-check-label" for="colItemCodeCheck">Item Code</label>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm item-filter-code" placeholder="Filter by code" disabled>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input check-description" type="checkbox" id="colDescriptionCheck">
+                        <label class="form-check-label" for="colDescriptionCheck">Description</label>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm item-filter-description" placeholder="Filter by description" disabled>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input check-discount" type="checkbox" id="colDiscountCheck">
+                        <label class="form-check-label" for="colDiscountCheck">Discount</label>
+                    </div>
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm item-filter-discount" disabled>
+                            <option value="">Any Discount</option>
+                            <option value="has">Has Discount</option>
+                            <option value="none">No Discount</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary w-100 item-filter-apply" data-bs-dismiss="modal">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sale Settings Sidebar -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="saleSettingsSidebar" aria-labelledby="saleSettingsSidebarLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="saleSettingsSidebarLabel">Sale Settings</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <div class="fw-semibold">Sale Prefix</div>
+                    <div class="text-muted small">INV- <a href="#" class="text-decoration-none">Edit</a></div>
+                </div>
+                <input class="form-check-input" type="checkbox" checked>
+            </div>
+            <div class="list-group mb-3">
+                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="modal" data-bs-target="#itemColumnModal">
+                    <div>
+                        <div class="fw-semibold">Add fields to invoice</div>
+                        <div class="text-muted small">Select columns to show</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <label class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">Quick Entry</div>
+                        <div class="text-muted small">Speed up data entry</div>
+                    </div>
+                    <input class="form-check-input" type="checkbox">
+                </label>
+                <label class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">Link payment to invoices</div>
+                        <div class="text-muted small">Keep payment history linked</div>
+                    </div>
+                    <input class="form-check-input" type="checkbox" checked>
+                </label>
+                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">Due dates &amp; payment terms</div>
+                        <div class="text-muted small">Set payment terms</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="modal" data-bs-target="#additionalChargesModal">
+                    <div>
+                        <div class="fw-semibold">Additional charges</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <a href="{{ route('settings.print-layout') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div class="fw-semibold">Print Settings</div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+            <div class="mb-3">
+                <div class="fw-semibold mb-2">Billing Type</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="billingType" id="billingLite" value="lite">
+                    <label class="form-check-label" for="billingLite">Lite Sale</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="billingType" id="billingFull" value="full" checked>
+                    <label class="form-check-label" for="billingFull">Full Sale</label>
+                </div>
+            </div>
+            <button class="btn btn-link text-decoration-none p-0"><i class="fa-solid fa-gear me-1"></i> More Settings</button>
+        </div>
+    </div>
+
+    <!-- Additional Charges Modal -->
+    <div class="modal fade" id="additionalChargesModal" tabindex="-1" aria-labelledby="additionalChargesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="additionalChargesModalLabel">Additional Charges</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="fw-semibold">Enable Additional Charges</span>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="additionalChargesToggle" checked>
+                        </div>
+                    </div>
+                    <div class="additional-charge-block">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input class="form-check-input additional-charge-check" type="checkbox" checked>
+                            <input type="text" class="form-control form-control-sm additional-charge-input" value="Shipping">
+                            <select class="form-select form-select-sm additional-charge-tax">
+                                <option>NONE</option>
+                                <option>GST 5%</option>
+                                <option>GST 12%</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch mb-3 ms-4">
+                            <input class="form-check-input additional-charge-tax-check" type="checkbox">
+                            <label class="form-check-label small">Enable tax for Shipping</label>
+                        </div>
+                    </div>
+                    <div class="additional-charge-block">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input class="form-check-input additional-charge-check" type="checkbox" checked>
+                            <input type="text" class="form-control form-control-sm additional-charge-input" value="Packaging">
+                            <select class="form-select form-select-sm additional-charge-tax">
+                                <option>NONE</option>
+                                <option>GST 5%</option>
+                                <option>GST 12%</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch mb-3 ms-4">
+                            <input class="form-check-input additional-charge-tax-check" type="checkbox">
+                            <label class="form-check-label small">Enable tax for Packaging</label>
+                        </div>
+                    </div>
+                    <div class="additional-charge-block">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input class="form-check-input additional-charge-check" type="checkbox" checked>
+                            <input type="text" class="form-control form-control-sm additional-charge-input" value="Adjustment">
+                            <select class="form-select form-select-sm additional-charge-tax">
+                                <option>NONE</option>
+                                <option>GST 5%</option>
+                                <option>GST 12%</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch ms-4">
+                            <input class="form-check-input additional-charge-tax-check" type="checkbox">
+                            <label class="form-check-label small">Enable tax for Adjustment</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger w-100">Save Details</button>
+                </div>
+            </div>
+        </div>
     </div>
 
 
@@ -1096,4 +1293,3 @@ else {
 </body>
 
 </html>
-

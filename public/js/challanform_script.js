@@ -234,17 +234,52 @@ function initializeForm(context) {
     $ctx.on('click', '.remove-new-image', function () { pendingImages.splice(Number($(this).closest('.image-card').data('new-index')), 1); renderImages(); });
     $ctx.on('click', '.remove-existing-image', function () { existingImagePaths.splice(Number($(this).closest('.image-card').data('existing-index')), 1); renderImages(); });
 
-    $ctx.on('click', '.btn-save', async function () {
-        const challanData = gatherChallanData(); if (!challanData.items.length) return showToast('Please add at least one item before saving.', true);
-        const btn = $(this); btn.prop('disabled', true).text('Saving...');
+    async function submitChallan(btn, options = {}) {
+        const challanData = gatherChallanData();
+        const idleText = options.idleText || 'Save';
+        const loadingText = options.loadingText || 'Saving...';
+        const successMessage = options.successMessage || 'Delivery challan saved successfully.';
+        const redirectToShare = Boolean(options.redirectToShare);
+
+        if (!challanData.items.length) return showToast('Please add at least one item before saving.', true);
+
+        btn.prop('disabled', true).text(loadingText);
         try {
-            const formData = new FormData(); Object.entries(challanData).forEach(([key, value]) => formData.append(key, key === 'items' ? JSON.stringify(value) : (value ?? '')));
-            existingImagePaths.forEach((path, index) => formData.append(`existing_image_paths[${index}]`, path)); pendingImages.forEach(image => formData.append('images[]', image));
+            const formData = new FormData();
+            Object.entries(challanData).forEach(([key, value]) => formData.append(key, key === 'items' ? JSON.stringify(value) : (value ?? '')));
+            existingImagePaths.forEach((path, index) => formData.append(`existing_image_paths[${index}]`, path));
+            pendingImages.forEach(image => formData.append('images[]', image));
             if (window.saleHttpMethod && window.saleHttpMethod !== 'POST') formData.append('_method', window.saleHttpMethod);
+
             const response = await fetch(window.saleStoreUrl, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: formData });
-            const payload = await response.json(); if (!response.ok) throw new Error(payload.message || 'Server error');
-            showToast('Delivery challan saved successfully.'); if (payload.redirect_url) setTimeout(() => { window.location.href = payload.redirect_url; }, 1200);
-        } catch (error) { showToast('Error saving challan. ' + (error.message || ''), true); } finally { btn.prop('disabled', false).text('Save'); }
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.message || 'Server error');
+
+            showToast(successMessage);
+            const targetUrl = redirectToShare ? (payload.share_url || payload.redirect_url) : payload.redirect_url;
+            if (targetUrl) setTimeout(() => { window.location.href = targetUrl; }, 1200);
+        } catch (error) {
+            showToast('Error saving challan. ' + (error.message || ''), true);
+        } finally {
+            btn.prop('disabled', false).text(idleText);
+        }
+    }
+
+    $ctx.on('click', '.btn-save', function () {
+        submitChallan($(this), {
+            idleText: 'Save',
+            loadingText: 'Saving...',
+            successMessage: 'Delivery challan saved successfully.',
+        });
+    });
+
+    $ctx.on('click', '.btn-share-main', function () {
+        submitChallan($(this), {
+            redirectToShare: true,
+            idleText: 'Share',
+            loadingText: 'Saving...',
+            successMessage: 'Delivery challan saved successfully! Opening invoice preview...',
+        });
     });
 
     if (window.editSaleData) populateFormFromSale(window.editSaleData);

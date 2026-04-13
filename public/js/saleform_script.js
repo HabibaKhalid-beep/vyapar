@@ -4,11 +4,26 @@ function initializeForm(context) {
     const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
     const defaultPaymentDirection = 'payment_in';
 
-    const itemOptionsHtml = (window.items || []).map(item => {
-        const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}">${richLabel}</option>`;
-    }).join('');
+    const baseItems = window.items || [];
+    const getItemMeta = (item = {}) => {
+        const plainLabel = item.name || "";
+        const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`;
+        const categoryLabel = item.category_name || (item.category && item.category.name) || item.category || item.category_id || '';
+        const itemCode = item.item_code || item.code || '';
+        const description = item.description || item.item_description || '';
+        const discount = item.discount ?? item.sale_discount ?? 0;
+        return { plainLabel, richLabel, categoryLabel, itemCode, description, discount };
+    };
+
+    const buildItemOptionsHtml = (items = []) => {
+        return items.map(item => {
+            const { plainLabel, richLabel, categoryLabel, itemCode, description, discount } = getItemMeta(item);
+            return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${categoryLabel}" data-item-code="${itemCode}" data-description="${description}" data-discount="${discount}">${richLabel}</option>`;
+        }).join('');
+    };
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const $closeIcon = $('.close-app-icon');
 
     // IMPORTANT: Set the doc-type field from window.docType
     // This ensures the correct type is captured when form is saved
@@ -60,6 +75,43 @@ function initializeForm(context) {
     const balanceRow = $ctx.find('.balance-row');
 
     $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
+
+    function updateDueDateFromSelection() {
+        const $dueSelect = $ctx.find('.due-days-select');
+        const $customInput = $ctx.find('.due-days-custom');
+        const $invoiceDate = $ctx.find('.invoice-date');
+        const $dueDate = $ctx.find('.due-date');
+
+        if (!$dueSelect.length || !$invoiceDate.length || !$dueDate.length) return;
+
+        const selectedValue = $dueSelect.val();
+        const invoiceDateValue = $invoiceDate.val();
+
+        if (selectedValue === 'custom') {
+            $customInput.removeClass('d-none').focus();
+        } else {
+            $customInput.addClass('d-none');
+        }
+
+        const days = selectedValue === 'custom'
+            ? parseInt($customInput.val() || 0, 10)
+            : parseInt(selectedValue || 0, 10);
+
+        if (!invoiceDateValue) return;
+
+        const baseDate = new Date(invoiceDateValue);
+        if (Number.isNaN(baseDate.getTime())) return;
+
+        const dueDate = new Date(baseDate);
+        if (days > 0) {
+            dueDate.setDate(dueDate.getDate() + days);
+        }
+
+        const yyyy = dueDate.getFullYear();
+        const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(dueDate.getDate()).padStart(2, '0');
+        $dueDate.val(`${yyyy}-${mm}-${dd}`);
+    }
 
     function setupAdjustmentControls() {
         const $roundOffInput = $ctx.find('.round-off-val');
@@ -253,8 +305,12 @@ function initializeForm(context) {
         $ctx.find('.payment-entries').empty();
 
         (sale.payments || []).forEach((payment, index) => {
-            if (index === 0 && payment.bank_account_id) {
-                $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
+            if (index !== 0) return;
+            const paymentType = (payment.payment_type || '').toString().toLowerCase();
+            $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
+            if (paymentType === 'cash') {
+                $ctx.find('.default-payment-type').val('cash');
+            } else if (payment.bank_account_id) {
                 $ctx.find('.default-payment-type').val(`bank-${payment.bank_account_id}`);
             }
         });
@@ -314,6 +370,7 @@ function initializeForm(context) {
         const isCodeVisible = $ctx.find('.check-item-code').is(':checked');
         const isDescVisible = $ctx.find('.check-description').is(':checked');
         const isDiscVisible = $ctx.find('.check-discount').is(':checked');
+        const optionsHtml = buildItemOptionsHtml(getFilteredItems());
 
         const newRow = `
             <tr class="item-row">
@@ -324,7 +381,7 @@ function initializeForm(context) {
                 <td>
                     <select class="form-select item-name">
                         <option value="" selected disabled>Select Item</option>
-                        ${itemOptionsHtml}
+                        ${optionsHtml}
                     </select>
                 </td>
                 <td class="col-category ${isCatVisible ? '' : 'd-none'}"><input type="text" class="item-category" placeholder="Category"></td>
@@ -345,6 +402,56 @@ function initializeForm(context) {
             </tr>
         `;
         $ctx.find('.item-rows').append(newRow);
+    }
+
+    function applyColumnVisibility() {
+        const isCatVisible = $('.check-category').is(':checked');
+        const isCodeVisible = $('.check-item-code').is(':checked');
+        const isDescVisible = $('.check-description').is(':checked');
+        const isDiscVisible = $('.check-discount').is(':checked');
+
+        $ctx.find('.col-category').toggleClass('d-none', !isCatVisible);
+        $ctx.find('.col-item-code').toggleClass('d-none', !isCodeVisible);
+        $ctx.find('.col-description').toggleClass('d-none', !isDescVisible);
+        $ctx.find('.col-discount').toggleClass('d-none', !isDiscVisible);
+    }
+
+    function getFilteredItems() {
+        const $modal = $('#itemColumnModal');
+        const category = ($modal.find('.item-filter-category').val() || '').toString().trim().toLowerCase();
+        const code = ($modal.find('.item-filter-code').val() || '').toString().trim().toLowerCase();
+        const description = ($modal.find('.item-filter-description').val() || '').toString().trim().toLowerCase();
+        const discountFilter = ($modal.find('.item-filter-discount').val() || '').toString().trim();
+
+        return baseItems.filter(item => {
+            const meta = getItemMeta(item);
+            const categoryValue = String(meta.categoryLabel || '').toLowerCase();
+            const codeValue = String(meta.itemCode || '').toLowerCase();
+            const descValue = String(meta.description || '').toLowerCase();
+            const discountValue = parseFloat(meta.discount || 0) || 0;
+
+            if (category && categoryValue !== category) return false;
+            if (code && !codeValue.includes(code)) return false;
+            if (description && !descValue.includes(description)) return false;
+            if (discountFilter === 'has' && discountValue <= 0) return false;
+            if (discountFilter === 'none' && discountValue > 0) return false;
+            return true;
+        });
+    }
+
+    function updateItemSelectOptions() {
+        const filteredItems = getFilteredItems();
+        const optionsHtml = buildItemOptionsHtml(filteredItems);
+        $ctx.find('.item-name').each(function () {
+            const $select = $(this);
+            const currentValue = $select.val();
+            $select.empty();
+            $select.append('<option value="" selected disabled>Select Item</option>');
+            $select.append(optionsHtml);
+            if (currentValue) {
+                $select.val(currentValue);
+            }
+        });
     }
 
     // Delete row functionality
@@ -417,12 +524,25 @@ function initializeForm(context) {
         const $selected = $(this).find('option:selected');
         const price = parseFloat($selected.data('price')) || parseFloat($selected.data('sale-price')) || 0;
         const unit = $selected.data('unit') || '';
+        const category = $selected.data('category') || '';
+        const itemCode = $selected.data('item-code') || '';
+        const description = $selected.data('description') || '';
+        const discount = $selected.data('discount');
 
         const $qty = $row.find('.item-qty');
         // Always default selected item quantity to 1 when item is chosen
         $qty.val(1);
 
         $row.find('.item-price').val(price.toFixed(2));
+        $row.find('.item-category').val(category);
+        $row.find('.item-code').val(itemCode);
+        $row.find('.item-desc').val(description);
+        if (discount !== undefined && discount !== null && discount !== '') {
+            const currentDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
+            if (currentDiscount === 0) {
+                $row.find('.item-discount').val(discount);
+            }
+        }
         if (unit) {
             ensureUnitOption($row.find('.item-unit'), unit);
         } else {
@@ -581,8 +701,9 @@ function initializeForm(context) {
         // Default payment type (amount + reference shown when selected)
         const defaultTypeVal = $ctx.find('.default-payment-type').val();
         if (defaultTypeVal) {
-            const bankId = parseInt(defaultTypeVal.replace('bank-', ''), 10);
-            const bank = (window.bankAccounts || []).find(b => b.id === bankId);
+            const isCash = defaultTypeVal === 'cash';
+            const bankId = isCash ? null : parseInt(defaultTypeVal.replace('bank-', ''), 10);
+            const bank = !isCash ? (window.bankAccounts || []).find(b => b.id === bankId) : null;
             const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
             const defaultReference = $ctx.find('.default-payment-reference').val() || null;
             const defaultDirection = $ctx.find('.default-payment-direction').val() || 'payment_in';
@@ -590,7 +711,7 @@ function initializeForm(context) {
             if (defaultAmount > 0) {
                 payments.push({
                     direction: defaultDirection,
-                    payment_type: bank?.display_with_account || bank?.display_name || 'Bank',
+                    payment_type: isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank'),
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -603,6 +724,7 @@ function initializeForm(context) {
             const $entry = $(entry);
             const rawType = $entry.find('.payment-type-entry').val() || '';
             const isBank = rawType.startsWith('bank-');
+            const isCash = rawType === 'cash';
             const bankId = isBank ? rawType.replace('bank-', '') : null;
             const bank = isBank ? (window.bankAccounts || []).find(b => String(b.id) === String(bankId)) : null;
 
@@ -613,7 +735,7 @@ function initializeForm(context) {
 
             payments.push({
                 direction,
-                payment_type: isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType,
+                payment_type: isCash ? 'cash' : (isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType),
                 bank_account_id: bankId,
                 amount: amount,
                 reference: reference,
@@ -756,6 +878,14 @@ function initializeForm(context) {
         });
     });
 
+    $closeIcon.off('click.saleClose').on('click.saleClose', function () {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = '/dashboard/sales';
+        }
+    });
+
     // Add description/image/document actions
     $ctx.on('click', '.add-description', function() {
         const $pane = $ctx.find('.description-pane');
@@ -887,7 +1017,7 @@ function initializeForm(context) {
 
         // Include the default payment row (first row) as additional payment when editing
         const defaultType = $ctx.find('.default-payment-type').val() || '';
-        if (defaultType.startsWith('bank-')) {
+        if (defaultType.startsWith('bank-') || defaultType === 'cash') {
             received += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
         }
 
@@ -895,7 +1025,8 @@ function initializeForm(context) {
         received += Array.from($ctx.find('.payment-type-entry')).reduce((sum, el) => {
             const rawType = $(el).val() || '';
             const isBank = rawType.startsWith('bank-');
-            if (!isBank) return sum;
+            const isCash = rawType === 'cash';
+            if (!isBank && !isCash) return sum;
 
             const amountInput = $(el).closest('.payment-entry').find('.payment-amount');
             return sum + (parseFloat(amountInput.val() || 0) || 0);
@@ -928,5 +1059,55 @@ function initializeForm(context) {
     });
 
     setupAdjustmentControls();
+    applyColumnVisibility();
     calculateTotals();
+
+    $(document).on('change', '.check-category, .check-item-code, .check-description, .check-discount', function() {
+        applyColumnVisibility();
+    });
+
+    $ctx.on('change', '.due-days-select', updateDueDateFromSelection);
+    $ctx.on('input', '.due-days-custom', updateDueDateFromSelection);
+    $ctx.on('change', '.invoice-date', updateDueDateFromSelection);
+    updateDueDateFromSelection();
+
+    $('#itemColumnModal').on('show.bs.modal', function () {
+        const $modal = $(this);
+        const categories = Array.from(new Set(baseItems.map(item => getItemMeta(item).categoryLabel).filter(Boolean)));
+        const $categorySelect = $modal.find('.item-filter-category');
+        if ($categorySelect.length) {
+            $categorySelect.empty().append('<option value="">Select Category</option>');
+            categories.forEach(cat => {
+                $categorySelect.append(`<option value="${cat.toString().toLowerCase()}">${cat}</option>`);
+            });
+        }
+    });
+
+    $('#itemColumnModal').on('change', '.check-category, .check-item-code, .check-description, .check-discount', function () {
+        const $modal = $('#itemColumnModal');
+        $modal.find('.item-filter-category').prop('disabled', !$('.check-category').is(':checked'));
+        $modal.find('.item-filter-code').prop('disabled', !$('.check-item-code').is(':checked'));
+        $modal.find('.item-filter-description').prop('disabled', !$('.check-description').is(':checked'));
+        $modal.find('.item-filter-discount').prop('disabled', !$('.check-discount').is(':checked'));
+    });
+
+    $('#itemColumnModal').on('click', '.item-filter-apply', function () {
+        applyColumnVisibility();
+        updateItemSelectOptions();
+    });
+
+    function setAdditionalChargesEditable(isEnabled) {
+        const $modal = $('#additionalChargesModal');
+        const disabled = !isEnabled;
+        $modal.find('.additional-charge-input, .additional-charge-tax, .additional-charge-tax-check, .additional-charge-check').prop('disabled', disabled);
+    }
+
+    $('#additionalChargesModal').on('shown.bs.modal', function () {
+        const isEnabled = $('#additionalChargesToggle').is(':checked');
+        setAdditionalChargesEditable(isEnabled);
+    });
+
+    $(document).on('change', '#additionalChargesToggle', function () {
+        setAdditionalChargesEditable($(this).is(':checked'));
+    });
 }

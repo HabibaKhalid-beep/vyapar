@@ -443,17 +443,19 @@ function initializeForm(context) {
         return data;
     }
 
-    // Save button
-    $ctx.on('click', '.btn-save', function() {
+    function submitProforma(btn, options = {}) {
         const saleData = gatherSaleData();
+        const idleText = options.idleText || 'Save';
+        const loadingText = options.loadingText || 'Saving...';
+        const successMessage = options.successMessage || 'Proforma invoice saved successfully! Redirecting...';
+        const redirectToShare = Boolean(options.redirectToShare);
 
         if (!saleData.items.length) {
             alert('Please add at least one item before saving.');
             return;
         }
 
-        const btn = $(this);
-        btn.prop('disabled', true).text('Saving...');
+        btn.prop('disabled', true).text(loadingText);
 
         fetch(window.saleStoreUrl, {
             method: window.saleMethod || 'POST',
@@ -487,11 +489,12 @@ function initializeForm(context) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
 
-                    showToast('Proforma invoice saved successfully! Redirecting...', false);
+                    showToast(successMessage, false);
 
-                    if (data.redirect_url) {
+                    const targetUrl = redirectToShare ? (data.share_url || data.redirect_url) : data.redirect_url;
+                    if (targetUrl) {
                         setTimeout(() => {
-                            window.location.href = data.redirect_url;
+                            window.location.href = targetUrl;
                         }, 2000);
                     }
 
@@ -506,8 +509,25 @@ function initializeForm(context) {
                 showToast('Error saving proforma invoice. ' + (err.message || ''), true);
             })
             .finally(() => {
-                btn.prop('disabled', false).text('Save');
+                btn.prop('disabled', false).text(idleText);
             });
+    }
+
+    $ctx.on('click', '.btn-save', function() {
+        submitProforma($(this), {
+            idleText: 'Save',
+            loadingText: 'Saving...',
+            successMessage: 'Proforma invoice saved successfully! Redirecting...',
+        });
+    });
+
+    $ctx.on('click', '.btn-share-main', function() {
+        submitProforma($(this), {
+            redirectToShare: true,
+            idleText: 'Share',
+            loadingText: 'Saving...',
+            successMessage: 'Proforma invoice saved successfully! Opening invoice preview...',
+        });
     });
 
     // Add description/image/document actions
@@ -641,7 +661,7 @@ function initializeForm(context) {
 
         // Include the default payment row (first row) as additional payment when editing
         const defaultType = $ctx.find('.default-payment-type').val() || '';
-        if (defaultType.startsWith('bank-')) {
+        if (defaultType.startsWith('bank-') || defaultType === 'cash') {
             received += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
         }
 
@@ -649,7 +669,8 @@ function initializeForm(context) {
         received += Array.from($ctx.find('.payment-type-entry')).reduce((sum, el) => {
             const rawType = $(el).val() || '';
             const isBank = rawType.startsWith('bank-');
-            if (!isBank) return sum;
+            const isCash = rawType === 'cash';
+            if (!isBank && !isCash) return sum;
 
             const amountInput = $(el).closest('.payment-entry').find('.payment-amount');
             return sum + (parseFloat(amountInput.val() || 0) || 0);
@@ -684,6 +705,4 @@ function initializeForm(context) {
     setupAdjustmentControls();
     calculateTotals();
 }
-
-
 

@@ -50,18 +50,27 @@
       <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-4 py-2 rounded">
         <div class="d-flex">
           <div class="d-flex justify-content-center align-items-center me-2">Filter By:</div>
-          <div class="d-flex rounded-pill" style="background-color:#E4F2FF;">
-            <div class="d-flex justify-content-center align-items-center text-center" style="width: 9rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;">
-              <select class="bg-transparent border-0" style="outline:none;">
-                <option>All Proformas</option>
-                <option selected>This Month</option>
-                <option>Last Month</option>
-                <option>This Quarter</option>
-                <option>This Year</option>
+          <form method="GET" action="{{ route('proforma-invoice') }}" class="d-flex rounded-pill" style="background-color:#E4F2FF;">
+            <input type="hidden" name="search" value="{{ $search ?? '' }}">
+            <div class="d-flex justify-content-center align-items-center text-center" style="width: 8rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;">
+              <select name="date_range" class="bg-transparent border-0" style="outline:none;" onchange="this.form.submit()">
+                <option value="all" {{ ($dateRange ?? 'all') === 'all' ? 'selected' : '' }}>All Proformas</option>
+                <option value="this_month" {{ ($dateRange ?? 'all') === 'this_month' ? 'selected' : '' }}>This Month</option>
+                <option value="last_month" {{ ($dateRange ?? 'all') === 'last_month' ? 'selected' : '' }}>Last Month</option>
+                <option value="this_quarter" {{ ($dateRange ?? 'all') === 'this_quarter' ? 'selected' : '' }}>This Quarter</option>
+                <option value="this_year" {{ ($dateRange ?? 'all') === 'this_year' ? 'selected' : '' }}>This Year</option>
               </select>
             </div>
-            <div class="d-flex justify-content-center align-items-center" style="width: 16rem; height: 40px;">01/03/2026 To 31/03/2026</div>
-          </div>
+            <div class="d-flex justify-content-center align-items-center text-center" style="width: 10rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;">
+              <select name="party_id" class="bg-transparent border-0" style="outline:none;" onchange="this.form.submit()">
+                <option value="all" {{ ($partyId ?? 'all') === 'all' ? 'selected' : '' }}>All Firms</option>
+                @foreach($partyOptions ?? [] as $party)
+                  <option value="{{ $party->id }}" {{ ($partyId ?? 'all') == $party->id ? 'selected' : '' }}>{{ $party->name }}</option>
+                @endforeach
+              </select>
+            </div>
+            <div class="d-flex justify-content-center align-items-center" style="width: 14rem; height: 40px;">{{ $dateRangeLabel ?? 'All dates' }}</div>
+          </form>
         </div>
       </div>
 
@@ -94,6 +103,8 @@
             </div>
             <div class="col-md-6">
               <form method="GET" action="{{ route('proforma-invoice') }}" class="d-flex gap-2">
+                <input type="hidden" name="date_range" value="{{ $dateRange ?? 'all' }}">
+                <input type="hidden" name="party_id" value="{{ $partyId ?? 'all' }}">
                 <input type="text" class="form-control form-control-sm" placeholder="Search by Ref No. or Party Name..." name="search" value="{{ $search ?? '' }}" style="border-radius: 20px;">
                 <button type="submit" class="btn btn-sm btn-outline-primary" style="border-radius: 20px; white-space: nowrap;">
                   <i class="fas fa-search"></i> Search

@@ -28,12 +28,17 @@ class SaleOrderController extends Controller
         }
 
         $saleOrders = $query->get();
-        $convertedInvoices = Sale::where('type', 'invoice')
+        $convertedInvoiceNumbers = Sale::where('type', 'invoice')
             ->whereNotNull('reference_id')
             ->whereIn('reference_id', $saleOrders->pluck('id'))
             ->pluck('bill_number', 'reference_id');
 
-        return view('dashboard.saleorder.sale-order', compact('saleOrders', 'search', 'convertedInvoices'));
+        $convertedInvoiceIds = Sale::where('type', 'invoice')
+            ->whereNotNull('reference_id')
+            ->whereIn('reference_id', $saleOrders->pluck('id'))
+            ->pluck('id', 'reference_id');
+
+        return view('dashboard.saleorder.sale-order', compact('saleOrders', 'search', 'convertedInvoiceNumbers', 'convertedInvoiceIds'));
     }
 
     public function create(Request $request)

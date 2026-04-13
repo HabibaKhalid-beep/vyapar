@@ -567,7 +567,7 @@
                      data-preview-url="{{ route('invoice', ['sale_id' => $sale->id]) }}"
                      data-pdf-url="{{ route('invoice', ['sale_id' => $sale->id]) }}"
                      data-print-url="{{ route('invoice', ['sale_id' => $sale->id]) }}"
-                     data-delivery-preview-url="{{ route('sale.delivery-preview', $sale) }}"
+                     data-delivery-preview-url="{{ route('invoice', ['sale_id' => $sale->id, 'doc' => 'delivery_challan']) }}"
                      data-payment-history-url="{{ route('sale.payment-history', $sale) }}"
                      data-bank-history-url="{{ route('sale.bank-history', $sale) }}"
                      data-convert-return-url="{{ route('sale-return.create', ['sale_id' => $sale->id]) }}"

@@ -8,6 +8,7 @@ use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class SaleReturnController extends Controller
@@ -130,7 +131,8 @@ class SaleReturnController extends Controller
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
-            'redirect_url' => route('invoice', ['sale_id' => $sale->id, 'print' => 1]),
+            'redirect_url' => route('invoice', ['sale_id' => $sale->id]),
+            'share_url' => route('invoice', ['sale_id' => $sale->id]),
         ]);
     }
 
@@ -161,7 +163,8 @@ class SaleReturnController extends Controller
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
-            'redirect_url' => route('invoice', ['sale_id' => $sale->id, 'print' => 1]),
+            'redirect_url' => route('invoice', ['sale_id' => $sale->id]),
+            'share_url' => route('invoice', ['sale_id' => $sale->id]),
         ]);
     }
 
@@ -201,6 +204,46 @@ class SaleReturnController extends Controller
         $sale->load(['items', 'payments', 'party']);
 
         return view('dashboard.sales.sale-return-preview', ['sale' => $sale, 'pdfMode' => true]);
+    }
+
+    public function bankHistory(Sale $sale)
+    {
+        abort_unless($sale->type === 'sale_return', 404);
+
+        $sale->loadMissing(['payments.bankAccount']);
+
+        $transactions = BankTransaction::with(['fromBankAccount'])
+            ->where('reference_type', 'sale_return')
+            ->where('reference_id', $sale->id)
+            ->orderByDesc('transaction_date')
+            ->get()
+            ->map(function ($transaction) {
+                return [
+                    'bank_name' => $transaction->fromBankAccount?->display_name ?: '-',
+                    'amount' => (float) ($transaction->amount ?? 0),
+                    'type' => (string) ($transaction->type ?: 'sale_return_refund'),
+                    'reference' => (string) ($transaction->description ?: '-'),
+                    'date' => $this->formatPreviewDate($transaction->transaction_date),
+                ];
+            });
+
+        if ($transactions->isEmpty()) {
+            $transactions = $sale->payments->map(function ($payment) use ($sale) {
+                return [
+                    'bank_name' => $payment->bankAccount?->display_name ?: '-',
+                    'amount' => (float) ($payment->amount ?? 0),
+                    'type' => 'sale_return_refund',
+                    'reference' => $payment->reference ?: '-',
+                    'date' => $this->formatPreviewDate($sale->invoice_date ?: $sale->created_at),
+                ];
+            });
+        }
+
+        return response()->json([
+            'sale_id' => $sale->id,
+            'bill_number' => $sale->bill_number ?: $sale->id,
+            'entries' => $transactions->values(),
+        ]);
     }
 
     private function renderSaleReturnForm(
@@ -320,37 +363,54 @@ class SaleReturnController extends Controller
     private function syncPayments(Sale $sale, array $payments): void
     {
         foreach ($payments as $payment) {
-            if (empty($payment['bank_account_id']) || empty($payment['amount'])) {
+            $paymentAmount = (float) ($payment['amount'] ?? 0);
+            $rawPaymentType = (string) ($payment['payment_type'] ?? '');
+            $normalizedPaymentType = strtolower($rawPaymentType);
+            $isCash = $normalizedPaymentType === 'cash';
+            $bankId = $payment['bank_account_id'] ?? null;
+            $storePaymentType = $isCash ? 'cash' : $rawPaymentType;
+
+            if ($paymentAmount <= 0) {
                 continue;
             }
 
+            if (!$isCash && empty($bankId)) {
+                continue;
+            }
+
+            $cashAccount = null;
+            if ($isCash) {
+                $cashAccount = BankAccount::cashAccount();
+                $bankId = $cashAccount->id;
+            }
+
             $sale->payments()->create([
-                'payment_type' => $payment['payment_type'],
-                'bank_account_id' => $payment['bank_account_id'],
-                'amount' => $payment['amount'],
+                'payment_type' => $storePaymentType,
+                'bank_account_id' => $bankId,
+                'amount' => $paymentAmount,
                 'reference' => $payment['reference'] ?? null,
             ]);
 
-            $bank = BankAccount::find($payment['bank_account_id']);
+            $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             if ($bank) {
-                $bank->opening_balance = ($bank->opening_balance ?? 0) - (float) $payment['amount'];
+                $bank->opening_balance = ($bank->opening_balance ?? 0) - $paymentAmount;
                 $bank->save();
 
                 BankTransaction::create([
                     'from_bank_account_id' => $bank->id,
                     'to_bank_account_id' => null,
-                    'type' => 'sale_return_refund',
-                    'amount' => (float) $payment['amount'],
+                    'type' => $isCash ? 'cash_out' : 'sale_return_refund',
+                    'amount' => $paymentAmount,
                     'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
                     'reference_type' => 'sale_return',
                     'reference_id' => $sale->id,
-                    'description' => 'Sale return refund to party',
+                    'description' => $isCash ? 'Cash refund for sale return' : 'Sale return refund to party',
                     'meta' => [
                         'party_id' => $sale->party_id,
-                        'reference_bill_number' => $sale->reference_bill_number,
-                        'payment_type' => $payment['payment_type'] ?? null,
-                    ],
-                ]);
+                    'reference_bill_number' => $sale->reference_bill_number,
+                    'payment_type' => $storePaymentType,
+                ],
+            ]);
             }
         }
     }
@@ -360,7 +420,8 @@ class SaleReturnController extends Controller
         $receivedAmount = 0;
 
         foreach ($payments as $payment) {
-            if (!empty($payment['bank_account_id'])) {
+            $paymentType = strtolower((string) ($payment['payment_type'] ?? ''));
+            if (!empty($payment['bank_account_id']) || $paymentType === 'cash') {
                 $receivedAmount += (float) ($payment['amount'] ?? 0);
             }
         }
@@ -379,5 +440,18 @@ class SaleReturnController extends Controller
         }
 
         return 'Unpaid';
+    }
+
+    private function formatPreviewDate($value): string
+    {
+        if (empty($value)) {
+            return now()->format('d/m/Y');
+        }
+
+        try {
+            return Carbon::parse($value)->format('d/m/Y');
+        } catch (\Throwable $exception) {
+            return now()->format('d/m/Y');
+        }
     }
 }
