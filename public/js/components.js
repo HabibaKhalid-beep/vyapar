@@ -182,7 +182,22 @@
     },
     { label: 'Reports', icon: 'fa-chart-pie', href: '/dashboard/reports', permission: 'report.view', dataPage: 'reports' },
     { label: 'Sync / Share / Backup', icon: 'fa-cloud-arrow-up', href: '#', permission: 'sync.view', dataPage: 'sync' },
-    { label: 'Utilities', icon: 'fa-screwdriver-wrench', href: '#', permission: 'utilities.view', dataPage: 'utilities' },
+    {
+      label: 'Utilities',
+      icon: 'fa-screwdriver-wrench',
+      permission: 'utilities.view',
+      dataPage: 'utilities',
+      children: [
+        { label: 'Import Items', href: '/dashboard/utilities/import-items', dataPage: 'import-items', permission: 'utilities.view' },
+        { label: 'Barcode Generator', href: '/dashboard/utilities/barcode-generator', dataPage: 'barcode-generator', permission: 'utilities.view' },
+        { label: 'Update Items In Bulk', href: '/dashboard/utilities/update-items-in-bulk', dataPage: 'update-items-in-bulk', permission: 'utilities.view' },
+        { label: 'Import Parties', href: '/dashboard/utilities/import-parties', dataPage: 'import-parties', permission: 'utilities.view' },
+        { label: 'Exports To Tally', href: '/dashboard/utilities/exports-to-tally', dataPage: 'exports-to-tally', permission: 'utilities.view' },
+        { label: 'Export Items', href: '/dashboard/utilities/export-items', dataPage: 'export-items', permission: 'utilities.view' },
+        { label: 'Verify My Data', href: '/dashboard/utilities/verify-my-data', dataPage: 'verify-my-data', permission: 'utilities.view' },
+        { label: 'Close Financial Year', href: '/dashboard/utilities/close-financial-year', dataPage: 'close-financial-year', permission: 'utilities.view' },
+      ],
+    },
     { label: 'Settings', icon: 'fa-sliders', href: '/dashboard/settings/general', permission: 'settings.view', dataPage: 'settings' },
   ];
 

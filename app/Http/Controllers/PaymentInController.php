@@ -22,6 +22,7 @@ class PaymentInController extends Controller
             'parties'      => Party::all(),
             'bankAccounts' => BankAccount::active()->get(),
             'paymentIns'   => PaymentIn::with(['party', 'bankAccount'])->latest()->get(),
+            'nextEntryNo'  => (Transaction::max('id') ?? 0) + 1,
             'editPaymentIn' => $request->filled('edit_payment_in')
                 ? PaymentIn::with(['party', 'bankAccount', 'links.sale'])->find($request->integer('edit_payment_in'))
                 : null,
@@ -127,6 +128,7 @@ class PaymentInController extends Controller
                     Transaction::create([
                         'party_id'        => $party->id,
                         'type'            => 'receive',
+                        'number'          => $request->receipt_no ?? null,
                         'date'            => $request->date,
                         'total'           => $pay['amount'],
                         'paid_amount'     => $pay['amount'],
@@ -269,6 +271,7 @@ class PaymentInController extends Controller
                 if ($transaction) {
                     $transaction->update([
                         'party_id'        => $request->party_id,
+                        'number'          => $request->receipt_no ?? null,
                         'date'            => $request->date,
                         'total'           => $newAmount,
                         'paid_amount'     => $newAmount,
@@ -369,6 +372,7 @@ class PaymentInController extends Controller
             // Build history entries - always at least one entry
             $history = [
                 [
+                    'entry_no' => null,
                     'action' => 'Payment Record Created',
                     'amount' => $paymentIn->amount,
                     'reference' => $paymentIn->reference_no,
@@ -393,9 +397,12 @@ class PaymentInController extends Controller
             if ($transactions->count() > 0) {
                 foreach ($transactions as $transaction) {
                     $history[] = [
+                        'entry_no' => $transaction->id,
                         'action' => 'Bank Transaction Recorded',
                         'amount' => $transaction->total ?? $transaction->debit,
                         'reference' => $transaction->reference_no ?? '-',
+                        'receipt' => $transaction->number ?? '-',
+                        'payment_type' => $transaction->type,
                         'status' => $transaction->status,
                         'description' => $transaction->description,
                         'created_at' => $transaction->created_at ? $transaction->created_at->format('Y-m-d H:i:s') : '-',
@@ -409,6 +416,7 @@ class PaymentInController extends Controller
                 'history' => $history,
                 'total_records' => count($history),
                 'payment_details' => [
+                    'entry_no' => optional($transactions->first())->id,
                     'reference_no' => $paymentIn->reference_no ?? '-',
                     'receipt_no' => $paymentIn->receipt_no ?? '-',
                     'amount' => number_format($paymentIn->amount, 2),
@@ -421,6 +429,7 @@ class PaymentInController extends Controller
             return response()->json([
                 'success' => true,
                 'history' => [[
+                    'entry_no' => null,
                     'action' => 'Error loading full history',
                     'created_at' => now()->format('Y-m-d H:i:s'),
                     'user_name' => 'System',

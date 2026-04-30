@@ -6,6 +6,7 @@ use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Purchase;
+use App\Support\TransactionNumberPrefix;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -42,7 +43,7 @@ class PurchaseOrderController extends Controller
         $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::with('category')->active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
-        $nextInvoiceNumber = (Purchase::where('type', 'purchase_order')->max('id') ?? 0) + 1;
+        $nextInvoiceNumber = TransactionNumberPrefix::format('purchase_order', (Purchase::where('type', 'purchase_order')->max('id') ?? 0) + 1);
 
         return view('dashboard.purchases.purchase-order.create', compact(
             'bankAccounts',
@@ -244,7 +245,7 @@ class PurchaseOrderController extends Controller
             $purchase->save();
 
             if (empty($purchase->bill_number)) {
-                $purchase->bill_number = (string) $purchase->id;
+                $purchase->bill_number = TransactionNumberPrefix::format('purchase_order', $purchase->id);
                 $purchase->save();
             }
 

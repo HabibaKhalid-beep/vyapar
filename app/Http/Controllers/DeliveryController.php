@@ -8,6 +8,7 @@ use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Support\TransactionNumberPrefix;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Notifications\DeliveryChallanAssignedNotification;
@@ -68,7 +69,7 @@ class DeliveryController extends Controller
             ->orderBy('name')
             ->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = 'DC-' . str_pad((string) $nextSaleId, 4, '0', STR_PAD_LEFT);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('delivery_challan', $nextSaleId);
 
         return view('dashboard.delivery.create-challan', compact('items', 'parties', 'brokers', 'bankAccounts', 'users', 'warehouses', 'nextInvoiceNumber', 'challan', 'duplicateChallan'));
     }
@@ -203,6 +204,9 @@ class DeliveryController extends Controller
             'broker_id' => 'nullable|exists:brokers,id',
             'broker_name' => 'nullable|string|max:255',
             'broker_phone' => 'nullable|string|max:50',
+            'brokerage_type' => 'nullable|string|max:50',
+            'brokerage_rate' => 'nullable|numeric|min:0',
+            'broker_amount' => 'nullable|numeric|min:0',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
@@ -253,6 +257,9 @@ class DeliveryController extends Controller
             'type' => 'delivery_challan',
             'party_id' => $data['party_id'] ?? null,
             'broker_id' => $data['broker_id'] ?? null,
+            'brokerage_type' => $data['brokerage_type'] ?? null,
+            'brokerage_rate' => $data['brokerage_rate'] ?? 0,
+            'broker_amount' => $data['broker_amount'] ?? 0,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,

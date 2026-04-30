@@ -30,17 +30,72 @@
         .party-meta-field .meta-control { width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid #d7e0ea; border-radius: 10px; background: #fbfdff; color: #111827; resize: none; font-size: 15px; }
         .party-meta-field textarea.meta-control { min-height: 82px; }
         .party-meta-grid { display: contents; }
-        .party-meta-field.address-field { order: 6; }
-        .party-meta-field.broker-field { order: 3; }
-        .party-meta-field.broker-phone-field { order: 4; }
-        .party-meta-field.warehouse-field { order: 5; }
-        .party-meta-field.warehouse-handler-field { order: 7; }
-        .party-meta-field.warehouse-handler-phone-field { order: 8; }
-        .party-meta-field.vehicle-field { order: 9; }
-        .party-meta-field.destination-field { order: 10; }
-        .party-meta-field.delivery-expense-field { order: 11; }
-        .party-meta-field.handler-user-field { order: 12; }
+        .party-meta-field.address-field { order: 3; }
         .header-right.w-25 { width: 420px !important; min-width: 420px; justify-content: flex-end; background: #ffffff; border: 1px solid #dbe4f0; border-radius: 16px; padding: 18px 20px; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04); }
+        .broker-cell .meta-control {
+            width: 100%;
+            min-height: 40px;
+            padding: 9px 11px;
+            border: 1px solid #d7e0ea;
+            border-radius: 8px;
+            background: #fff;
+            color: #111827;
+            font-size: 13px;
+        }
+
+
+/* ✅ GRID container (yahan lagna chahiye, inputs pe nahi) */
+.warehouse-compact-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 fields ek line me */
+    gap: 10px;
+    margin-top: 8px;
+}
+
+/* ✅ Compact fields */
+.warehouse-compact-grid .meta-control,
+.warehouse-compact-grid select,
+.warehouse-compact-grid input {
+    height: 28px;
+    min-height: 28px;
+    padding: 3px 6px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid #d7e0ea;
+    width: 100%;
+}
+
+/* ✅ Labels choti */
+.warehouse-compact-grid .party-meta-field label {
+    font-size: 10px;
+    margin-bottom: 2px;
+}
+
+/* ✅ Dropdown button fix */
+.warehouse-compact-grid .dropdown-toggle {
+    height: 28px;
+    padding: 3px 6px;
+    font-size: 12px;
+    border-radius: 4px;
+    width: 100%;
+}
+
+/* spacing */
+.warehouse-compact-grid .party-meta-field {
+    gap: 2px;
+}
+        .bottom-right .calc-row {
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+        .bottom-right .calc-label {
+            min-width: 120px;
+        }
+        .bottom-right .total-input-large {
+            width: 70%;
+            font-size: 16px;
+            padding: 8px 10px;
+        }
         .image-gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:10px; margin-top:10px; }
         .image-card { border:1px solid #dbe4f0; border-radius:10px; overflow:hidden; background:#fff; }
         .image-card img { width:100%; height:80px; object-fit:cover; }
@@ -51,6 +106,7 @@
             .header-section { grid-template-columns: 1fr; }
             .header-left { grid-template-columns: 1fr; }
             .header-right.w-25 { width: 100% !important; min-width: 0; }
+            .warehouse-compact-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -102,63 +158,6 @@
 
                                 <div class="party-meta-grid">
                                     <div class="party-meta-field"><label>Phone No.</label><input type="text" class="meta-control phone-input"></div>
-                                    <div class="party-meta-field broker-field">
-                                        <label>Broker Name</label>
-                                        <div class="broker-dropdown-wrapper" style="position: relative; display: inline-block;">
-                                            <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="brokerDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">Select Broker</button>
-                                            <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
-                                                <li class="dropdown-header d-flex justify-content-between px-3"><span>Broker Name</span><span>Phone</span></li>
-                                                @foreach($brokers as $broker)
-                                                <li>
-                                                    <a class="dropdown-item d-flex justify-content-between broker-option" href="#" data-id="{{ $broker->id }}" data-name="{{ $broker->name }}" data-phone="{{ $broker->phone }}" data-source="broker">
-                                                        <span>{{ $broker->name }}</span>
-                                                        <span>{{ $broker->phone ?: '-' }}</span>
-                                                    </a>
-                                                </li>
-                                                @endforeach
-                                                <li><hr class="dropdown-divider"></li>
-                                                @foreach($parties as $party)
-                                                <li>
-                                                    <a class="dropdown-item d-flex justify-content-between broker-option" href="#" data-id="" data-name="{{ $party->name }}" data-phone="{{ $party->phone }}" data-source="party">
-                                                        <span>{{ $party->name }}</span>
-                                                        <span>{{ $party->phone ?: '-' }}</span>
-                                                    </a>
-                                                </li>
-                                                @endforeach
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item text-primary clear-broker-selection" href="#">Manual Broker Entry</a></li>
-                                            </ul>
-                                        </div>
-                                        <input type="hidden" class="broker-id" name="broker_id">
-                                    </div>
-                                    <div class="party-meta-field broker-phone-field"><label>Broker Phone No.</label><input type="text" class="meta-control broker-phone-input"></div>
-                                    <div class="party-meta-field warehouse-field">
-                                        <label>Warehouse Name</label>
-                                        <div class="warehouse-dropdown-wrapper" style="position: relative; display: inline-block;">
-                                            <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="warehouseDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">Select Warehouse</button>
-                                            <ul class="dropdown-menu w-100" aria-labelledby="warehouseDropdownBtn" id="warehouseDropdownMenu">
-                                                <li class="dropdown-header d-flex justify-content-between px-3"><span>Warehouse</span><span>Phone</span></li>
-                                                @foreach($warehouses as $warehouse)
-                                                <li>
-                                                    <a class="dropdown-item d-flex justify-content-between warehouse-option" href="#" data-id="{{ $warehouse->id }}" data-name="{{ $warehouse->name }}" data-phone="{{ $warehouse->phone }}" data-handler-name="{{ $warehouse->handler_name }}" data-handler-phone="{{ $warehouse->handler_phone }}" data-user-id="{{ $warehouse->responsible_user_id }}">
-                                                        <span>{{ $warehouse->name }}</span>
-                                                        <span>{{ $warehouse->phone ?: '-' }}</span>
-                                                    </a>
-                                                </li>
-                                                @endforeach
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item text-primary add-warehouse-option" href="#">+ Add New Warehouse</a></li>
-                                            </ul>
-                                        </div>
-                                        <input type="hidden" class="warehouse-id" name="warehouse_id">
-                                    </div>
-                                    <div class="party-meta-field"><label>Warehouse Phone</label><input type="text" class="meta-control warehouse-phone-input"></div>
-                                    <div class="party-meta-field warehouse-handler-field"><label>Handler Name</label><input type="text" class="meta-control warehouse-handler-input"></div>
-                                    <div class="party-meta-field warehouse-handler-phone-field"><label>Handler Phone</label><input type="text" class="meta-control warehouse-handler-phone-input"></div>
-                                    <div class="party-meta-field vehicle-field"><label>Vehicle / Car</label><input type="text" class="meta-control vehicle-number-input"></div>
-                                    <div class="party-meta-field destination-field"><label>Destination</label><input type="text" class="meta-control destination-input"></div>
-                                    <div class="party-meta-field delivery-expense-field"><label>Delivery Expense</label><input type="number" class="meta-control delivery-expenses-input" min="0" step="0.01"></div>
-                                    <div class="party-meta-field handler-user-field"><label>Related Handler User</label><select class="meta-control responsible-user-select"><option value="">Select related handler user</option>@foreach($users as $user)<option value="{{ $user->id }}">{{ $user->name }} @if($user->email) ({{ $user->email }}) @endif</option>@endforeach</select></div>
                                     <div class="party-meta-field address-field"><label>Billing Address</label><textarea class="meta-control billing-address" rows="2"></textarea></div>
                                     <div class="party-meta-field address-field"><label>Remarks</label><textarea class="meta-control description-input" rows="2" placeholder="Description"></textarea></div>
                                 </div>
@@ -186,6 +185,8 @@
                                         <th>QTY</th>
                                         <th class="custom-size-th">UNIT</th>
                                         <th>PRICE/UNIT</th>
+                                        <th style="min-width: 220px;">BROKER NAME</th>
+                                        <th style="min-width: 180px;">BROKER PHONE</th>
                                         <th>AMOUNT</th>
                                         <th class="add-col" style="position: relative;">
                                             <button type="button" class="btn-add-circle table-settings-btn"><i class="fa-solid fa-plus"></i></button>
@@ -209,6 +210,24 @@
                                         <td><input type="number" class="item-qty" value="1"></td>
                                         <td class="custom-size-td"><select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select></td>
                                         <td><input type="number" class="item-price" value="0"></td>
+                                        <td class="broker-cell">
+                                            <select class="meta-control broker-select">
+                                                <option value="">Select Broker</option>
+                                                @foreach($brokers as $broker)
+                                                    <option value="broker-{{ $broker->id }}" data-id="{{ $broker->id }}" data-name="{{ $broker->name }}" data-phone="{{ $broker->phone }}" data-source="broker">
+                                                        {{ $broker->name }}{{ $broker->phone ? ' | ' . $broker->phone : '' }}
+                                                    </option>
+                                                @endforeach
+                                                @foreach($parties as $party)
+                                                    <option value="party-{{ $party->id }}" data-id="" data-name="{{ $party->name }}" data-phone="{{ $party->phone }}" data-source="party">
+                                                        {{ $party->name }}{{ $party->phone ? ' | ' . $party->phone : '' }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <input type="hidden" class="broker-id" name="broker_id">
+                                            <input type="hidden" class="broker-name-input" value="">
+                                        </td>
+                                        <td class="broker-cell"><input type="text" class="meta-control broker-phone-input"></td>
                                         <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
                                         <td class="add-col"></td>
                                     </tr>
@@ -233,15 +252,46 @@
                                     <label class="form-label">Description</label>
                                     <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
                                 </div>
+                                <div class="warehouse-compact-grid">
+                                    <div class="party-meta-field warehouse-field">
+                                        <label>Warehouse Name</label>
+                                        <div class="warehouse-dropdown-wrapper" style="position: relative; display: inline-block;">
+                                            <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="warehouseDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">Select Warehouse</button>
+                                            <ul class="dropdown-menu w-100" aria-labelledby="warehouseDropdownBtn" id="warehouseDropdownMenu">
+                                                <li class="dropdown-header d-flex justify-content-between px-3"><span>Warehouse</span><span>Phone</span></li>
+                                                @foreach($warehouses as $warehouse)
+                                                <li>
+                                                    <a class="dropdown-item d-flex justify-content-between warehouse-option" href="#" data-id="{{ $warehouse->id }}" data-name="{{ $warehouse->name }}" data-phone="{{ $warehouse->phone }}" data-handler-name="{{ $warehouse->handler_name }}" data-handler-phone="{{ $warehouse->handler_phone }}" data-user-id="{{ $warehouse->responsible_user_id }}">
+                                                        <span>{{ $warehouse->name }}</span>
+                                                        <span>{{ $warehouse->phone ?: '-' }}</span>
+                                                    </a>
+                                                </li>
+                                                @endforeach
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-primary add-warehouse-option" href="#">+ Add New Warehouse</a></li>
+                                            </ul>
+                                        </div>
+                                        <input type="hidden" class="warehouse-id" name="warehouse_id">
+                                    </div>
+                                    <div class="party-meta-field"><label>Warehouse Phone</label><input type="text" class="meta-control warehouse-phone-input"></div>
+                                    <div class="party-meta-field warehouse-handler-field"><label>Handler Name</label><input type="text" class="meta-control warehouse-handler-input"></div>
+                                    <div class="party-meta-field warehouse-handler-phone-field"><label>Handler Phone</label><input type="text" class="meta-control warehouse-handler-phone-input"></div>
+                                    <div class="party-meta-field vehicle-field"><label>Vehicle / Car</label><input type="text" class="meta-control vehicle-number-input"></div>
+                                    <div class="party-meta-field destination-field"><label>Destination</label><input type="text" class="meta-control destination-input"></div>
+                                    <div class="party-meta-field handler-user-field"><label>Related Handler User</label><select class="meta-control responsible-user-select"><option value="">Select related handler user</option>@foreach($users as $user)<option value="{{ $user->id }}">{{ $user->name }} @if($user->email) ({{ $user->email }}) @endif</option>@endforeach</select></div>
+                                </div>
                                 <div class="image-gallery"></div>
                                 <div class="compression-status mt-2"></div>
                                 <input type="file" class="d-none image-input" accept="image/*" multiple>
                             </div>
                             <div class="bottom-right">
                                 <div class="calc-row"><div class="calc-label">Discount</div><div class="calc-inputs"><input type="number" class="mini-input discount-pct" placeholder="%"><span>-</span><input type="number" class="mini-input discount-rs" placeholder="Rs"></div></div>
+                                <div class="calc-row" style="align-items: center;"><div class="calc-label" style="min-width: auto;"><input type="checkbox" class="custom-checkbox round-off-check" checked style="width: 16px; height: 16px; margin-right: 4px;"><label class="link-text" style="margin: 0; font-size: 12px;">Round Off</label></div><div class="calc-inputs"><input type="number" class="mini-input round-off-val" value="0" readonly style="width: 50px;"></div></div>
+                                <div class="calc-row"><div class="calc-label">Delivery Expense</div><div class="calc-inputs"><input type="number" class="mini-input delivery-expense" placeholder="Rs" min="0" step="0.01"></div></div>
+                                <div class="calc-row"><div class="calc-label">Brokerage Type</div><div class="calc-inputs"><select class="mini-input brokerage-type"><option value="">Select</option><option value="full">Poori Brokerage</option><option value="half">Aadhi Brokerage</option></select></div></div>
+                                <div class="calc-row"><div class="calc-label">Brokerage Amount</div><div class="calc-inputs"><input type="number" class="mini-input brokerage-amount" placeholder="Rs" min="0" step="0.01"></div></div>
                                 <div class="calc-row"><div class="calc-label">Tax</div><div class="calc-inputs"><select class="mini-input tax-select" style="width: 100px;"><option value="0">NONE</option><option value="5">GST@5%</option><option value="12">GST@12%</option><option value="18">GST@18%</option></select><span class="tax-amount-display">0</span></div></div>
-                                <div class="calc-row"><div class="checkbox-group"><input type="checkbox" class="custom-checkbox round-off-check" checked><label class="link-text">Round Off</label></div><div class="calc-inputs"><input type="number" class="mini-input round-off-val" value="0" readonly></div></div>
-                                <div class="final-total-group"><div class="calc-row" style="margin-bottom: 5px;"><div class="calc-label" style="font-weight: 700;">Total</div></div><input type="text" class="total-input-large grand-total" value="0" readonly></div>
+                                <div class="final-total-group"><div class="calc-row" style="margin-bottom: 2px;"><div class="calc-label" style="font-weight: 700;">Total</div></div><input type="text" class="total-input-large grand-total" value="0" readonly></div>
                             </div>
                         </div>
                     </div>
@@ -304,6 +354,3 @@
     <script src="{{ asset('js/challanscript.js') }}"></script>
 </body>
 </html>
-
-
-

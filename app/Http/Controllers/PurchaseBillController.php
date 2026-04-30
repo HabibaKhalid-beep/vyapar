@@ -6,9 +6,12 @@ use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Purchase;
+use App\Support\TransactionNumberPrefix;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Process\Process;
 
 class PurchaseBillController extends Controller
 {
@@ -49,7 +52,7 @@ class PurchaseBillController extends Controller
         $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
-        $nextInvoiceNumber = 'PB-' . ((Purchase::max('id') ?? 0) + 1);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('purchase_bill', (Purchase::where('type', 'purchase')->max('id') ?? 0) + 1);
         $convertedPurchaseData = null;
 
         $sourcePurchaseOrderId = request()->integer('source_purchase_order_id');
@@ -107,7 +110,7 @@ class PurchaseBillController extends Controller
             'success' => true,
             'purchase_id' => $purchase->id,
             'bill_number' => $purchase->bill_number,
-            'redirect_url' => route('purchase-expenses'),
+            'redirect_url' => route('purchase-bills.preview', $purchase),
         ]);
     }
 
@@ -120,7 +123,7 @@ class PurchaseBillController extends Controller
             'success' => true,
             'purchase_id' => $purchase->id,
             'bill_number' => $purchase->bill_number,
-            'redirect_url' => route('purchase-expenses'),
+            'redirect_url' => route('purchase-bills.preview', $purchase),
         ]);
     }
 
@@ -139,28 +142,156 @@ class PurchaseBillController extends Controller
     public function preview(Purchase $purchase)
     {
         $purchase->load(['items', 'payments.bankAccount', 'party']);
-
-        return view('dashboard.purchases.purchase-preview', compact('purchase'));
+        return view('invoice.index', $this->buildPurchaseInvoiceViewData($purchase, [
+            'pageTitle' => 'Purchase Preview',
+            'browserTabLabel' => 'Purchase #' . ($purchase->bill_number ?: $purchase->id),
+        ]));
     }
 
     public function print(Purchase $purchase)
     {
         $purchase->load(['items', 'payments.bankAccount', 'party']);
-
-        return view('dashboard.purchases.purchase-preview', [
-            'purchase' => $purchase,
-            'autoPrint' => true,
-        ]);
+        return view('invoice.index', $this->buildPurchaseInvoiceViewData($purchase, [
+            'pageTitle' => 'Purchase Print',
+            'browserTabLabel' => 'Purchase #' . ($purchase->bill_number ?: $purchase->id),
+            'autoPrintPreview' => true,
+        ]));
     }
 
     public function pdf(Purchase $purchase)
     {
         $purchase->load(['items', 'payments.bankAccount', 'party']);
+        return view('invoice.index', $this->buildPurchaseInvoiceViewData($purchase, [
+            'pageTitle' => 'Purchase PDF',
+            'browserTabLabel' => 'Purchase #' . ($purchase->bill_number ?: $purchase->id),
+        ]));
+    }
 
-        return view('dashboard.purchases.purchase-preview', [
-            'purchase' => $purchase,
-            'pdfMode' => true,
+    public function downloadPdf(Purchase $purchase)
+    {
+        $purchase->load(['items', 'payments.bankAccount', 'party']);
+
+        $viewData = $this->buildPurchaseInvoiceViewData($purchase, [
+            'pageTitle' => 'Purchase PDF',
+            'browserTabLabel' => 'Purchase #' . ($purchase->bill_number ?: $purchase->id),
+            'pdfDirectDownload' => true,
+            'reactCssInline' => File::get(public_path('react-invoice/assets/index-7A0P_pSc.css')),
+            'reactJsInline' => File::get(public_path('react-invoice/assets/index-B2etBuUm.js')),
+            'reactCss' => url('/react-invoice/assets/index-7A0P_pSc.css'),
+            'reactJs' => url('/react-invoice/assets/index-B2etBuUm.js'),
         ]);
+
+        $htmlDirectory = storage_path('app/purchase-pdf');
+        File::ensureDirectoryExists($htmlDirectory);
+
+        $htmlPath = $htmlDirectory . DIRECTORY_SEPARATOR . 'purchase-' . $purchase->id . '-' . uniqid() . '.html';
+        $pdfPath = $htmlDirectory . DIRECTORY_SEPARATOR . 'purchase-' . $purchase->id . '-' . uniqid() . '.pdf';
+
+        File::put($htmlPath, view('invoice.index', $viewData)->render());
+
+        $chromePath = $this->resolveChromeExecutable();
+        abort_unless($chromePath !== null, 500, 'Chrome/Edge executable not found for PDF generation.');
+
+        $process = new Process([
+            $chromePath,
+            '--headless=new',
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-sync',
+            '--no-pdf-header-footer',
+            '--run-all-compositor-stages-before-draw',
+            '--virtual-time-budget=1200',
+            '--print-to-pdf=' . $pdfPath,
+            'file:///' . str_replace('\\', '/', $htmlPath),
+        ]);
+
+        $process->setTimeout(60);
+        $process->run();
+
+        File::delete($htmlPath);
+
+        if (! $process->isSuccessful() || ! File::exists($pdfPath)) {
+            File::delete($pdfPath);
+            abort(500, 'PDF generation failed.');
+        }
+
+        return response()->download(
+            $pdfPath,
+            'purchase-' . ($purchase->bill_number ?: $purchase->id) . '.pdf'
+        )->deleteFileAfterSend(true);
+    }
+
+    private function buildPurchaseInvoiceViewData(Purchase $purchase, array $overrides = []): array
+    {
+        $primaryPayment = $purchase->payments->first();
+        $invoicePreviewData = [
+            'title' => 'Purchase Bill',
+            'businessName' => (string) config('app.name', 'My Company'),
+            'phone' => (string) ($purchase->phone ?: ($purchase->party?->phone ?: '')),
+            'invoiceNo' => (string) ($purchase->bill_number ?: $purchase->id),
+            'date' => optional($purchase->bill_date)->format('d/m/Y') ?: now()->format('d/m/Y'),
+            'time' => optional($purchase->created_at)->format('h:i A') ?: now()->format('h:i A'),
+            'dueDate' => optional($purchase->bill_date)->format('d/m/Y') ?: now()->format('d/m/Y'),
+            'billTo' => (string) ($purchase->party_name ?: ($purchase->party?->name ?: 'Supplier')),
+            'billAddress' => (string) ($purchase->billing_address ?: ''),
+            'billPhone' => (string) ($purchase->phone ?: ($purchase->party?->phone ?: '')),
+            'shipTo' => (string) ($purchase->billing_address ?: ''),
+            'description' => (string) ($purchase->description ?: 'Thanks for doing business with us!'),
+            'subtotal' => (float) ($purchase->total_amount ?? 0),
+            'discount' => (float) ($purchase->discount_rs ?? 0),
+            'taxAmount' => (float) ($purchase->tax_amount ?? 0),
+            'total' => (float) ($purchase->grand_total ?? 0),
+            'received' => (float) ($purchase->paid_amount ?? 0),
+            'balance' => (float) ($purchase->balance ?? 0),
+            'items' => $purchase->items->map(function ($item) use ($purchase) {
+                return [
+                    'name' => (string) ($item->item_name ?: 'Item'),
+                    'hsn' => (string) ($item->item_code ?: ''),
+                    'qty' => (string) ($item->quantity ?? 0),
+                    'unit' => (string) ($item->unit ?: ''),
+                    'rate' => (float) ($item->unit_price ?? 0),
+                    'disc' => number_format((float) ($item->discount ?? 0), 2, '.', ''),
+                    'gst' => rtrim(rtrim(number_format((float) ($purchase->tax_pct ?? 0), 2, '.', ''), '0'), '.') . '%',
+                    'amt' => (float) ($item->amount ?? 0),
+                ];
+            })->values()->all(),
+            'bankName' => (string) ($primaryPayment?->bankAccount?->bank_name ?: $primaryPayment?->bankAccount?->display_name ?: $primaryPayment?->payment_type ?: ''),
+            'bankAccountNumber' => (string) ($primaryPayment?->bankAccount?->account_number ?: ''),
+            'bankAccountHolder' => (string) ($primaryPayment?->bankAccount?->account_holder_name ?: ''),
+        ];
+
+        return array_merge([
+            'purchase' => $purchase,
+            'invoicePreviewData' => $invoicePreviewData,
+            'pageTitle' => 'Purchase Preview',
+            'browserTabLabel' => 'Purchase Preview',
+            'saveCloseUrl' => route('purchase-expenses'),
+            'initialMode' => (string) request()->query('theme', 'tally'),
+            'initialRegularThemeId' => (int) request()->query('theme_id', 1),
+            'initialThermalThemeId' => (int) request()->query('theme_id', 1),
+            'initialAccent' => (string) request()->query('color', '#707070'),
+            'initialAccent2' => (string) request()->query('color2', '#ff981f'),
+            'reactCss' => asset('react-invoice/assets/index-7A0P_pSc.css'),
+            'reactJs' => asset('react-invoice/assets/index-B2etBuUm.js'),
+        ], $overrides);
+    }
+
+    private function resolveChromeExecutable(): ?string
+    {
+        $candidates = [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+            'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     private function validatePurchase(Request $request): array
@@ -252,7 +383,7 @@ class PurchaseBillController extends Controller
             $purchase->save();
 
             if (empty($purchase->bill_number)) {
-                $purchase->bill_number = 'PB-' . $purchase->id;
+                $purchase->bill_number = TransactionNumberPrefix::format('purchase_bill', $purchase->id);
                 $purchase->save();
             }
 

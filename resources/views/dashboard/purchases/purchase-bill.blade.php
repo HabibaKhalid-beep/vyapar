@@ -104,6 +104,23 @@
             left: 14px;
             color: #9aa4b2;
         }
+        .list-action-btn {
+            min-width: 40px;
+            height: 40px;
+            border: 1px solid #d9e3ef;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            color: #475569;
+            transition: all 0.2s ease;
+        }
+        .list-action-btn:hover {
+            background: #f8fbff;
+            color: #0f172a;
+            border-color: #bfd3ea;
+        }
         .purchase-empty {
             padding: 48px 16px;
             color: #7b8794;
@@ -148,6 +165,59 @@
             width: 110px;
             outline: none;
         }
+        @media print {
+            body {
+                background: #fff !important;
+            }
+            body * {
+                visibility: hidden !important;
+            }
+            #purchasePrintArea,
+            #purchasePrintArea * {
+                visibility: visible !important;
+            }
+            #purchasePrintArea {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                padding: 24px;
+                background: #fff;
+                display: block !important;
+            }
+            #purchasePrintArea .purchase-print-header {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 20px;
+                gap: 16px;
+            }
+            #purchasePrintArea .purchase-print-summary {
+                display: flex !important;
+                gap: 12px;
+                margin-bottom: 18px;
+            }
+            #purchasePrintArea .purchase-print-card {
+                border: 1px solid #d9e3ef;
+                border-radius: 10px;
+                padding: 10px 14px;
+                min-width: 140px;
+            }
+            #purchasePrintArea table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            #purchasePrintArea th,
+            #purchasePrintArea td {
+                border: 1px solid #d9e3ef;
+                padding: 10px 12px;
+                font-size: 12px;
+                text-align: left;
+            }
+            #purchasePrintArea th.text-end,
+            #purchasePrintArea td.text-end {
+                text-align: right;
+            }
+        }
     </style>
 </head>
 <body data-page="purchase-bill">
@@ -164,15 +234,15 @@
     <div class="d-flex flex-wrap gap-3 mb-3">
         <div class="purchase-summary-card" style="background:#dff8ee;">
             <h6>Paid</h6>
-            <strong>Rs {{ number_format($paidTotal ?? 0, 2) }}</strong>
+            <strong id="purchasePaidTotal">Rs {{ number_format($paidTotal ?? 0, 2) }}</strong>
         </div>
         <div class="purchase-summary-card" style="background:#e7f1ff;">
             <h6>Unpaid</h6>
-            <strong>Rs {{ number_format($unpaidTotal ?? 0, 2) }}</strong>
+            <strong id="purchaseUnpaidTotal">Rs {{ number_format($unpaidTotal ?? 0, 2) }}</strong>
         </div>
         <div class="purchase-summary-card" style="background:#ffe7c7;">
             <h6>Total</h6>
-            <strong>Rs {{ number_format($grandTotal ?? 0, 2) }}</strong>
+            <strong id="purchaseGrandTotal">Rs {{ number_format($grandTotal ?? 0, 2) }}</strong>
         </div>
     </div>
 
@@ -220,7 +290,10 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="purchaseBillSearch" value="{{ $search ?? '' }}" class="form-control" placeholder="Search by invoice or party">
                 </div>
-                <button type="button" class="action-icon-btn" onclick="window.print()" title="Print list">
+                <button type="button" id="purchaseBillExportExcel" class="list-action-btn" title="Export Excel">
+                    <i class="fa-solid fa-file-excel text-success"></i>
+                </button>
+                <button type="button" id="purchaseBillPrintTable" class="list-action-btn" title="Print list">
                     <i class="fa-solid fa-print"></i>
                 </button>
             </div>
@@ -247,9 +320,13 @@
                             $paymentLabel = $primaryPayment?->bankAccount?->display_with_account
                                 ?? $primaryPayment?->payment_type
                                 ?? '-';
+                            $paymentBankName = $primaryPayment?->bankAccount?->display_name
+                                ?? $primaryPayment?->bankAccount?->bank_name
+                                ?? $primaryPayment?->payment_type
+                                ?? '-';
                             $status = (float) ($purchase->balance ?? 0) <= 0 ? 'Paid' : 'Unpaid';
                         @endphp
-                        <tr class="purchase-bill-row">
+                        <tr class="purchase-bill-row" data-grand-total="{{ (float) ($purchase->grand_total ?? 0) }}" data-balance-due="{{ (float) ($purchase->balance ?? 0) }}">
                             <td>{{ optional($purchase->bill_date)->format('d/m/Y') ?? '-' }}</td>
                             <td>{{ $purchase->bill_number ?? '-' }}</td>
                             <td>{{ $purchase->party_name ?: ($purchase->party?->name ?? '-') }}</td>
@@ -266,15 +343,12 @@
                                     <a href="{{ route('purchase-bills.print', $purchase) }}" target="_blank" class="action-icon-btn" title="Print">
                                         <i class="fa-solid fa-print"></i>
                                     </a>
-                                    <a href="{{ route('purchase-bills.preview', $purchase) }}" target="_blank" class="action-icon-btn" title="Preview">
-                                        <i class="fa-regular fa-eye"></i>
-                                    </a>
+
                                     <div class="dropdown">
                                         <button class="action-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More">
                                             <i class="fa-solid fa-ellipsis-vertical"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="{{ route('purchase-bills.preview', $purchase) }}" target="_blank">View</a></li>
                                             <li><a class="dropdown-item" href="{{ route('purchase-bills.edit', $purchase) }}">Edit</a></li>
                                             <li><a class="dropdown-item" href="{{ route('purchase-bills.preview', $purchase) }}" target="_blank">Preview</a></li>
                                             <li><a class="dropdown-item" href="{{ route('purchase-bills.pdf', $purchase) }}" target="_blank">Open PDF</a></li>
@@ -290,6 +364,8 @@
                                                     data-updated="{{ optional($purchase->updated_at)->format('d/m/Y h:i A') ?? '-' }}"
                                                     data-items="{{ $purchase->items->count() }}"
                                                     data-payments="{{ $purchase->payments->count() }}"
+                                                    data-amount="{{ number_format($purchase->grand_total ?? 0, 2) }}"
+                                                    data-bank="{{ $paymentBankName }}"
                                                 >
                                                     History
                                                 </button>
@@ -330,11 +406,15 @@
                 <div class="mb-2"><strong>Created At:</strong> <span id="historyCreatedAt">-</span></div>
                 <div class="mb-2"><strong>Updated At:</strong> <span id="historyUpdatedAt">-</span></div>
                 <div class="mb-2"><strong>Total Items:</strong> <span id="historyItemsCount">0</span></div>
-                <div><strong>Total Payments:</strong> <span id="historyPaymentsCount">0</span></div>
+                <div class="mb-2"><strong>Total Payments:</strong> <span id="historyPaymentsCount">0</span></div>
+                <div class="mb-2"><strong>Amount:</strong> <span id="historyAmount">0.00</span></div>
+                <div><strong>Bank Name:</strong> <span id="historyBankName">-</span></div>
             </div>
         </div>
     </div>
 </div>
+
+<div id="purchasePrintArea" class="d-none"></div>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -350,12 +430,188 @@
         const customDateRange = document.getElementById('purchaseBillCustomDateRange');
         const customFromInput = document.getElementById('purchaseBillCustomFrom');
         const customToInput = document.getElementById('purchaseBillCustomTo');
+        const excelButton = document.getElementById('purchaseBillExportExcel');
+        const printButton = document.getElementById('purchaseBillPrintTable');
+        const printArea = document.getElementById('purchasePrintArea');
 
         let globalSearch = (searchInput?.value || '').toLowerCase().trim();
         let periodFilter = periodSelect?.value || 'all';
         let firmFilter = firmSelect?.value || '';
         let customFrom = '';
         let customTo = '';
+        const paidTotalEl = document.getElementById('purchasePaidTotal');
+        const unpaidTotalEl = document.getElementById('purchaseUnpaidTotal');
+        const grandTotalEl = document.getElementById('purchaseGrandTotal');
+
+        function formatAmount(value) {
+            return 'Rs ' + Number(value || 0).toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function getVisiblePurchaseRows() {
+            return Array.from(document.querySelectorAll('.purchase-bill-row'))
+                .filter((row) => row.style.display !== 'none')
+                .map((row) => {
+                    const cells = row.querySelectorAll('td');
+                    return {
+                        date: cells[0]?.textContent.trim() || '-',
+                        invoice: cells[1]?.textContent.trim() || '-',
+                        party: cells[2]?.textContent.trim() || '-',
+                        paymentType: cells[3]?.textContent.trim() || '-',
+                        amount: cells[4]?.textContent.trim() || '0.00',
+                        balance: cells[5]?.textContent.trim() || '0.00',
+                        status: cells[6]?.textContent.trim() || '-',
+                    };
+                });
+        }
+
+        function exportPurchaseTableToExcel() {
+            const rows = getVisiblePurchaseRows();
+            if (!rows.length) {
+                alert('No visible purchase bill data to export.');
+                return;
+            }
+
+            const html = `
+                <table border="1">
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice No.</th>
+                        <th>Party Name</th>
+                        <th>Payment Type</th>
+                        <th>Amount</th>
+                        <th>Balance Due</th>
+                        <th>Status</th>
+                    </tr>
+                    ${rows.map((row) => `
+                        <tr>
+                            <td>${escapeHtml(row.date)}</td>
+                            <td>${escapeHtml(row.invoice)}</td>
+                            <td>${escapeHtml(row.party)}</td>
+                            <td>${escapeHtml(row.paymentType)}</td>
+                            <td>${escapeHtml(row.amount)}</td>
+                            <td>${escapeHtml(row.balance)}</td>
+                            <td>${escapeHtml(row.status)}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+
+            const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const today = new Date();
+            const stamp = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            link.href = url;
+            link.download = `purchase-bills-${stamp}.xls`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function buildPrintTableMarkup() {
+            const rows = getVisiblePurchaseRows();
+            if (!rows.length) {
+                alert('No visible purchase bill data to print.');
+                return false;
+            }
+
+            const now = new Date();
+            const printDate = now.toLocaleDateString('en-GB');
+            const printTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+            printArea.innerHTML = `
+                <div class="purchase-print-header">
+                    <div>
+                        <h2 style="margin:0 0 6px;font-size:28px;color:#0f172a;">Purchase Bills Report</h2>
+                        <div style="font-size:13px;color:#64748b;">Generated on ${escapeHtml(printDate)} at ${escapeHtml(printTime)}</div>
+                    </div>
+                    <div style="text-align:right;font-size:13px;color:#475569;">
+                        <div><strong>Total Rows:</strong> ${rows.length}</div>
+                    </div>
+                </div>
+                <div class="purchase-print-summary">
+                    <div class="purchase-print-card">
+                        <div style="font-size:12px;color:#64748b;">Paid</div>
+                        <div style="font-size:20px;font-weight:700;color:#0f172a;">${escapeHtml(paidTotalEl?.textContent || 'Rs 0.00')}</div>
+                    </div>
+                    <div class="purchase-print-card">
+                        <div style="font-size:12px;color:#64748b;">Unpaid</div>
+                        <div style="font-size:20px;font-weight:700;color:#0f172a;">${escapeHtml(unpaidTotalEl?.textContent || 'Rs 0.00')}</div>
+                    </div>
+                    <div class="purchase-print-card">
+                        <div style="font-size:12px;color:#64748b;">Total</div>
+                        <div style="font-size:20px;font-weight:700;color:#0f172a;">${escapeHtml(grandTotalEl?.textContent || 'Rs 0.00')}</div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Invoice No.</th>
+                            <th>Party Name</th>
+                            <th>Payment Type</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-end">Balance Due</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map((row) => `
+                            <tr>
+                                <td>${escapeHtml(row.date)}</td>
+                                <td>${escapeHtml(row.invoice)}</td>
+                                <td>${escapeHtml(row.party)}</td>
+                                <td>${escapeHtml(row.paymentType)}</td>
+                                <td class="text-end">${escapeHtml(row.amount)}</td>
+                                <td class="text-end">${escapeHtml(row.balance)}</td>
+                                <td>${escapeHtml(row.status)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            return true;
+        }
+
+        function updateSummaryCards() {
+            let paid = 0;
+            let unpaid = 0;
+            let total = 0;
+
+            document.querySelectorAll('.purchase-bill-row').forEach((row) => {
+                if (row.style.display === 'none') {
+                    return;
+                }
+
+                const grand = parseFloat(row.getAttribute('data-grand-total') || '0');
+                const balance = parseFloat(row.getAttribute('data-balance-due') || '0');
+                total += grand;
+
+                if (balance <= 0) {
+                    paid += grand;
+                } else {
+                    unpaid += balance;
+                }
+            });
+
+            if (paidTotalEl) paidTotalEl.textContent = formatAmount(paid);
+            if (unpaidTotalEl) unpaidTotalEl.textContent = formatAmount(unpaid);
+            if (grandTotalEl) grandTotalEl.textContent = formatAmount(total);
+        }
 
         function formatDisplayDate(date) {
             const dd = String(date.getDate()).padStart(2, '0');
@@ -462,6 +718,8 @@
 
                 row.style.display = visible ? '' : 'none';
             });
+
+            updateSummaryCards();
         }
 
         function initializePeriodFilter() {
@@ -524,6 +782,16 @@
             applyPurchaseBillFilters();
         });
 
+        excelButton?.addEventListener('click', exportPurchaseTableToExcel);
+
+        printButton?.addEventListener('click', function () {
+            if (!buildPrintTableMarkup()) {
+                return;
+            }
+
+            window.print();
+        });
+
         document.querySelectorAll('.js-delete-purchase').forEach((button) => {
             button.addEventListener('click', async function () {
                 const purchaseId = this.dataset.id;
@@ -560,6 +828,8 @@
                 document.getElementById('historyUpdatedAt').textContent = button.getAttribute('data-updated') || '-';
                 document.getElementById('historyItemsCount').textContent = button.getAttribute('data-items') || '0';
                 document.getElementById('historyPaymentsCount').textContent = button.getAttribute('data-payments') || '0';
+                document.getElementById('historyAmount').textContent = button.getAttribute('data-amount') || '0.00';
+                document.getElementById('historyBankName').textContent = button.getAttribute('data-bank') || '-';
             });
         }
     });

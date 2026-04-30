@@ -85,7 +85,8 @@ Preview: ${previewUrl}`
     ${styleLinks}
     <style>
       body { margin: 0; padding: 0; background: #fff; }
-      .right-panel { width: 100% !important; height: auto !important; overflow: visible !important; padding: 0 !important; background: #fff !important; }
+      .right-panel { width: 100% !important; height: auto !important; overflow: visible !important; padding: 0 !important; background: #fff !important; display: flex !important; justify-content: center !important; }
+      .right-panel > * { width: auto !important; margin: 0 auto !important; }
     </style>
   </head>
   <body>

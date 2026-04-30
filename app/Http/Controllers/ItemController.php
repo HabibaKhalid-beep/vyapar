@@ -7,7 +7,12 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Models\SaleItem;
 use App\Models\Sale;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ItemController extends Controller
 {
@@ -218,6 +223,168 @@ class ItemController extends Controller
 
     // ── Category ─────────────────────────────────────────────────
 
+    public function importValidItems(Request $request)
+    {
+        $payload = $request->validate([
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.itemName' => ['required', 'string', 'max:255'],
+            'items.*.itemCode' => ['nullable', 'string', 'max:255'],
+            'items.*.description' => ['nullable', 'string'],
+            'items.*.category' => ['nullable', 'string', 'max:255'],
+            'items.*.baseUnit' => ['nullable', 'string', 'max:255'],
+            'items.*.itemLocation' => ['nullable', 'string', 'max:255'],
+            'items.*.salePrice' => ['nullable'],
+            'items.*.purchasePrice' => ['nullable'],
+            'items.*.wholesalePrice' => ['nullable'],
+            'items.*.openingStock' => ['nullable'],
+            'items.*.minStock' => ['nullable'],
+        ]);
+
+        $rows = $payload['items'];
+        $nameCounts = [];
+        $codeCounts = [];
+        $created = [];
+        $errors = [];
+        $itemsTableColumns = array_flip(Schema::getColumnListing('items'));
+        $itemStocksTableExists = Schema::hasTable('item_stocks');
+        $itemStocksColumns = $itemStocksTableExists ? array_flip(Schema::getColumnListing('item_stocks')) : [];
+
+        foreach ($rows as $row) {
+            $nameKey = strtolower(trim((string) ($row['itemName'] ?? '')));
+            $codeKey = strtolower(trim((string) ($row['itemCode'] ?? '')));
+
+            if ($nameKey !== '') {
+                $nameCounts[$nameKey] = ($nameCounts[$nameKey] ?? 0) + 1;
+            }
+
+            if ($codeKey !== '') {
+                $codeCounts[$codeKey] = ($codeCounts[$codeKey] ?? 0) + 1;
+            }
+        }
+
+        foreach ($rows as $index => $row) {
+            $name = trim((string) ($row['itemName'] ?? ''));
+            $itemCode = trim((string) ($row['itemCode'] ?? ''));
+            $nameKey = strtolower($name);
+            $codeKey = strtolower($itemCode);
+            $rowErrors = [];
+
+            if ($name === '') {
+                $rowErrors[] = 'Item name is required.';
+            }
+
+            if ($nameKey !== '' && ($nameCounts[$nameKey] ?? 0) > 1) {
+                $rowErrors[] = 'Duplicate item name found in import file.';
+            }
+
+            if ($codeKey !== '' && ($codeCounts[$codeKey] ?? 0) > 1) {
+                $rowErrors[] = 'Duplicate item code found in import file.';
+            }
+
+            if ($nameKey !== '' && Item::whereRaw('LOWER(TRIM(name)) = ?', [$nameKey])->exists()) {
+                $rowErrors[] = 'Item name already exists.';
+            }
+
+            if ($codeKey !== '' && Item::whereRaw('LOWER(TRIM(item_code)) = ?', [$codeKey])->exists()) {
+                $rowErrors[] = 'Item code already exists.';
+            }
+
+            $validator = Validator::make($row, [
+                'salePrice' => ['nullable', 'numeric'],
+                'purchasePrice' => ['nullable', 'numeric'],
+                'wholesalePrice' => ['nullable', 'numeric'],
+                'openingStock' => ['nullable', 'numeric'],
+                'minStock' => ['nullable', 'numeric'],
+            ]);
+
+            if ($validator->fails()) {
+                $rowErrors = array_merge($rowErrors, $validator->errors()->all());
+            }
+
+            if (!empty($rowErrors)) {
+                $errors[] = [
+                    'row' => $index + 1,
+                    'itemName' => $name,
+                    'itemCode' => $itemCode,
+                    'error' => implode(' ', array_unique($rowErrors)),
+                ];
+                continue;
+            }
+
+            $categoryId = null;
+            $categoryName = trim((string) ($row['category'] ?? ''));
+            if ($categoryName !== '') {
+                $category = Category::firstOrCreate(['name' => $categoryName]);
+                $categoryId = $category->id;
+            }
+
+            $salePrice = $this->normalizeDecimal($row['salePrice'] ?? 0);
+            $purchasePrice = $this->normalizeDecimal($row['purchasePrice'] ?? 0);
+            $wholesalePrice = $this->normalizeDecimal($row['wholesalePrice'] ?? 0);
+            $openingStock = $this->normalizeDecimal($row['openingStock'] ?? 0);
+            $minStock = $this->normalizeDecimal($row['minStock'] ?? 0);
+
+            $itemData = [
+                'type' => 'product',
+                'name' => $name,
+                'category_id' => $categoryId,
+                'unit' => trim((string) ($row['baseUnit'] ?? '')) ?: null,
+                'price' => $salePrice,
+                'sale_price' => $salePrice,
+                'wholesale_price' => $wholesalePrice,
+                'purchase_price' => $purchasePrice,
+                'opening_qty' => $openingStock,
+                'item_code' => $itemCode !== '' ? $itemCode : null,
+                'location' => trim((string) ($row['itemLocation'] ?? '')) ?: null,
+                'description' => trim((string) ($row['description'] ?? '')) ?: null,
+                'min_stock' => $minStock,
+                'is_active' => true,
+            ];
+
+            $itemData = array_filter(
+                $itemData,
+                fn ($value, $key) => isset($itemsTableColumns[$key]),
+                ARRAY_FILTER_USE_BOTH
+            );
+
+            $item = Item::create($itemData);
+
+            if ($itemStocksTableExists) {
+                $stockData = [
+                    'item_id' => $item->id,
+                    'opening_stock' => $openingStock,
+                    'current_stock' => $openingStock,
+                    'at_price' => $purchasePrice,
+                    'as_of_date' => now()->toDateString(),
+                    'min_stock_level' => $minStock,
+                    'location' => trim((string) ($row['itemLocation'] ?? '')) ?: null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                $stockData = array_filter(
+                    $stockData,
+                    fn ($value, $key) => isset($itemStocksColumns[$key]),
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                DB::table('item_stocks')->insert($stockData);
+            }
+
+            $created[] = $item;
+        }
+
+        return response()->json([
+            'success' => empty($errors),
+            'message' => count($created) . ' valid items imported successfully.',
+            'imported_count' => count($created),
+            'error_count' => count($errors),
+            'errors' => $errors,
+            'items' => $created,
+            'redirect' => route('items'),
+        ], empty($errors) ? 200 : 422);
+    }
+
     public function category(Request $request)
     {
         $categories = Category::withCount('items')->get();
@@ -228,6 +395,138 @@ class ItemController extends Controller
     public function categoryList()
     {
         return response()->json(Category::all());
+    }
+
+    public function exportItemsData()
+    {
+        $items = Item::with('category')
+            ->where('type', 'product')
+            ->orderBy('name')
+            ->get();
+
+        $rows = $items->map(function (Item $item) {
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'item_code' => $item->item_code,
+                'description' => $item->description,
+                'category' => $item->category?->name,
+                'unit' => $item->unit,
+                'sale_price' => $item->sale_price,
+                'purchase_price' => $item->purchase_price,
+                'opening_qty' => $item->opening_qty,
+                'stock_qty' => $item->stock_qty,
+                'min_stock' => $item->min_stock,
+                'location' => $item->location,
+                'created_at' => optional($item->created_at)->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'items' => $rows,
+            'count' => $rows->count(),
+        ]);
+    }
+
+    public function exportItemsDownload()
+    {
+        $items = Item::with('category')
+            ->where('type', 'product')
+            ->orderBy('name')
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = [
+            'Item Name',
+            'Item Code',
+            'Description',
+            'Category',
+            'Unit',
+            'Sale Price',
+            'Purchase Price',
+            'Opening Qty',
+            'Stock Qty',
+            'Min Stock',
+            'Location',
+            'Created At',
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        $rowNumber = 2;
+        foreach ($items as $item) {
+            $sheet->setCellValueByColumnAndRow(1, $rowNumber, $item->name);
+            $sheet->setCellValueByColumnAndRow(2, $rowNumber, $item->item_code);
+            $sheet->setCellValueByColumnAndRow(3, $rowNumber, $item->description);
+            $sheet->setCellValueByColumnAndRow(4, $rowNumber, $item->category?->name);
+            $sheet->setCellValueByColumnAndRow(5, $rowNumber, $item->unit);
+            $sheet->setCellValueByColumnAndRow(6, $rowNumber, $item->sale_price);
+            $sheet->setCellValueByColumnAndRow(7, $rowNumber, $item->purchase_price);
+            $sheet->setCellValueByColumnAndRow(8, $rowNumber, $item->opening_qty);
+            $sheet->setCellValueByColumnAndRow(9, $rowNumber, $item->stock_qty);
+            $sheet->setCellValueByColumnAndRow(10, $rowNumber, $item->min_stock);
+            $sheet->setCellValueByColumnAndRow(11, $rowNumber, $item->location);
+            $sheet->setCellValueByColumnAndRow(12, $rowNumber, optional($item->created_at)->format('Y-m-d H:i:s'));
+            $rowNumber++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'export-items-' . now()->format('YmdHis') . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function bulkUpdateData()
+    {
+        $items = Item::with('category')
+            ->where('type', 'product')
+            ->orderBy('name')
+            ->get();
+
+        $stockMap = [];
+        if (Schema::hasTable('item_stocks')) {
+            $stockMap = DB::table('item_stocks')
+                ->select('item_id', 'opening_stock', 'current_stock', 'at_price', 'as_of_date', 'min_stock_level', 'location')
+                ->orderByDesc('id')
+                ->get()
+                ->unique('item_id')
+                ->keyBy('item_id');
+        }
+
+        $rows = $items->map(function (Item $item) use ($stockMap) {
+            $stock = $stockMap[$item->id] ?? null;
+
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'category_id' => $item->category_id,
+                'category_name' => $item->category?->name,
+                'item_code' => $item->item_code,
+                'description' => $item->description,
+                'purchase_price' => $item->purchase_price,
+                'sale_price' => $item->sale_price,
+                'opening_qty' => $stock->opening_stock ?? $item->opening_qty,
+                'current_stock' => $stock->current_stock ?? $item->stock_qty,
+                'at_price' => $stock->at_price ?? $item->purchase_price,
+                'as_of_date' => isset($stock->as_of_date) ? (string) $stock->as_of_date : optional($item->updated_at)->format('Y-m-d'),
+                'min_stock' => $stock->min_stock_level ?? $item->min_stock,
+                'location' => $stock->location ?? $item->location,
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'items' => $rows,
+        ]);
     }
 
     public function storeCategory(Request $request)
@@ -385,8 +684,21 @@ class ItemController extends Controller
                 $item = Item::find($itemId);
                 if (!$item) continue;
 
+                $stockColumns = Schema::hasTable('item_stocks')
+                    ? array_flip(Schema::getColumnListing('item_stocks'))
+                    : [];
+
                 if (isset($fields['name']) && $fields['name'] !== null && $fields['name'] !== '') {
                     $item->name = $fields['name'];
+                }
+                if (array_key_exists('category_id', $fields)) {
+                    $item->category_id = $fields['category_id'] ?: null;
+                }
+                if (array_key_exists('item_code', $fields)) {
+                    $item->item_code = $fields['item_code'] !== '' ? $fields['item_code'] : null;
+                }
+                if (array_key_exists('description', $fields) && Schema::hasColumn('items', 'description')) {
+                    $item->description = $fields['description'] !== '' ? $fields['description'] : null;
                 }
                 if (isset($fields['sale_price']) && $fields['sale_price'] !== null && $fields['sale_price'] !== '') {
                     $item->sale_price = floatval($fields['sale_price']);
@@ -394,8 +706,55 @@ class ItemController extends Controller
                 if (isset($fields['purchase_price']) && $fields['purchase_price'] !== null && $fields['purchase_price'] !== '') {
                     $item->purchase_price = floatval($fields['purchase_price']);
                 }
+                if (isset($fields['opening_qty']) && $fields['opening_qty'] !== null && $fields['opening_qty'] !== '') {
+                    $item->opening_qty = floatval($fields['opening_qty']);
+                }
+                if (isset($fields['min_stock']) && $fields['min_stock'] !== null && $fields['min_stock'] !== '') {
+                    $item->min_stock = floatval($fields['min_stock']);
+                }
+                if (array_key_exists('location', $fields)) {
+                    $item->location = $fields['location'] !== '' ? $fields['location'] : null;
+                }
 
                 $item->save();
+
+                if (!empty($stockColumns)) {
+                    $payload = [];
+
+                    if (isset($stockColumns['opening_stock']) && isset($fields['opening_qty']) && $fields['opening_qty'] !== '') {
+                        $payload['opening_stock'] = floatval($fields['opening_qty']);
+                    }
+                    if (isset($stockColumns['current_stock']) && isset($fields['opening_qty']) && $fields['opening_qty'] !== '') {
+                        $payload['current_stock'] = floatval($fields['opening_qty']);
+                    }
+                    if (isset($stockColumns['at_price']) && isset($fields['at_price']) && $fields['at_price'] !== '') {
+                        $payload['at_price'] = floatval($fields['at_price']);
+                    }
+                    if (isset($stockColumns['as_of_date']) && isset($fields['as_of_date']) && $fields['as_of_date'] !== '') {
+                        $payload['as_of_date'] = $fields['as_of_date'];
+                    }
+                    if (isset($stockColumns['min_stock_level']) && isset($fields['min_stock']) && $fields['min_stock'] !== '') {
+                        $payload['min_stock_level'] = floatval($fields['min_stock']);
+                    }
+                    if (isset($stockColumns['location']) && array_key_exists('location', $fields)) {
+                        $payload['location'] = $fields['location'] !== '' ? $fields['location'] : null;
+                    }
+
+                    if (!empty($payload)) {
+                        $stockRecord = DB::table('item_stocks')->where('item_id', $item->id)->orderByDesc('id')->first();
+
+                        if ($stockRecord) {
+                            $payload['updated_at'] = now();
+                            DB::table('item_stocks')->where('id', $stockRecord->id)->update($payload);
+                        } else {
+                            DB::table('item_stocks')->insert(array_merge([
+                                'item_id' => $item->id,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ], $payload));
+                        }
+                    }
+                }
             }
 
             return response()->json(['success' => true, 'message' => 'Items updated successfully']);

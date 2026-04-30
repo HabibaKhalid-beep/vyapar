@@ -6,6 +6,7 @@ use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Support\TransactionNumberPrefix;
 use Illuminate\Http\Request;
 
 class SaleOrderController extends Controller
@@ -47,7 +48,7 @@ class SaleOrderController extends Controller
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = 'SO-' . str_pad($nextSaleId, 4, '0', STR_PAD_LEFT);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('sale_order', $nextSaleId);
 
         $saleOrder = null;
         $convertedSaleOrderData = null;
@@ -86,7 +87,7 @@ class SaleOrderController extends Controller
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = 'SO-' . str_pad($nextSaleId, 4, '0', STR_PAD_LEFT);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('sale_order', $nextSaleId);
 
         $sale->load(['items']);
 
@@ -151,7 +152,7 @@ class SaleOrderController extends Controller
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = 'SO-' . str_pad($nextSaleId, 4, '0', STR_PAD_LEFT);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('sale_order', $nextSaleId);
 
         $sale->load(['items']);
 

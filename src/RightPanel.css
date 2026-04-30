@@ -38,3 +38,34 @@
   font-weight: 600;
   word-break: break-word;
 }
+
+/* PDF Export Styles */
+:root.pdf-export-active .right-panel {
+  padding: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Override all invoice wrapper constraints during PDF export */
+:root.pdf-export-active .tally-wrapper,
+:root.pdf-export-active .t1-wrapper,
+:root.pdf-export-active .t4-wrapper,
+:root.pdf-export-active .t5-wrapper,
+:root.pdf-export-active .tax1-wrapper,
+:root.pdf-export-active .tax2-wrapper,
+:root.pdf-export-active .tax3-wrapper,
+:root.pdf-export-active .tax4-wrapper,
+:root.pdf-export-active .tt3-wrapper,
+:root.pdf-export-active .tt4-wrapper,
+:root.pdf-export-active .tt5-wrapper,
+:root.pdf-export-active .divine-wrapper,
+:root.pdf-export-active .fe-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 30px !important;
+  box-sizing: border-box !important;
+}

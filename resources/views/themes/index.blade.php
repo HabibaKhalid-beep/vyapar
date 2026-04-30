@@ -9,7 +9,7 @@
         .invoice-theme-layout { --accent:#1f4e79; --accent-2:#ff981f; grid-template-columns:380px minmax(0,1fr) 380px; }
         body.pdf-export-page { background:#ffffff; }
         body.pdf-export-page .top-strip, body.pdf-export-page .page-head, body.pdf-export-page .sidebar, body.pdf-export-page .sheet-expand, body.pdf-export-page .tip-box, body.pdf-export-page .theme-mode-switch, body.pdf-export-page .theme-color-panel, body.pdf-export-page .share-row { display:none !important; }
-        body.pdf-export-page .invoice-theme-layout { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:18px; align-items:start; max-width:1320px; margin:0 auto; padding:20px; }
+        body.pdf-export-page .invoice-theme-layout { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:18px; align-items:start; justify-content:center; max-width:1320px; margin:0 auto; padding:20px; }
         body.pdf-export-page .preview-wrap { padding:0; }
         body.pdf-export-page .sheet { max-width:none; min-height:auto; margin:0; }
         body.pdf-export-page .invoice-canvas { border:0; min-height:auto; padding:0; overflow:visible; }
@@ -259,31 +259,40 @@
             const previewNode = invoiceCanvas.firstElementChild;
             if(!previewNode) return null;
 
+            const previewWidth = Math.ceil(previewNode.getBoundingClientRect().width || previewNode.scrollWidth || (currentMode === 'thermal' ? 280 : 900));
             const exportHost = document.createElement('div');
             exportHost.className = `invoice-theme-layout${root.classList.contains('is-double-divine') ? ' is-double-divine' : ''}`;
             exportHost.style.position = 'fixed';
             exportHost.style.left = '0';
+            exportHost.style.right = '0';
             exportHost.style.top = '0';
-            exportHost.style.width = currentMode === 'thermal' ? '420px' : '1120px';
+            exportHost.style.width = `${Math.min(previewWidth + 48, 1120)}px`;
+            exportHost.style.maxWidth = '100%';
+            exportHost.style.margin = '0 auto';
             exportHost.style.padding = currentMode === 'thermal' ? '20px' : '24px';
             exportHost.style.background = '#ffffff';
             exportHost.style.opacity = '0.01';
             exportHost.style.pointerEvents = 'none';
             exportHost.style.zIndex = '1';
             exportHost.style.boxSizing = 'border-box';
-            exportHost.style.display = 'block';
+            exportHost.style.display = 'flex';
+            exportHost.style.justifyContent = 'center';
+            exportHost.style.alignItems = 'flex-start';
             exportHost.style.setProperty('--accent', getComputedStyle(root).getPropertyValue('--accent') || '#1f4e79');
             exportHost.style.setProperty('--accent-2', getComputedStyle(root).getPropertyValue('--accent-2') || '#ff981f');
 
             const exportMain = document.createElement('main');
             exportMain.className = 'preview-wrap';
             exportMain.style.padding = '0';
+            exportMain.style.display = 'flex';
+            exportMain.style.justifyContent = 'center';
 
             const exportSheet = document.createElement('div');
             exportSheet.className = 'sheet';
             exportSheet.style.maxWidth = 'none';
             exportSheet.style.minHeight = 'auto';
             exportSheet.style.margin = '0';
+            exportSheet.style.width = '100%';
 
             const exportCanvas = document.createElement('div');
             exportCanvas.className = 'invoice-canvas';
@@ -295,10 +304,14 @@
             exportCanvas.style.display = 'flex';
             exportCanvas.style.justifyContent = 'center';
             exportCanvas.style.alignItems = 'flex-start';
+            exportCanvas.style.width = '100%';
             exportCanvas.style.setProperty('--inv-accent', getComputedStyle(invoiceCanvas).getPropertyValue('--inv-accent') || '#1f4e79');
             exportCanvas.style.setProperty('--thermal-width', getComputedStyle(invoiceCanvas).getPropertyValue('--thermal-width') || '280px');
 
             const previewClone = previewNode.cloneNode(true);
+            previewClone.style.margin = '0 auto';
+            previewClone.style.boxSizing = 'border-box';
+            previewClone.style.width = '100%';
             exportCanvas.appendChild(previewClone);
             exportSheet.appendChild(exportCanvas);
             exportMain.appendChild(exportSheet);
@@ -347,6 +360,11 @@
             });
         }
         function getInvoicePdfUrl(download = false){ const activeThemeId = currentMode === 'thermal' ? activeThermalId : activeRegularId; const params = new URLSearchParams({ mode: currentMode, theme_id: String(activeThemeId), accent: customAccentPicker ? customAccentPicker.value : initialAccent, accent2: doubleDivineSecondPicker ? doubleDivineSecondPicker.value : initialAccent2 }); if(download) params.set('download', '1'); return `${invoicePdfBaseUrl}?${params.toString()}`; }
+        function triggerServerPdfDownload(){
+            if(!invoicePdfBaseUrl) return false;
+            window.location.href = getInvoicePdfUrl(true);
+            return true;
+        }
         function getShareMessage(){
             const invoiceNumber = invoiceData.invoiceNo || saleId || 'Invoice';
             const previewUrl = window.location.href;
@@ -358,7 +376,12 @@
             const shareUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${paramName}=${encodeURIComponent(text)}`;
             window.open(shareUrl, '_blank', 'noopener');
         }
-        if(downloadPdfBtn){ downloadPdfBtn.addEventListener('click', function(){ if(!document.body.classList.contains('pdf-export-page') && invoicePdfBaseUrl){ window.location.href = getInvoicePdfUrl(true); return; } downloadRenderedPdf(); }); }
+        if(downloadPdfBtn){
+            downloadPdfBtn.addEventListener('click', function(){
+                if(triggerServerPdfDownload()) return;
+                downloadRenderedPdf();
+            });
+        }
         if(normalPrintBtn) normalPrintBtn.addEventListener('click', doPrint);
         if(thermalPrintBtn) thermalPrintBtn.addEventListener('click', doPrint);
         if(shareWhatsappBtn) shareWhatsappBtn.addEventListener('click', function(){ openShareWindow('https://wa.me/', 'text'); });
@@ -372,7 +395,10 @@
         setSecondAccent(initialAccent2 || '#ff981f');
         setMode(initialMode || 'regular');
         if(document.body.classList.contains('pdf-export-page') && autoDownload){
-            setTimeout(function(){ downloadRenderedPdf(); }, 1800);
+            setTimeout(function(){
+                if(triggerServerPdfDownload()) return;
+                downloadRenderedPdf();
+            }, 400);
         }
     </script>
 </body>

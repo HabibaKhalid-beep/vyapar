@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Support\TransactionNumberPrefix;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -202,7 +203,7 @@ class PerfomaController extends Controller
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = 'PI-' . str_pad((string) $nextSaleId, 4, '0', STR_PAD_LEFT);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('proforma_invoice', $nextSaleId);
 
         return view('dashboard.perfoma.create_proforma_invoice', compact(
             'items',

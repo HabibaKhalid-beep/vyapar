@@ -31,6 +31,7 @@ class Transaction extends Model
         'broker_amount',
         'labour',
         'bardana',
+        'rehra_mazdori',
         'parcel_expense',
         'post_expense',
         'extra_expense',
@@ -49,6 +50,7 @@ class Transaction extends Model
         'broker_amount' => 'decimal:2',
         'labour' => 'decimal:2',
         'bardana' => 'decimal:2',
+        'rehra_mazdori' => 'decimal:2',
         'parcel_expense' => 'decimal:2',
         'post_expense' => 'decimal:2',
         'extra_expense' => 'decimal:2',
@@ -140,8 +142,10 @@ class Transaction extends Model
         $storedDebit = (float) ($this->debit ?? 0);
         $total = (float) ($this->total ?? 0);
         $paidAmount = (float) ($this->paid_amount ?? 0);
-        $expenseTotal = (float) ($this->labour ?? 0)
+        $expenseTotal = (float) ($this->broker_amount ?? 0)
+            + (float) ($this->labour ?? 0)
             + (float) ($this->bardana ?? 0)
+            + (float) ($this->rehra_mazdori ?? 0)
             + (float) ($this->parcel_expense ?? 0)
             + (float) ($this->post_expense ?? 0)
             + (float) ($this->extra_expense ?? 0);

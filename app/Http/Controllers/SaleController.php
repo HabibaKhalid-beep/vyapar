@@ -6,6 +6,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\BankAccount;
 use App\Models\BankTransaction;
 use App\Models\Broker;
+use App\Support\TransactionNumberPrefix;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
@@ -14,6 +15,7 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class SaleController extends Controller
@@ -84,16 +86,16 @@ class SaleController extends Controller
         $parties = Party::orderBy('name')->get();
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $prefixes = [
-            'invoice' => '',
-            'estimate' => 'EST-',
-            'sale_order' => 'SO-',
-            'proforma' => 'PI-',
-            'delivery_challan' => 'DC-',
-            'sale_return' => 'SR-',
-            'pos' => 'POS-',
+        $prefixTypeMap = [
+            'invoice' => 'invoice',
+            'estimate' => 'estimate',
+            'sale_order' => 'sale_order',
+            'proforma' => 'proforma_invoice',
+            'delivery_challan' => 'delivery_challan',
+            'sale_return' => 'credit_note',
+            'pos' => 'invoice',
         ];
-        $nextInvoiceNumber = ($prefixes[$type] ?? '') . $nextSaleId;
+        $nextInvoiceNumber = TransactionNumberPrefix::format($prefixTypeMap[$type] ?? 'invoice', $nextSaleId);
 
         $convertedSaleData = null;
         if ($request->filled('duplicate_sale_id')) {
@@ -101,6 +103,8 @@ class SaleController extends Controller
             $convertedSaleData = $sourceSale->toArray();
             $convertedSaleData['bill_number'] = $nextInvoiceNumber;
             $convertedSaleData['invoice_date'] = now()->toDateString();
+            $convertedSaleData['order_date'] = $sourceSale->order_date?->format('Y-m-d') ?: now()->toDateString();
+            $convertedSaleData['deal_days'] = $sourceSale->deal_days ?? 0;
             $convertedSaleData['due_date'] = $sourceSale->due_date?->format('Y-m-d') ?: now()->toDateString();
             $convertedSaleData['received_amount'] = 0;
             $convertedSaleData['balance'] = $sourceSale->grand_total ?? $sourceSale->total_amount ?? 0;
@@ -131,7 +135,7 @@ class SaleController extends Controller
         $sale->load(['items']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = (string) $nextSaleId;
+        $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
         $convertedSaleData = $this->mapEstimateToSaleDraft($sale, $nextInvoiceNumber);
         $type = 'invoice';
 
@@ -166,7 +170,7 @@ class SaleController extends Controller
         $sale->load(['items']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = (string) $nextSaleId;
+        $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
         $convertedSaleData = $this->mapSaleOrderToSaleDraft($sale, $nextInvoiceNumber);
         $type = 'invoice';
 
@@ -210,7 +214,7 @@ class SaleController extends Controller
                     continue;
                 }
 
-                $nextInvoiceNumber = (string) $nextSaleId;
+                $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
                 $nextSaleId += 1;
 
                 $draft = $this->mapSaleOrderToSaleDraft($saleOrder, $nextInvoiceNumber);
@@ -233,8 +237,14 @@ class SaleController extends Controller
                     'bill_number' => $draft['bill_number'] ?? $nextInvoiceNumber,
                     'invoice_date' => $draft['invoice_date'] ?? now()->toDateString(),
                     'order_date' => $saleOrder->order_date,
+                    'deal_days' => $saleOrder->deal_days,
                     'due_date' => $saleOrder->due_date,
                     'reference_id' => $saleOrder->id,
+                    'tadad' => $draft['tadad'] ?? $saleOrder->tadad,
+                    'total_wazan' => $draft['total_wazan'] ?? $saleOrder->total_wazan,
+                    'safi_wazan' => $draft['safi_wazan'] ?? $saleOrder->safi_wazan,
+                    'rate' => $draft['rate'] ?? $saleOrder->rate,
+                    'deo' => $draft['deo'] ?? $saleOrder->deo,
                     'total_qty' => $draft['total_qty'] ?? $saleOrder->total_qty,
                     'total_amount' => $draft['total_amount'] ?? $saleOrder->total_amount,
                     'discount_pct' => $draft['discount_pct'] ?? $saleOrder->discount_pct,
@@ -307,7 +317,7 @@ class SaleController extends Controller
         $sale->load(['items']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = (string) $nextSaleId;
+        $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
         $convertedSaleData = $this->mapDeliveryChallanToSaleDraft($sale, $nextInvoiceNumber);
         $type = 'invoice';
 
@@ -341,7 +351,7 @@ class SaleController extends Controller
         $sale->load(['items']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = (string) $nextSaleId;
+        $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
         $convertedSaleData = $this->mapProformaToSaleDraft($sale, $nextInvoiceNumber);
         $type = 'invoice';
 
@@ -370,8 +380,7 @@ class SaleController extends Controller
         $sale->load(['items']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $prefix = $sale->type === 'pos' ? 'POS-' : '';
-        $nextInvoiceNumber = $prefix . $nextSaleId;
+        $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
         $convertedSaleData = $this->mapInvoiceToSaleDraft($sale, $nextInvoiceNumber);
         $type = $sale->type === 'pos' ? 'pos' : 'invoice';
 
@@ -453,6 +462,20 @@ private function posData(): array
 
         $sale->load(['items', 'payments', 'party']);
 
+        $ledgerTransaction = Transaction::query()
+            ->where('party_id', $sale->party_id)
+            ->where('number', $sale->bill_number ?: (string) $sale->id)
+            ->latest('id')
+            ->first();
+
+        if ($ledgerTransaction) {
+            $sale->setAttribute('labour', $ledgerTransaction->labour);
+            $sale->setAttribute('bardana', $ledgerTransaction->bardana);
+            $sale->setAttribute('rehra_mazdori', $ledgerTransaction->rehra_mazdori);
+            $sale->setAttribute('post_expense', $ledgerTransaction->post_expense);
+            $sale->setAttribute('extra_expense', $ledgerTransaction->extra_expense);
+        }
+
         // Provide full URLs for existing image/document if stored in the public disk
         if ($sale->image_path) {
             $sale->image_url = Storage::disk('public')->url($sale->image_path);
@@ -475,15 +498,29 @@ private function posData(): array
             'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'broker_id' => 'nullable|exists:brokers,id',
+            'brokerage_type' => 'nullable|in:full,half,per_kg',
+            'brokerage_rate' => 'nullable|numeric|min:0',
+            'broker_amount' => 'nullable|numeric|min:0',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'nullable|string|max:100',
             'invoice_date' => 'nullable|date',
             'order_date' => 'nullable|date',
+            'deal_days' => 'nullable|integer|min:0',
             'due_date' => 'nullable|date',
+            'tadad' => 'nullable|integer|min:0',
+            'total_wazan' => 'nullable|numeric|min:0',
+            'safi_wazan' => 'nullable|numeric|min:0',
+            'rate' => 'nullable|numeric|min:0',
+            'deo' => 'nullable|numeric|min:0',
             'total_qty' => 'nullable|integer|min:0',
             'total_amount' => 'nullable|numeric|min:0',
+            'labour' => 'nullable|numeric|min:0',
+            'bardana' => 'nullable|numeric|min:0',
+            'rehra_mazdori' => 'nullable|numeric|min:0',
+            'post_expense' => 'nullable|numeric|min:0',
+            'extra_expense' => 'nullable|numeric|min:0',
             'discount_pct' => 'nullable|numeric|min:0',
             'discount_rs' => 'nullable|numeric|min:0',
             'tax_pct' => 'nullable|numeric|min:0',
@@ -524,6 +561,14 @@ private function posData(): array
         $type = $data['type'] ?? $sale->type ?? 'invoice';
         $grandTotal = floatval($data['grand_total'] ?? 0);
         $balance = max(0, $grandTotal - $receivedAmount);
+        $invoiceDate = !empty($data['invoice_date'])
+            ? Carbon::parse($data['invoice_date'])
+            : ($sale->invoice_date ? Carbon::parse($sale->invoice_date) : now());
+        $orderDate = !empty($data['order_date'])
+            ? Carbon::parse($data['order_date'])
+            : $invoiceDate->copy();
+        $dealDays = max(0, intval($data['deal_days'] ?? 0));
+        $dueDate = $orderDate->copy()->addDays($dealDays);
         $status = $this->resolveStatusForType(
             $type,
             $receivedAmount,
@@ -536,13 +581,22 @@ private function posData(): array
             'type' => $type,
             'party_id' => $data['party_id'] ?? $sale->party_id,
             'broker_id' => $data['broker_id'] ?? $sale->broker_id,
+            'brokerage_type' => $data['brokerage_type'] ?? null,
+            'brokerage_rate' => $data['brokerage_rate'] ?? 0,
+            'broker_amount' => $data['broker_amount'] ?? 0,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
             'bill_number' => $data['bill_number'] ?? $sale->bill_number,
-            'invoice_date' => $data['invoice_date'] ?? $sale->invoice_date,
-            'order_date' => $data['order_date'] ?? $sale->order_date,
-            'due_date' => $data['due_date'] ?? $sale->due_date,
+            'invoice_date' => $invoiceDate->toDateString(),
+            'order_date' => $orderDate->toDateString(),
+            'deal_days' => $dealDays,
+            'due_date' => $dueDate->toDateString(),
+            'tadad' => $data['tadad'] ?? 0,
+            'total_wazan' => $data['total_wazan'] ?? 0,
+            'safi_wazan' => $data['safi_wazan'] ?? 0,
+            'rate' => $data['rate'] ?? 0,
+            'deo' => $data['deo'] ?? 0,
             'total_qty' => $data['total_qty'] ?? 0,
             'total_amount' => $data['total_amount'] ?? 0,
             'discount_pct' => $data['discount_pct'] ?? 0,
@@ -687,15 +741,29 @@ private function posData(): array
             'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'broker_id' => 'nullable|exists:brokers,id',
+            'brokerage_type' => 'nullable|in:full,half,per_kg',
+            'brokerage_rate' => 'nullable|numeric|min:0',
+            'broker_amount' => 'nullable|numeric|min:0',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'nullable|string|max:100',
             'invoice_date' => 'nullable|date',
             'order_date' => 'nullable|date',
+            'deal_days' => 'nullable|integer|min:0',
             'due_date' => 'nullable|date',
+            'tadad' => 'nullable|integer|min:0',
+            'total_wazan' => 'nullable|numeric|min:0',
+            'safi_wazan' => 'nullable|numeric|min:0',
+            'rate' => 'nullable|numeric|min:0',
+            'deo' => 'nullable|numeric|min:0',
             'total_qty' => 'nullable|integer|min:0',
             'total_amount' => 'nullable|numeric|min:0',
+            'labour' => 'nullable|numeric|min:0',
+            'bardana' => 'nullable|numeric|min:0',
+            'rehra_mazdori' => 'nullable|numeric|min:0',
+            'post_expense' => 'nullable|numeric|min:0',
+            'extra_expense' => 'nullable|numeric|min:0',
             'discount_pct' => 'nullable|numeric|min:0',
             'discount_rs' => 'nullable|numeric|min:0',
             'tax_pct' => 'nullable|numeric|min:0',
@@ -735,6 +803,14 @@ private function posData(): array
         $type = $data['type'] ?? 'invoice';
         $grandTotal = floatval($data['grand_total'] ?? 0);
         $balance = max(0, $grandTotal - $receivedAmount);
+        $invoiceDate = !empty($data['invoice_date'])
+            ? Carbon::parse($data['invoice_date'])
+            : ($type === 'sale_order' ? now() : now());
+        $orderDate = !empty($data['order_date'])
+            ? Carbon::parse($data['order_date'])
+            : $invoiceDate->copy();
+        $dealDays = max(0, intval($data['deal_days'] ?? 0));
+        $dueDate = $orderDate->copy()->addDays($dealDays);
         $status = $this->resolveStatusForType(
             $type,
             $receivedAmount,
@@ -746,13 +822,22 @@ private function posData(): array
             'type' => $type,
             'party_id' => $data['party_id'] ?? null,
             'broker_id' => $data['broker_id'] ?? null,
+            'brokerage_type' => $data['brokerage_type'] ?? null,
+            'brokerage_rate' => $data['brokerage_rate'] ?? 0,
+            'broker_amount' => $data['broker_amount'] ?? 0,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
             'bill_number' => $data['bill_number'] ?? null,
-            'invoice_date' => $data['invoice_date'] ?? ($type === 'sale_order' ? null : now()),
-            'order_date' => $data['order_date'] ?? null,
-            'due_date' => $data['due_date'] ?? null,
+            'invoice_date' => $invoiceDate->toDateString(),
+            'order_date' => $orderDate->toDateString(),
+            'deal_days' => $dealDays,
+            'due_date' => $dueDate->toDateString(),
+            'tadad' => $data['tadad'] ?? 0,
+            'total_wazan' => $data['total_wazan'] ?? 0,
+            'safi_wazan' => $data['safi_wazan'] ?? 0,
+            'rate' => $data['rate'] ?? 0,
+            'deo' => $data['deo'] ?? 0,
             'total_qty' => $data['total_qty'] ?? 0,
             'total_amount' => $data['total_amount'] ?? 0,
             'discount_pct' => $data['discount_pct'] ?? 0,
@@ -1324,6 +1409,14 @@ private function posData(): array
             'billing_address' => $estimate->billing_address,
             'bill_number' => $nextInvoiceNumber,
             'invoice_date' => optional($estimate->invoice_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'order_date' => optional($estimate->order_date)->format('Y-m-d') ?? optional($estimate->invoice_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'deal_days' => $estimate->deal_days ?? 0,
+            'due_date' => optional($estimate->due_date)->format('Y-m-d') ?? optional($estimate->invoice_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'tadad' => $estimate->tadad,
+            'total_wazan' => $estimate->total_wazan,
+            'safi_wazan' => $estimate->safi_wazan,
+            'rate' => $estimate->rate,
+            'deo' => $estimate->deo,
             'total_qty' => $estimate->total_qty,
             'total_amount' => $estimate->total_amount,
             'discount_pct' => $estimate->discount_pct,
@@ -1365,6 +1458,14 @@ private function posData(): array
             'shipping_address' => $sale->shipping_address,
             'bill_number' => $nextInvoiceNumber,
             'invoice_date' => now()->format('Y-m-d'),
+            'order_date' => optional($sale->order_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'deal_days' => $sale->deal_days ?? 0,
+            'due_date' => optional($sale->due_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'tadad' => $sale->tadad,
+            'total_wazan' => $sale->total_wazan,
+            'safi_wazan' => $sale->safi_wazan,
+            'rate' => $sale->rate,
+            'deo' => $sale->deo,
             'total_qty' => $sale->total_qty,
             'total_amount' => $sale->total_amount,
             'discount_pct' => $sale->discount_pct,
@@ -1407,6 +1508,14 @@ private function posData(): array
             'shipping_address' => $saleOrder->shipping_address,
             'bill_number' => $nextInvoiceNumber,
             'invoice_date' => now()->format('Y-m-d'),
+            'order_date' => optional($saleOrder->order_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'deal_days' => $saleOrder->deal_days ?? 0,
+            'due_date' => optional($saleOrder->due_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'tadad' => $saleOrder->tadad,
+            'total_wazan' => $saleOrder->total_wazan,
+            'safi_wazan' => $saleOrder->safi_wazan,
+            'rate' => $saleOrder->rate,
+            'deo' => $saleOrder->deo,
             'total_qty' => $saleOrder->total_qty,
             'total_amount' => $saleOrder->total_amount,
             'discount_pct' => $saleOrder->discount_pct,
@@ -1449,6 +1558,14 @@ private function posData(): array
             'shipping_address' => $challan->shipping_address,
             'bill_number' => $nextInvoiceNumber,
             'invoice_date' => now()->format('Y-m-d'),
+            'order_date' => optional($challan->order_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'deal_days' => $challan->deal_days ?? 0,
+            'due_date' => optional($challan->due_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'tadad' => $challan->tadad,
+            'total_wazan' => $challan->total_wazan,
+            'safi_wazan' => $challan->safi_wazan,
+            'rate' => $challan->rate,
+            'deo' => $challan->deo,
             'total_qty' => $challan->total_qty,
             'total_amount' => $challan->total_amount,
             'discount_pct' => $challan->discount_pct,
@@ -1490,6 +1607,14 @@ private function posData(): array
             'billing_address' => $proforma->billing_address,
             'bill_number' => $nextInvoiceNumber,
             'invoice_date' => now()->format('Y-m-d'),
+            'order_date' => optional($proforma->order_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'deal_days' => $proforma->deal_days ?? 0,
+            'due_date' => optional($proforma->due_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'tadad' => $proforma->tadad,
+            'total_wazan' => $proforma->total_wazan,
+            'safi_wazan' => $proforma->safi_wazan,
+            'rate' => $proforma->rate,
+            'deo' => $proforma->deo,
             'total_qty' => $proforma->total_qty,
             'total_amount' => $proforma->total_amount,
             'discount_pct' => $proforma->discount_pct,
@@ -1535,8 +1660,10 @@ private function posData(): array
 
     private function calculateLedgerExpenseTotal(array $data): float
     {
-        return floatval($data['labour'] ?? 0)
+        return floatval($data['broker_amount'] ?? 0)
+            + floatval($data['labour'] ?? 0)
             + floatval($data['bardana'] ?? 0)
+            + floatval($data['rehra_mazdori'] ?? 0)
             + floatval($data['parcel_expense'] ?? 0)
             + floatval($data['post_expense'] ?? 0)
             + floatval($data['extra_expense'] ?? 0);
@@ -1569,11 +1696,10 @@ private function posData(): array
 
         $this->deleteSaleLedgerTransactions($sale);
 
-        $expense = $this->calculateLedgerExpenseTotal($data);
-        $saleAmount = floatval($sale->grand_total ?? 0) + $expense;
+        $saleAmount = floatval($sale->grand_total ?? 0);
         $ledgerType = $this->resolveLedgerTypeFromSale((string) $sale->type);
 
-        Transaction::create([
+        $transactionPayload = [
             'party_id' => $sale->party_id,
             'type' => $ledgerType,
             'number' => $sale->bill_number ?: (string) $sale->id,
@@ -1594,7 +1720,13 @@ private function posData(): array
             'post_expense' => floatval($data['post_expense'] ?? 0),
             'extra_expense' => floatval($data['extra_expense'] ?? 0),
             'description' => 'Invoice #' . ($sale->bill_number ?: $sale->id),
-        ]);
+        ];
+
+        if (Schema::hasColumn('transactions', 'rehra_mazdori')) {
+            $transactionPayload['rehra_mazdori'] = floatval($data['rehra_mazdori'] ?? 0);
+        }
+
+        Transaction::create($transactionPayload);
 
         foreach ($sale->payments()->orderBy('id')->get() as $paymentRecord) {
             $paymentAmount = floatval($paymentRecord->amount ?? 0);

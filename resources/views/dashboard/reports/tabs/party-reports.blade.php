@@ -310,3 +310,85 @@
         </table>
     </div>
 </div>
+
+<div id="tab-unreceived-invoices" class="report-tab-content d-none d-flex flex-column h-100 bg-white">
+    <div class="d-flex align-items-center bg-light px-4 py-3 gap-3 flex-wrap">
+        <div class="fw-bold text-dark">Agarri List / Unreceived Invoice PDF</div>
+        <input type="date" id="ui-date-from" class="form-control form-control-sm" style="width:160px;">
+        <input type="date" id="ui-date-to" class="form-control form-control-sm" style="width:160px;">
+        <select id="ui-party" class="form-select form-select-sm" style="width:200px;">
+            <option value="">All Parties</option>
+            @foreach($parties as $party)
+                <option value="{{ $party->id }}">{{ $party->name }}</option>
+            @endforeach
+        </select>
+        <select id="ui-broker" class="form-select form-select-sm" style="width:200px;">
+            <option value="">All Brokers</option>
+            @foreach(($brokers ?? collect()) as $broker)
+                <option value="{{ $broker->id }}">{{ $broker->name }}</option>
+            @endforeach
+        </select>
+        <input type="text" id="ui-city" class="form-control form-control-sm" style="width:180px;" placeholder="City">
+        <div class="ms-auto d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="ui-reset-btn">Reset</button>
+            <button class="btn btn-danger btn-sm" id="ui-generate-pdf-btn">
+                <i class="fa-solid fa-file-pdf me-1"></i>Generate PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="p-4 flex-grow-1 overflow-auto">
+        <div class="border rounded-4 p-4 bg-white shadow-sm" style="max-width: 980px;">
+            <h4 class="fw-bold mb-3">Urdu Khata Format PDF</h4>
+            <p class="text-muted mb-3">
+                Ye report sirf un sales ko include karegi jahan <strong>balance &gt; 0</strong> ho.
+                PDF me party, broker, mobile numbers, WhatsApp, PTCL, item names, soda date, due date,
+                deal days aur late days sab show honge.
+            </p>
+            <ul class="mb-0 text-secondary" style="line-height: 1.9;">
+                <li>Sort by due date ascending</li>
+                <li>Group by city and party</li>
+                <li>Urdu style RTL PDF layout</li>
+                <li>Direct PDF download</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fromInput = document.getElementById('ui-date-from');
+    const toInput = document.getElementById('ui-date-to');
+    const partyInput = document.getElementById('ui-party');
+    const brokerInput = document.getElementById('ui-broker');
+    const cityInput = document.getElementById('ui-city');
+    const generateButton = document.getElementById('ui-generate-pdf-btn');
+    const resetButton = document.getElementById('ui-reset-btn');
+
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const formatIso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+    if (fromInput && !fromInput.value) fromInput.value = formatIso(firstDay);
+    if (toInput && !toInput.value) toInput.value = formatIso(today);
+
+    generateButton?.addEventListener('click', function () {
+        const params = new URLSearchParams();
+        if (fromInput?.value) params.set('from', fromInput.value);
+        if (toInput?.value) params.set('to', toInput.value);
+        if (partyInput?.value) params.set('party_id', partyInput.value);
+        if (brokerInput?.value) params.set('broker_id', brokerInput.value);
+        if (cityInput?.value.trim()) params.set('city', cityInput.value.trim());
+
+        window.open(`{{ route('reports.unreceived-invoices.pdf') }}?${params.toString()}`, '_blank');
+    });
+
+    resetButton?.addEventListener('click', function () {
+        if (fromInput) fromInput.value = formatIso(firstDay);
+        if (toInput) toInput.value = formatIso(today);
+        if (partyInput) partyInput.value = '';
+        if (brokerInput) brokerInput.value = '';
+        if (cityInput) cityInput.value = '';
+    });
+});
+</script>

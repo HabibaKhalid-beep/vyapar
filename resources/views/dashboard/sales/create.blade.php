@@ -22,11 +22,40 @@
 
 </head>
 <style>
-    /* Dropdown with two columns */
+    /* Dropdown with two columns and scrollbar */
     #partyDropdownMenu {
     min-width: 250px; /* Adjust as needed */
     max-width: 100%;  /* Never exceed container */
+    max-height: 350px; /* Add max-height for scrollbar */
+    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-x: hidden; /* Hide horizontal scroll */
 }
+
+/* Scrollbar styling for responsive dropdown */
+#partyDropdownMenu::-webkit-scrollbar {
+    width: 8px;
+}
+
+#partyDropdownMenu::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#partyDropdownMenu::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+#partyDropdownMenu::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Firefox scrollbar */
+#partyDropdownMenu {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+
 .party-option span {
     display: inline-block;
     width: 100%;
@@ -39,12 +68,105 @@
     text-align: right;
 }
 
+.item-picker {
+    position: relative;
+    min-width: 260px;
+}
+
+.item-picker-input {
+    width: 100%;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 14px;
+    background: #fff;
+}
+
+.item-picker-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 760px;
+    max-width: min(760px, 80vw);
+    background: #fff;
+    border: 1px solid #d9e2ec;
+    border-radius: 10px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+    z-index: 1060;
+    display: none;
+    overflow: hidden;
+}
+
+.item-picker-panel.open {
+    display: block;
+}
+
+.item-picker-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    color: #2d7ff9;
+    font-weight: 700;
+    border-bottom: 1px solid #eef2f7;
+    cursor: pointer;
+}
+
+.item-picker-head,
+.item-picker-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) 120px 140px 90px;
+    gap: 16px;
+    align-items: center;
+}
+
+.item-picker-head {
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #97a3b6;
+    text-transform: uppercase;
+}
+
+.item-picker-list {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.item-picker-row {
+    padding: 12px 18px;
+    cursor: pointer;
+    border-top: 1px solid #f4f7fb;
+}
+
+.item-picker-row:hover {
+    background: #f8fbff;
+}
+
+.item-picker-name small {
+    color: #8a94a6;
+    margin-left: 6px;
+}
+
+.item-picker-stock.neg {
+    color: #dc3545;
+}
+
+.item-picker-empty {
+    padding: 14px 18px;
+    color: #8a94a6;
+    font-size: 13px;
+}
+
 /* Header style */
 .dropdown-header {
     font-weight: 600;
     font-size: 0.9rem;
     background: #f8f9fa;
     border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 /* Hover effect */
@@ -57,18 +179,178 @@
     width: 100%;
 }
 
+/* Hide element utility */
+.is-hidden {
+    display: none !important;
+}
+
+/* Party Group Dropdown Styles */
+.party-group-dropdown {
+    position: relative;
+}
+
+.party-group-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    border: 1px solid #ced4da;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.party-group-trigger:hover {
+    border-color: #adb5bd;
+    background: #f8f9fa;
+}
+
+.party-group-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    margin-top: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 100;
+    display: none;
+}
+
+.party-group-menu.show {
+    display: block;
+}
+
+.party-group-add-btn {
+    width: 100%;
+    padding: 10px 12px;
+    background: white;
+    border: none;
+    border-bottom: 1px solid #ced4da;
+    text-align: left;
+    cursor: pointer;
+    color: #007bff;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.party-group-add-btn:hover {
+    background: #f8f9fa;
+}
+
+.party-group-options {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.party-group-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 13px;
+    display: block;
+}
+
+.party-group-option:hover {
+    background: #e2f0ff;
+}
+
+/* Modal for Party Group */
+.txn-option-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1050;
+}
+
+.txn-option-modal.show {
+    display: flex;
+}
+
+.txn-option-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+}
+
+.txn-option-dialog {
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    margin: auto;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    z-index: 1051;
+}
+
+.txn-option-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.txn-option-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.txn-option-btn {
+    padding: 8px 16px;
+    border: 1px solid #ced4da;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.txn-option-btn.cancel {
+    color: #6c757d;
+}
+
+.txn-option-btn.cancel:hover {
+    background: #f8f9fa;
+}
+
+.txn-option-btn.ok {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.txn-option-btn.ok:hover {
+    background: #0056b3;
+}
+
 .header-section {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 420px;
-    gap: 28px;
+    gap: 18px;
     align-items: start;
 }
 
 .header-left {
     display: grid;
     grid-template-columns: minmax(220px, 1.2fr) repeat(3, minmax(120px, 1fr));
-    gap: 12px;
+    gap: 8px;
     min-width: 0;
+    align-items: start;
 }
 
 .party-selector-group {
@@ -86,30 +368,34 @@
 .party-dropdown-wrapper .btn.dropdown-toggle,
 .broker-dropdown-wrapper .btn.dropdown-toggle {
     width: 100%;
-    min-height: 48px;
-    border-radius: 8px;
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 8px;
+    border-radius: 6px;
     border-color: #cbd5e1;
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-weight: 500;
     background: #fff;
+    font-size: 12px;
 }
 
 #partyBalanceDisplay {
-    margin-top: 6px !important;
-    font-size: 15px;
+    margin-top: 2px !important;
+    font-size: 11px;
+    line-height: 1.2;
 }
 
 .party-meta-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .party-meta-field label {
     color: #334155;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     line-height: 1;
     text-transform: uppercase;
@@ -118,18 +404,20 @@
 
 .party-meta-field .meta-control {
     width: 100%;
-    min-height: 48px;
-    padding: 12px 14px;
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 8px;
     border: 1px solid #d7e0ea;
-    border-radius: 10px;
+    border-radius: 6px;
     background: #fbfdff;
     color: #111827;
     resize: none;
-    font-size: 15px;
+    font-size: 12px;
 }
 
 .party-meta-field textarea.meta-control {
-    min-height: 82px;
+    min-height: 44px;
+    height: 44px;
 }
 
 .party-meta-grid {
@@ -140,13 +428,81 @@
     order: 4;
 }
 
-.party-meta-field.broker-field {
-    order: 7;
-    grid-column: 1 / span 2;
+.item-inline-input {
+    width: 100%;
+    min-width: 88px;
+    height: 34px;
+    padding: 6px 8px;
+    border: 1px solid #d7e0ea;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 12px;
 }
 
-.party-meta-field.broker-phone-field {
-    order: 8;
+.bottom-right .broker-calc-row {
+    align-items: flex-start;
+}
+
+.bottom-right .market-calc-row {
+    align-items: flex-start;
+}
+
+.bottom-right .broker-calc-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.bottom-right .market-calc-inputs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.bottom-right .market-calc-inputs.single-column {
+    grid-template-columns: 1fr;
+}
+
+.bottom-right .broker-dropdown-wrapper {
+    width: 100%;
+    max-width: 180px;
+}
+
+.bottom-right .market-mini-input {
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #d7e0ea;
+    background: #fff;
+    font-size: 12px;
+    width: 100%;
+}
+
+.bottom-right .broker-dropdown-wrapper .btn.dropdown-toggle,
+.bottom-right .broker-phone-input,
+.bottom-right .brokerage-type,
+.bottom-right .brokerage-rate,
+.bottom-right .brokerage-amount {
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #d7e0ea;
+    background: #fff;
+    font-size: 12px;
+    width: 100%;
+}
+
+.bottom-right .broker-phone-input,
+.bottom-right .brokerage-type,
+.bottom-right .brokerage-rate,
+.bottom-right .brokerage-amount {
+    max-width: 98px;
 }
 
 .header-right.w-25 {
@@ -158,6 +514,61 @@
     border-radius: 16px;
     padding: 18px 20px;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    align-content: start;
+}
+
+.header-right.w-25 > .d-flex {
+    display: none !important;
+}
+
+.header-right.w-25 .input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    margin: 0;
+    min-width: 0;
+}
+
+.header-right.w-25 .input-group span {
+    color: #1e293b;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.header-right.w-25 .input-control {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    padding: 6px 8px;
+    border: 1px solid #d7e0ea;
+    border-radius: 6px;
+    background: #fbfdff;
+    font-size: 12px;
+}
+
+.header-right.w-25 .invoice-number-group {
+    grid-column: 1 / -1;
+}
+
+.header-right.w-25 .invoice-date-group {
+    grid-column: 1;
+}
+
+.header-right.w-25 .order-date-group {
+    grid-column: 2;
+}
+
+.header-right.w-25 .deal-days-group {
+    grid-column: 1;
+}
+
+.header-right.w-25 .final-due-date-group {
+    grid-column: 2;
 }
 
 .broker-option span:first-child {
@@ -179,13 +590,29 @@
         grid-template-columns: 1fr;
     }
 
-    .party-meta-field.broker-field {
-        grid-column: auto;
-    }
-
     .header-right.w-25 {
         width: 100% !important;
         min-width: 0;
+        grid-template-columns: 1fr;
+    }
+
+    .bottom-right .broker-dropdown-wrapper,
+    .bottom-right .broker-phone-input,
+    .bottom-right .brokerage-type,
+    .bottom-right .brokerage-rate,
+    .bottom-right .brokerage-amount {
+        max-width: 100%;
+    }
+
+    .bottom-right .market-calc-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .header-right.w-25 .invoice-date-group,
+    .header-right.w-25 .order-date-group,
+    .header-right.w-25 .deal-days-group,
+    .header-right.w-25 .final-due-date-group {
+        grid-column: auto;
     }
 }
     </style>
@@ -259,15 +686,23 @@
     <li>
         <a class="dropdown-item d-flex justify-content-between party-option" href="#"
            data-id="{{ $party->id }}"
+           data-name="{{ $party->name }}"
            data-phone="{{ $party->phone }}"
+           data-phone-number-2="{{ $party->phone_number_2 }}"
            data-city="{{ $party->city }}"
            data-ptcl="{{ $party->ptcl_number }}"
+           data-email="{{ $party->email }}"
            data-address="{{ addslashes($party->address ?? '') }}"
            data-billing="{{ addslashes($party->billing_address ?? '') }}"
            data-shipping="{{ addslashes($party->shipping_address ?? '') }}"
+           data-party-group="{{ $party->party_group }}"
            data-due-days="{{ $party->due_days ?? '' }}"
            data-opening="{{ $party->opening_balance ?? 0 }}"
-           data-type="{{ $party->transaction_type }}">
+           data-type="{{ $party->transaction_type }}"
+           data-party-type="{{ is_array($party->party_type) ? implode(',', $party->party_type) : ($party->party_type ?? '') }}"
+           data-credit-limit-enabled="{{ $party->credit_limit_enabled ?? 0 }}"
+           data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
+           data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
             <span>{{ $party->name }}</span>
          <span
     @if($party->transaction_type == 'pay')
@@ -319,62 +754,39 @@
                                         <label>Shipping Address</label>
                                         <textarea class="meta-control shipping-address" rows="2" readonly></textarea>
                                     </div>
-                                    <div class="party-meta-field broker-field">
-                                        <label>Broker</label>
-                                        <div class="broker-dropdown-wrapper" style="position: relative; display: inline-block;">
-                                        <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="brokerDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                            Select Broker
-                                        </button>
-                                        <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
-                                            <li class="dropdown-header d-flex justify-content-between px-3">
-                                                <span>Broker Name</span>
-                                                <span>City</span>
-                                            </li>
-                                            @foreach($brokers as $broker)
-                                            <li>
-                                                <a class="dropdown-item d-flex justify-content-between broker-option" href="#"
-                                                   data-id="{{ $broker->id }}"
-                                                   data-phone="{{ $broker->phone }}"
-                                                   data-name="{{ $broker->name }}">
-                                                    <span>{{ $broker->name }}</span>
-                                                    <span>{{ $broker->city ?: '-' }}</span>
-                                                </a>
-                                            </li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                    <input type="hidden" class="broker-id" name="broker_id">
-                                    </div>
-                                    <div class="party-meta-field broker-phone-field">
-                                        <label>Broker Phone No.</label>
-                                        <input type="text" class="meta-control broker-phone-input" readonly>
-                                    </div>
+
                                 </div>
                             </div>
 
                             <div class="header-right w-25">
                                 <div class="d-flex justify-content-end mb-2">
-                                   
+
                                 </div>
-                                <div class="input-group">
+                                <div class="input-group invoice-number-group">
                                     <span>Invoice No.</span>
                                     <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
                                 </div>
-                                <div class="input-group date-wrapper">
+                                <div class="input-group date-wrapper invoice-date-group">
                                     <span>Invoice Date</span>
                                     <input type="date" class="input-control underline-input invoice-date">
                                 </div>
-                                <div class="input-group date-wrapper due-date-group">
-                                    <span>Due Date</span>
+
+                                <div class="input-group date-wrapper deal-days-group">
+                                    <span>Deal Days</span>
                                     <select class="input-control underline-input due-days-select">
-                                        <option value="0">Due on Receipt</option>
+                                        <option value="0">0 Days</option>
+                                        <option value="5">5 Days</option>
+                                        <option value="10">10 Days</option>
                                         <option value="15">15 Days</option>
                                         <option value="30">30 Days</option>
                                         <option value="45">45 Days</option>
                                         <option value="custom">Custom</option>
                                     </select>
-                                    <input type="number" class="input-control underline-input due-days-custom d-none" placeholder="Custom days">
-                                    <input type="date" class="input-control underline-input due-date">
+                                    <input type="number" class="input-control underline-input due-days-custom d-none" placeholder="Custom deal days" min="0">
+                                </div>
+                                <div class="input-group date-wrapper final-due-date-group">
+                                    <span>Due Date</span>
+                                    <input type="date" class="input-control underline-input due-date" readonly>
                                 </div>
 
                             </div>
@@ -397,6 +809,16 @@
                                         <th class="custom-size-th">UNIT</th>
                                         <th>PRICE/UNIT</th>
                                         <th>AMOUNT</th>
+                                        <th>PARCHI</th>
+                                        <th>TOTAL WAZAN</th>
+                                        <th>SAFI WAZAN</th>
+                                        <th>RATE</th>
+                                        <th>DEO</th>
+                                        <th>BARDANA</th>
+                                        <th>MAZDORI</th>
+                                        <th>REHRA MAZDORI</th>
+                                        <th>DAK KARAYA</th>
+                                        <th>LOCAL</th>
                                         <th class="add-col" style="position: relative;">
                                             <button type="button" class="btn-add-circle table-settings-btn" data-bs-toggle="modal" data-bs-target="#itemColumnModal">
                                                 <i class="fa-solid fa-plus"></i>
@@ -412,28 +834,39 @@
                                             <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                                         </td>
                                         <td>
-                                            <select class="form-select item-name">
-                                                <option value="" selected disabled>Select Item</option>
-                                                @foreach($items as $item)
-
-                                                    <option value="{{ $item->id }}"
-                                                        data-price="{{ $item->price }}"
-                                                        data-sale-price="{{ $item->sale_price }}"
-                                                        data-stock="{{ $item->opening_qty }}"
-                                                        data-location="{{ $item->location }}"
-                                                        data-label="{{ $item->name }}"
-                                                        data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}"
-                                                        data-unit="{{ $item->unit }}"
-                                                        data-category="{{ $item->category->name ?? $item->category_name ?? $item->category_id ?? '' }}"
-                                                        data-item-code="{{ $item->item_code ?? '' }}"
-                                                        data-description="{{ $item->description ?? $item->item_description ?? '' }}"
-                                                        data-discount="{{ $item->discount ?? 0 }}"
-                                                    >
-                                                        {{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}
-                                                    </option>
-
+                                            <div class="item-picker">
+                                                <input type="text" class="item-picker-input" placeholder="Search Item">
+                                                <div class="item-picker-panel">
+                                                    <div class="item-picker-add"><i class="fa-regular fa-circle-plus"></i> Add Item</div>
+                                                    <div class="item-picker-head">
+                                                        <span>Item</span>
+                                                        <span>Sale Price</span>
+                                                        <span>Purchase Price</span>
+                                                        <span>Stock</span>
+                                                    </div>
+                                                    <div class="item-picker-list"></div>
+                                                </div>
+                                                <select class="form-select item-name d-none">
+                                                    <option value="" selected disabled>Select Item</option>
+                                                    @foreach($items as $item)
+                                                        <option value="{{ $item->id }}"
+                                                            data-price="{{ $item->price }}"
+                                                            data-sale-price="{{ $item->sale_price }}"
+                                                            data-stock="{{ $item->opening_qty }}"
+                                                            data-location="{{ $item->location }}"
+                                                            data-label="{{ $item->name }}"
+                                                            data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}"
+                                                            data-unit="{{ $item->unit }}"
+                                                            data-category="{{ $item->category->name ?? $item->category_name ?? $item->category_id ?? '' }}"
+                                                            data-item-code="{{ $item->item_code ?? '' }}"
+                                                            data-description="{{ $item->description ?? $item->item_description ?? '' }}"
+                                                            data-discount="{{ $item->discount ?? 0 }}"
+                                                        >
+                                                            {{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}
+                                                        </option>
                                                     @endforeach
-                                            </select>
+                                                </select>
+                                            </div>
                                         </td>
                                         <td class="col-category d-none"><input type="text" class="item-category"
                                                 placeholder="Category"></td>
@@ -467,10 +900,20 @@
         <option value="L">Liter</option>
         <option value="ML">Milliliter</option>
     </select>
-</td>
+                                        </td>
                                         <td><input type="number" class="item-price" value="0"></td>
                                         <td class="col-amount"><input type="text" class="item-amount" value="0"
                                                 readonly></td>
+                                        <td><input type="number" class="item-inline-input tadad-input" value="0" min="0" step="1" placeholder="Tadad"></td>
+                                        <td><input type="number" class="item-inline-input total-wazan-input" value="0" min="0" step="0.01" placeholder="Total Wazan"></td>
+                                        <td><input type="number" class="item-inline-input safi-wazan-input" value="0" min="0" step="0.01" placeholder="Safi Wazan"></td>
+                                        <td><input type="number" class="item-inline-input rate-input" value="0" min="0" step="0.01" placeholder="Rate"></td>
+                                        <td><input type="number" class="item-inline-input deo-input" value="0" min="0" step="0.01" placeholder="Deo"></td>
+                                        <td><input type="number" class="item-inline-input bardana-input" value="0" min="0" step="0.01" placeholder="Bardana"></td>
+                                        <td><input type="number" class="item-inline-input labour-input" value="0" min="0" step="0.01" placeholder="Mazdori"></td>
+                                        <td><input type="number" class="item-inline-input rehra-mazdori-input" value="0" min="0" step="0.01" placeholder="Rehra Mazdori"></td>
+                                        <td><input type="number" class="item-inline-input post-expense-input" value="0" min="0" step="0.01" placeholder="Dak Karaya"></td>
+                                        <td><input type="number" class="item-inline-input extra-expense-input" value="0" min="0" step="0.01" placeholder="Local"></td>
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
@@ -583,6 +1026,51 @@
 
                             <!-- Right Column -->
                             <div class="bottom-right">
+                                <div class="calc-row broker-calc-row">
+                                    <div class="calc-label">Broker</div>
+                                    <div class="calc-inputs broker-calc-inputs">
+                                        <div class="broker-dropdown-wrapper" style="position: relative; display: inline-block;">
+                                            <button class="btn btn-outline-secondary dropdown-toggle text-start" type="button" id="brokerDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Select Broker
+                                            </button>
+                                            <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
+                                                <li class="dropdown-header d-flex justify-content-between px-3">
+                                                    <span>Broker Name</span>
+                                                    <span>City</span>
+                                                </li>
+                                                @foreach($brokers as $broker)
+                                                <li>
+                                                    <a class="dropdown-item d-flex justify-content-between broker-option" href="#"
+                                                       data-id="{{ $broker->id }}"
+                                                       data-phone="{{ $broker->phone }}"
+                                                       data-name="{{ $broker->name }}">
+                                                        <span>{{ $broker->name }}</span>
+                                                        <span>{{ $broker->city ?: '-' }}</span>
+                                                    </a>
+                                                </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                        <input type="hidden" class="broker-id" name="broker_id">
+                                        <input type="text" class="broker-phone-input" readonly placeholder="Phone">
+                                    </div>
+                                </div>
+
+                                <div class="calc-row broker-calc-row">
+                                    <div class="calc-label">Brokerage</div>
+                                    <div class="calc-inputs broker-calc-inputs">
+                                        <select class="brokerage-type">
+                                            <option value="">Condition</option>
+                                            <option value="full">Poori Brokerage</option>
+                                            <option value="half">Aadhi Brokerage</option>
+                                            <option value="per_kg">Per Kilo</option>
+                                        </select>
+                                        <input type="number" class="brokerage-rate" min="0" step="0.01" placeholder="Value">
+                                        <input type="hidden" class="brokerage-base-amount" value="0">
+                                        <input type="number" class="brokerage-amount" min="0" step="0.01" value="0" readonly>
+                                    </div>
+                                </div>
+
                                 <!-- Discount -->
                                 <div class="calc-row">
                                     <div class="calc-label">Discount</div>
@@ -947,26 +1435,65 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="addPartyModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Party</h5>
-        <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-sm btn-outline-secondary" title="Settings"><i class="fa-solid fa-gear"></i></button>
+        <div class="d-flex align-items-center gap-2" style="margin-left:79%;">
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="partyModalSettingsTrigger" title="Settings"><i class="fa-solid fa-gear"></i></button>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
       </div>
+
       <div class="modal-body">
         <form id="addPartyForm">
           @csrf
           <div class="row g-3 mb-4">
-            <div class="col-md-6">
+            <div class="col-md-4" data-party-setting="name">
               <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
               <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4" data-party-setting="phone">
               <label class="form-label fw-600">Phone Number</label>
               <div class="input-group">
                 <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
                 <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
               </div>
             </div>
+            <div class="col-md-4" data-party-setting="phone_2">
+              <label class="form-label fw-600">Phone Number 2</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone-volume"></i></span>
+                <input type="tel" name="phone_number_2" class="form-control" placeholder="Enter second phone number" id="partyPhone2Input">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-600">PTCL Number</label>
+              <input type="text" name="ptcl_number" class="form-control" placeholder="Enter PTCL number" id="partyPtclInput">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-600">City</label>
+              <input type="text" name="city" class="form-control" placeholder="Enter city" id="partyCityInput">
+            </div>
+
+
+            <div class="col-md-4">
+  <label class="form-label fw-600">Party Group</label>
+
+  <div class="position-relative">
+    <button type="button" class="form-control text-start" id="partyGroupTrigger">
+      <span id="partyGroupText">Select group</span>
+      <i class="fa fa-chevron-down float-end mt-1"></i>
+    </button>
+
+    <input type="hidden" name="party_group" id="partyGroupInput">
+
+      <div id="partyGroupMenu" class="border bg-white position-absolute w-100 mt-1 d-none" style="z-index:999;">
+      <button type="button" class="dropdown-item text-primary" id="addNewGroupBtn">+ New Group</button>
+      <div id="partyGroupList">
+        @foreach($parties->pluck('party_group')->filter()->unique()->values() as $partyGroup)
+          <button type="button" class="dropdown-item">{{ $partyGroup }}</button>
+        @endforeach
+      </div>
+      </div>
+    </div>
+  </div>
           </div>
 
           <!-- Tabs -->
@@ -992,16 +1519,20 @@
             <!-- Address Tab -->
             <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
               <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-6" data-party-setting="email">
                   <label class="form-label">Email ID</label>
                   <input type="email" name="email" class="form-control" placeholder="example@email.com">
                 </div>
                 <div class="col-md-6"></div>
                 <div class="col-md-6">
+                  <label class="form-label">Address</label>
+                  <textarea id="partyAddressInput" class="form-control" name="address" rows="3" placeholder="Enter address"></textarea>
+                </div>
+                <div class="col-md-6" data-party-setting="billing_address">
                   <label class="form-label">Billing Address</label>
                   <textarea id="billingAddress" class="form-control" name="billing_address" rows="3" placeholder="Enter billing address"></textarea>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6" data-party-setting="shipping_address">
                   <label class="form-label">Shipping Address</label>
                   <textarea  id="shippingAddress" class="form-control" name="shipping_address" rows="3" placeholder="Enter shipping address"></textarea>
                 </div>
@@ -1011,28 +1542,36 @@
             <!-- Credit & Balance Tab -->
           <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
   <div class="row g-3">
-    <div class="col-md-4">
+    <div class="col-md-4" data-party-setting="opening_balance">
       <label class="form-label">Opening Balance</label>
       <div class="input-group">
         <span class="input-group-text">₹</span>
         <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-4" data-party-setting="as_of_date">
       <label class="form-label">As Of Date</label>
       <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
     </div>
-    <div class="col-md-4">
+    <div class="col-md-4" data-party-setting="credit_limit">
       <label class="form-label d-block">Credit Limit</label>
       <div class="form-check form-switch mt-2">
         <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
         <label class="form-check-label" for="creditLimitSwitch">Enable</label>
       </div>
+      <div class="input-group mt-2 is-hidden" id="creditLimitAmountWrap">
+        <span class="input-group-text">Rs</span>
+        <input type="number" name="credit_limit_amount" class="form-control" placeholder="Enter credit limit" id="creditLimitAmountInput" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="col-md-4" data-party-setting="due_days">
+      <label class="form-label">Due Days</label>
+      <input type="number" name="due_days" class="form-control" placeholder="e.g. 5, 10, 30" min="1" max="100" id="partyDueDaysInput">
     </div>
   </div>
 
   <!-- To Receive / To Pay Options at the bottom -->
-  <div class="mt-4">
+  <div class="mt-4" data-party-setting="transaction_type">
     <label class="form-label d-block">Transaction Type</label>
     <div class="form-check form-check-inline">
       <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
@@ -1044,22 +1583,22 @@
     </div>
   </div>
 </div>
-<div class="col-md-6">
+<div class="col-md-6" data-party-setting="party_type">
   <label class="form-label fw-600">Party Type</label>
 
   <div class="form-check">
-    <input class="form-check-input" type="radio" name="party_type" id="customerParty" value="customer" checked>
-    <label class="form-check-label" for="customerParty">Customer Party</label>
+    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="customerParty" value="customer">
+    <label class="form-check-label" for="customerParty">Customer</label>
   </div>
 
   <div class="form-check">
-    <input class="form-check-input" type="radio" name="party_type" id="supplierParty" value="supplier">
-    <label class="form-check-label" for="supplierParty">Supplier Party</label>
+    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
+    <label class="form-check-label" for="supplierParty">Supplier</label>
   </div>
 </div>
 
             <!-- Additional Fields Tab -->
-            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
+            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel" data-party-setting="additional_fields">
               <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
               <div class="row g-3">
                 @for($i=1; $i<=4; $i++)
@@ -1086,10 +1625,44 @@
             <button type="button" class="btn btn-primary" id="btnSaveParty">
               <i class="fa-solid fa-check me-1"></i> Save
             </button>
- <button class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
-    <button class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
+ <button type="button" class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
+    <button type="button" class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
           </div>
         </form>
+
+      </div>
+    </div>
+</div>
+
+</div>
+
+<div class="modal fade" id="partyGroupModal" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">New Party Group</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="newGroupName" class="form-control" placeholder="Enter group name">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="saveGroupBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0" style="min-height:78vh;">
+        <iframe id="addItemFrame" src="{{ route('items.create') }}?modal=1" style="width:100%; min-height:78vh; border:0;"></iframe>
       </div>
     </div>
   </div>
@@ -1098,19 +1671,100 @@
     @yield('modals')
 
     <script>
-    document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
     const partySelect = document.querySelector(".party-select");
     const addModalEl = document.getElementById('addPartyModal');
     const addModal = new bootstrap.Modal(addModalEl);
 
-    partySelect.addEventListener("change", function () {
-        if (this.value === "__new") {
-            addModal.show();
+    if (partySelect) {
+        partySelect.addEventListener("change", function () {
+            if (this.value === "__new") {
+                addModal.show();
 
-            // Optional: Reset modal har bar open hone pe
-            document.getElementById("addPartyForm").reset();
+                // Optional: Reset modal har bar open hone pe
+                document.getElementById("addPartyForm").reset();
+            }
+        });
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const trigger = document.getElementById("partyGroupTrigger");
+    const menu = document.getElementById("partyGroupMenu");
+    const list = document.getElementById("partyGroupList");
+    const input = document.getElementById("partyGroupInput");
+    const text = document.getElementById("partyGroupText");
+
+    const groupModal = new bootstrap.Modal(document.getElementById('partyGroupModal'));
+    window.salePartyGroups = window.salePartyGroups || Array.from((list?.querySelectorAll('.dropdown-item') || []))
+        .map((btn) => btn.textContent.trim())
+        .filter(Boolean);
+
+    if (!trigger || !menu || !list || !input || !text) {
+        return;
+    }
+
+    // Toggle dropdown
+    trigger.addEventListener("click", () => {
+        menu.classList.toggle("d-none");
+    });
+
+    // Close outside
+    document.addEventListener("click", (e) => {
+        if (!trigger.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add("d-none");
         }
     });
+
+    // Render groups
+    function renderGroups() {
+        list.innerHTML = "";
+        window.salePartyGroups.forEach(g => {
+            const btn = document.createElement("button");
+            btn.className = "dropdown-item";
+            btn.textContent = g;
+
+            btn.onclick = () => {
+                input.value = g;
+                text.textContent = g;
+                menu.classList.add("d-none");
+            };
+
+            list.appendChild(btn);
+        });
+    }
+
+    // Open modal
+    const addNewGroupBtn = document.getElementById("addNewGroupBtn");
+    if (addNewGroupBtn) {
+        addNewGroupBtn.onclick = () => {
+            groupModal.show();
+        };
+    }
+
+    // Save group
+    const saveGroupBtn = document.getElementById("saveGroupBtn");
+    if (saveGroupBtn) {
+      saveGroupBtn.onclick = () => {
+        const name = document.getElementById("newGroupName").value.trim();
+
+        if (!name) return alert("Enter group name");
+
+        if (!window.salePartyGroups.includes(name)) {
+            window.salePartyGroups.push(name);
+        }
+        renderGroups();
+
+        // auto select
+        input.value = name;
+        text.textContent = name;
+
+        document.getElementById("newGroupName").value = "";
+        groupModal.hide();
+      };
+    }
+
 });
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1126,6 +1780,51 @@ document.addEventListener("DOMContentLoaded", function () {
         const form = document.getElementById("addPartyForm");
         return new FormData(form);
     }
+
+   function applyPartyDueDays(partyRecord = {}) {
+    const dealDaysSelect = document.querySelector(".due-days-select");
+    const dealDaysCustomInput = document.querySelector(".due-days-custom");
+    const dueDateInput = document.querySelector(".due-date");
+    const orderDateInput = document.querySelector(".order-date");
+    if (!dealDaysSelect || !dueDateInput || !orderDateInput) {
+        return;
+    }
+
+    const dueDays = Number(partyRecord.due_days || 0);
+    const orderDateValue = orderDateInput.value;
+    const allowedDays = ['0', '5', '10', '15', '30', '45'];
+
+    if (dueDays > 0) {
+        if (allowedDays.includes(String(dueDays))) {
+            dealDaysSelect.value = String(dueDays);
+            dealDaysCustomInput?.classList.add('d-none');
+            if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+        } else {
+            dealDaysSelect.value = 'custom';
+            dealDaysCustomInput?.classList.remove('d-none');
+            if (dealDaysCustomInput) dealDaysCustomInput.value = dueDays;
+        }
+    } else {
+        dealDaysSelect.value = '0';
+        dealDaysCustomInput?.classList.add('d-none');
+        if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+    }
+
+    if (!orderDateValue || dueDays <= 0) {
+        return;
+    }
+
+    const dueDate = new Date(orderDateValue);
+    if (Number.isNaN(dueDate.getTime())) {
+        return;
+    }
+
+    dueDate.setDate(dueDate.getDate() + dueDays);
+    const yyyy = dueDate.getFullYear();
+    const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(dueDate.getDate()).padStart(2, '0');
+    dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+   }
 
    function saveParty(closeAfterSave = true) {
     const form = document.getElementById("addPartyForm");
@@ -1152,6 +1851,112 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(res => res.json())
     .then(res => {
         if(res.success) {
+            const party = res.party || {};
+            const partyRecord = {
+                id: party.id || '',
+                name: party.name || data.get('name') || '',
+                phone: party.phone || data.get('phone') || '',
+                phone_number_2: party.phone_number_2 || data.get('phone_number_2') || '',
+                ptcl_number: party.ptcl_number || data.get('ptcl_number') || '',
+                email: party.email || data.get('email') || '',
+                city: party.city || data.get('city') || '',
+                address: party.address || data.get('address') || '',
+                billing_address: party.billing_address || data.get('billing_address') || '',
+                shipping_address: party.shipping_address || data.get('shipping_address') || '',
+                party_group: party.party_group || data.get('party_group') || '',
+                due_days: party.due_days || data.get('due_days') || '',
+                opening_balance: party.opening_balance || data.get('opening_balance') || 0,
+                credit_limit_enabled: party.credit_limit_enabled || data.get('credit_limit_enabled') || 0,
+                credit_limit_amount: party.credit_limit_amount || data.get('credit_limit_amount') || '',
+                custom_fields: party.custom_fields || data.getAll('custom_fields[]') || [],
+                party_type: party.party_type || data.getAll('party_type[]') || [],
+                transaction_type: party.transaction_type || data.get('transaction_type') || '',
+            };
+
+            if (partyRecord.party_group) {
+                window.salePartyGroups = window.salePartyGroups || [];
+                if (!window.salePartyGroups.includes(partyRecord.party_group)) {
+                    window.salePartyGroups.push(partyRecord.party_group);
+                }
+
+                const partyGroupList = document.getElementById('partyGroupList');
+                if (partyGroupList && !partyGroupList.querySelector(`[data-group="${partyRecord.party_group}"]`)) {
+                    const groupBtn = document.createElement('button');
+                    groupBtn.type = 'button';
+                    groupBtn.className = 'dropdown-item';
+                    groupBtn.dataset.group = partyRecord.party_group;
+                    groupBtn.textContent = partyRecord.party_group;
+                    groupBtn.onclick = () => {
+                        const groupInput = document.getElementById('partyGroupInput');
+                        const groupText = document.getElementById('partyGroupText');
+                        if (groupInput) groupInput.value = partyRecord.party_group;
+                        if (groupText) groupText.textContent = partyRecord.party_group;
+                    };
+                    partyGroupList.appendChild(groupBtn);
+                }
+            }
+
+            if (partyRecord.id) {
+                window.parties = Array.isArray(window.parties) ? window.parties.filter(p => String(p.id) !== String(partyRecord.id)) : [];
+                window.parties.push(partyRecord);
+
+                const dropdownMenu = document.getElementById("partyDropdownMenu");
+                const partyIdInput = document.querySelector(".party-id");
+                const dropdownBtn = document.getElementById("partyDropdownBtn");
+                const balanceDisplay = document.getElementById("partyBalanceDisplay");
+
+                if (dropdownMenu) {
+                    const existing = dropdownMenu.querySelector(`.party-option[data-id="${partyRecord.id}"]`);
+                    if (existing) {
+                        existing.remove();
+                    }
+
+                    const optionHtml = `
+                        <a class="dropdown-item d-flex justify-content-between party-option"
+                           href="#"
+                           data-id="${partyRecord.id}"
+                           data-name="${partyRecord.name}"
+                           data-phone="${partyRecord.phone}"
+                           data-phone-number-2="${partyRecord.phone_number_2 || ''}"
+                           data-city="${partyRecord.city}"
+                           data-ptcl="${partyRecord.ptcl_number}"
+                           data-email="${partyRecord.email || ''}"
+                           data-address="${partyRecord.address.replace(/"/g, '&quot;')}"
+                           data-billing="${partyRecord.billing_address.replace(/"/g, '&quot;')}"
+                           data-shipping="${partyRecord.shipping_address.replace(/"/g, '&quot;')}"
+                           data-party-group="${partyRecord.party_group || ''}"
+                           data-due-days="${partyRecord.due_days}"
+                           data-opening="${partyRecord.opening_balance}"
+                           data-type="${partyRecord.transaction_type}"
+                           data-party-type="${Array.isArray(partyRecord.party_type) ? partyRecord.party_type.join(',') : partyRecord.party_type || ''}"
+                           data-credit-limit-enabled="${partyRecord.credit_limit_enabled || 0}"
+                           data-credit-limit-amount="${partyRecord.credit_limit_amount || ''}"
+                           data-custom-fields="${String(JSON.stringify(partyRecord.custom_fields || [])).replace(/"/g, '&quot;')}">
+                            <span>${partyRecord.name}</span>
+                            <span class="text-success">0</span>
+                        </a>
+                    `;
+                    dropdownMenu.insertAdjacentHTML('beforeend', optionHtml);
+                }
+
+                if (partyIdInput) partyIdInput.value = partyRecord.id;
+                if (dropdownBtn) dropdownBtn.textContent = partyRecord.name || 'Select Party';
+                if (balanceDisplay) {
+                    balanceDisplay.textContent = partyRecord.transaction_type === 'pay'
+                        ? `To Pay Rs ${partyRecord.opening_balance || 0}`
+                        : `To Receive Rs ${partyRecord.opening_balance || 0}`;
+                    balanceDisplay.className = partyRecord.transaction_type === 'pay' ? 'text-danger small' : 'text-success small';
+                }
+
+                document.querySelector(".phone-input").value = partyRecord.phone || "";
+                document.querySelector(".city-input").value = partyRecord.city || "";
+                document.querySelector(".ptcl-input").value = partyRecord.ptcl_number || "";
+                document.querySelector(".address-input").value = partyRecord.address || "";
+                document.querySelector(".billing-address").value = partyRecord.billing_address || "";
+                document.querySelector(".shipping-address").value = partyRecord.shipping_address || "";
+                applyPartyDueDays(partyRecord);
+            }
+
             alert("Party saved successfully!");
             if(closeAfterSave) addModal.hide();
             else form.reset();
@@ -1198,18 +2003,37 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     const setDueDateFromParty = (partyRecord = {}) => {
+        const dealDaysSelect = document.querySelector(".due-days-select");
+        const dealDaysCustomInput = document.querySelector(".due-days-custom");
         const dueDateInput = document.querySelector(".due-date");
-        const invoiceDateInput = document.querySelector(".invoice-date");
-        if (!dueDateInput || !invoiceDateInput) return;
+        const orderDateInput = document.querySelector(".order-date");
+        if (!dueDateInput || !orderDateInput || !dealDaysSelect) return;
 
         const dueDays = Number(partyRecord.due_days || partyRecord.dueDays || 0);
-        const invoiceDateValue = invoiceDateInput.value;
+        const orderDateValue = orderDateInput.value;
 
-        if (!invoiceDateValue || !dueDays || dueDays < 1) {
+        if (dueDays > 0) {
+            const allowedDays = ['0', '5', '10', '15', '30', '45'];
+            if (allowedDays.includes(String(dueDays))) {
+                dealDaysSelect.value = String(dueDays);
+                dealDaysCustomInput?.classList.add('d-none');
+                if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+            } else {
+                dealDaysSelect.value = 'custom';
+                dealDaysCustomInput?.classList.remove('d-none');
+                if (dealDaysCustomInput) dealDaysCustomInput.value = dueDays;
+            }
+        } else {
+            dealDaysSelect.value = '0';
+            dealDaysCustomInput?.classList.add('d-none');
+            if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+        }
+
+        if (!orderDateValue) {
             return;
         }
 
-        const dueDate = new Date(invoiceDateValue);
+        const dueDate = new Date(orderDateValue);
         if (Number.isNaN(dueDate.getTime())) return;
 
         dueDate.setDate(dueDate.getDate() + dueDays);
@@ -1288,6 +2112,36 @@ else {
         document.querySelector(".broker-phone-input").value = phone;
     });
 
+});
+
+// Credit Limit Toggle
+document.addEventListener("DOMContentLoaded", function() {
+    const creditLimitSwitch = document.getElementById("creditLimitSwitch");
+    const creditLimitAmountWrap = document.getElementById("creditLimitAmountWrap");
+
+    if (creditLimitSwitch) {
+        creditLimitSwitch.addEventListener("change", function() {
+            if (this.checked) {
+                creditLimitAmountWrap.classList.remove("is-hidden");
+            } else {
+                creditLimitAmountWrap.classList.add("is-hidden");
+            }
+        });
+    }
+});
+
+// Add New Party button in dropdown
+document.addEventListener("DOMContentLoaded", function() {
+    const addNewPartyBtn = document.getElementById("addNewPartyBtn");
+    const addPartyModal = document.getElementById("addPartyModal");
+
+    if (addNewPartyBtn && addPartyModal) {
+        addNewPartyBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const modal = new bootstrap.Modal(addPartyModal);
+            modal.show();
+        });
+    }
 });
 </script>
 </body>

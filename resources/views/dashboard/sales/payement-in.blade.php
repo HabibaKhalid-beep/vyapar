@@ -251,7 +251,7 @@
       <!-- Modal Body -->
       <div class="modal-body">
         @php
-          $nextReceiptNo = ((int) $paymentIns->max(fn ($paymentIn) => (int) ($paymentIn->receipt_no ?? 0))) + 1;
+          $nextReceiptNo = $nextEntryNo ?? ((int) $paymentIns->max(fn ($paymentIn) => (int) ($paymentIn->receipt_no ?? 0))) + 1;
           $todayDate = now()->format('Y-m-d');
         @endphp
         <form id="paymentInForm" action="{{ route('payments-in.store') }}" method="POST">
@@ -991,10 +991,10 @@
           <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
   <div class="row g-3">
     <div class="col-md-4">
-      <label class="form-label">Opening Balance</label>
+      <label class="form-label">Opening Balance <span class="text-danger">*</span></label>
       <div class="input-group">
         <span class="input-group-text">₹</span>
-        <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+        <input type="number" name="opening_balance" class="form-control" placeholder="0.00" min="0" required>
       </div>
     </div>
     <div class="col-md-4">
@@ -2271,6 +2271,7 @@ function viewPaymentHistory(paymentInId) {
                             <h6 class="mb-2"><strong>📋 Payment Details Summary:</strong></h6>
                             <div class="row">
                                 <div class="col-md-6">
+                                    <small><strong>Entry No:</strong> ${res.payment_details.entry_no || '-'}</small><br>
                                     <small><strong>Receipt No:</strong> ${res.payment_details.receipt_no || '-'}</small><br>
                                     <small><strong>Reference No:</strong> ${res.payment_details.reference_no || '-'}</small><br>
                                     <small><strong>Amount:</strong> <span class="text-success fw-bold">₹${res.payment_details.amount}</span></small>
@@ -2286,33 +2287,38 @@ function viewPaymentHistory(paymentInId) {
 
                 // Add table format history
                 historyHtml += `
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 12%;">Date & Time</th>
-                                    <th style="width: 18%;">Action</th>
-                                    <th style="width: 12%;">Amount</th>
-                                    <th style="width: 14%;">Reference</th>
-                                    <th style="width: 14%;">Receipt</th>
-                                    <th style="width: 12%;">Type</th>
-                                    <th style="width: 18%;">User</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 10%;">Entry No</th>
+                                        <th style="width: 12%;">Date & Time</th>
+                                        <th style="width: 16%;">Action</th>
+                                        <th style="width: 12%;">Amount</th>
+                                        <th style="width: 14%;">Reference</th>
+                                        <th style="width: 14%;">Receipt</th>
+                                        <th style="width: 12%;">Type</th>
+                                        <th style="width: 10%;">User</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
 
-                res.history.forEach((entry, index) => {
-                    const timestamp = entry.created_at || entry.updated_at || '-';
-                    const user = entry.user_name || 'System';
-                    const action = entry.action || 'Action Recorded';
-                    const amount = entry.amount ? `₹${parseFloat(entry.amount).toFixed(2)}` : '-';
-                    const reference = entry.reference || '-';
-                    const receipt = entry.receipt || '-';
-                    const paymentType = entry.payment_type ? `<span class="badge bg-info text-white text-uppercase" style="font-size: 0.7rem;">${entry.payment_type.substring(0, 3)}</span>` : '-';
+                  res.history.forEach((entry, index) => {
+                      const timestamp = entry.created_at || entry.updated_at || '-';
+                      const user = entry.user_name || 'System';
+                      const action = entry.action || 'Action Recorded';
+                      const amount = entry.amount ? `₹${parseFloat(entry.amount).toFixed(2)}` : '-';
+                      const reference = entry.reference || '-';
+                      const receipt = entry.receipt || '-';
+                      const paymentType = entry.payment_type ? `<span class="badge bg-info text-white text-uppercase" style="font-size: 0.7rem;">${entry.payment_type.substring(0, 3)}</span>` : '-';
+                      const entryNo = entry.entry_no || '-';
 
                     historyHtml += `
                         <tr>
+                            <td>
+                                <span class="badge bg-dark-subtle text-dark border">${entryNo}</span>
+                            </td>
                             <td>
                                 <small class="text-muted">${timestamp}</small>
                             </td>

@@ -23,9 +23,15 @@ use App\Http\Controllers\PerfomaController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ExpenseCreateController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\CloseFinancialYearController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BrokerController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\ExportsToTallyController;
+use App\Http\Controllers\SimpleInvoiceController;
+use App\Models\Barcode;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 use Illuminate\Support\Facades\Route;
 
@@ -144,8 +150,12 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
     // Invoice
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice');
+    Route::get('/invoice/download-pdf', [InvoiceController::class, 'downloadPdf'])->name('invoice.download-pdf');
     Route::get('/invoice/print', [InvoiceController::class, 'print'])->name('invoice.print');
     Route::get('/invoice/payment-in', [InvoiceController::class, 'paymentIn'])->name('invoice.payment-in');
+    Route::get('/market-invoices/create', [SimpleInvoiceController::class, 'create'])->name('market-invoices.create');
+    Route::post('/market-invoices', [SimpleInvoiceController::class, 'store'])->name('market-invoices.store');
+    Route::get('/market-invoices/{marketInvoice}', [SimpleInvoiceController::class, 'show'])->name('market-invoices.show');
 
     // Loan Accounts
     Route::get('/loan-accounts', [LoanAccountController::class, 'index'])->name('loan-accounts');
@@ -178,6 +188,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/purchase-bills/{purchase}/preview', [PurchaseBillController::class, 'preview'])->name('purchase-bills.preview');
     Route::get('/purchase-bills/{purchase}/print', [PurchaseBillController::class, 'print'])->name('purchase-bills.print');
     Route::get('/purchase-bills/{purchase}/pdf', [PurchaseBillController::class, 'pdf'])->name('purchase-bills.pdf');
+    Route::get('/purchase-bills/{purchase}/download-pdf', [PurchaseBillController::class, 'downloadPdf'])->name('purchase-bills.download-pdf');
 
 
 
@@ -203,10 +214,70 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('settings/transaction-messages', [SettingController::class, 'transactionMessages'])->name('settings.transaction-messages');
     Route::get('settings/print-layout', [SettingController::class, 'printLayout'])->name('settings.print-layout');
 
+    // Utilities
+    Route::get('/utilities/import-items', function () {
+        return view('dashboard.utilities.import-items');
+    })->name('utilities.import-items');
+    Route::post('/utilities/import-items/valid-items', [ItemController::class, 'importValidItems'])->name('utilities.import-items.valid-items');
+    Route::get('/utilities/barcode-generator', function () {
+        $barcodes = Barcode::latest()->take(20)->get();
+        return view('dashboard.utilities.barcode-generator', compact('barcodes'));
+    })->name('utilities.barcode-generator');
+    Route::post('/utilities/barcode-generator', function (Request $request) {
+        $data = $request->validate([
+            'item_id' => 'nullable|exists:items,id',
+            'item_name' => 'required|string|max:255',
+            'item_code' => 'required|string|max:255',
+            'sale_price' => 'nullable|numeric',
+            'discount' => 'nullable|numeric',
+            'header' => 'nullable|string|max:255',
+            'line_1' => 'nullable|string|max:255',
+            'line_2' => 'nullable|string|max:255',
+            'line_3' => 'nullable|string|max:255',
+            'line_4' => 'nullable|string|max:255',
+            'labels' => 'nullable|integer|min:1',
+            'barcode_value' => 'nullable|string|max:255',
+        ]);
 
+        $data['barcode_value'] = $data['barcode_value'] ?: $data['item_code'] ?: Str::upper(Str::random(12));
+        $data['user_id'] = auth()->id();
+        $data['labels'] = $data['labels'] ?? 1;
+        $data['sale_price'] = $data['sale_price'] ?? 0;
+        $data['discount'] = $data['discount'] ?? 0;
+
+        Barcode::create($data);
+
+        return redirect()->route('utilities.barcode-generator')->with('success', 'Barcode entry saved successfully.');
+    })->name('utilities.barcode-generator.store');
+    Route::get('/utilities/update-items-in-bulk', function () {
+        return view('dashboard.utilities.update-items-in-bulk');
+    })->name('utilities.update-items-in-bulk');
+    Route::get('/utilities/update-items-in-bulk/data', [ItemController::class, 'bulkUpdateData'])->name('utilities.update-items-in-bulk.data');
+    Route::get('/utilities/import-parties', function () {
+        return view('dashboard.utilities.import-parties');
+    })->name('utilities.import-parties');
+    Route::get('/utilities/import-parties/sample', [PartyController::class, 'downloadImportTemplate'])->name('utilities.import-parties.sample');
+    Route::post('/utilities/import-parties/preview', [PartyController::class, 'previewImport'])->name('utilities.import-parties.preview');
+    Route::post('/utilities/import-parties/valid-parties', [PartyController::class, 'importValidParties'])->name('utilities.import-parties.valid-parties');
+    Route::get('/utilities/exports-to-tally', [ExportsToTallyController::class, 'index'])->name('utilities.exports-to-tally');
+    Route::get('/utilities/exports-to-tally/data', [ExportsToTallyController::class, 'data'])->name('utilities.exports-to-tally.data');
+    Route::get('/utilities/exports-to-tally/download', [ExportsToTallyController::class, 'download'])->name('utilities.exports-to-tally.download');
+    Route::post('/utilities/exports-to-tally/push', [ExportsToTallyController::class, 'push'])->name('utilities.exports-to-tally.push');
+    Route::get('/utilities/export-items/data', [ItemController::class, 'exportItemsData'])->name('utilities.export-items.data');
+    Route::get('/utilities/export-items/download', [ItemController::class, 'exportItemsDownload'])->name('utilities.export-items.download');
+    Route::get('/utilities/export-items', function () {
+        return view('dashboard.utilities.export-items');
+    })->name('utilities.export-items');
+    Route::get('/utilities/verify-my-data', function () {
+        return view('dashboard.utilities.verify-my-data');
+    })->name('utilities.verify-my-data');
+    Route::get('/utilities/close-financial-year', [CloseFinancialYearController::class, 'index'])->name('utilities.close-financial-year');
+    Route::post('/utilities/close-financial-year/prefixes', [CloseFinancialYearController::class, 'updatePrefixes'])->name('utilities.close-financial-year.prefixes');
+    Route::post('/utilities/close-financial-year/backup', [CloseFinancialYearController::class, 'backupAndStartFresh'])->name('utilities.close-financial-year.backup');
 
 
     Route::get('/payment-out', [PurchaseExpenseController::class, 'paymentOut'])->name('payment-out');
+    Route::post('/payment-out', [PurchaseExpenseController::class, 'storePaymentOut'])->name('payment-out.store');
     Route::get('expense', [PurchaseExpenseController::class, 'expense'])->name('expense');
     Route::get('purchase-return', [PurchaseReturnController::class, 'index'])->name('purchase-return');
     Route::get('purchase-return/create', [PurchaseReturnController::class, 'create'])->name('purchase-return.create');
@@ -258,6 +329,7 @@ Route::get('/reports/expense-category-report/export', [ReportController::class, 
 Route::get('/reports/expense-item-report', [ReportController::class, 'expenseItemReport']);
 Route::get('/reports/expense-item-report/export', [ReportController::class, 'expenseItemReportExport']);
 Route::get('/reports/sale-order-items', [ReportController::class, 'saleOrderItems'])->name('reports.sale-order-items');
+Route::get('/reports/unreceived-invoices/pdf', [ReportController::class, 'unreceivedInvoicePdf'])->name('reports.unreceived-invoices.pdf');
 
 // Loan Statement JSON
 Route::get('/loan-accounts-json', [LoanAccountController::class, 'allJson'])->name('loan-accounts.json');

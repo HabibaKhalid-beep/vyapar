@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Support\TransactionNumberPrefix;
 use Illuminate\Http\Request;
 
 class EstimateController extends Controller
@@ -43,7 +44,7 @@ class EstimateController extends Controller
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = 'EST-' . str_pad($nextSaleId, 4, '0', STR_PAD_LEFT);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('estimate', $nextSaleId);
 
         $estimate = null;
         $prefilledEstimateData = null;

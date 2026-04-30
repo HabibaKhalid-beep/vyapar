@@ -7,37 +7,123 @@ use App\Models\PaymentIn;
 use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+use Symfony\Component\Process\Process;
 
 class InvoiceController extends Controller
 {
     public function index(Request $request)
     {
-        $reactCss = collect(glob(public_path('react-invoice/assets/index-*.css')))
-            ->sortByDesc(fn ($path) => filemtime($path))
-            ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
-            ->first();
+        return view('invoice.index', $this->buildInvoiceViewData($request));
+    }
 
-        $reactJs = collect(glob(public_path('react-invoice/assets/index-*.js')))
-            ->sortByDesc(fn ($path) => filemtime($path))
-            ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
-            ->first();
+    public function downloadPdf(Request $request)
+    {
+        $viewData = $this->buildInvoiceViewData($request);
+        $saleId = (int) ($viewData['sale']->id ?? $request->integer('sale_id'));
 
-        $invoiceAppData = [
-            'saleId' => null,
-            'invoiceData' => null,
-            'initialTheme' => (string) $request->query('theme', 'tally'),
-            'initialColor' => (string) $request->query('accent', '#707070'),
-            'invoicePdfUrl' => null,
+        abort_unless($saleId > 0, 404);
+
+        $htmlDirectory = storage_path('app/invoice-pdf');
+        File::ensureDirectoryExists($htmlDirectory);
+
+        $htmlPath = $htmlDirectory . DIRECTORY_SEPARATOR . 'invoice-' . $saleId . '-' . uniqid() . '.html';
+        $pdfPath = $htmlDirectory . DIRECTORY_SEPARATOR . 'invoice-' . $saleId . '-' . uniqid() . '.pdf';
+
+        $viewData['reactCss'] = url('/react-invoice/assets/index-7A0P_pSc.css');
+        $viewData['reactJs'] = url('/react-invoice/assets/index-B2etBuUm.js');
+        $viewData['pdfDirectDownload'] = true;
+        $viewData['reactCssInline'] = File::get(public_path('react-invoice/assets/index-7A0P_pSc.css'));
+        $viewData['reactJsInline'] = File::get(public_path('react-invoice/assets/index-B2etBuUm.js'));
+        $viewData['saveCloseUrl'] = route('sale.index');
+
+        File::put($htmlPath, view('invoice.index', $viewData)->render());
+
+        $chromePath = $this->resolveChromeExecutable();
+        abort_unless($chromePath !== null, 500, 'Chrome/Edge executable not found for PDF generation.');
+
+        $process = new Process([
+            $chromePath,
+            '--headless=new',
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-sync',
+            '--no-pdf-header-footer',
+            '--run-all-compositor-stages-before-draw',
+            '--virtual-time-budget=1200',
+            '--print-to-pdf=' . $pdfPath,
+            'file:///' . str_replace('\\', '/', $htmlPath),
+        ]);
+
+        $process->setTimeout(60);
+        $process->run();
+
+        File::delete($htmlPath);
+
+        if (! $process->isSuccessful() || ! File::exists($pdfPath)) {
+            File::delete($pdfPath);
+            abort(500, 'PDF generation failed.');
+        }
+
+        $downloadName = 'invoice-' . ($viewData['invoicePreviewData']['invoiceNo'] ?? $saleId) . '.pdf';
+
+        return response()->download($pdfPath, $downloadName)->deleteFileAfterSend(true);
+    }
+
+    public function print()
+    {
+        return view('invoice.print');
+    }
+
+    public function proforma(Request $request, Sale $sale)
+    {
+        abort_unless($sale->type === 'proforma', 404);
+
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount']);
+        $invoicePreviewData = $this->mapSaleToThemePreviewData($sale);
+        $invoicePreviewData['title'] = 'Proforma Invoice';
+
+        return view('invoice.proforma', [
+            'invoicePreviewData' => $invoicePreviewData,
+            'pageTitle' => 'Proforma Preview',
+            'browserTabLabel' => 'Proforma #' . ($sale->bill_number ?: $sale->id),
+            'saveCloseUrl' => route('proforma-invoice'),
+            'initialMode' => (string) $request->query('mode', 'regular'),
+            'initialRegularThemeId' => (int) $request->query('theme_id', 1),
+            'initialThermalThemeId' => (int) $request->query('theme_id', 1),
+            'initialAccent' => (string) $request->query('accent', '#1f4e79'),
+            'initialAccent2' => (string) $request->query('accent2', '#ff981f'),
+        ]);
+    }
+
+    public function paymentIn(Request $request)
+    {
+        return $this->index($request);
+    }
+
+    private function buildInvoiceViewData(Request $request): array
+    {
+        $selectedTheme = (string) $request->query('theme', 'tally');
+        $selectedColor = (string) $request->query('color', '#707070');
+        $selectedColor2 = (string) $request->query('color2', '#ff981f');
+
+        $viewData = [
+            'invoicePreviewData' => [],
+            'pageTitle' => 'Preview',
             'browserTabLabel' => 'Invoice Preview',
             'saveCloseUrl' => route('sale.index'),
+            'initialMode' => $selectedTheme,
+            'initialRegularThemeId' => (int) $request->query('theme_id', 1),
+            'initialThermalThemeId' => (int) $request->query('theme_id', 1),
+            'initialAccent' => $selectedColor,
+            'initialAccent2' => $selectedColor2,
+            'reactCss' => asset('react-invoice/assets/index-7A0P_pSc.css'),
+            'reactJs' => asset('react-invoice/assets/index-B2etBuUm.js'),
         ];
-
-        $paymentIn = null;
-        $allPaymentIns = collect();
 
         if ($request->filled('sale_id')) {
             $sale = Sale::with(['items.item', 'party', 'broker', 'challanDetail', 'payments.bankAccount'])
-
                 ->findOrFail($request->integer('sale_id'));
 
             $docType = $request->query('doc');
@@ -57,89 +143,40 @@ class InvoiceController extends Controller
                 }
             }
 
-            $invoiceAppData = [
-                'saleId' => $sale->id,
-                'invoiceData' => $this->mapSaleToReactInvoiceData($invoiceSource),
-                'initialTheme' => (string) $request->query('theme', 'tally'),
-                'initialColor' => (string) $request->query('accent', '#707070'),
-                'invoicePdfUrl' => route('sale.invoice-pdf', $sale),
-                'browserTabLabel' => ($invoiceSource->type === 'delivery_challan' ? 'Delivery Challan' : 'Invoice') . ' #' . ($invoiceSource->bill_number ?: $invoiceSource->id),
-                'saveCloseUrl' => route('sale.index'),
-            ];
+            $viewData['sale'] = $sale;
+            $viewData['invoicePreviewData'] = $this->mapSaleToThemePreviewData($invoiceSource);
+            $viewData['browserTabLabel'] = ($invoiceSource->type === 'delivery_challan' ? 'Delivery Challan' : 'Invoice') . ' #' . ($invoiceSource->bill_number ?: $invoiceSource->id);
         } elseif ($request->filled('payment_in')) {
             $paymentInRecord = PaymentIn::with(['party', 'bankAccount'])
                 ->findOrFail($request->integer('payment_in'));
 
-            $paymentIn = $this->mapPaymentInLegacyData($paymentInRecord);
-            $invoiceAppData = [
-                'saleId' => $paymentInRecord->id,
-                'invoiceData' => $this->mapPaymentInToReactInvoiceData($paymentInRecord),
-                'initialTheme' => (string) $request->query('theme', 'tally'),
-                'initialColor' => (string) $request->query('accent', '#707070'),
-                'invoicePdfUrl' => null,
-                'browserTabLabel' => 'Receipt #' . ($paymentInRecord->receipt_no ?: $paymentInRecord->id),
-                'saveCloseUrl' => route('payment-in'),
-            ];
-            $allPaymentIns = PaymentIn::with(['party', 'bankAccount'])->latest()->get();
+            $viewData['invoicePreviewData'] = $this->mapPaymentInToThemePreviewData($paymentInRecord);
+            $viewData['browserTabLabel'] = 'Receipt #' . ($paymentInRecord->receipt_no ?: $paymentInRecord->id);
+            $viewData['saveCloseUrl'] = route('payment-in');
         }
 
-        return view('invoice.index', [
-            'reactCss' => $reactCss,
-            'reactJs' => $reactJs,
-            'invoiceAppData' => $invoiceAppData,
-            'paymentIn' => $paymentIn,
-            'allPaymentIns' => $allPaymentIns,
-        ]);
+        return $viewData;
     }
 
-    public function print()
+    private function resolveChromeExecutable(): ?string
     {
-        return view('invoice.print');
-    }
-
-    public function proforma(Request $request, Sale $sale)
-    {
-        abort_unless($sale->type === 'proforma', 404);
-
-        $reactCss = collect(glob(public_path('react-invoice/assets/index-*.css')))
-            ->sortByDesc(fn ($path) => filemtime($path))
-            ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
-            ->first();
-
-        $reactJs = collect(glob(public_path('react-invoice/assets/index-*.js')))
-            ->sortByDesc(fn ($path) => filemtime($path))
-            ->map(fn ($path) => asset('react-invoice/assets/' . basename($path)))
-            ->first();
-
-        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount']);
-        $invoiceData = $this->mapSaleToReactInvoiceData($sale);
-        $invoiceData['title'] = 'Proforma Invoice';
-
-        $invoiceAppData = [
-            'saleId' => $sale->id,
-            'invoiceData' => $invoiceData,
-            'initialTheme' => (string) $request->query('theme', 'tally'),
-            'initialColor' => (string) $request->query('accent', '#707070'),
-            'invoicePdfUrl' => null,
-            'browserTabLabel' => 'Proforma #' . ($sale->bill_number ?: $sale->id),
-            'saveCloseUrl' => route('proforma-invoice'),
+        $candidates = [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+            'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
         ];
 
-        return view('invoice.proforma', [
-            'reactCss' => $reactCss,
-            'reactJs' => $reactJs,
-            'invoiceAppData' => $invoiceAppData,
-            'paymentIn' => null,
-            'allPaymentIns' => collect(),
-        ]);
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
-    public function paymentIn(Request $request)
-    {
-        return $this->index($request);
-    }
-
-    private function mapSaleToReactInvoiceData(Sale $sale): array
+    private function mapSaleToThemePreviewData(Sale $sale): array
     {
         $sale->loadMissing(['challanDetail']);
         $bankAccount = $sale->payments
@@ -153,17 +190,33 @@ class InvoiceController extends Controller
                 ->first();
         }
 
-        $items = $sale->items->map(function ($item) {
+        $taxPct = $this->formatPercentValue($sale->tax_pct);
+
+        $items = $sale->items->map(function ($item) use ($taxPct) {
             return [
                 'name' => (string) ($item->item_name ?: ($item->item?->name ?: 'Item')),
                 'hsn' => (string) ($item->item_code ?: ($item->item?->item_code ?: '')),
-                'qty' => (float) ($item->quantity ?? 0),
+                'qty' => (string) ($item->quantity ?? 0),
                 'unit' => (string) ($item->unit ?: ($item->item?->unit ?: '')),
                 'rate' => (float) ($item->unit_price ?? 0),
-                'discount' => (float) ($item->discount ?? 0),
-                'amount' => (float) ($item->amount ?? 0),
+                'disc' => number_format((float) ($item->discount ?? 0), 2, '.', ''),
+                'gst' => $taxPct,
+                'amt' => (float) ($item->amount ?? 0),
             ];
         })->values()->all();
+
+        if (empty($items)) {
+            $items[] = [
+                'name' => 'Item',
+                'hsn' => '',
+                'qty' => '0',
+                'unit' => '',
+                'rate' => 0,
+                'disc' => '0.00',
+                'gst' => $taxPct,
+                'amt' => 0,
+            ];
+        }
 
         $createdAt = $sale->created_at instanceof Carbon ? $sale->created_at : Carbon::parse($sale->created_at);
         $invoiceDate = $sale->invoice_date ? Carbon::parse($sale->invoice_date) : $createdAt;
@@ -191,10 +244,11 @@ class InvoiceController extends Controller
         return [
             'title' => $sale->type === 'invoice' ? 'Invoice' : ucwords(str_replace('_', ' ', (string) $sale->type)),
             'businessName' => (string) config('app.name', 'My Company'),
-            'businessPhone' => (string) ($bankAccount?->phone ?: ''),
+            'phone' => (string) ($sale->phone ?: ($sale->party?->phone ?: '')),
             'invoiceNo' => (string) $invoiceNumber,
             'date' => $invoiceDate->format('d/m/Y'),
             'time' => $createdAt->format('h:i A'),
+            'dueDate' => ($sale->due_date ? Carbon::parse($sale->due_date) : $invoiceDate)->format('d/m/Y'),
             'billTo' => (string) ($sale->display_party_name !== '-' ? $sale->display_party_name : 'Walk-in Customer'),
             'billAddress' => (string) ($sale->billing_address ?: ''),
             'billPhone' => (string) ($sale->phone ?: ($sale->party?->phone ?: '')),
@@ -218,7 +272,7 @@ class InvoiceController extends Controller
         ];
     }
 
-    private function mapPaymentInToReactInvoiceData(PaymentIn $paymentIn): array
+    private function mapPaymentInToThemePreviewData(PaymentIn $paymentIn): array
     {
         $createdAt = $paymentIn->created_at instanceof Carbon
             ? $paymentIn->created_at
@@ -230,10 +284,11 @@ class InvoiceController extends Controller
         return [
             'title' => 'Payment In Invoice',
             'businessName' => (string) config('app.name', 'My Company'),
-            'businessPhone' => (string) ($paymentIn->bankAccount?->phone ?: ''),
+            'phone' => (string) ($paymentIn->bankAccount?->phone ?: ''),
             'invoiceNo' => (string) ($paymentIn->receipt_no ?: $paymentIn->id),
             'date' => $date->format('d/m/Y'),
             'time' => $createdAt->format('h:i A'),
+            'dueDate' => $date->format('d/m/Y'),
             'billTo' => (string) ($paymentIn->party?->name ?: 'Customer'),
             'billAddress' => (string) ($paymentIn->party?->billing_address ?: ''),
             'billPhone' => (string) ($paymentIn->party?->phone ?: ''),
@@ -248,11 +303,12 @@ class InvoiceController extends Controller
             'items' => [[
                 'name' => (string) (($paymentIn->payment_type ?: 'Payment') . ' Payment'),
                 'hsn' => (string) ($paymentIn->reference_no ?: ''),
-                'qty' => 1,
+                'qty' => '1',
                 'unit' => '',
                 'rate' => $amount,
-                'discount' => 0,
-                'amount' => $amount,
+                'disc' => '0.00',
+                'gst' => '0%',
+                'amt' => $amount,
             ]],
             'bankName' => (string) ($paymentIn->bankAccount?->bank_name ?: $paymentIn->bankAccount?->display_name ?: ''),
             'bankAccountNumber' => (string) ($paymentIn->bankAccount?->account_number ?: ''),
@@ -260,25 +316,14 @@ class InvoiceController extends Controller
         ];
     }
 
-    private function mapPaymentInLegacyData(PaymentIn $paymentIn): array
+    private function formatPercentValue($value): string
     {
-        return [
-            'id' => $paymentIn->id,
-            'invoice_number' => $paymentIn->receipt_no ?? $paymentIn->id,
-            'date' => $paymentIn->date,
-            'party' => $paymentIn->party,
-            'bank_account' => $paymentIn->bankAccount,
-            'amount' => $paymentIn->amount,
-            'payment_type' => $paymentIn->payment_type,
-            'reference_no' => $paymentIn->reference_no,
-            'receipt_no' => $paymentIn->receipt_no,
-            'description' => $paymentIn->description,
-            'items' => [[
-                'name' => ($paymentIn->payment_type ?: 'Payment') . ' Payment',
-                'quantity' => 1,
-                'price' => $paymentIn->amount,
-                'amount' => $paymentIn->amount,
-            ]],
-        ];
+        $number = (float) ($value ?? 0);
+
+        if (fmod($number, 1.0) === 0.0) {
+            return (string) ((int) $number) . '%';
+        }
+
+        return rtrim(rtrim(number_format($number, 2, '.', ''), '0'), '.') . '%';
     }
 }

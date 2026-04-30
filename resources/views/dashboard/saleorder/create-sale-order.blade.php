@@ -571,7 +571,7 @@
       <label class="form-label">Opening Balance</label>
       <div class="input-group">
         <span class="input-group-text">₹</span>
-        <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+        <input type="number" name="opening_balance" class="form-control" placeholder="0.00" min="0" required>
       </div>
     </div>
     <div class="col-md-4">

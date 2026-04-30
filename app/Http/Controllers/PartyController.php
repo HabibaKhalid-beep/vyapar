@@ -7,8 +7,12 @@ use App\Models\Sale;
 use App\Models\Purchase;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class PartyController extends Controller
 {
@@ -61,22 +65,24 @@ class PartyController extends Controller
             $data['credit_limit_amount'] = null;
         }
 
-
-// Party create ke baad
-
         $party = Party::create($data);
-        $transaction = Transaction::create([
-    'party_id' => $party->id,
-    'type'     => $request->input('transaction_type'), // receive/pay
-    'number'   => 'TXN' . time(),
-    'date'     => $request->input('as_of_date') ?? now(),
-    'total'    => $request->input('opening_balance') ?? 0,
-    'debit'    => $request->input('transaction_type') === 'receive' ? ($request->input('opening_balance') ?? 0) : 0,
-    'credit'   => $request->input('transaction_type') === 'pay' ? ($request->input('opening_balance') ?? 0) : 0,
-    'balance'  => $request->input('opening_balance') ?? 0,
-    'running_balance' => $request->input('opening_balance') ?? 0,
-    'status'   => $request->input('transaction_type') ?? 'unpaid',
-]);
+        $openingBalance = $data['opening_balance'] ?? 0;
+        $transactionType = $data['transaction_type'] ?? null;
+
+        if ($openingBalance > 0 && in_array($transactionType, ['receive', 'pay'], true)) {
+            Transaction::create([
+                'party_id' => $party->id,
+                'type'     => $transactionType,
+                'number'   => 'TXN' . time(),
+                'date'     => $data['as_of_date'] ?? now(),
+                'total'    => $openingBalance,
+                'debit'    => $transactionType === 'receive' ? $openingBalance : 0,
+                'credit'   => $transactionType === 'pay' ? $openingBalance : 0,
+                'balance'  => $openingBalance,
+                'running_balance' => $openingBalance,
+                'status'   => $transactionType,
+            ]);
+        }
 
         $this->syncPartyCurrentBalance($party->id);
 
@@ -86,8 +92,438 @@ class PartyController extends Controller
             'success' => true,
             'party' => $party
         ]);
+    }
 
+    public function downloadImportTemplate()
+    {
+        $columns = [
+            'Name*',
+            'Contact No.',
+            'Email ID',
+            'Address',
+            'Shipping Address',
+            'Opening Balance',
+            'Opening Date (dd/MM/yyyy)',
+            'Party Type',
+            'Transaction Type',
+            'Credit Limit Enabled',
+            'Credit Limit Amount',
+            'Party Group',
+            'Phone Number 2',
+            'PTCL Number',
+            'Billing Address',
+            'Custom Fields',
+        ];
+        $sampleRows = [
+            [
+                'Party 1',
+                '1234567891',
+                'abc1@xyz.com',
+                'Address 1',
+                'XYZ Street, Bangalore',
+                '200',
+                '07/07/2019',
+                'customer',
+                'receive',
+                'No',
+                '',
+                'Retail',
+                '',
+                '',
+                'Billing Address 1',
+                '',
+            ],
+            [
+                'Party 2',
+                '1234567892',
+                'abc2@xyz.com',
+                'Address 2',
+                'XYZ Street, Bangalore',
+                '300',
+                '08/08/2019',
+                'supplier',
+                'pay',
+                'Yes',
+                '5000',
+                'Wholesale',
+                '02123456789',
+                '04234567890',
+                'Billing Address 2',
+                'ref:sample',
+            ],
+        ];
 
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        foreach ($columns as $index => $column) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $column);
+        }
+
+        foreach ($sampleRows as $rowIndex => $row) {
+            foreach ($row as $columnIndex => $value) {
+                $sheet->setCellValueByColumnAndRow($columnIndex + 1, $rowIndex + 2, $value);
+            }
+        }
+
+        foreach (range(1, count($columns)) as $columnIndex) {
+            $sheet->getColumnDimensionByColumn($columnIndex)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'party-import-template.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    public function previewImport(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|file|mimes:xls,xlsx,csv',
+        ]);
+
+        $rows = $this->loadSpreadsheetRows($request->file('import_file'));
+        $headerRow = [];
+        $importRows = [];
+
+        foreach ($rows as $rowNumber => $row) {
+            if ($rowNumber === 1) {
+                $headerRow = $row;
+                continue;
+            }
+
+            $mapped = [];
+            foreach ($row as $column => $value) {
+                if (isset($headerRow[$column])) {
+                    $mapped[$this->normalizeHeaderColumn((string) $headerRow[$column])] = trim((string) $value);
+                }
+            }
+
+            if (count(array_filter($mapped, fn ($value) => $value !== '')) === 0) {
+                continue;
+            }
+
+            $mapped['_row'] = $rowNumber;
+            $importRows[] = $mapped;
+        }
+
+        if (count($importRows) === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The uploaded file does not contain any valid party rows.',
+            ], 422);
+        }
+
+        $validRows = [];
+        $invalidRows = [];
+        $seenNames = [];
+
+        foreach ($importRows as $rowData) {
+            $rowNumber = $rowData['_row'] ?? null;
+            $data = array_merge($rowData, [
+                'party_type' => $this->normalizePartyTypeString($rowData['party_type'] ?? null),
+                'credit_limit_enabled' => $this->normalizeBoolean($rowData['credit_limit_enabled'] ?? null),
+                'transaction_type' => strtolower(trim($rowData['transaction_type'] ?? '')),
+                'as_of_date' => $this->normalizeDateValue($rowData['as_of_date'] ?? $rowData['opening_date'] ?? null),
+                'opening_balance' => $this->normalizeNumeric($rowData['opening_balance'] ?? null),
+            ]);
+
+            $validator = Validator::make($data, [
+                'name' => 'required|string|max:255',
+                'phone' => 'nullable|string|max:20',
+                'phone_number_2' => 'nullable|string|max:20',
+                'ptcl_number' => 'nullable|string|max:30',
+                'email' => 'nullable|email|max:255',
+                'city' => 'nullable|string|max:100',
+                'address' => 'nullable|string|max:1000',
+                'billing_address' => 'nullable|string',
+                'shipping_address' => 'nullable|string',
+                'opening_balance' => 'nullable|numeric',
+                'as_of_date' => 'nullable|date',
+                'credit_limit_enabled' => 'nullable|boolean',
+                'credit_limit_amount' => 'nullable|numeric|min:0',
+                'due_days' => 'nullable|integer|min:1|max:100',
+                'transaction_type' => 'nullable|in:receive,pay',
+                'party_type' => 'nullable|string',
+                'party_group' => 'nullable|string|max:100',
+            ]);
+
+            $errors = $validator->errors()->all();
+
+            if (!empty($data['name'])) {
+                $normalName = strtolower($data['name']);
+                if (isset($seenNames[$normalName])) {
+                    $errors[] = 'Duplicate party name in the uploaded file.';
+                }
+
+                if (Party::whereRaw('LOWER(name) = ?', [$normalName])->exists()) {
+                    $errors[] = 'A party with this name already exists.';
+                }
+
+                $seenNames[$normalName] = true;
+            }
+
+            if ($data['credit_limit_enabled'] && ($data['credit_limit_amount'] === null || $data['credit_limit_amount'] === '')) {
+                $errors[] = 'Credit limit amount is required when credit limit is enabled.';
+            }
+
+            if (!empty($errors)) {
+                $invalidRows[] = [
+                    'row' => $rowNumber,
+                    'errors' => array_values(array_unique($errors)),
+                    'data' => $data,
+                ];
+                continue;
+            }
+
+            $validRows[] = [
+                'row' => $rowNumber,
+                'data' => [
+                    'name' => $data['name'] ?? null,
+                    'phone' => $data['phone'] ?? null,
+                    'phone_number_2' => $data['phone_number_2'] ?? null,
+                    'ptcl_number' => $data['ptcl_number'] ?? null,
+                    'email' => $data['email'] ?? null,
+                    'city' => $data['city'] ?? null,
+                    'address' => $data['address'] ?? null,
+                    'billing_address' => $data['billing_address'] ?? null,
+                    'shipping_address' => $data['shipping_address'] ?? null,
+                    'opening_balance' => $data['opening_balance'] ?? null,
+                    'as_of_date' => $data['as_of_date'] ?? null,
+                    'credit_limit_enabled' => $data['credit_limit_enabled'] ? 1 : 0,
+                    'credit_limit_amount' => $data['credit_limit_amount'] ?? null,
+                    'due_days' => $data['due_days'] ?? null,
+                    'custom_fields' => $data['custom_fields'] ?? null,
+                    'transaction_type' => $data['transaction_type'] ?? null,
+                    'party_type' => $data['party_type'] ?? null,
+                    'party_group' => $data['party_group'] ?? null,
+                ],
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'valid_parties' => $validRows,
+            'invalid_parties' => $invalidRows,
+            'valid_count' => count($validRows),
+            'invalid_count' => count($invalidRows),
+        ]);
+    }
+
+    public function importValidParties(Request $request)
+    {
+        $payload = $request->validate([
+            'parties' => 'required|array|min:1',
+            'parties.*.name' => 'required|string|max:255',
+            'parties.*.phone' => 'nullable|string|max:20',
+            'parties.*.phone_number_2' => 'nullable|string|max:20',
+            'parties.*.ptcl_number' => 'nullable|string|max:30',
+            'parties.*.email' => 'nullable|email|max:255',
+            'parties.*.city' => 'nullable|string|max:100',
+            'parties.*.address' => 'nullable|string|max:1000',
+            'parties.*.billing_address' => 'nullable|string',
+            'parties.*.shipping_address' => 'nullable|string',
+            'parties.*.opening_balance' => 'nullable|numeric',
+            'parties.*.as_of_date' => 'nullable|date',
+            'parties.*.credit_limit_enabled' => 'nullable|boolean',
+            'parties.*.credit_limit_amount' => 'nullable|numeric|min:0',
+            'parties.*.due_days' => 'nullable|integer|min:1|max:100',
+            'parties.*.custom_fields' => 'nullable|string',
+            'parties.*.transaction_type' => 'nullable|in:receive,pay',
+            'parties.*.party_type' => 'nullable|string',
+            'parties.*.party_group' => 'nullable|string|max:100',
+        ]);
+
+        $createdCount = 0;
+        $partyColumns = array_flip(Schema::getColumnListing('parties'));
+
+        DB::beginTransaction();
+        try {
+            foreach ($payload['parties'] as $partyRow) {
+                $partyRow['party_type'] = $this->normalizePartyTypeString($partyRow['party_type'] ?? null);
+                if (empty($partyRow['credit_limit_enabled'])) {
+                    $partyRow['credit_limit_amount'] = null;
+                }
+
+                if (Party::whereRaw('LOWER(name) = ?', [strtolower($partyRow['name'])])->exists()) {
+                    continue;
+                }
+
+                $openingBalance = isset($partyRow['opening_balance']) ? (float) $partyRow['opening_balance'] : 0;
+                $partyRow['current_balance'] = $openingBalance;
+                $partyRow['custom_fields'] = !empty($partyRow['custom_fields'])
+                    ? ['imported_value' => $partyRow['custom_fields']]
+                    : null;
+
+                $partyData = array_filter(
+                    $partyRow,
+                    fn ($value, $key) => isset($partyColumns[$key]),
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                $party = Party::create($partyData);
+
+                Transaction::create([
+                    'party_id' => $party->id,
+                    'type' => $partyRow['transaction_type'] ?? null,
+                    'number' => 'TXN' . time() . rand(10, 99),
+                    'date' => $partyRow['as_of_date'] ?? now(),
+                    'total' => $openingBalance,
+                    'debit' => $partyRow['transaction_type'] === 'receive' ? $openingBalance : 0,
+                    'credit' => $partyRow['transaction_type'] === 'pay' ? $openingBalance : 0,
+                    'balance' => $openingBalance,
+                    'running_balance' => $openingBalance,
+                    'status' => $partyRow['transaction_type'] ?? 'unpaid',
+                ]);
+
+                $this->syncPartyCurrentBalance($party->id);
+                $createdCount++;
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to import valid parties at this time.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'created' => $createdCount,
+        ]);
+    }
+
+    private function loadSpreadsheetRows($file): array
+    {
+        $reader = IOFactory::createReaderForFile($file->getPathname());
+        $reader->setReadDataOnly(true);
+        $spreadsheet = $reader->load($file->getPathname());
+        $sheet = $spreadsheet->getActiveSheet();
+
+        return $sheet->toArray(null, true, true, true);
+    }
+
+    private function normalizeHeaderColumn(string $value): string
+    {
+        $key = trim(strtolower($value));
+        $map = [
+            'party name' => 'name',
+            'name' => 'name',
+            'name*' => 'name',
+            'contact no' => 'phone',
+            'contact no.' => 'phone',
+            'contact number' => 'phone',
+            'email id' => 'email',
+            'email' => 'email',
+            'address' => 'address',
+            'shipping address' => 'shipping_address',
+            'shipping_address' => 'shipping_address',
+            'opening balance' => 'opening_balance',
+            'opening date (dd/mm/yyyy)' => 'as_of_date',
+            'opening date (dd-mm-yyyy)' => 'as_of_date',
+            'opening date' => 'as_of_date',
+            'as of date' => 'as_of_date',
+            'as_of_date' => 'as_of_date',
+            'credit limit enabled' => 'credit_limit_enabled',
+            'credit_limit_enabled' => 'credit_limit_enabled',
+            'credit limit amount' => 'credit_limit_amount',
+            'credit_limit_amount' => 'credit_limit_amount',
+            'due days' => 'due_days',
+            'due_days' => 'due_days',
+            'custom fields' => 'custom_fields',
+            'custom_fields' => 'custom_fields',
+            'transaction type' => 'transaction_type',
+            'transaction_type' => 'transaction_type',
+            'party type' => 'party_type',
+            'party_type' => 'party_type',
+            'party group' => 'party_group',
+            'party_group' => 'party_group',
+            'phone number 2' => 'phone_number_2',
+            'phone_number_2' => 'phone_number_2',
+            'ptcl number' => 'ptcl_number',
+            'ptcl_number' => 'ptcl_number',
+            'billing address' => 'billing_address',
+            'billing_address' => 'billing_address',
+        ];
+
+        return $map[$key] ?? str_replace([' ', '-'], '_', $key);
+    }
+
+    private function normalizeBoolean($value): ?bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $text = strtolower(trim((string) $value));
+        if (in_array($text, ['1', 'true', 'yes', 'on'], true)) {
+            return true;
+        }
+
+        if (in_array($text, ['0', 'false', 'no', 'off'], true)) {
+            return false;
+        }
+
+        return null;
+    }
+
+    private function normalizeNumeric($value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '' || $value === null) {
+            return null;
+        }
+
+        return is_numeric($value) ? $value : null;
+    }
+
+    private function normalizeDateValue($value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        $text = trim((string) $value);
+
+        if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $text, $matches)) {
+            $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+            $year = $matches[3];
+            return "$year-$month-$day";
+        }
+
+        if (preg_match('/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/', $text, $matches)) {
+            $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+            $day = str_pad($matches[3], 2, '0', STR_PAD_LEFT);
+            return "$matches[1]-$month-$day";
+        }
+
+        try {
+            $date = \Carbon\Carbon::parse($text);
+            return $date->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private function normalizePartyTypeString(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        $types = preg_split('/[;,|]+/', strtolower(trim($value)));
+        $types = array_filter(array_map('trim', $types));
+        $allowed = ['customer', 'supplier'];
+        $normalized = array_values(array_unique(array_filter($types, fn ($type) => in_array($type, $allowed, true))));
+
+        return $normalized ? implode(',', $normalized) : null;
     }
 
     // Show single party

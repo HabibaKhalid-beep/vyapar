@@ -22,8 +22,87 @@ function initializeForm(context) {
         }).join('');
     };
 
+    const buildItemPickerRowsHtml = (items = []) => {
+        if (!items.length) {
+            return '<div class="item-picker-empty">No items found</div>';
+        }
+
+        return items.map(item => {
+            const plainLabel = item.name || '';
+            const itemCode = item.item_code || '';
+            const salePrice = parseFloat(item.sale_price ?? item.price ?? 0) || 0;
+            const purchasePrice = parseFloat(item.purchase_price ?? 0) || 0;
+            const stock = parseFloat(item.opening_qty ?? 0) || 0;
+            return `
+                <div class="item-picker-row item-picker-option" data-id="${item.id}">
+                    <div class="item-picker-name">${plainLabel}${itemCode ? `<small>(${itemCode})</small>` : ''}</div>
+                    <div>${salePrice.toFixed(2)}</div>
+                    <div>${purchasePrice.toFixed(2)}</div>
+                    <div class="item-picker-stock ${stock < 0 ? 'neg' : ''}">${stock}</div>
+                </div>
+            `;
+        }).join('');
+    };
+
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const $closeIcon = $('.close-app-icon');
+
+    function renderItemPicker($row, query = '') {
+        const $panel = $row.find('.item-picker-panel');
+        const $list = $row.find('.item-picker-list');
+        const normalizedQuery = String(query || '').trim().toLowerCase();
+        const filtered = baseItems.filter(item => {
+            const label = String(item.name || '').toLowerCase();
+            const code = String(item.item_code || '').toLowerCase();
+            return !normalizedQuery || label.includes(normalizedQuery) || code.includes(normalizedQuery);
+        });
+
+        $list.html(buildItemPickerRowsHtml(filtered));
+        $panel.addClass('open');
+    }
+
+    function syncItemPickerInput($row) {
+        const $selected = $row.find('.item-name option:selected');
+        const plainLabel = $selected.data('label') || $selected.text() || '';
+        $row.find('.item-picker-input').val(plainLabel.trim());
+    }
+
+    function refreshItemsList(selectedItem = null) {
+        fetch('/items?json=1&include_inactive=1', {
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(items => {
+            baseItems.splice(0, baseItems.length, ...items);
+            updateItemSelectOptions();
+
+            if (selectedItem && selectedItem.id) {
+                const activeRowIndex = Number(window.activeSaleItemRowIndex || 0);
+                const $targetRow = $ctx.find('.item-row').eq(activeRowIndex >= 0 ? activeRowIndex : 0);
+                if ($targetRow.length) {
+                    $targetRow.find('.item-name').val(String(selectedItem.id)).trigger('change');
+                }
+            }
+        })
+        .catch(() => {});
+    }
+
+    if (!window.__saleItemModalMessageBound) {
+        window.__saleItemModalMessageBound = true;
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'item-saved') {
+                $(document).trigger('sale:item-created', [event.data.item || null]);
+            }
+        });
+    }
+
+    $(document).off('sale:item-created.saleform').on('sale:item-created.saleform', function(_, item) {
+        refreshItemsList(item);
+        const modalEl = document.getElementById('addItemModal');
+        if (modalEl) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        }
+    });
 
     // IMPORTANT: Set the doc-type field from window.docType
     // This ensures the correct type is captured when form is saved
@@ -38,6 +117,7 @@ function initializeForm(context) {
     $ctx.find('.invoice-date').val(todayValue);
     $ctx.find('.order-date').val(todayValue);
     $ctx.find('.due-date').val(todayValue);
+    $ctx.find('.due-days-select').val('0');
 
     // If editing an existing sale, populate the form with saved values
     if (window.editSaleData) {
@@ -79,13 +159,13 @@ function initializeForm(context) {
     function updateDueDateFromSelection() {
         const $dueSelect = $ctx.find('.due-days-select');
         const $customInput = $ctx.find('.due-days-custom');
-        const $invoiceDate = $ctx.find('.invoice-date');
+        const $orderDate = $ctx.find('.order-date');
         const $dueDate = $ctx.find('.due-date');
 
-        if (!$dueSelect.length || !$invoiceDate.length || !$dueDate.length) return;
+        if (!$dueSelect.length || !$orderDate.length || !$dueDate.length) return;
 
         const selectedValue = $dueSelect.val();
-        const invoiceDateValue = $invoiceDate.val();
+        const orderDateValue = $orderDate.val();
 
         if (selectedValue === 'custom') {
             $customInput.removeClass('d-none').focus();
@@ -97,9 +177,9 @@ function initializeForm(context) {
             ? parseInt($customInput.val() || 0, 10)
             : parseInt(selectedValue || 0, 10);
 
-        if (!invoiceDateValue) return;
+        if (!orderDateValue) return;
 
-        const baseDate = new Date(invoiceDateValue);
+        const baseDate = new Date(orderDateValue);
         if (Number.isNaN(baseDate.getTime())) return;
 
         const dueDate = new Date(baseDate);
@@ -111,6 +191,23 @@ function initializeForm(context) {
         const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
         const dd = String(dueDate.getDate()).padStart(2, '0');
         $dueDate.val(`${yyyy}-${mm}-${dd}`);
+    }
+
+    function syncDealDaysFromSale(sale) {
+        const $dueSelect = $ctx.find('.due-days-select');
+        const $customInput = $ctx.find('.due-days-custom');
+        if (!$dueSelect.length) return;
+
+        const dealDays = parseInt(sale.deal_days || 0, 10) || 0;
+        const predefined = ['0', '5', '10', '15', '30', '45'];
+
+        if (predefined.includes(String(dealDays))) {
+            $dueSelect.val(String(dealDays));
+            $customInput.addClass('d-none').val('');
+        } else {
+            $dueSelect.val('custom');
+            $customInput.removeClass('d-none').val(dealDays > 0 ? dealDays : '');
+        }
     }
 
     function setupAdjustmentControls() {
@@ -132,6 +229,87 @@ function initializeForm(context) {
                 </label>`
             );
         }
+    }
+
+    function syncDefaultPaymentFields() {
+        const hasDefaultPaymentType = Boolean($ctx.find('.default-payment-type').val());
+        const $defaultAmount = $ctx.find('.default-payment-amount');
+        const $defaultReference = $ctx.find('.default-payment-reference');
+
+        if (!$defaultAmount.length || !$defaultReference.length) {
+            return;
+        }
+
+        $defaultAmount.toggleClass('d-none', !hasDefaultPaymentType);
+        $defaultReference.toggleClass('d-none', !hasDefaultPaymentType);
+
+        if (!hasDefaultPaymentType) {
+            $defaultAmount.val('0');
+            $defaultReference.val('');
+        }
+    }
+
+    function updateBrokerageFields() {
+        const brokerageType = ($ctx.find('.brokerage-type').val() || '').toString();
+        const totalQty = parseFloat($ctx.find('.total-qty').text() || 0) || 0;
+        const rawRate = parseFloat($ctx.find('.brokerage-rate').val() || 0) || 0;
+        const $brokerageAmount = $ctx.find('.brokerage-amount');
+        const $brokerageRate = $ctx.find('.brokerage-rate');
+        const $brokerageBaseAmount = $ctx.find('.brokerage-base-amount');
+
+        let amount = 0;
+        let placeholder = 'Enter value';
+
+        if (brokerageType === 'per_kg') {
+            amount = totalQty * rawRate;
+            placeholder = 'Rate per kilo';
+        } else if (brokerageType === 'half') {
+            amount = rawRate / 2;
+            placeholder = 'Full brokerage amount';
+        } else if (brokerageType === 'full') {
+            amount = rawRate;
+            placeholder = 'Full brokerage amount';
+        }
+
+        $brokerageRate.attr('placeholder', placeholder);
+        $brokerageBaseAmount.val(rawRate.toFixed(2));
+        $brokerageAmount.val(amount.toFixed(2));
+    }
+
+    function getMarketExpenseTotal() {
+        return (parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0)
+            + (parseFloat($ctx.find('.bardana-input').val() || 0) || 0)
+            + (parseFloat($ctx.find('.labour-input').val() || 0) || 0)
+            + (parseFloat($ctx.find('.rehra-mazdori-input').val() || 0) || 0)
+            + (parseFloat($ctx.find('.post-expense-input').val() || 0) || 0)
+            + (parseFloat($ctx.find('.extra-expense-input').val() || 0) || 0);
+    }
+
+    function updateMarketRowAmount($row) {
+        if (!$row || !$row.length) {
+            return;
+        }
+
+        const tadad = parseFloat($row.find('.tadad-input').val() || 0) || 0;
+        const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
+        const price = parseFloat($row.find('.item-price').val() || 0) || 0;
+        const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
+        const safiWazan = parseFloat($row.find('.safi-wazan-input').val() || 0) || 0;
+        const rate = parseFloat($row.find('.rate-input').val() || 0) || 0;
+        const hasMarketValues = safiWazan > 0 && rate > 0;
+        const effectiveQty = tadad > 0 ? tadad : qty;
+
+        if (tadad > 0) {
+            $row.find('.item-qty').val(tadad);
+        }
+
+        let amount = (effectiveQty * price) - itemDiscount;
+
+        if (hasMarketValues) {
+            amount = safiWazan * rate;
+        }
+
+        $row.find('.item-amount').val(Math.max(amount, 0).toFixed(2));
     }
 
     if (docType === 'sale_order' || docType === 'delivery_challan') {
@@ -240,7 +418,8 @@ function initializeForm(context) {
         $ctx.find('.billing-address').val(sale.billing_address || '');
         $ctx.find('.bill-number').val(sale.bill_number || '');
         $ctx.find('.invoice-date').val(sale.invoice_date ? sale.invoice_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
-        $ctx.find('.order-date').val(sale.order_date ? sale.order_date.split(' ')[0] : '');
+        $ctx.find('.order-date').val(sale.order_date ? sale.order_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
+        syncDealDaysFromSale(sale);
         $ctx.find('.due-date').val(sale.due_date ? sale.due_date.split(' ')[0] : '');
 
         // Items
@@ -273,6 +452,18 @@ function initializeForm(context) {
         $ctx.find('.tax-select').val(sale.tax_pct || 0);
         $ctx.find('.round-off-val').val(sale.round_off || 0);
         $ctx.find('.grand-total').val(sale.grand_total || 0);
+        const $marketRow = $ctx.find('.item-rows tr').first();
+        $marketRow.find('.tadad-input').val(sale.tadad || sale.total_qty || '');
+        $marketRow.find('.total-wazan-input').val(sale.total_wazan || '');
+        $marketRow.find('.safi-wazan-input').val(sale.safi_wazan || '');
+        $marketRow.find('.rate-input').val(sale.rate || '');
+        $marketRow.find('.deo-input').val(sale.deo || '');
+        $marketRow.find('.bardana-input').val(sale.bardana || '');
+        $marketRow.find('.labour-input').val(sale.labour || '');
+        $marketRow.find('.rehra-mazdori-input').val(sale.rehra_mazdori || '');
+        $marketRow.find('.post-expense-input').val(sale.post_expense || '');
+        $marketRow.find('.extra-expense-input').val(sale.extra_expense || '');
+        updateMarketRowAmount($marketRow);
 
         // Description (show if already set)
         const desc = sale.description || '';
@@ -314,6 +505,26 @@ function initializeForm(context) {
                 $ctx.find('.default-payment-type').val(`bank-${payment.bank_account_id}`);
             }
         });
+
+        const broker = (window.brokers || []).find(b => String(b.id) === String(sale.broker_id || ''));
+        $ctx.find('.broker-id').val(sale.broker_id || '');
+        if (broker) {
+            $ctx.find('#brokerDropdownBtn').text(broker.name || 'Select Broker');
+            $ctx.find('.broker-phone-input').val(broker.phone || '');
+        } else {
+            $ctx.find('#brokerDropdownBtn').text('Select Broker');
+            $ctx.find('.broker-phone-input').val('');
+        }
+
+        $ctx.find('.brokerage-type').val(sale.brokerage_type || '');
+        const saleBrokerageRate = parseFloat(sale.brokerage_rate ?? sale.broker_amount ?? 0) || 0;
+        $ctx.find('.brokerage-rate').val(saleBrokerageRate ? saleBrokerageRate.toFixed(2) : '');
+        $ctx.find('.brokerage-base-amount').val(saleBrokerageRate.toFixed(2));
+        $ctx.find('.brokerage-amount').val((parseFloat(sale.broker_amount || 0) || 0).toFixed(2));
+
+        syncDefaultPaymentFields();
+        updateBrokerageFields();
+        updateDueDateFromSelection();
 
         // Show the current received / balance values based on stored sale
         $ctx.find('.payment-total-amount').text((window.existingReceivedAmount || 0).toFixed(2));
@@ -379,10 +590,23 @@ function initializeForm(context) {
                     <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                 </td>
                 <td>
-                    <select class="form-select item-name">
-                        <option value="" selected disabled>Select Item</option>
-                        ${optionsHtml}
-                    </select>
+                    <div class="item-picker">
+                        <input type="text" class="item-picker-input" placeholder="Search Item">
+                        <div class="item-picker-panel">
+                            <div class="item-picker-add"><i class="fa-regular fa-circle-plus"></i> Add Item</div>
+                            <div class="item-picker-head">
+                                <span>Item</span>
+                                <span>Sale Price</span>
+                                <span>Purchase Price</span>
+                                <span>Stock</span>
+                            </div>
+                            <div class="item-picker-list"></div>
+                        </div>
+                        <select class="form-select item-name d-none">
+                            <option value="" selected disabled>Select Item</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
                 </td>
                 <td class="col-category ${isCatVisible ? '' : 'd-none'}"><input type="text" class="item-category" placeholder="Category"></td>
                 <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code"></td>
@@ -398,6 +622,16 @@ function initializeForm(context) {
                 </td>
                 <td><input type="number" class="item-price" value="0"></td>
                 <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
+                <td><input type="number" class="item-inline-input tadad-input" value="0" min="0" step="1" placeholder="Tadad"></td>
+                <td><input type="number" class="item-inline-input total-wazan-input" value="0" min="0" step="0.01" placeholder="Total Wazan"></td>
+                <td><input type="number" class="item-inline-input safi-wazan-input" value="0" min="0" step="0.01" placeholder="Safi Wazan"></td>
+                <td><input type="number" class="item-inline-input rate-input" value="0" min="0" step="0.01" placeholder="Rate"></td>
+                <td><input type="number" class="item-inline-input deo-input" value="0" min="0" step="0.01" placeholder="Deo"></td>
+                <td><input type="number" class="item-inline-input bardana-input" value="0" min="0" step="0.01" placeholder="Bardana"></td>
+                <td><input type="number" class="item-inline-input labour-input" value="0" min="0" step="0.01" placeholder="Mazdori"></td>
+                <td><input type="number" class="item-inline-input rehra-mazdori-input" value="0" min="0" step="0.01" placeholder="Rehra Mazdori"></td>
+                <td><input type="number" class="item-inline-input post-expense-input" value="0" min="0" step="0.01" placeholder="Dak Karaya"></td>
+                <td><input type="number" class="item-inline-input extra-expense-input" value="0" min="0" step="0.01" placeholder="Local"></td>
                 <td class="add-col"></td>
             </tr>
         `;
@@ -451,6 +685,7 @@ function initializeForm(context) {
             if (currentValue) {
                 $select.val(currentValue);
             }
+            syncItemPickerInput($select.closest('tr'));
         });
     }
 
@@ -549,7 +784,46 @@ function initializeForm(context) {
             $row.find('.item-unit').val('');
         }
 
-        $row.find('.item-qty').trigger('change');
+        syncItemPickerInput($row);
+        $row.find('.item-picker-panel').removeClass('open');
+        $row.find('.item-amount').val(price.toFixed(2));
+        updateMarketRowAmount($row);
+        calculateTotals();
+    });
+
+    $ctx.on('focus click', '.item-picker-input', function() {
+        const $row = $(this).closest('tr');
+        renderItemPicker($row, $(this).val());
+    });
+
+    $ctx.on('input', '.item-picker-input', function() {
+        const $row = $(this).closest('tr');
+        renderItemPicker($row, $(this).val());
+    });
+
+    $ctx.on('click', '.item-picker-option', function() {
+        const $row = $(this).closest('tr');
+        const itemId = String($(this).data('id') || '');
+        $row.find('.item-name').val(itemId).trigger('change');
+    });
+
+    $ctx.on('click', '.item-picker-add', function() {
+        const $row = $(this).closest('tr');
+        window.activeSaleItemRowIndex = $ctx.find('.item-row').index($row);
+        const frame = document.getElementById('addItemFrame');
+        if (frame) {
+            frame.src = '/items/create?modal=1&ts=' + Date.now();
+        }
+        const modalEl = document.getElementById('addItemModal');
+        if (modalEl) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+    });
+
+    $(document).on('click.saleItemPicker', function(e) {
+        if (!$(e.target).closest('.item-picker').length) {
+            $ctx.find('.item-picker-panel').removeClass('open');
+        }
     });
 
     // Line item calculation
@@ -561,6 +835,12 @@ function initializeForm(context) {
 
         const amount = (qty * price) - itemDiscount;
         $row.find('.item-amount').val(amount.toFixed(2));
+        calculateTotals();
+    });
+
+    $ctx.on('input change', '.tadad-input, .total-wazan-input, .safi-wazan-input, .rate-input, .deo-input, .bardana-input, .labour-input, .rehra-mazdori-input, .post-expense-input, .extra-expense-input', function() {
+        const $row = $(this).closest('tr');
+        updateMarketRowAmount($row);
         calculateTotals();
     });
 
@@ -665,6 +945,7 @@ function initializeForm(context) {
 
     // Update payment summary when default payment type is changed
     $ctx.on('change', '.default-payment-type', function() {
+        syncDefaultPaymentFields();
         updatePaymentSummary();
     });
 
@@ -697,6 +978,7 @@ function initializeForm(context) {
         }).filter(item => item.item_name || item.quantity || item.amount);
 
         const payments = [];
+        const $marketRow = $ctx.find('.item-row').first();
 
         // Default payment type (amount + reference shown when selected)
         const defaultTypeVal = $ctx.find('.default-payment-type').val();
@@ -749,6 +1031,10 @@ function initializeForm(context) {
             source_challan_id: window.sourceChallanId || window.editSaleData?.source_challan_id || null,
             source_proforma_id: window.sourceProformaId || window.editSaleData?.source_proforma_id || null,
             party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
+            broker_id: $ctx.find('.broker-id').val() || null,
+            brokerage_type: $ctx.find('.brokerage-type').val() || null,
+            brokerage_rate: parseFloat($ctx.find('.brokerage-base-amount').val() || $ctx.find('.brokerage-rate').val() || 0) || 0,
+            broker_amount: parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0,
             party_name: $ctx.find('#partyDropdownBtn').text().trim() || $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
@@ -756,9 +1042,26 @@ function initializeForm(context) {
             bill_number: $ctx.find('.bill-number').val() || '',
             invoice_date: $ctx.find('.invoice-date').val() || '',
             order_date: $ctx.find('.order-date').val() || '',
+            deal_days: (function() {
+                const selectedValue = $ctx.find('.due-days-select').val();
+                if (selectedValue === 'custom') {
+                    return parseInt($ctx.find('.due-days-custom').val() || 0, 10) || 0;
+                }
+                return parseInt(selectedValue || 0, 10) || 0;
+            })(),
             due_date: $ctx.find('.due-date').val() || '',
-            total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0,
+            tadad: parseInt($marketRow.find('.tadad-input').val() || 0, 10) || 0,
+            total_wazan: parseFloat($marketRow.find('.total-wazan-input').val() || 0) || 0,
+            safi_wazan: parseFloat($marketRow.find('.safi-wazan-input').val() || 0) || 0,
+            rate: parseFloat($marketRow.find('.rate-input').val() || 0) || 0,
+            deo: parseFloat($marketRow.find('.deo-input').val() || 0) || 0,
+            total_qty: parseInt($marketRow.find('.tadad-input').val() || $ctx.find('.total-qty').text() || 0, 10) || 0,
             total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0,
+            labour: parseFloat($marketRow.find('.labour-input').val() || 0) || 0,
+            bardana: parseFloat($marketRow.find('.bardana-input').val() || 0) || 0,
+            rehra_mazdori: parseFloat($marketRow.find('.rehra-mazdori-input').val() || 0) || 0,
+            post_expense: parseFloat($marketRow.find('.post-expense-input').val() || 0) || 0,
+            extra_expense: parseFloat($marketRow.find('.extra-expense-input').val() || 0) || 0,
             discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,
             discount_rs: parseFloat($ctx.find('.discount-rs').val() || 0) || 0,
             tax_pct: parseFloat($ctx.find('.tax-select').val() || 0) || 0,
@@ -954,24 +1257,43 @@ function initializeForm(context) {
         let totalQty = 0;
         let totalBaseAmount = 0;
 
-        $ctx.find('.item-qty').each(function() {
-            totalQty += parseFloat($(this).val()) || 0;
-        });
+        $ctx.find('.item-row').each(function() {
+            const $row = $(this);
+            const tadad = parseFloat($row.find('.tadad-input').val() || 0) || 0;
+            const safiWazan = parseFloat($row.find('.safi-wazan-input').val() || 0) || 0;
+            const rate = parseFloat($row.find('.rate-input').val() || 0) || 0;
+            const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
+            const price = parseFloat($row.find('.item-price').val() || 0) || 0;
+            const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
+            const effectiveQty = tadad > 0 ? tadad : qty;
 
-        $ctx.find('.item-amount').each(function() {
-            totalBaseAmount += parseFloat($(this).val()) || 0;
+            let rowAmount = (effectiveQty * price) - itemDiscount;
+
+            if (tadad > 0) {
+                $row.find('.item-qty').val(tadad);
+                totalQty += tadad;
+            } else {
+                totalQty += qty;
+            }
+
+            if (safiWazan > 0 && rate > 0) {
+                rowAmount = safiWazan * rate;
+            }
+
+            $row.find('.item-amount').val(rowAmount.toFixed(2));
+            totalBaseAmount += rowAmount;
         });
 
         $ctx.find('.total-qty').text(totalQty);
         $ctx.find('.total-base-amount').text(totalBaseAmount.toFixed(2));
 
+        updateBrokerageFields();
         applyDiscountTax(totalBaseAmount);
     }
 
     // Discount and Tax logic
     $ctx.on('keyup change', '.discount-pct, .discount-rs, .tax-select, .round-off-check', function() {
-        const totalBaseAmount = parseFloat($ctx.find('.total-base-amount').text()) || 0;
-        applyDiscountTax(totalBaseAmount);
+        calculateTotals();
     });
 
     function applyDiscountTax(base) {
@@ -1046,6 +1368,10 @@ function initializeForm(context) {
     // Recalculate payment summary when payments change
     $ctx.on('keyup change', '.default-payment-amount, .payment-amount', updatePaymentSummary);
     $ctx.on('change', '.default-payment-direction, .payment-direction-entry', updatePaymentSummary);
+    $ctx.on('change input', '.brokerage-type, .brokerage-rate', function() {
+        updateBrokerageFields();
+        calculateTotals();
+    });
     $ctx.on('change', '.fill-balance-check, .round-off-check', function() {
         setupAdjustmentControls();
         calculateTotals();
@@ -1059,8 +1385,10 @@ function initializeForm(context) {
     });
 
     setupAdjustmentControls();
+    syncDefaultPaymentFields();
     applyColumnVisibility();
     calculateTotals();
+    updateBrokerageFields();
 
     $(document).on('change', '.check-category, .check-item-code, .check-description, .check-discount', function() {
         applyColumnVisibility();
@@ -1068,7 +1396,14 @@ function initializeForm(context) {
 
     $ctx.on('change', '.due-days-select', updateDueDateFromSelection);
     $ctx.on('input', '.due-days-custom', updateDueDateFromSelection);
-    $ctx.on('change', '.invoice-date', updateDueDateFromSelection);
+    $ctx.on('change', '.invoice-date', function() {
+        const invoiceDateValue = $(this).val();
+        if (!$ctx.find('.order-date').val()) {
+            $ctx.find('.order-date').val(invoiceDateValue);
+        }
+        updateDueDateFromSelection();
+    });
+    $ctx.on('change', '.order-date', updateDueDateFromSelection);
     updateDueDateFromSelection();
 
     $('#itemColumnModal').on('show.bs.modal', function () {

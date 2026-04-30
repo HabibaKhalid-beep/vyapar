@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Broker;
+use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Party;
 use App\Models\Category;
+use Symfony\Component\Process\Process;
 
 class ReportController extends Controller
 {
@@ -27,6 +31,7 @@ class ReportController extends Controller
     {
         $categories = Category::all();
         $parties    = Party::all();
+        $brokers    = Broker::orderBy('name')->get(['id', 'name', 'phone']);
         $items      = DB::table('items')->orderBy('name')->get(['id', 'name', 'category_id']);
 
         // Stock Summary
@@ -112,7 +117,7 @@ class ReportController extends Controller
         $itemDetail         = collect();
 
         return view('dashboard.report', compact(
-            'categories', 'parties', 'items',
+            'categories', 'parties', 'brokers', 'items',
             'stockSummary', 'stockSummaryTotals',
             'lowStock', 'stockDetail', 'stockDetailTotals',
             'itemWisePnL', 'itemWisePnLTotal',
@@ -120,6 +125,63 @@ class ReportController extends Controller
             'itemCategoryPnL', 'salePurchaseByCat',
             'itemWiseDiscount', 'itemDetail'
         ));
+    }
+
+    public function unreceivedInvoicePdf(Request $request)
+    {
+        $sales = $this->getUnreceivedSalesForPdf($request);
+
+        $viewData = [
+            'sales' => $sales,
+            'generatedAt' => now(),
+            'filters' => [
+                'from' => $request->input('from'),
+                'to' => $request->input('to'),
+                'party_id' => $request->input('party_id'),
+                'party_name' => $request->input('party_name'),
+                'broker_id' => $request->input('broker_id'),
+                'city' => $request->input('city'),
+            ],
+        ];
+
+        $htmlDirectory = storage_path('app/unreceived-invoice-pdf');
+        File::ensureDirectoryExists($htmlDirectory);
+
+        $htmlPath = $htmlDirectory . DIRECTORY_SEPARATOR . 'unreceived-' . uniqid() . '.html';
+        $pdfPath = $htmlDirectory . DIRECTORY_SEPARATOR . 'unreceived-' . uniqid() . '.pdf';
+
+        File::put($htmlPath, view('dashboard.reports.pdf.unreceived-invoices', $viewData)->render());
+
+        $chromePath = $this->resolveChromeExecutable();
+        abort_unless($chromePath !== null, 500, 'Chrome/Edge executable not found for PDF generation.');
+
+        $process = new Process([
+            $chromePath,
+            '--headless=new',
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-sync',
+            '--no-pdf-header-footer',
+            '--run-all-compositor-stages-before-draw',
+            '--virtual-time-budget=1200',
+            '--print-to-pdf=' . $pdfPath,
+            'file:///' . str_replace('\\', '/', $htmlPath),
+        ]);
+
+        $process->setTimeout(60);
+        $process->run();
+
+        File::delete($htmlPath);
+
+        if (! $process->isSuccessful() || ! File::exists($pdfPath)) {
+            File::delete($pdfPath);
+            abort(500, 'Unreceived invoice PDF generation failed.');
+        }
+
+        return response()->download(
+            $pdfPath,
+            'agarri-list-' . now()->format('Ymd-His') . '.pdf'
+        )->deleteFileAfterSend(true);
     }
 
     // ─── HELPER: parse date range ─────────────────────────────────────────────
@@ -134,6 +196,147 @@ class ReportController extends Controller
     private function fmt($val): float
     {
         return round((float) ($val ?? 0), 2);
+    }
+
+    private function getUnreceivedSalesForPdf(Request $request)
+    {
+        $today = now()->startOfDay();
+        $hasDealDaysColumn = Schema::hasColumn('sales', 'deal_days');
+
+        return Sale::with(['party', 'broker', 'items'])
+            ->where('balance', '>', 0)
+            ->where('type', 'invoice')
+            ->when($request->filled('from'), function ($query) use ($request) {
+                $query->whereDate('invoice_date', '>=', $request->input('from'));
+            })
+            ->when($request->filled('to'), function ($query) use ($request) {
+                $query->whereDate('invoice_date', '<=', $request->input('to'));
+            })
+            ->when($request->filled('party_id'), function ($query) use ($request) {
+                $query->where('party_id', $request->input('party_id'));
+            })
+            ->when($request->filled('party_name'), function ($query) use ($request) {
+                $query->whereHas('party', function ($partyQuery) use ($request) {
+                    $partyQuery->where('name', 'like', '%' . trim((string) $request->input('party_name')) . '%');
+                });
+            })
+            ->when($request->filled('broker_id'), function ($query) use ($request) {
+                $query->where('broker_id', $request->input('broker_id'));
+            })
+            ->when($request->filled('city'), function ($query) use ($request) {
+                $query->whereHas('party', function ($partyQuery) use ($request) {
+                    $partyQuery->where('city', 'like', '%' . trim((string) $request->input('city')) . '%');
+                });
+            })
+            ->orderBy('due_date')
+            ->orderBy('party_id')
+            ->get()
+            ->filter(function ($sale) {
+                return $sale->party !== null;
+            })
+            ->groupBy(function ($sale) {
+                return trim((string) ($sale->party?->city ?: 'بغیر شہر'));
+            })
+            ->map(function ($citySales, $cityName) use ($today, $hasDealDaysColumn) {
+                return [
+                    'city_name' => $cityName,
+                    'parties' => $citySales->groupBy(function ($sale) {
+                        return $sale->party_id ?: ('sale-' . $sale->id);
+                    })->map(function ($partySales) use ($today, $hasDealDaysColumn) {
+                        $firstSale = $partySales->first();
+                        $party = $firstSale->party;
+
+                        $rows = $partySales->map(function ($sale) use ($today, $hasDealDaysColumn) {
+                            $saleDate = $sale->invoice_date ?: $sale->order_date;
+                            $dueDate = $sale->due_date;
+
+                            $dealDays = null;
+                            if ($hasDealDaysColumn && !is_null($sale->deal_days)) {
+                                $dealDays = (int) $sale->deal_days;
+                            } elseif ($saleDate && $dueDate) {
+                                $dealDays = $saleDate->diffInDays($dueDate);
+                            }
+
+                            $lateDays = 0;
+                            if ($dueDate && $today->gt($dueDate->copy()->startOfDay())) {
+                                $lateDays = $today->diffInDays($dueDate->copy()->startOfDay());
+                            }
+
+                            if ($lateDays === 0) {
+                                $toneLabel = 'Soft';
+                                $toneClass = 'soft';
+                            } elseif ($lateDays <= 5) {
+                                $toneLabel = 'Normal';
+                                $toneClass = 'normal';
+                            } elseif ($lateDays <= 15) {
+                                $toneLabel = 'Strict';
+                                $toneClass = 'strict';
+                            } else {
+                                $toneLabel = 'Very Strict';
+                                $toneClass = 'very-strict';
+                            }
+
+                            return [
+                                'bill_number' => $sale->bill_number ?: ('#' . $sale->id),
+                                'broker_name' => $sale->broker?->name ?: '-',
+                                'broker_phone' => $sale->broker?->phone ?: '-',
+                                'items' => $sale->items->map(function ($item) {
+                                    $rate = (float) ($item->unit_price ?? 0);
+                                    if ($rate <= 0 && (float) ($item->quantity ?? 0) > 0 && (float) ($item->amount ?? 0) > 0) {
+                                        $rate = (float) $item->amount / (float) $item->quantity;
+                                    }
+
+                                    return [
+                                        'name' => (string) ($item->item_name ?: 'Item'),
+                                        'rate' => $rate,
+                                    ];
+                                })->values()->all(),
+                                'sale_date' => $saleDate
+                                    ? $saleDate->format('d/m/Y')
+                                    : '-',
+                                'due_date' => $dueDate
+                                    ? $dueDate->format('d/m/Y')
+                                    : '-',
+                                'deal_days' => $dealDays,
+                                'late_days' => max(0, (int) $lateDays),
+                                'tone_label' => $toneLabel,
+                                'tone_class' => $toneClass,
+                                'grand_total' => (float) ($sale->grand_total ?? 0),
+                                'received_amount' => (float) ($sale->received_amount ?? 0),
+                                'balance' => (float) ($sale->balance ?? 0),
+                            ];
+                        })->values();
+
+                        return [
+                            'party_name' => $party?->name ?: 'N/A',
+                            'party_phone' => $party?->phone ?: '-',
+                            'party_whatsapp' => $party?->phone_number_2 ?: '-',
+                            'party_ptcl' => $party?->ptcl_number ?: '-',
+                            'party_address' => $party?->address ?: '-',
+                            'rows' => $rows,
+                            'total_balance' => $rows->sum('balance'),
+                        ];
+                    })->values(),
+                ];
+            })->values();
+    }
+
+    private function resolveChromeExecutable(): ?string
+    {
+        $candidates = [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+            'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     // ============================================================

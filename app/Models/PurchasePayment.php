@@ -12,6 +12,7 @@ class PurchasePayment extends Model
         'bank_account_id',
         'amount',
         'reference',
+        'receipt_no',
     ];
 
     public function bankAccount()

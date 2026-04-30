@@ -60,7 +60,11 @@
   @endif
 
   @if ($reactJs)
-    <script type="module" src="{{ $reactJs }}"></script>
+    @if (!empty($reactIsModule))
+      <script type="module" src="{{ $reactJs }}"></script>
+    @else
+      <script src="{{ $reactJs }}"></script>
+    @endif
   @endif
 </body>
 </html>

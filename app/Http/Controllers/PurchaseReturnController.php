@@ -7,6 +7,7 @@ use App\Models\BankTransaction;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Purchase;
+use App\Support\TransactionNumberPrefix;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -135,7 +136,7 @@ class PurchaseReturnController extends Controller
         $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
-        $nextInvoiceNumber = 'PR-' . ((Purchase::max('id') ?? 0) + 1);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('purchase_return', (Purchase::where('type', 'purchase_return')->max('id') ?? 0) + 1);
 
         return view('dashboard.purchases.purchase-return.create-purchase-return', compact(
             'bankAccounts',
@@ -229,7 +230,7 @@ class PurchaseReturnController extends Controller
             $purchase->save();
 
             if (empty($purchase->bill_number)) {
-                $purchase->bill_number = 'PR-' . $purchase->id;
+                $purchase->bill_number = TransactionNumberPrefix::format('purchase_return', $purchase->id);
                 $purchase->save();
             }
 

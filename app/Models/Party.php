@@ -91,4 +91,9 @@ class Party extends Model
     {
         return $this->hasMany(PaymentIn::class);
     }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
 }

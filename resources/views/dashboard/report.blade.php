@@ -218,6 +218,9 @@
                   class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Purchase by Party</a></li>
             <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Partysalepurchasegroup"><i
                   class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale Purchase by Party Group</a></li>
+            <li class="nav-item"><a href="#" class="nav-link py-2 px-4 report-nav-link" data-tab="unreceived-invoices"
+                onclick="showTab('unreceived-invoices'); return false;"><i
+                  class="fa-regular fa-file-lines me-2 text-secondary"></i>Agarri List / Unreceived Invoice</a></li>
             <!-- <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Trial Balance Report"><i
                   class="fa-solid fa-crown me-2 text-primary"></i> Trial Balance Report</a></li> -->
             <!-- <li class="nav-item"><a href="#" class="nav-link py-2 px-4" data-target="Balance Sheet"><i

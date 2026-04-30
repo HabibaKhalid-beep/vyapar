@@ -152,6 +152,26 @@
   box-shadow: 0 3px 8px rgba(255, 77, 77, 0.3);
 }
 
+.agarri-btn {
+  background: linear-gradient(135deg, #17365d, #295b93);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(23, 54, 93, 0.28);
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.agarri-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(23, 54, 93, 0.35);
+}
+
 /* common pill */
 .filter-pill {
   background-color: #E4F2FF;
@@ -277,9 +297,14 @@
             </ul>
           </div>
         </div>
-       <button class="btn add-sale-btn" onclick="window.location='{{ route('sale.create') }}'">
-  <i class="fa-solid fa-plus me-2"></i> Add Sale
-</button>
+       <div class="d-flex align-items-center gap-2">
+        <button id="agarriListBtn" class="btn agarri-btn" type="button">
+          <i class="fa-solid fa-file-pdf me-2"></i> Agarri List
+        </button>
+        <button class="btn add-sale-btn" onclick="window.location='{{ route('sale.create') }}'">
+          <i class="fa-solid fa-plus me-2"></i> Add Sale
+        </button>
+      </div>
       </div>
     <div class="d-flex justify-content-between align-items-center bg-white mb-2 px-3 py-2 rounded">
 
@@ -654,6 +679,65 @@
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script src="{{ asset('js/sale.js') }}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const agarriButton = document.getElementById('agarriListBtn');
+      const periodSelect = document.getElementById('salesPeriodSelect');
+      const firmSelect = document.getElementById('salesFirmSelect');
+      const customFrom = document.getElementById('salesCustomFrom');
+      const customTo = document.getElementById('salesCustomTo');
+
+      function buildDateRangeFromPeriod(period) {
+        const now = new Date();
+        let start = null;
+        let end = null;
+
+        if (period === 'this_month') {
+          start = new Date(now.getFullYear(), now.getMonth(), 1);
+          end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        } else if (period === 'last_month') {
+          start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          end = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else if (period === 'this_quarter') {
+          const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+          start = new Date(now.getFullYear(), quarterStartMonth, 1);
+          end = new Date(now.getFullYear(), quarterStartMonth + 3, 0);
+        } else if (period === 'this_year') {
+          start = new Date(now.getFullYear(), 0, 1);
+          end = new Date(now.getFullYear(), 11, 31);
+        }
+
+        return { start, end };
+      }
+
+      function toIsoDate(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      }
+
+      agarriButton?.addEventListener('click', function () {
+        const params = new URLSearchParams();
+        const selectedPeriod = periodSelect?.value || 'all';
+        const selectedFirm = (firmSelect?.value || '').trim();
+
+        if (selectedPeriod === 'custom') {
+          if (customFrom?.value) params.set('from', customFrom.value);
+          if (customTo?.value) params.set('to', customTo.value);
+        } else {
+          const range = buildDateRangeFromPeriod(selectedPeriod);
+          if (range.start && range.end) {
+            params.set('from', toIsoDate(range.start));
+            params.set('to', toIsoDate(range.end));
+          }
+        }
+
+        if (selectedFirm) {
+          params.set('party_name', selectedFirm);
+        }
+
+        window.open(`{{ route('reports.unreceived-invoices.pdf') }}?${params.toString()}`, '_blank');
+      });
+    });
+  </script>
 
 
 

@@ -47,7 +47,25 @@ function initializeForm(context) {
 
     function setBrokerDetails({ id = '', name = '', phone = '' } = {}) {
         $ctx.find('.broker-id').val(id || '');
-        $ctx.find('#brokerDropdownBtn').text(name || 'Select Broker or Party');
+        const $brokerSelect = $ctx.find('.broker-select');
+        let selectedValue = '';
+        if ($brokerSelect.length) {
+            $brokerSelect.find('option').each(function () {
+                const $option = $(this);
+                const optionId = String($option.data('id') || '');
+                const optionName = String($option.data('name') || '');
+                if (id && optionId === String(id)) {
+                    selectedValue = $option.val();
+                    return false;
+                }
+                if (!id && name && optionName === String(name)) {
+                    selectedValue = $option.val();
+                    return false;
+                }
+                return true;
+            });
+            $brokerSelect.val(selectedValue);
+        }
         $ctx.find('.broker-name-input').val(name || '');
         $ctx.find('.broker-phone-input').val(phone || '');
     }
@@ -61,6 +79,33 @@ function initializeForm(context) {
         if (warehouse.responsible_user_id || warehouse.user_id) {
             $ctx.find('.responsible-user-select').val(warehouse.responsible_user_id || warehouse.user_id || '');
         }
+    }
+
+    function updateBrokerageFields() {
+        const brokerageType = ($ctx.find('.brokerage-type').val() || '').toString();
+        const totalQty = parseFloat($ctx.find('.total-qty').text() || 0) || 0;
+        const rawRate = parseFloat($ctx.find('.brokerage-rate').val() || 0) || 0;
+        const $brokerageAmount = $ctx.find('.brokerage-amount');
+        const $brokerageRate = $ctx.find('.brokerage-rate');
+        const $brokerageBaseAmount = $ctx.find('.brokerage-base-amount');
+
+        let amount = 0;
+        let placeholder = 'Value';
+
+        if (brokerageType === 'per_kg') {
+            amount = totalQty * rawRate;
+            placeholder = 'Rate/KG';
+        } else if (brokerageType === 'half') {
+            amount = rawRate / 2;
+            placeholder = 'Full amount';
+        } else if (brokerageType === 'full') {
+            amount = rawRate;
+            placeholder = 'Full amount';
+        }
+
+        $brokerageRate.attr('placeholder', placeholder);
+        $brokerageBaseAmount.val(rawRate.toFixed(2));
+        $brokerageAmount.val(amount.toFixed(2));
     }
 
     function normalizeExistingImagePaths(sale) {
@@ -112,6 +157,11 @@ function initializeForm(context) {
         $ctx.find('.tax-select').val(sale.tax_pct || 0);
         const challanDetail = sale.challan_detail || sale.challanDetail || {};
         setBrokerDetails({ id: sale.broker_id || '', name: challanDetail.broker_name || sale.broker?.name || '', phone: challanDetail.broker_phone || sale.broker?.phone || '' });
+        $ctx.find('.brokerage-type').val(sale.brokerage_type || '');
+        const saleBrokerageRate = parseFloat(sale.brokerage_rate ?? sale.broker_amount ?? 0) || 0;
+        $ctx.find('.brokerage-rate').val(saleBrokerageRate ? saleBrokerageRate.toFixed(2) : '');
+        $ctx.find('.brokerage-base-amount').val(saleBrokerageRate.toFixed(2));
+        $ctx.find('.brokerage-amount').val((parseFloat(sale.broker_amount || 0) || 0).toFixed(2));
         setWarehouseDetails({ id: challanDetail.warehouse_id || '', name: challanDetail.warehouse_name || '', phone: challanDetail.warehouse_phone || '', handler_name: challanDetail.warehouse_handler_name || '', handler_phone: challanDetail.warehouse_handler_phone || '', responsible_user_id: challanDetail.responsible_user_id || '' });
         $ctx.find('.vehicle-number-input').val(challanDetail.vehicle_number || '');
         $ctx.find('.destination-input').val(challanDetail.destination || '');
@@ -135,6 +185,7 @@ function initializeForm(context) {
         });
         if (sale.description) $ctx.find('.description-pane').removeClass('d-none');
         calculateTotals();
+        updateBrokerageFields();
     }
 
     function addRow() {
@@ -203,14 +254,21 @@ function initializeForm(context) {
         }).filter(item => item.item_name || item.quantity || item.amount);
         return {
             party_id: $ctx.find('.party-id').val() || '', broker_id: $ctx.find('.broker-id').val() || '', broker_name: $ctx.find('.broker-name-input').val() || '', broker_phone: $ctx.find('.broker-phone-input').val() || '', phone: $ctx.find('.phone-input').val() || '', billing_address: $ctx.find('.billing-address').val() || '', bill_number: $ctx.find('.bill-number').val() || '', invoice_date: $ctx.find('.invoice-date').val() || todayValue, due_date: $ctx.find('.due-date').val() || todayValue,
+            brokerage_type: $ctx.find('.brokerage-type').val() || '', brokerage_rate: parseFloat($ctx.find('.brokerage-base-amount').val() || $ctx.find('.brokerage-rate').val() || 0) || 0, broker_amount: parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0,
             warehouse_id: $ctx.find('.warehouse-id').val() || '', warehouse_name: $ctx.find('#warehouseDropdownBtn').text().trim() === 'Select Warehouse' ? '' : $ctx.find('#warehouseDropdownBtn').text().trim(), warehouse_phone: $ctx.find('.warehouse-phone-input').val() || '', warehouse_handler_name: $ctx.find('.warehouse-handler-input').val() || '', warehouse_handler_phone: $ctx.find('.warehouse-handler-phone-input').val() || '', responsible_user_id: $ctx.find('.responsible-user-select').val() || '',
             vehicle_number: $ctx.find('.vehicle-number-input').val() || '', destination: $ctx.find('.destination-input').val() || '', delivery_expenses: $ctx.find('.delivery-expenses-input').val() || 0, total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0, total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0, discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0, discount_rs: parseFloat($ctx.find('.discount-rs').val() || 0) || 0, tax_pct: parseFloat($ctx.find('.tax-select').val() || 0) || 0, tax_amount: parseFloat($ctx.find('.tax-amount-display').text() || 0) || 0, round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0, grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0, status: 'open', description: $ctx.find('.description-input').val() || '', items,
         };
     }
 
     $ctx.on('click', '.party-option', function (e) { e.preventDefault(); const party = (window.parties || []).find(p => String(p.id) === String($(this).data('id'))); setPartyDetails(party || { id: $(this).data('id') || '', name: $.trim($(this).find('span').first().text()), phone: $(this).data('phone') || '', billing_address: $(this).data('billing') || '', opening_balance: $(this).data('opening') || 0, transaction_type: $(this).data('type') || '' }); });
-    $ctx.on('click', '.broker-option', function (e) { e.preventDefault(); setBrokerDetails({ id: $(this).data('source') === 'broker' ? ($(this).data('id') || '') : '', name: $(this).data('name') || '', phone: $(this).data('phone') || '' }); });
-    $ctx.on('click', '.clear-broker-selection', function (e) { e.preventDefault(); setBrokerDetails(); });
+    $ctx.on('change', '.broker-select', function () {
+        const $selected = $(this).find('option:selected');
+        setBrokerDetails({
+            id: $selected.data('source') === 'broker' ? ($selected.data('id') || '') : '',
+            name: $selected.data('name') || '',
+            phone: $selected.data('phone') || '',
+        });
+    });
     $ctx.on('click', '.warehouse-option', function (e) { e.preventDefault(); setWarehouseDetails({ id: $(this).data('id') || '', name: $(this).data('name') || '', phone: $(this).data('phone') || '', handler_name: $(this).data('handler-name') || '', handler_phone: $(this).data('handler-phone') || '', responsible_user_id: $(this).data('user-id') || '' }); });
     $ctx.on('click', '.add-warehouse-option', function (e) { e.preventDefault(); warehouseModal?.show(); });
     $(document).off('click.saveWarehouse').on('click.saveWarehouse', '.save-warehouse-btn', async function () {
@@ -228,6 +286,7 @@ function initializeForm(context) {
     $ctx.on('change', '.item-name', function () { const $row = $(this).closest('tr'); const $selected = $(this).find('option:selected'); const price = parseFloat($selected.data('sale-price')) || parseFloat($selected.data('price')) || 0; ensureUnitOption($row.find('.item-unit'), $selected.data('unit') || ''); $row.find('.item-price').val(price.toFixed(2)); $row.find('.item-qty').val(1).trigger('change'); });
     $ctx.on('input change', '.item-qty, .item-price, .item-discount', function () { const $row = $(this).closest('tr'); const amount = ((parseFloat($row.find('.item-qty').val()) || 0) * (parseFloat($row.find('.item-price').val()) || 0)) - (parseFloat($row.find('.item-discount').val()) || 0); $row.find('.item-amount').val(amount.toFixed(2)); calculateTotals(); });
     $ctx.on('input change', '.discount-pct, .discount-rs, .tax-select, .round-off-check', function () { applyDiscountTax(parseFloat($ctx.find('.total-base-amount').text()) || 0); });
+    $ctx.on('change input', '.brokerage-type, .brokerage-rate', updateBrokerageFields);
     $ctx.on('click', '.add-description', function () { $ctx.find('.description-pane').toggleClass('d-none'); });
     $ctx.on('click', '.add-image, .image-placeholder', function () { $ctx.find('.image-input').trigger('click'); });
     $ctx.on('change', '.image-input', async function () { await handleImageSelection(this.files); });
@@ -285,4 +344,3 @@ function initializeForm(context) {
     if (window.editSaleData) populateFormFromSale(window.editSaleData);
     calculateTotals();
 }
-

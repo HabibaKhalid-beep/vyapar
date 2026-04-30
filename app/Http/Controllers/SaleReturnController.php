@@ -7,6 +7,7 @@ use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Support\TransactionNumberPrefix;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -257,7 +258,7 @@ class SaleReturnController extends Controller
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = 'SR-' . str_pad((string) $nextSaleId, 4, '0', STR_PAD_LEFT);
+        $nextInvoiceNumber = TransactionNumberPrefix::format('credit_note', $nextSaleId);
 
         return view('dashboard.sales.create-sale-return', compact(
             'bankAccounts',

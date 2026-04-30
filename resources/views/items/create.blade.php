@@ -1706,32 +1706,7 @@ function previewItemImage(event) {
         </svg>`;
         thumb.style.border = '1.5px solid #93c5fd';
         thumb.style.boxShadow = 'none';
-    form.action = '{{ route("items.store") }}';
-    form.enctype = 'multipart/form-data';
-    form.style.display = 'none';
-
-    const csrf = document.createElement('input');
-    csrf.type = 'hidden';
-    csrf.name = '_token';
-    csrf.value = document.querySelector('meta[name="csrf-token"]').content;
-    form.appendChild(csrf);
-
-    for (const [key, value] of formData.entries()) {
-        if (value instanceof File) continue;
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value ?? '';
-        form.appendChild(input);
     }
-
-    const imageInput = document.getElementById('img-file');
-    if (imageInput && imageInput.files && imageInput.files.length) {
-        form.appendChild(imageInput);
-    }
-
-    document.body.appendChild(form);
-    form.submit();
 }
 
 /* ─── SAVE & NEW (stay on form) ─────────── */
@@ -1753,12 +1728,52 @@ function saveAndNew(){
         let data = {};
         try { data = raw ? JSON.parse(raw) : {}; } catch (e) {}
         if(!res.ok) throw new Error(data.message || ('Server error: ' + res.status));
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'item-saved', item: data.item || null }, '*');
+        }
         return data;
     })
     .then(() => {
         resetForm();
         showToast('Saved! Add another item.');
         setTimeout(()=>document.getElementById('item-name').focus(),50);
+    })
+    .catch(err => {
+        showToast('Error: ' + err.message);
+        console.error(err);
+    });
+}
+
+function saveItem(){
+    if(!validate()) return;
+    const formData = buildItemFormData();
+    fetch('{{ route("items.store") }}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(async res => {
+        const raw = await res.text();
+        let data = {};
+        try { data = raw ? JSON.parse(raw) : {}; } catch (e) {}
+        if(!res.ok) throw new Error(data.message || ('Server error: ' + res.status));
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'item-saved', item: data.item || null }, '*');
+        }
+        return data;
+    })
+    .then(() => {
+        if (window.parent && window.parent !== window) {
+            showToast('Saved!');
+            return;
+        }
+        showToast('Saved! Redirecting...');
+        setTimeout(goToList, 500);
     })
     .catch(err => {
         showToast('Error: ' + err.message);

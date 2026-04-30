@@ -458,10 +458,10 @@
                             <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
                                 <div class="row g-3">
                                     <div class="col-md-4">
-                                        <label class="form-label">Opening Balance</label>
+                                        <label class="form-label">Opening Balance <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">Rs</span>
-                                            <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+                                            <input type="number" name="opening_balance" class="form-control" placeholder="0.00" min="0" required>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
