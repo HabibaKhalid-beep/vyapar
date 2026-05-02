@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <!-- Form Styles -->
     <link rel="stylesheet" href="{{ asset('css/estimateform_style.css') }}">
+    @include('dashboard.shared.party-item-create-styles')
 
 <style>
     /* Dropdown with two columns and scrollbar */
@@ -298,37 +299,41 @@
 
 
 
-                                <button type="button" class="btn-action-light w-50 add-description">
-                                    <i class="fa-solid fa-align-left"></i>
-                                    ADD DESCRIPTION
-                                </button>
+                                <div class="description-action-group mb-2">
+                                    <button type="button" class="btn-action-light action-btn add-description">
+                                        <i class="fa-solid fa-align-left"></i>
+                                        ADD DESCRIPTION
+                                    </button>
 
-                                <div class="description-pane d-none w-50" style="margin-top: -2px;">
-                                    <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                    <div class="description-pane d-none mt-2">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                    </div>
                                 </div>
 
-                                <button type="button" class="btn-action-light w-50 add-image">
-                                    <i class="fa-solid fa-camera"></i>
-                                    ADD IMAGE
-                                </button>
+                                <div class="action-buttons d-flex flex-wrap gap-2 mb-2">
+                                    <button type="button" class="btn-action-light action-btn add-image">
+                                        <i class="fa-solid fa-camera"></i>
+                                        ADD IMAGE
+                                    </button>
+
+                                    <button type="button" class="btn-action-light action-btn add-document">
+                                        <i class="fa-solid fa-align-left"></i>
+                                        ADD DOCUMENT
+                                    </button>
+                                </div>
 
                                 <div class="image-upload-section mt-2">
-                                    <div class="image-preview d-none">
-                                        <img class="image-preview-img" src="" alt="Selected Image" />
-                                        <div class="image-preview-actions mt-2">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary replace-image">Replace</button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger remove-image">Remove</button>
-                                        </div>
-                                    </div>
                                     <div class="image-placeholder text-center p-3 border border-dashed rounded" style="cursor:pointer;">
-                                        <div class="text-muted">Click to select an image</div>
-                                        <div class="small text-muted">(PNG/JPG, up to 5MB)</div>
+                                        <div class="text-muted">Click to select image(s)</div>
+                                        <div class="small text-muted">(PNG/JPG, up to 5MB each)</div>
                                     </div>
-                                    <div class="selected-document-name text-muted mt-2"></div>
+                                    <div class="image-files-list d-flex flex-wrap gap-2 mt-2"></div>
+                                    <div class="document-files-list list-group mt-2"></div>
                                 </div>
 
-                                <input type="file" class="d-none image-input" accept="image/*" />
-                                <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" />
+                                <input type="file" class="d-none image-input" accept="image/*" multiple />
+                                <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" multiple />
                             </div>
 
                             <!-- Right Column -->
@@ -656,6 +661,8 @@
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
+            window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleStoreUrl = "{{ route('proforma-invoice.update', $proforma->id) }}";
             window.saleMethod = 'PUT';
             window.proformaId = {{ $proforma->id }};
@@ -666,6 +673,8 @@
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
+            window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleStoreUrl = "{{ route('proforma-invoice.store') }}";
             window.saleMethod = 'POST';
             window.proformaId = null;
@@ -676,6 +685,8 @@
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
+            window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleStoreUrl = "{{ route('proforma-invoice.store') }}";
             window.saleMethod = 'POST';
             window.proformaId = null;
@@ -694,10 +705,13 @@
         </div>
     </div>
 
+    @include('dashboard.shared.item-create-modals')
+
     <!-- Form Logic -->
     <script src="{{ asset('js/perfomaform_script.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('js/perfoma_script.js') }}"></script>
+    <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
 
     <!-- Add Party Modal Handler -->
     <script>
@@ -792,7 +806,6 @@
 
 
 </html>
-
 
 
 

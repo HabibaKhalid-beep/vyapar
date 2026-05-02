@@ -8,6 +8,8 @@ use App\Models\Sale;
 use App\Support\TransactionNumberPrefix;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class PerfomaController extends Controller
 {
@@ -127,9 +129,12 @@ class PerfomaController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizeJsonInputs($request);
         $data = $this->validateProformaRequest($request);
+        $uploadedImagePaths = $this->storeAttachmentFiles($request->file('images', []), 'proforma/images');
+        $uploadedDocumentPaths = $this->storeAttachmentFiles($request->file('documents', []), 'proforma/documents');
 
-        $sale = Sale::create($this->buildSalePayload($data));
+        $sale = Sale::create($this->buildSalePayload($data, $uploadedImagePaths, $uploadedDocumentPaths));
         $this->syncItems($sale, $data['items']);
 
         return response()->json([
@@ -145,9 +150,18 @@ class PerfomaController extends Controller
     {
         abort_unless($sale->type === 'proforma', 404);
 
+        $this->normalizeJsonInputs($request);
         $data = $this->validateProformaRequest($request);
+        $existingImagePaths = array_values(array_filter(array_merge($sale->image_paths ?? [], $data['image_paths'] ?? [])));
+        $existingDocumentPaths = array_values(array_filter(array_merge($sale->document_paths ?? [], $data['document_paths'] ?? [])));
+        $uploadedImagePaths = $this->storeAttachmentFiles($request->file('images', []), 'proforma/images');
+        $uploadedDocumentPaths = $this->storeAttachmentFiles($request->file('documents', []), 'proforma/documents');
 
-        $sale->update($this->buildSalePayload($data));
+        $sale->update($this->buildSalePayload(
+            $data,
+            array_values(array_filter(array_merge($existingImagePaths, $uploadedImagePaths))),
+            array_values(array_filter(array_merge($existingDocumentPaths, $uploadedDocumentPaths)))
+        ));
         $sale->items()->delete();
         $this->syncItems($sale, $data['items']);
 
@@ -232,6 +246,15 @@ class PerfomaController extends Controller
             'grand_total' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'image_path' => 'nullable|string|max:255',
+            'document_path' => 'nullable|string|max:255',
+            'image_paths' => 'nullable|array',
+            'image_paths.*' => 'nullable|string|max:255',
+            'document_paths' => 'nullable|array',
+            'document_paths.*' => 'nullable|string|max:255',
+            'images' => 'nullable|array',
+            'images.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
+            'documents' => 'nullable|array',
+            'documents.*' => 'nullable|file|max:5120|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif',
             'items' => 'required|array|min:1',
             'items.*.item_name' => 'nullable|string|max:255',
             'items.*.item_category' => 'nullable|string|max:255',
@@ -245,7 +268,7 @@ class PerfomaController extends Controller
         ]);
     }
 
-    private function buildSalePayload(array $data): array
+    private function buildSalePayload(array $data, array $imagePaths = [], array $documentPaths = []): array
     {
         return [
             'type' => 'proforma',
@@ -266,8 +289,45 @@ class PerfomaController extends Controller
             'balance' => $data['grand_total'] ?? 0,
             'status' => 'open',
             'description' => $data['description'] ?? null,
-            'image_path' => $data['image_path'] ?? null,
+            'image_path' => $imagePaths[0] ?? ($data['image_path'] ?? null),
+            'document_path' => $documentPaths[0] ?? ($data['document_path'] ?? null),
+            'image_paths' => !empty($imagePaths) ? array_values($imagePaths) : null,
+            'document_paths' => !empty($documentPaths) ? array_values($documentPaths) : null,
         ];
+    }
+
+    private function normalizeJsonInputs(Request $request): void
+    {
+        foreach (['items', 'image_paths', 'document_paths'] as $field) {
+            $value = $request->input($field);
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge([$field => $decoded]);
+            }
+        }
+    }
+
+    /**
+     * @param  array<int, UploadedFile>|UploadedFile|null  $files
+     * @return array<int, string>
+     */
+    private function storeAttachmentFiles($files, string $directory): array
+    {
+        $storedPaths = [];
+
+        foreach ((array) $files as $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            $storedPaths[] = $file->store($directory, 'public');
+        }
+
+        return $storedPaths;
     }
 
     private function syncItems(Sale $sale, array $items): void

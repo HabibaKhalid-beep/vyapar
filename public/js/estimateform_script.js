@@ -8,6 +8,10 @@ function initializeForm(context) {
     }).join('');
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const selectedImages = [];
+    const selectedDocuments = [];
+    const $imageFilesList = $ctx.find('.image-files-list');
+    const $documentFilesList = $ctx.find('.document-files-list');
 
     // Auto-fill invoice date and placeholder invoice no
     const today = new Date();
@@ -59,20 +63,38 @@ function initializeForm(context) {
         return encodeURI('/storage/images/' + trimmed);
     }
 
-    function setImagePreviewUrl(url) {
-        const $preview = $ctx.find('.image-preview');
-        const $img = $preview.find('.image-preview-img');
-        const $placeholder = $ctx.find('.image-placeholder');
+    function renderExistingAttachments(sale) {
+        const imagePaths = Array.isArray(sale.image_paths) && sale.image_paths.length
+            ? sale.image_paths
+            : (sale.image_path ? [sale.image_path] : []);
+        const documentPaths = Array.isArray(sale.document_paths) && sale.document_paths.length
+            ? sale.document_paths
+            : (sale.document_path ? [sale.document_path] : []);
 
-        if (!url) {
-            $preview.addClass('d-none');
-            $placeholder.removeClass('d-none');
-            return;
+        if (imagePaths.length && !$imageFilesList.children().length && !selectedImages.length) {
+            const html = imagePaths.map((path) => {
+                const name = String(path || '').split('/').pop() || 'Image';
+                return `
+                    <div class="image-file-card border rounded overflow-hidden">
+                        <img src="${buildImageUrl(path)}" alt="${name}" class="img-fluid" style="width:120px;height:120px;object-fit:cover;" />
+                        <div class="small text-truncate p-1 text-center" style="max-width:120px;">${name}</div>
+                    </div>
+                `;
+            }).join('');
+            $imageFilesList.html(html);
         }
 
-        $img.attr('src', buildImageUrl(url));
-        $preview.removeClass('d-none');
-        $placeholder.addClass('d-none');
+        if (documentPaths.length && !$documentFilesList.children().length && !selectedDocuments.length) {
+            const html = documentPaths.map((path) => {
+                const name = String(path || '').split('/').pop() || 'Document';
+                return `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-truncate" style="max-width:100%;">${name}</span>
+                    </div>
+                `;
+            }).join('');
+            $documentFilesList.html(html);
+        }
     }
 
     function populateFormFromSale(sale) {
@@ -143,17 +165,7 @@ function initializeForm(context) {
             $ctx.find('.description-pane').removeClass('d-none');
         }
 
-        // Image (show preview if there is an existing image)
-        const imageUrl = sale.image_url || sale.image_path || '';
-        setImagePreviewUrl(imageUrl);
-
-        // Document (show file name if there is an existing document)
-        const docName = sale.document_name || sale.document_path || '';
-        if (docName) {
-            $ctx.find('.selected-document-name').text('Document: ' + docName);
-        } else {
-            $ctx.find('.selected-document-name').text('');
-        }
+        renderExistingAttachments(sale);
 
         // Payments: treat values as "already received" and allow adding new payments
         window.existingReceivedAmount = parseFloat(sale.received_amount || 0) || 0;
@@ -530,12 +542,10 @@ function initializeForm(context) {
             round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0,
             grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0,
             description: $ctx.find('.description-input').val() || null,
-            image_path: (function() {
-                const file = $ctx.find('.image-input')[0]?.files?.[0];
-                if (file) return file.name;
-                if (window.editSaleData && window.editSaleData.image_path) return window.editSaleData.image_path;
-                return null;
-            })(),
+            image_path: selectedImages.length ? selectedImages[0].name : (window.editSaleData?.image_path || null),
+            image_paths: selectedImages.map(file => file.name),
+            document_path: selectedDocuments.length ? selectedDocuments[0].name : (window.editSaleData?.document_path || null),
+            document_paths: selectedDocuments.map(file => file.name),
             items,
             payments: [],
         };
@@ -557,14 +567,37 @@ function initializeForm(context) {
 
         btn.prop('disabled', true).text(loadingText);
 
+        const hasUploadFiles = selectedImages.length > 0 || selectedDocuments.length > 0;
+        let requestBody;
+        const requestHeaders = {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+        };
+
+        if (hasUploadFiles) {
+            const formData = new FormData();
+            Object.entries(saleData).forEach(([key, value]) => {
+                if (value === undefined || value === null) {
+                    return;
+                }
+                if (typeof value === 'object') {
+                    formData.append(key, JSON.stringify(value));
+                    return;
+                }
+                formData.append(key, value);
+            });
+            selectedImages.forEach(imageFile => formData.append('images[]', imageFile));
+            selectedDocuments.forEach(docFile => formData.append('documents[]', docFile));
+            requestBody = formData;
+        } else {
+            requestHeaders['Content-Type'] = 'application/json';
+            requestBody = JSON.stringify(saleData);
+        }
+
         fetch(window.saleStoreUrl, {
             method: window.saleMethod || 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify(saleData),
+            headers: requestHeaders,
+            body: requestBody,
         })
             .then(async res => {
                 const text = await res.text();
@@ -649,27 +682,74 @@ function initializeForm(context) {
         $container.find('.document-input').trigger('click');
     });
 
-    // Image preview UI
-    function updateImagePreview(file) {
-        const $preview = $ctx.find('.image-preview');
-        const $img = $preview.find('.image-preview-img');
-
-        if (!file) {
-            $preview.addClass('d-none');
+    function renderSelectedImages() {
+        if (!selectedImages.length) {
+            if (!(window.editSaleData && (window.editSaleData.image_paths?.length || window.editSaleData.image_path))) {
+                $imageFilesList.empty();
+            }
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            $img.attr('src', e.target.result);
-            $preview.removeClass('d-none');
-        };
-        reader.readAsDataURL(file);
+        const html = selectedImages.map((file, index) => {
+            const url = URL.createObjectURL(file);
+            return `
+                <div class="image-file-card position-relative border rounded overflow-hidden" data-index="${index}">
+                    <button type="button" class="btn-close position-absolute end-0 top-0 m-1 remove-selected-image" aria-label="Remove" data-index="${index}"></button>
+                    <img src="${url}" alt="${file.name}" class="img-fluid" style="width:120px;height:120px;object-fit:cover;" />
+                    <div class="small text-truncate p-1 text-center" style="max-width:120px;">${file.name}</div>
+                </div>
+            `;
+        }).join('');
+        $imageFilesList.html(html);
+    }
+
+    function renderSelectedDocuments() {
+        if (!selectedDocuments.length) {
+            if (!(window.editSaleData && (window.editSaleData.document_paths?.length || window.editSaleData.document_path))) {
+                $documentFilesList.empty();
+            }
+            return;
+        }
+
+        const html = selectedDocuments.map((file, index) => {
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-center" data-index="${index}">
+                    <span class="text-truncate" style="max-width: calc(100% - 32px);">${file.name}</span>
+                    <button type="button" class="btn-close remove-selected-document" aria-label="Remove" data-index="${index}"></button>
+                </div>
+            `;
+        }).join('');
+        $documentFilesList.html(html);
+    }
+
+    function addSelectedImages(files) {
+        Array.from(files || []).forEach(file => {
+            const duplicate = selectedImages.some(existing => existing.name === file.name && existing.size === file.size && existing.type === file.type);
+            if (!duplicate) {
+                selectedImages.push(file);
+            }
+        });
+        renderSelectedImages();
+    }
+
+    function addSelectedDocuments(files) {
+        Array.from(files || []).forEach(file => {
+            const duplicate = selectedDocuments.some(existing => existing.name === file.name && existing.size === file.size && existing.type === file.type);
+            if (!duplicate) {
+                selectedDocuments.push(file);
+            }
+        });
+        renderSelectedDocuments();
     }
 
     $ctx.on('change', '.image-input', function() {
-        const file = this.files?.[0];
-        updateImagePreview(file);
+        addSelectedImages(this.files);
+        this.value = '';
+    });
+
+    $ctx.on('change', '.document-input', function() {
+        addSelectedDocuments(this.files);
+        this.value = '';
     });
 
     $ctx.on('click', '.image-placeholder', function() {
@@ -680,18 +760,16 @@ function initializeForm(context) {
         $ctx.find('.image-input').trigger('click');
     });
 
-    $ctx.on('click', '.remove-image', function() {
-        $ctx.find('.image-input').val('');
-        updateImagePreview(null);
+    $ctx.on('click', '.remove-selected-image', function() {
+        const index = Number($(this).data('index'));
+        selectedImages.splice(index, 1);
+        renderSelectedImages();
     });
 
-    $ctx.on('change', '.document-input', function() {
-        const fileName = this.files?.[0]?.name;
-        if (fileName) {
-            $ctx.find('.selected-document-name').text('Document: ' + fileName);
-        } else {
-            $ctx.find('.selected-document-name').text('');
-        }
+    $ctx.on('click', '.remove-selected-document', function() {
+        const index = Number($(this).data('index'));
+        selectedDocuments.splice(index, 1);
+        renderSelectedDocuments();
     });
 
     function calculateTotals() {
