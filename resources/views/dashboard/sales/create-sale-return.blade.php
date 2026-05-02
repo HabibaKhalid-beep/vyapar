@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/saleorderform_style.css') }}">
+    @include('dashboard.shared.party-item-create-styles')
 </head>
 
 <body>
@@ -55,6 +56,9 @@
 
     <!-- Dropdown menu (existing) -->
     <ul class="dropdown-menu w-110" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+        <li class="dropdown-header-search px-2 py-2">
+            <input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;">
+        </li>
         <li class="dropdown-header d-flex justify-content-between px-3">
             <span>Party Name</span>
             <span>Opening Balance</span>
@@ -541,6 +545,8 @@
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
+            window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleReturnStoreUrl = "{{ route('sale-return.update', $saleReturn->id) }}";
             window.saleReturnMethod = 'PUT';
             window.editSaleReturnData = @json($saleReturn->load(['items', 'payments'])->toArray());
@@ -551,6 +557,8 @@
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
+            window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
             window.saleReturnMethod = 'POST';
             window.editSaleReturnData = @json(array_merge($duplicateSaleReturn->load(['items', 'payments'])->toArray(), ['bill_number' => $nextInvoiceNumber]));
@@ -561,6 +569,8 @@
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
+            window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
             window.saleReturnMethod = 'POST';
             window.editSaleReturnData = @json($prefilledSaleReturnData ?? null);
@@ -577,8 +587,10 @@
         </div>
     </div>
 
+    @include('dashboard.shared.item-create-modals')
     <script src="{{ asset('js/salereturnform_script.js') }}"></script>
     <script src="{{ asset('js/scriptreturn.js') }}"></script>
+    <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const addPartyModalEl = document.getElementById('addPartyModal');
@@ -721,7 +733,6 @@
 </body>
 
 </html>
-
 
 
 

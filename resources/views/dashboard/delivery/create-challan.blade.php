@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/estimateform_style.css') }}">
+    @include('dashboard.shared.party-item-create-styles')
     <style>
         #partyDropdownMenu, #brokerDropdownMenu, #warehouseDropdownMenu { min-width: 250px; max-width: 100%; }
         .party-option span, .warehouse-option span { display: inline-block; width: 100%; }
@@ -141,6 +142,7 @@
                                             <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">Select Party</button>
                                             <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">No party selected</div>
                                             <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+                                                <li class="dropdown-header-search px-2 py-2"><input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;"></li>
                                                 <li class="dropdown-header d-flex justify-content-between px-3"><span>Party Name</span><span>Opening Balance</span></li>
                                                 @foreach($parties as $party)
                                                 <li>
@@ -150,6 +152,8 @@
                                                     </a>
                                                 </li>
                                                 @endforeach
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
                                             </ul>
                                         </div>
                                         <input type="hidden" class="party-id" name="party_id">
@@ -343,6 +347,9 @@
         window.responsibleUsers = @json($users ?? []);
         window.warehouses = @json($warehouses ?? []);
         window.warehouseStoreUrl = "{{ route('warehouses.store') }}";
+        window.partyStoreUrl = "{{ route('parties.store') }}";
+        window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
+        window.useSharedPartySave = true;
         window.saleStoreUrl = "{{ isset($challan) ? route('delivery-challan.update', $challan->id) : route('delivery-challan.store') }}";
         window.saleHttpMethod = "{{ isset($challan) ? 'PUT' : 'POST' }}";
         window.challanId = @json($challan->id ?? null);
@@ -350,7 +357,10 @@
         window.docType = 'delivery_challan';
     </script>
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;"><div id="sale-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true"><div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div></div>
+    @include('dashboard.shared.party-create-modal')
+    @include('dashboard.shared.item-create-modals')
     <script src="{{ asset('js/challanform_script.js') }}"></script>
     <script src="{{ asset('js/challanscript.js') }}"></script>
+    <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
 </body>
 </html>

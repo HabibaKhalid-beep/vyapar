@@ -18,6 +18,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <!-- Form Styles -->
+    @include('dashboard.shared.party-item-create-styles')
     <link rel="stylesheet" href="{{ asset('css/saleorderform_style.css') }}">
 
 </head>
@@ -80,6 +81,9 @@
 
     <!-- Dropdown menu (existing) -->
     <ul class="dropdown-menu w-110" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+        <li class="dropdown-header-search px-2 py-2">
+            <input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;">
+        </li>
         <li class="dropdown-header d-flex justify-content-between px-3">
             <span>Party Name</span>
             <span>Opening Balance</span>
@@ -470,6 +474,8 @@
         window.items = @json($items);
         window.parties = @json($parties);
         window.bankAccounts = @json($bankAccounts);
+        window.partyStoreUrl = "{{ route('parties.store') }}";
+        window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
         window.saleOrderStoreUrl = "{{ isset($saleOrder) ? route('sale.update', $saleOrder) : route('sale.store') }}";
         window.saleOrderMethod = "{{ isset($saleOrder) ? 'PUT' : 'POST' }}";
         window.editSaleOrderData = @json($saleOrder ?? $convertedSaleOrderData ?? null);
@@ -492,11 +498,13 @@
     <script src="{{ asset('js/saleorderform_script.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('js/scriptorder.js') }}"></script>
+    <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
      <div class="container">
         @yield('content')
     </div>
 
 @section('modals')
+@include('dashboard.shared.item-create-modals')
 <!-- MODAL: ADD PARTY -->
  <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -739,6 +747,5 @@ document.addEventListener("DOMContentLoaded", function () {
 </body>
 
 </html>
-
 
 
