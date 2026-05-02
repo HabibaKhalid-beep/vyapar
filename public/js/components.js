@@ -113,7 +113,12 @@
       ],
     },
     {
-      label: 'Parties',
+      label: `
+        <span style="position:relative;display:block;">
+          Parties
+          <span class="menu-plus-btn" data-modal="addPartyModal" style="position:absolute;right:-127px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+        </span>
+      `,
       icon: 'fa-users',
       href: '/dashboard/parties',
       dataPage: 'parties',
@@ -121,14 +126,24 @@
       add: { label: 'Add Party', modal: 'addPartyModal' },
     },
     {
-      label: 'Brokers',
+      label: `
+        <span style="position:relative;display:block;">
+          Brokers
+          <span class="menu-plus-btn" data-modal="brokerModal" style="position:absolute;right:-124px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+        </span>
+      `,
       icon: 'fa-handshake',
       href: '/dashboard/brokers',
       dataPage: 'brokers',
       permission: 'party.view',
     },
     {
-      label: 'Items',
+      label: `
+        <span style="position:relative;display:block;">
+          Items
+          <span class="menu-plus-btn" data-url="/dashboard/items/create" style="position:absolute;right:-138px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+        </span>
+      `,
       icon: 'fa-boxes-stacked',
       href: '/dashboard/items',
       dataPage: 'items',
@@ -140,13 +155,88 @@
       icon: 'fa-file-invoice-dollar',
       permission: 'sales.view',
       children: [
-        { label: 'Sale Invoice', href: '/dashboard/sales', dataPage: 'invoice', permission: 'sales.invoice' },
-        { label: 'Estimate / Quotation', href: '/dashboard/sales/estimate', dataPage: 'estimate', permission: 'sales.estimate' },
-        { label: 'Payment In', href: '/dashboard/payment-in', dataPage: 'payment-in', permission: 'sales.payment_in' },
-        { label: 'Proforma Invoice', href: '/dashboard/proforma-invoice', dataPage: 'proforma-invoice', permission: 'sales.proforma' },
-        { label: 'Sale Order', href: '/dashboard/sale-order', dataPage: 'sale-order', permission: 'sales.order' },
-        { label: 'Delivery Challan', href: '/dashboard/delivery-challan', dataPage: 'delivery-challan', permission: 'sales.delivery_challan' },
-        { label: 'Sale Return / Cr. Note', href: '/dashboard/sale-return', dataPage: 'sale-return', permission: 'sales.sale_return' },
+{
+  label: `
+    <span style="position:relative;display:block;padding-right:28px;">
+      Sale Invoice
+      <span class="menu-plus-btn" data-url="/dashboard/sale/create" style="position:absolute;right:-74px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+    </span>
+  `,
+  href: '/dashboard/sales',
+  dataPage: 'invoice',
+  permission: 'sales.invoice'
+},
+
+{
+  label: `
+    <span style="position:relative;display:block;padding-right:28px;">
+      Estimate / Quotation
+      <span class="menu-plus-btn" data-url="/dashboard/estimates/create" style="position:absolute;right:-24px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+    </span>
+  `,
+  href: '/dashboard/sales/estimate',
+  dataPage: 'estimate',
+  permission: 'sales.estimate'
+},
+
+{
+  label: `
+    <span style="position:relative;display:block;padding-right:28px;">
+      Payment In
+      <span class="menu-plus-btn" data-modal="addPaymentInModal" style="position:absolute;right:-80px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+    </span>
+  `,
+  href: '/dashboard/payment-in',
+  dataPage: 'payment-in',
+  permission: 'sales.payment_in'
+},
+
+{
+  label: `
+    <span style="position:relative;display:block;padding-right:28px;">
+      Proforma Invoice
+      <span class="menu-plus-btn" data-url="/dashboard/proforma-invoice/create" style="position:absolute;right:-47px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+    </span>
+  `,
+  href: '/dashboard/proforma-invoice',
+  dataPage: 'proforma-invoice',
+  permission: 'sales.proforma'
+},
+
+{
+  label: `
+    <span style="position:relative;display:block;padding-right:28px;">
+      Sale Order
+      <span class="menu-plus-btn" data-url="/dashboard/sale-order/create" style="position:absolute;right:-87px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+    </span>
+  `,
+  href: '/dashboard/sale-order',
+  dataPage: 'sale-order',
+  permission: 'sales.order'
+},
+
+{
+  label: `
+    <span style="position:relative;display:block;padding-right:28px;">
+      Delivery Challan
+      <span class="menu-plus-btn" data-url="/dashboard/create-challan" style="position:absolute;right:-57px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+    </span>
+  `,
+  href: '/dashboard/delivery-challan',
+  dataPage: 'delivery-challan',
+  permission: 'sales.delivery_challan'
+},
+        {
+  label: `
+    <span style="position:relative;display:block;padding-right:28px;">
+      Sale Return / Cr. Note
+      <span class="menu-plus-btn" data-url="/dashboard/sale-return/create" style="position:absolute;right:-25px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+    </span>
+  `,
+  href: '/dashboard/sale-return',
+  dataPage: 'sale-return',
+  permission: 'sales.sale_return'
+},
         { label: 'Vyapar POS', href: '/dashboard/sales/pos', dataPage: 'pos', permission: 'sales.pos' },
       ],
     },
@@ -175,9 +265,39 @@
       icon: 'fa-wallet',
       permission: 'cashbank.view',
       children: [
-        { label: 'Loan Accounts', href: '/dashboard/loan-accounts', dataPage: 'loan-accounts', permission: 'cashbank.loan_accounts' },
-        { label: 'Bank Accounts', href: '/dashboard/bank-accounts', dataPage: 'bank-accounts', permission: 'cashbank.bank_accounts' },
-        { label: 'Cash in Hand', href: '/dashboard/cash-in-hand', dataPage: 'cash-in-hand', permission: 'cashbank.view' },
+        {
+          label: `
+            <span style="position:relative;display:block;padding-right:28px;">
+              Loan Accounts
+              <span class="menu-plus-btn" data-modal="loanModal" style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+            </span>
+          `,
+          href: '/dashboard/loan-accounts',
+          dataPage: 'loan-accounts',
+          permission: 'cashbank.loan_accounts'
+        },
+        {
+          label: `
+            <span style="position:relative;display:block;padding-right:28px;">
+              Bank Accounts
+              <span class="menu-plus-btn" data-modal="addBankModal" style="position:absolute;right:-61px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+            </span>
+          `,
+          href: '/dashboard/bank-accounts',
+          dataPage: 'bank-accounts',
+          permission: 'cashbank.bank_accounts'
+        },
+        {
+          label: `
+            <span style="position:relative;display:block;padding-right:28px;">
+              Cash in Hand
+              <span class="menu-plus-btn" data-modal="exampleModal" style="position:absolute;right:-73px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+            </span>
+          `,
+          href: '/dashboard/cash-in-hand',
+          dataPage: 'cash-in-hand',
+          permission: 'cashbank.view'
+        },
       ],
     },
     { label: 'Reports', icon: 'fa-chart-pie', href: '/dashboard/reports', permission: 'report.view', dataPage: 'reports' },
@@ -360,6 +480,24 @@
   // ── Inject into page ──
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
   document.body.insertAdjacentHTML('afterbegin', navbarHTML);
+
+  // ── Handle plus button clicks in menu ──
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('menu-plus-btn')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = e.target.getAttribute('data-url');
+      const modal = e.target.getAttribute('data-modal');
+      if (url) window.location.href = url;
+      if (modal) {
+        const modalElement = document.getElementById(modal);
+        if (modalElement) {
+          const bsModal = new window.bootstrap.Modal(modalElement);
+          bsModal.show();
+        }
+      }
+    }
+  });
 
   // ── Logout button (if available) ──
   if (logoutUrl && window.App?.isAuthenticated) {
