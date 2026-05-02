@@ -203,6 +203,102 @@ function initializeForm(context) {
         $ctx.find('#partyDropdownBtn').text(partyName || 'Select Party');
         $ctx.find('.phone-input').val(phone);
         $ctx.find('.billing-address').val(billing);
+
+        // Close the dropdown after selection
+        const dropdownElement = $ctx.find('#partyDropdownBtn').get(0);
+        if (dropdownElement && bootstrap.Dropdown) {
+            bootstrap.Dropdown.getInstance(dropdownElement)?.hide();
+        }
+    });
+
+    // Party search/filter functionality
+    // Party search/filter functionality
+    $ctx.on('input', '.party-search-input', function(e) {
+        e.stopPropagation();
+        const searchValue = $(this).val().toLowerCase().trim();
+        const $partyOptions = $ctx.find('.party-option');
+
+        $partyOptions.each(function() {
+            const $this = $(this);
+            const partyName = $.trim($this.find('span').first().text()).toLowerCase();
+            const partyPhone = $this.data('phone') ? String($this.data('phone')).toLowerCase() : '';
+
+            if (searchValue === '' || partyName.includes(searchValue) || partyPhone.includes(searchValue)) {
+                $this.closest('li').removeClass('d-none');
+            } else {
+                $this.closest('li').addClass('d-none');
+            }
+        });
+    });
+
+    // Prevent dropdown from closing when clicking on search input
+    $ctx.on('click', '.dropdown-header-search', function(e) {
+        e.stopPropagation();
+    });
+
+    $ctx.on('click', '.party-search-input', function(e) {
+        e.stopPropagation();
+    });
+
+    // Prevent dropdown from closing when typing in search
+    $ctx.on('keydown keyup', '.party-search-input', function(e) {
+        e.stopPropagation();
+    });
+
+    // Clear search input when dropdown closes
+    $ctx.on('hidden.bs.dropdown', '#partyDropdownMenu', function() {
+        $ctx.find('.party-search-input').val('');
+        $ctx.find('.party-option').closest('li').removeClass('d-none');
+    });
+
+    // Function to refresh party dropdown menu
+    function refreshPartyDropdown() {
+        const $dropdown = $ctx.find('#partyDropdownMenu');
+        const $existingItems = $dropdown.find('.party-option').closest('li');
+
+        // Clear existing party options but keep header and footer
+        $existingItems.remove();
+
+        // Rebuild party list
+        const partiesHtml = (window.parties || []).map(party => `
+            <li>
+                <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+                   data-id="${party.id}"
+                   data-phone="${party.phone || ''}"
+                   data-billing="${(party.billing_address || '').replace(/"/g, '&quot;')}"
+                   data-opening="${party.opening_balance || 0}"
+                   data-type="${party.transaction_type || ''}">
+                    <span>${party.name || ''}</span>
+                    <span class="${party.transaction_type === 'pay' ? 'text-danger' : 'text-success'}">
+                        ${party.transaction_type === 'pay' ? '<i class="fa-solid fa-arrow-up me-1"></i>' : '<i class="fa-solid fa-arrow-down me-1"></i>'}
+                        ₹${parseFloat(party.opening_balance || 0).toFixed(2)}
+                    </span>
+                </a>
+            </li>
+        `).join('');
+
+        // Insert new items before the divider
+        const $divider = $dropdown.find('li:has(> hr.dropdown-divider)');
+        if ($divider.length) {
+            $divider.before(partiesHtml);
+        }
+    }
+
+    // Listen for changes to window.parties and refresh dropdown
+    const originalPartiesArray = window.parties;
+    if (Array.isArray(originalPartiesArray)) {
+        new Proxy(originalPartiesArray, {
+            set(target, property, value) {
+                target[property] = value;
+                refreshPartyDropdown();
+                return true;
+            }
+        });
+    }
+
+    // Also refresh dropdown after a short delay when parties change
+    window.addEventListener('partiesUpdated', function() {
+        refreshPartyDropdown();
     });
 
     // Add row functionality

@@ -72,7 +72,7 @@
                                    <div class="input-group">
                                 <!-- Party dropdown button -->
 <div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
-    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
         Select Party
     </button>
     <!-- Balance display -->
@@ -82,6 +82,9 @@
 
     <!-- Dropdown menu (existing) -->
     <ul class="dropdown-menu w-110" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+        <li class="dropdown-header-search px-2 py-2">
+            <input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;">
+        </li>
         <li class="dropdown-header d-flex justify-content-between px-3">
             <span>Party Name</span>
             <span>Opening Balance</span>
@@ -383,6 +386,79 @@
         </div>
     </div>
 
+    <!-- Add Party Modal -->
+    <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPartyModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Party</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="addPartyForm">
+                        @csrf
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Phone Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                                    <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Email</label>
+                                <input type="email" name="email" class="form-control" placeholder="Enter email">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">City</label>
+                                <input type="text" name="city" class="form-control" placeholder="Enter city">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Address</label>
+                                <textarea class="form-control" name="address" rows="2" placeholder="Enter address"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Billing Address</label>
+                                <textarea class="form-control" name="billing_address" rows="2" placeholder="Enter billing address"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Opening Balance</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="number" name="opening_balance" class="form-control" placeholder="0.00" step="0.01">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Transaction Type</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
+                                        <label class="form-check-label" for="toReceive">To Receive</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="toPay" value="pay">
+                                        <label class="form-check-label" for="toPay">To Pay</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="btnSaveParty">
+                                <i class="fa-solid fa-check me-1"></i> Save Party
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
@@ -434,6 +510,96 @@
     <script src="{{ asset('js/estimateform_script.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('js/script.js') }}"></script>
+
+    <!-- Add Party Modal Handler -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const addNewPartyBtn = document.getElementById("addNewPartyBtn");
+        const addPartyModal = document.getElementById("addPartyModal");
+        const btnSaveParty = document.getElementById("btnSaveParty");
+        const addPartyForm = document.getElementById("addPartyForm");
+
+        // Show modal when "Add New Party" is clicked
+        if (addNewPartyBtn && addPartyModal) {
+            addNewPartyBtn.addEventListener("click", function(e) {
+                e.preventDefault();
+                addPartyForm.reset();
+                const modal = new bootstrap.Modal(addPartyModal);
+                modal.show();
+            });
+        }
+
+        // Save new party
+        if (btnSaveParty && addPartyForm) {
+            btnSaveParty.addEventListener("click", function() {
+                const form = addPartyForm;
+                const data = new FormData(form);
+
+                // Transaction type fix
+                const toReceive = document.getElementById("toReceive").checked;
+                const toPay = document.getElementById("toPay").checked;
+                if(toReceive) data.set("transaction_type", "receive");
+                else if(toPay) data.set("transaction_type", "pay");
+                else data.set("transaction_type", "receive");
+
+                fetch("{{ route('parties.store') }}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                        "Accept": "application/json"
+                    },
+                    body: data
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if(res.success) {
+                        const party = res.party || {};
+                        const partyRecord = {
+                            id: party.id || '',
+                            name: party.name || data.get('name') || '',
+                            phone: party.phone || data.get('phone') || '',
+                            email: party.email || data.get('email') || '',
+                            city: party.city || data.get('city') || '',
+                            address: party.address || data.get('address') || '',
+                            billing_address: party.billing_address || data.get('billing_address') || '',
+                            opening_balance: party.opening_balance || data.get('opening_balance') || 0,
+                            transaction_type: party.transaction_type || data.get('transaction_type') || 'receive',
+                        };
+
+                        if (partyRecord.id) {
+                            window.parties = Array.isArray(window.parties) ? window.parties.filter(p => String(p.id) !== String(partyRecord.id)) : [];
+                            window.parties.unshift(partyRecord);
+                        }
+
+                        // Close modal
+                        const modal = bootstrap.Modal.getInstance(addPartyModal);
+                        if (modal) modal.hide();
+
+                        // Reset form
+                        form.reset();
+
+                        // Dispatch event to refresh dropdown
+                        window.dispatchEvent(new Event('partiesUpdated'));
+
+                        // Show success message
+                        const toast = document.getElementById('sale-toast');
+                        if (toast) {
+                            toast.querySelector('.toast-body').textContent = 'Party added successfully!';
+                            const bsToast = new bootstrap.Toast(toast);
+                            bsToast.show();
+                        }
+                    } else {
+                        alert('Error: ' + (res.message || 'Failed to save party'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('An error occurred while saving the party');
+                });
+            });
+        }
+    });
+    </script>
 </body>
 
 
