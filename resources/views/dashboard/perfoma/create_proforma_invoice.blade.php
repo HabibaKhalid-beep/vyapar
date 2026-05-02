@@ -490,7 +490,7 @@
                                         <button type="button" class="dropdown-item text-primary" id="addNewGroupBtn">+ New Group</button>
                                         <div id="partyGroupList">
                                             @foreach($parties->pluck('party_group')->filter()->unique()->values() as $partyGroup)
-                                                <button type="button" class="dropdown-item">{{ $partyGroup }}</button>
+                                                <button type="button" class="dropdown-item" data-group="{{ $partyGroup }}">{{ $partyGroup }}</button>
                                             @endforeach
                                         </div>
                                     </div>
@@ -501,17 +501,17 @@
                         <!-- Tabs -->
                         <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
+                                <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab" aria-controls="partyAddressPane" aria-selected="true">
                                     <i class="fa-solid fa-location-dot me-1"></i> Address
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
+                                <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab" aria-controls="partyCreditPane" aria-selected="false">
                                     <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
+                                <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab" aria-controls="partyAdditionalPane" aria-selected="false">
                                     <i class="fa-solid fa-sliders me-1"></i> Additional Fields
                                 </button>
                             </li>
@@ -519,7 +519,7 @@
 
                         <div class="tab-content pt-3" id="partyModalTabContent">
                             <!-- Address Tab -->
-                            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
+                            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel" aria-labelledby="party-address-tab">
                                 <div class="row g-3">
                                     <div class="col-md-6" data-party-setting="email">
                                         <label class="form-label">Email ID</label>
@@ -542,7 +542,7 @@
                             </div>
 
                             <!-- Credit & Balance Tab -->
-                            <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
+                            <div class="tab-pane fade" id="partyCreditPane" role="tabpanel" aria-labelledby="party-credit-tab">
                                 <div class="row g-3">
                                     <div class="col-md-4" data-party-setting="opening_balance">
                                         <label class="form-label">Opening Balance</label>
@@ -584,23 +584,24 @@
                                         <label class="form-check-label" for="toPay">To Pay</label>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Party Type -->
-                            <div class="col-md-6" data-party-setting="party_type">
-                                <label class="form-label fw-600">Party Type</label>
-                                <div class="form-check">
-                                    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="customerParty" value="customer">
-                                    <label class="form-check-label" for="customerParty">Customer</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
-                                    <label class="form-check-label" for="supplierParty">Supplier</label>
+                                <div class="row g-3 mt-3" data-party-setting="party_type">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-600">Party Type</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="customerParty" value="customer">
+                                            <label class="form-check-label" for="customerParty">Customer</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
+                                            <label class="form-check-label" for="supplierParty">Supplier</label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Additional Fields Tab -->
-                            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel" data-party-setting="additional_fields">
+                            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel" aria-labelledby="party-additional-tab" data-party-setting="additional_fields">
                                 <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
                                 <div class="row g-3">
                                     @for($i=1; $i<=4; $i++)
@@ -716,88 +717,513 @@
     <!-- Add Party Modal Handler -->
     <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const addNewPartyBtn = document.getElementById("addNewPartyBtn");
-        const addPartyModal = document.getElementById("addPartyModal");
-        const btnSaveParty = document.getElementById("btnSaveParty");
-        const addPartyForm = document.getElementById("addPartyForm");
+        const addModalEl = document.getElementById('addPartyModal');
+        const addModal = new bootstrap.Modal(addModalEl);
+        const saveBtn = document.getElementById("btnSaveParty");
+        const saveNewBtn = document.getElementById("btnSaveNewParty");
 
-        // Show modal when "Add New Party" is clicked
-        if (addNewPartyBtn && addPartyModal) {
-            addNewPartyBtn.addEventListener("click", function(e) {
+        // Handle modal close - clean up backdrops to prevent black screen
+        addModalEl.addEventListener('hidden.bs.modal', function () {
+            // Remove any remaining backdrops
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            // Reset overflow if it was set
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        });
+
+        // Handle modal show - ensure clean state
+        addModalEl.addEventListener('show.bs.modal', function () {
+            // Remove any orphaned backdrops before opening
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+        });
+
+
+
+
+        function getPartyData() {
+            const form = document.getElementById("addPartyForm");
+            return new FormData(form);
+        }
+
+       function applyPartyDueDays(partyRecord = {}) {
+        const dealDaysSelect = document.querySelector(".due-days-select");
+        const dealDaysCustomInput = document.querySelector(".due-days-custom");
+        const dueDateInput = document.querySelector(".due-date");
+        const orderDateInput = document.querySelector(".order-date");
+        if (!dealDaysSelect || !dueDateInput || !orderDateInput) {
+            return;
+        }
+
+        const dueDays = Number(partyRecord.due_days || 0);
+        const orderDateValue = orderDateInput.value;
+        const allowedDays = ['0', '5', '10', '15', '30', '45'];
+
+        if (dueDays > 0) {
+            if (allowedDays.includes(String(dueDays))) {
+                dealDaysSelect.value = String(dueDays);
+                dealDaysCustomInput?.classList.add('d-none');
+                if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+            } else {
+                dealDaysSelect.value = 'custom';
+                dealDaysCustomInput?.classList.remove('d-none');
+                if (dealDaysCustomInput) dealDaysCustomInput.value = dueDays;
+            }
+        } else {
+            dealDaysSelect.value = '0';
+            dealDaysCustomInput?.classList.add('d-none');
+            if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+        }
+
+        if (!orderDateValue || dueDays <= 0) {
+            return;
+        }
+
+        const dueDate = new Date(orderDateValue);
+        if (Number.isNaN(dueDate.getTime())) {
+            return;
+        }
+
+        dueDate.setDate(dueDate.getDate() + dueDays);
+        const yyyy = dueDate.getFullYear();
+        const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(dueDate.getDate()).padStart(2, '0');
+        dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+       }
+
+       function saveParty(closeAfterSave = true) {
+        const form = document.getElementById("addPartyForm");
+        const data = new FormData(form);
+
+        // Transaction type fix
+        const toReceive = document.getElementById("toReceive").checked;
+        const toPay = document.getElementById("toPay").checked;
+        if(toReceive) data.set("transaction_type", "receive");
+        else if(toPay) data.set("transaction_type", "pay");
+
+        // Credit limit fix
+        const creditSwitch = document.getElementById("creditLimitSwitch");
+        data.set("credit_limit_enabled", creditSwitch.checked ? 1 : 0);
+
+        fetch("{{ route('parties.store') }}", {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                "Accept": "application/json"   // important!
+            },
+            body: data
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.success) {
+                const party = res.party || {};
+                const partyRecord = {
+                    id: party.id || '',
+                    name: party.name || data.get('name') || '',
+                    phone: party.phone || data.get('phone') || '',
+                    phone_number_2: party.phone_number_2 || data.get('phone_number_2') || '',
+                    ptcl_number: party.ptcl_number || data.get('ptcl_number') || '',
+                    email: party.email || data.get('email') || '',
+                    city: party.city || data.get('city') || '',
+                    address: party.address || data.get('address') || '',
+                    billing_address: party.billing_address || data.get('billing_address') || '',
+                    shipping_address: party.shipping_address || data.get('shipping_address') || '',
+                    party_group: party.party_group || data.get('party_group') || '',
+                    due_days: party.due_days || data.get('due_days') || '',
+                    opening_balance: party.opening_balance || data.get('opening_balance') || 0,
+                    credit_limit_enabled: party.credit_limit_enabled || data.get('credit_limit_enabled') || 0,
+                    credit_limit_amount: party.credit_limit_amount || data.get('credit_limit_amount') || '',
+                    custom_fields: party.custom_fields || data.getAll('custom_fields[]') || [],
+                    party_type: party.party_type || data.getAll('party_type[]') || [],
+                    transaction_type: party.transaction_type || data.get('transaction_type') || '',
+                };
+
+                if (partyRecord.party_group) {
+                    window.salePartyGroups = window.salePartyGroups || [];
+                    if (!window.salePartyGroups.includes(partyRecord.party_group)) {
+                        window.salePartyGroups.push(partyRecord.party_group);
+                    }
+
+                    const partyGroupList = document.getElementById('partyGroupList');
+                    if (partyGroupList && !partyGroupList.querySelector(`[data-group="${partyRecord.party_group}"]`)) {
+                        const groupBtn = document.createElement('button');
+                        groupBtn.type = 'button';
+                        groupBtn.className = 'dropdown-item';
+                        groupBtn.dataset.group = partyRecord.party_group;
+                        groupBtn.textContent = partyRecord.party_group;
+                        groupBtn.onclick = () => {
+                            const groupInput = document.getElementById('partyGroupInput');
+                            const groupText = document.getElementById('partyGroupText');
+                            if (groupInput) groupInput.value = partyRecord.party_group;
+                            if (groupText) groupText.textContent = partyRecord.party_group;
+                        };
+                        partyGroupList.appendChild(groupBtn);
+                    }
+                }
+
+                if (partyRecord.id) {
+                    window.parties = Array.isArray(window.parties) ? window.parties.filter(p => String(p.id) !== String(partyRecord.id)) : [];
+                    window.parties.push(partyRecord);
+
+                    const dropdownMenu = document.getElementById("partyDropdownMenu");
+                    const partyIdInput = document.querySelector(".party-id");
+                    const dropdownBtn = document.getElementById("partyDropdownBtn");
+                    const balanceDisplay = document.getElementById("partyBalanceDisplay");
+
+                    if (dropdownMenu) {
+                        const existing = dropdownMenu.querySelector(`.party-option[data-id="${partyRecord.id}"]`);
+                        if (existing) {
+                            existing.closest('li')?.remove();
+                        }
+
+                        const optionHtml = `
+                          <li>
+                            <a class="dropdown-item d-flex justify-content-between party-option"
+                               href="#"
+                               data-id="${partyRecord.id}"
+                               data-name="${partyRecord.name}"
+                               data-phone="${partyRecord.phone}"
+                               data-phone-number-2="${partyRecord.phone_number_2 || ''}"
+                               data-city="${partyRecord.city}"
+                               data-ptcl="${partyRecord.ptcl_number}"
+                               data-email="${partyRecord.email || ''}"
+                               data-address="${partyRecord.address.replace(/"/g, '&quot;')}"
+                               data-billing="${partyRecord.billing_address.replace(/"/g, '&quot;')}"
+                               data-shipping="${partyRecord.shipping_address.replace(/"/g, '&quot;') }"
+                               data-party-group="${partyRecord.party_group || ''}"
+                               data-due-days="${partyRecord.due_days}"
+                               data-opening="${partyRecord.opening_balance}"
+                               data-type="${partyRecord.transaction_type}"
+                               data-party-type="${Array.isArray(partyRecord.party_type) ? partyRecord.party_type.join(',') : partyRecord.party_type || ''}"
+                               data-credit-limit-enabled="${partyRecord.credit_limit_enabled || 0}"
+                               data-credit-limit-amount="${partyRecord.credit_limit_amount || ''}"
+                               data-custom-fields="${String(JSON.stringify(partyRecord.custom_fields || [])).replace(/"/g, '&quot;')}">
+                                <span>${partyRecord.name}</span>
+                                <span class="text-success">0</span>
+                            </a>
+                          </li>
+                        `;
+
+                        const divider = dropdownMenu.querySelector('li > hr.dropdown-divider');
+                        if (divider) {
+                            divider.closest('li')?.insertAdjacentHTML('beforebegin', optionHtml);
+                        } else {
+                            dropdownMenu.insertAdjacentHTML('beforeend', optionHtml);
+                        }
+                    }
+
+                    if (partyIdInput) partyIdInput.value = partyRecord.id;
+                    if (dropdownBtn) dropdownBtn.textContent = partyRecord.name || 'Select Party';
+                    if (balanceDisplay) {
+                        balanceDisplay.textContent = partyRecord.transaction_type === 'pay'
+                            ? `To Pay Rs ${partyRecord.opening_balance || 0}`
+                            : `To Receive Rs ${partyRecord.opening_balance || 0}`;
+                        balanceDisplay.className = partyRecord.transaction_type === 'pay' ? 'text-danger small' : 'text-success small';
+                    }
+                }
+
+                // Close modal first, then show success message
+                if(closeAfterSave) {
+                    addModal.hide();
+                    // Wait for modal to close, then reset
+                    setTimeout(() => {
+                        form.reset();
+                        // Clean up any leftover backdrops
+                        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                        document.body.classList.remove('modal-open');
+                    }, 300);
+                } else {
+                    form.reset();
+                }
+
+                // Show success message without blocking UI
+                const toast = document.createElement('div');
+                toast.className = 'toast-notification';
+                toast.innerHTML = `
+                    <div style="background: #28a745; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        <i class="fa-solid fa-check me-2"></i> Party saved successfully!
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            } else {
+                const errorToast = document.createElement('div');
+                errorToast.innerHTML = `
+                    <div style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        <i class="fa-solid fa-exclamation me-2"></i> Error saving party
+                    </div>
+                `;
+                document.body.appendChild(errorToast);
+                setTimeout(() => errorToast.remove(), 3000);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            const errorToast = document.createElement('div');
+            errorToast.innerHTML = `
+                <div style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        <i class="fa-solid fa-exclamation me-2"></i> Something went wrong! Check console.
+                    </div>
+                `;
+            document.body.appendChild(errorToast);
+            setTimeout(() => errorToast.remove(), 3000);
+        });
+    }
+        saveBtn.addEventListener('click', function () {
+            saveParty(true); // close modal after save
+        });
+
+        saveNewBtn.addEventListener('click', function () {
+            saveParty(false); // reset modal for new entry
+        });
+    });
+
+    </script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const dropdownBtn = document.getElementById("partyDropdownBtn");
+        const dropdownMenu = document.getElementById("partyDropdownMenu");
+        const partyIdInput = document.querySelector(".party-id");
+        const balanceDisplay = document.getElementById("partyBalanceDisplay");
+        const addModalEl = document.getElementById('addPartyModal');
+
+        const addModal = new bootstrap.Modal(addModalEl);
+
+        const setPartyFieldValues = (partyRecord = {}) => {
+            // For proforma, we don't have all these fields, so we check if they exist first
+            const phoneInput = document.querySelector(".phone-input");
+            const cityInput = document.querySelector(".city-input");
+            const ptclInput = document.querySelector(".ptcl-input");
+            const addressInput = document.querySelector(".address-input");
+            const billingAddress = document.querySelector(".billing-address");
+            const shippingAddress = document.querySelector(".shipping-address");
+
+            if (phoneInput) phoneInput.value = partyRecord.phone || "";
+            if (cityInput) cityInput.value = partyRecord.city || "";
+            if (ptclInput) ptclInput.value = partyRecord.ptcl_number || partyRecord.ptcl || "";
+            if (addressInput) addressInput.value = partyRecord.address || "";
+            if (billingAddress) billingAddress.value = partyRecord.billing_address || partyRecord.billing || "";
+            if (shippingAddress) shippingAddress.value = partyRecord.shipping_address || partyRecord.shipping || "";
+        };
+
+        const setDueDateFromParty = (partyRecord = {}) => {
+            const dealDaysSelect = document.querySelector(".due-days-select");
+            const dealDaysCustomInput = document.querySelector(".due-days-custom");
+            const dueDateInput = document.querySelector(".due-date");
+            const orderDateInput = document.querySelector(".order-date");
+            if (!dueDateInput || !orderDateInput || !dealDaysSelect) return;
+
+            const dueDays = Number(partyRecord.due_days || partyRecord.dueDays || 0);
+            const orderDateValue = orderDateInput.value;
+
+            if (dueDays > 0) {
+                const allowedDays = ['0', '5', '10', '15', '30', '45'];
+                if (allowedDays.includes(String(dueDays))) {
+                    dealDaysSelect.value = String(dueDays);
+                    dealDaysCustomInput?.classList.add('d-none');
+                    if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+                } else {
+                    dealDaysSelect.value = 'custom';
+                    dealDaysCustomInput?.classList.remove('d-none');
+                    if (dealDaysCustomInput) dealDaysCustomInput.value = dueDays;
+                }
+            } else {
+                dealDaysSelect.value = '0';
+                dealDaysCustomInput?.classList.add('d-none');
+                if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+            }
+
+            if (!orderDateValue) {
+                return;
+            }
+
+            const dueDate = new Date(orderDateValue);
+            if (Number.isNaN(dueDate.getTime())) return;
+
+            dueDate.setDate(dueDate.getDate() + dueDays);
+            const yyyy = dueDate.getFullYear();
+            const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(dueDate.getDate()).padStart(2, '0');
+            dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+        };
+
+
+        dropdownMenu.addEventListener("click", function(e) {
+            if(e.target.closest(".party-option")) {
                 e.preventDefault();
-                addPartyForm.reset();
-                const modal = new bootstrap.Modal(addPartyModal);
-                modal.show();
+                const option = e.target.closest(".party-option");
+                const name = option.querySelector("span:first-child").textContent;
+                let opening = parseFloat(option.dataset.opening) || 0;
+                const type = option.dataset.type;
+                const id = option.dataset.id;
+                const selectedParty = (window.parties || []).find((party) => String(party.id) === String(id)) || {};
+                const partyRecord = {
+                    phone: selectedParty.phone ?? option.dataset.phone ?? "",
+                    city: selectedParty.city ?? option.dataset.city ?? "",
+                    ptcl_number: selectedParty.ptcl_number ?? option.dataset.ptcl ?? "",
+                    address: selectedParty.address ?? option.dataset.address ?? "",
+                    billing_address: selectedParty.billing_address ?? option.dataset.billing ?? "",
+                    shipping_address: selectedParty.shipping_address ?? option.dataset.shipping ?? "",
+                    due_days: selectedParty.due_days ?? option.dataset.dueDays ?? "",
+                };
+
+                // Button pe sirf party name
+                dropdownBtn.textContent = name;
+
+                // Show balance below button with color
+              if(type === "pay"){
+        balanceDisplay.innerHTML = `
+            <i class="fa-solid fa-arrow-up text-danger me-1"></i>
+            ₹${opening.toFixed(2)}
+        `;
+    }
+    else if(type === "receive"){
+        balanceDisplay.innerHTML = `
+            <i class="fa-solid fa-arrow-down text-success me-1"></i>
+            ₹${opening.toFixed(2)}
+        `;
+    }
+    else {
+        balanceDisplay.innerHTML = `₹${opening.toFixed(2)}`;
+    }
+
+                // Save selected party id
+                partyIdInput.value = id;
+
+                // Populate detail fields
+                setPartyFieldValues(partyRecord);
+                setDueDateFromParty(partyRecord);
+            }
+            else if(e.target.id === "addNewPartyBtn") {
+                addModal.show();
+                document.getElementById("addPartyForm").reset();
+                balanceDisplay.textContent = "";
+                setPartyFieldValues({});
+            }
+        });
+
+    });
+
+    // Party Group Dropdown Functionality
+    document.addEventListener("DOMContentLoaded", function() {
+        const trigger = document.getElementById("partyGroupTrigger");
+        const menu = document.getElementById("partyGroupMenu");
+        const list = document.getElementById("partyGroupList");
+        const input = document.getElementById("partyGroupInput");
+        const text = document.getElementById("partyGroupText");
+
+        const groupModal = new bootstrap.Modal(document.getElementById('partyGroupModal'));
+        window.salePartyGroups = window.salePartyGroups || Array.from((list?.querySelectorAll('.dropdown-item') || []))
+            .map((btn) => btn.textContent.trim())
+            .filter(Boolean);
+
+        if (!trigger || !menu || !list || !input || !text) {
+            return;
+        }
+
+        // Toggle dropdown
+        trigger.addEventListener("click", () => {
+            menu.classList.toggle("d-none");
+        });
+
+        // Close outside
+        document.addEventListener("click", (e) => {
+            if (!trigger.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.add("d-none");
+            }
+        });
+
+        // Render groups
+        function renderGroups() {
+            list.innerHTML = "";
+            window.salePartyGroups.forEach(g => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "dropdown-item";
+                btn.dataset.group = g;
+                btn.textContent = g;
+
+                btn.onclick = () => {
+                    input.value = g;
+                    text.textContent = g;
+                    menu.classList.add("d-none");
+                };
+
+                list.appendChild(btn);
             });
         }
 
-        // Save new party
-        if (btnSaveParty && addPartyForm) {
-            btnSaveParty.addEventListener("click", function() {
-                const form = addPartyForm;
-                const data = new FormData(form);
+        renderGroups();
 
-                // Transaction type fix
-                const toReceive = document.getElementById("toReceive").checked;
-                const toPay = document.getElementById("toPay").checked;
-                if(toReceive) data.set("transaction_type", "receive");
-                else if(toPay) data.set("transaction_type", "pay");
-                else data.set("transaction_type", "receive");
+        list.addEventListener("click", function (event) {
+            const btn = event.target.closest("button.dropdown-item");
+            if (!btn || btn.id === "addNewGroupBtn") return;
 
-                fetch("{{ route('parties.store') }}", {
-                    method: "POST",
-                    headers: {
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-                        "Accept": "application/json"
-                    },
-                    body: data
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if(res.success) {
-                        const party = res.party || {};
-                        const partyRecord = {
-                            id: party.id || '',
-                            name: party.name || data.get('name') || '',
-                            phone: party.phone || data.get('phone') || '',
-                            email: party.email || data.get('email') || '',
-                            city: party.city || data.get('city') || '',
-                            address: party.address || data.get('address') || '',
-                            billing_address: party.billing_address || data.get('billing_address') || '',
-                            opening_balance: party.opening_balance || data.get('opening_balance') || 0,
-                            transaction_type: party.transaction_type || data.get('transaction_type') || 'receive',
-                        };
+            input.value = btn.dataset.group || btn.textContent.trim();
+            text.textContent = btn.dataset.group || btn.textContent.trim();
+            menu.classList.add("d-none");
+        });
 
-                        if (partyRecord.id) {
-                            window.parties = Array.isArray(window.parties) ? window.parties.filter(p => String(p.id) !== String(partyRecord.id)) : [];
-                            window.parties.unshift(partyRecord);
-                        }
+        // Open modal
+        const addNewGroupBtn = document.getElementById("addNewGroupBtn");
+        if (addNewGroupBtn) {
+            addNewGroupBtn.onclick = () => {
+                groupModal.show();
+            };
+        }
 
-                        // Close modal
-                        const modal = bootstrap.Modal.getInstance(addPartyModal);
-                        if (modal) modal.hide();
+        // Save group
+        const saveGroupBtn = document.getElementById("btnSaveGroup");
+        if (saveGroupBtn) {
+          saveGroupBtn.onclick = () => {
+            const name = document.getElementById("newGroupName").value.trim();
 
-                        // Reset form
-                        form.reset();
+            if (!name) return alert("Enter group name");
 
-                        // Dispatch event to refresh dropdown
-                        window.dispatchEvent(new Event('partiesUpdated'));
+            if (!window.salePartyGroups.includes(name)) {
+                window.salePartyGroups.push(name);
+            }
+            renderGroups();
 
-                        // Show success message
-                        const toast = document.getElementById('sale-toast');
-                        if (toast) {
-                            toast.querySelector('.toast-body').textContent = 'Party added successfully!';
-                            const bsToast = new bootstrap.Toast(toast);
-                            bsToast.show();
-                        }
-                    } else {
-                        alert('Error: ' + (res.message || 'Failed to save party'));
-                    }
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-                    alert('An error occurred while saving the party');
-                });
+            // auto select
+            input.value = name;
+            text.textContent = name;
+
+            document.getElementById("newGroupName").value = "";
+            groupModal.hide();
+          };
+        }
+
+    });
+
+    // Credit Limit Toggle
+    document.addEventListener("DOMContentLoaded", function() {
+        const creditLimitSwitch = document.getElementById("creditLimitSwitch");
+        const creditLimitAmountWrap = document.getElementById("creditLimitAmountWrap");
+
+        if (creditLimitSwitch) {
+            creditLimitSwitch.addEventListener("change", function() {
+                if (this.checked) {
+                    creditLimitAmountWrap.classList.remove("is-hidden");
+                } else {
+                    creditLimitAmountWrap.classList.add("is-hidden");
+                }
+            });
+        }
+    });
+
+    // Add New Party button in dropdown
+    document.addEventListener("DOMContentLoaded", function() {
+        const addNewPartyBtn = document.getElementById("addNewPartyBtn");
+        const addPartyModal = document.getElementById("addPartyModal");
+
+        if (addNewPartyBtn && addPartyModal) {
+            addNewPartyBtn.addEventListener("click", function(e) {
+                e.preventDefault();
+                const modal = new bootstrap.Modal(addPartyModal);
+                modal.show();
             });
         }
     });

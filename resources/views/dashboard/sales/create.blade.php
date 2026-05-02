@@ -1157,8 +1157,7 @@
                                         <i class="fa-solid fa-align-left"></i>
                                         ADD DESCRIPTION
                                     </button>
-                                    <div class="description-pane d-none mt-2">
-                                        <label class="form-label">Description</label>
+                                    <div class="description-pane d-none w-50" style="margin-top: -2px;">
                                         <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
                                     </div>
                                 </div>
