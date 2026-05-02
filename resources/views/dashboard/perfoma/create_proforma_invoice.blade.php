@@ -25,6 +25,55 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <!-- Form Styles -->
     <link rel="stylesheet" href="{{ asset('css/estimateform_style.css') }}">
+
+<style>
+    /* Dropdown with two columns and scrollbar */
+    #partyDropdownMenu {
+        min-width: 250px; /* Adjust as needed */
+        max-width: 100%;  /* Never exceed container */
+        max-height: 350px; /* Add max-height for scrollbar */
+        overflow-y: auto; /* Enable vertical scrolling */
+        overflow-x: hidden; /* Hide horizontal scroll */
+    }
+
+    /* Scrollbar styling for responsive dropdown */
+    #partyDropdownMenu::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #partyDropdownMenu::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    #partyDropdownMenu::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+    #partyDropdownMenu::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Firefox scrollbar */
+    #partyDropdownMenu {
+        scrollbar-width: thin;
+        scrollbar-color: #888 #f1f1f1;
+    }
+
+    .party-option span {
+        display: inline-block;
+        width: 100%;
+    }
+    .party-option span:first-child {
+        width: 60%; /* Party name */
+    }
+    .party-option span:last-child {
+        width: 40%; /* Opening balance */
+        text-align: right;
+    }
+</style>
+
 </head>
 
 <body>
