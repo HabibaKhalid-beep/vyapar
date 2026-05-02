@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Item extends Model
 {
     protected $fillable = [
-        'type', 'name', 'category_id', 'unit',
+        'type', 'name', 'category_id', 'unit', 'price',
         'sale_price', 'wholesale_price', 'purchase_price',
         'opening_qty', 'item_code', 'location', 'description',
         'image_path', 'image_paths', 'min_stock', 'is_active',
@@ -64,6 +64,9 @@ class Item extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where(function ($innerQuery) {
+            $innerQuery->where('is_active', true)
+                ->orWhereNull('is_active');
+        });
     }
 }

@@ -44,6 +44,7 @@ class Sale extends Model
         'image_path',
         'image_paths',
         'document_path',
+        'document_paths',
     ];
 
     protected $casts = [
@@ -66,6 +67,7 @@ class Sale extends Model
         'brokerage_rate' => 'decimal:2',
         'broker_amount' => 'decimal:2',
         'image_paths' => 'array',
+        'document_paths' => 'array',
     ];
 
     public function items()

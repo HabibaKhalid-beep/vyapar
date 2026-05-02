@@ -4,7 +4,20 @@ function initializeForm(context) {
     const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
     const defaultPaymentDirection = 'payment_in';
 
-    const baseItems = window.items || [];
+    const baseItems = Array.isArray(window.items) ? window.items : [];
+    const defaultSaleUnits = [
+        { id: 'pcs', name: 'PIECES', short_name: 'PCS' },
+        { id: 'box', name: 'BOX', short_name: 'BOX' },
+        { id: 'pack', name: 'PACK', short_name: 'PACK' },
+        { id: 'set', name: 'SET', short_name: 'SET' },
+        { id: 'kg', name: 'KILOGRAMS', short_name: 'KG' },
+        { id: 'g', name: 'GRAM', short_name: 'G' },
+        { id: 'm', name: 'METER', short_name: 'M' },
+        { id: 'ft', name: 'FEET', short_name: 'FT' },
+        { id: 'l', name: 'LITER', short_name: 'L' },
+        { id: 'ml', name: 'MILLILITER', short_name: 'ML' }
+    ];
+    window.saleUnits = Array.isArray(window.saleUnits) && window.saleUnits.length ? window.saleUnits : defaultSaleUnits.slice();
     const getItemMeta = (item = {}) => {
         const plainLabel = item.name || "";
         const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`;
@@ -20,6 +33,60 @@ function initializeForm(context) {
             const { plainLabel, richLabel, categoryLabel, itemCode, description, discount } = getItemMeta(item);
             return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${categoryLabel}" data-item-code="${itemCode}" data-description="${description}" data-discount="${discount}">${richLabel}</option>`;
         }).join('');
+    };
+
+    const getDomItems = () => {
+        const domItems = [];
+        $ctx.find('.item-name option').each(function () {
+            const value = $(this).attr('value');
+            if (!value) return;
+            domItems.push({
+                id: value,
+                name: $(this).attr('data-label') || $(this).text().trim(),
+                item_code: $(this).attr('data-item-code') || '',
+                description: $(this).attr('data-description') || '',
+                sale_price: parseFloat($(this).attr('data-sale-price') || $(this).attr('data-price') || 0) || 0,
+                purchase_price: parseFloat($(this).attr('data-purchase-price') || 0) || 0,
+                opening_qty: parseFloat($(this).attr('data-stock') || 0) || 0,
+                location: $(this).attr('data-location') || '',
+                unit: $(this).attr('data-unit') || '',
+                category_name: $(this).attr('data-category') || ''
+            });
+        });
+        return domItems;
+    };
+
+    const dedupeItemsById = (items = []) => {
+        const seen = new Set();
+        return (items || []).reduce((acc, item) => {
+            const id = String(item?.id ?? '');
+            if (!id || seen.has(id)) {
+                return acc;
+            }
+            seen.add(id);
+            acc.push(item);
+            return acc;
+        }, []);
+    };
+
+    const getSourceItems = () => {
+        const latestItems = Array.isArray(window.items) ? window.items : baseItems;
+        if (latestItems !== baseItems) {
+            baseItems.splice(0, baseItems.length, ...latestItems);
+        }
+
+        if (latestItems.length) {
+            return latestItems;
+        }
+
+        const domItems = getDomItems();
+        if (domItems.length) {
+            baseItems.splice(0, baseItems.length, ...domItems);
+            window.items = domItems;
+            return domItems;
+        }
+
+        return [];
     };
 
     const buildItemPickerRowsHtml = (items = []) => {
@@ -46,34 +113,261 @@ function initializeForm(context) {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const $closeIcon = $('.close-app-icon');
+    const selectedImages = [];
+    const selectedDocuments = [];
+    const $imageFilesList = $ctx.find('.image-files-list');
+    const $documentFilesList = $ctx.find('.document-files-list');
+
+    const itemRoutes = Object.assign({
+        index: '/dashboard/items',
+        store: '/dashboard/items',
+        categoryStore: '/dashboard/items/category',
+        unitsIndex: '/dashboard/items/units',
+        unitsStore: '/dashboard/items/units'
+    }, window.itemRoutes || {});
+    const $categoryModal = $('#addCategoryModal');
+    const $unitModal = $('#addUnitModal');
+
+    function parseJsonSafely(text) {
+        try {
+            return JSON.parse(text);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function fetchJson(url, options = {}) {
+        const headers = Object.assign({
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }, options.headers || {});
+
+        return fetch(url, Object.assign({}, options, { headers }))
+            .then(async response => {
+                const text = await response.text();
+                const data = parseJsonSafely(text);
+
+                if (!response.ok) {
+                    const message = data?.message
+                        || data?.error
+                        || (text && text.trim().startsWith('<!DOCTYPE') ? `Request failed with status ${response.status}. Server returned HTML instead of JSON.` : `Request failed with status ${response.status}.`);
+                    throw new Error(message);
+                }
+
+                if (data === null) {
+                    throw new Error('Server response was not valid JSON.');
+                }
+
+                return data;
+            });
+    }
+
+    const getNormalizedSaleUnits = () => {
+        const sourceUnits = Array.isArray(window.saleUnits) && window.saleUnits.length ? window.saleUnits : defaultSaleUnits;
+        return sourceUnits.map(unit => {
+            const shortName = String(unit.short_name || unit.short || unit.name || '').trim().toUpperCase();
+            const name = String(unit.name || shortName || '').trim().toUpperCase();
+            return {
+                id: unit.id || shortName.toLowerCase(),
+                name,
+                short_name: shortName || name
+            };
+        }).filter(unit => unit.short_name);
+    };
+
+    const buildUnitOptionsHtml = (selectedUnit = '') => {
+        const normalizedSelected = String(selectedUnit || '').trim().toUpperCase();
+        const seen = new Set();
+        const options = ['<option value="">Select Unit</option>'];
+
+        getNormalizedSaleUnits().forEach(unit => {
+            const shortName = unit.short_name;
+            if (!shortName || seen.has(shortName)) {
+                return;
+            }
+            seen.add(shortName);
+            options.push(`<option value="${shortName}" ${normalizedSelected === shortName ? 'selected' : ''}>${shortName}</option>`);
+        });
+
+        if (normalizedSelected && !seen.has(normalizedSelected)) {
+            options.push(`<option value="${normalizedSelected}" selected>${normalizedSelected}</option>`);
+        }
+
+        return options.join('');
+    };
+
+    function syncItemUnitSelects() {
+        $ctx.find('.item-unit').each(function() {
+            const $select = $(this);
+            const currentValue = String($select.val() || '').trim().toUpperCase();
+            $select.html(buildUnitOptionsHtml(currentValue));
+            if (currentValue) {
+                $select.val(currentValue);
+            }
+        });
+    }
+
+    function renderNewItemUnitMenu(selectedUnit = '') {
+        const normalizedSelected = String(selectedUnit || '').trim().toUpperCase();
+        const units = getNormalizedSaleUnits();
+        const itemsHtml = units.map(unit => `
+            <li><button class="dropdown-item unit-option ${normalizedSelected === unit.short_name ? 'active' : ''}" type="button" data-unit="${unit.short_name}">${unit.short_name}</button></li>
+        `).join('');
+
+        $('#newItemUnitMenu').html(`
+            ${itemsHtml}
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item text-primary fw-semibold" type="button" id="openAddUnitModalBtn">+ Add Unit</button></li>
+        `);
+    }
+
+    function positionItemPickerPanel($row) {
+        const $input = $row.find('.item-picker-input');
+        const $panel = $row.find('.item-picker-panel');
+
+        if (!$input.length || !$panel.length || !$panel.hasClass('open')) {
+            return;
+        }
+
+        const inputRect = $input[0].getBoundingClientRect();
+        const viewportPadding = 12;
+        const width = Math.max(inputRect.width, 320);
+        let left = inputRect.left;
+
+        if (left + width > window.innerWidth - viewportPadding) {
+            left = Math.max(viewportPadding, window.innerWidth - width - viewportPadding);
+        }
+
+        const top = inputRect.bottom + 4;
+        const availableHeight = Math.max(180, window.innerHeight - top - viewportPadding);
+        const listMaxHeight = Math.max(120, Math.min(280, availableHeight - 88));
+
+        $panel.css({
+            position: 'fixed',
+            top: `${top}px`,
+            left: `${left}px`,
+            right: '',
+            width: `${width}px`,
+            minWidth: `${width}px`,
+            zIndex: 1055,
+            display: 'block'
+        });
+
+        $panel.find('.item-picker-list').css('max-height', `${listMaxHeight}px`);
+    }
+
+    function hideItemPickerPanels() {
+        $ctx.find('.item-picker-panel').removeClass('open').css({
+            display: 'none',
+            top: '',
+            left: '',
+            right: '',
+            width: '',
+            minWidth: ''
+        });
+    }
 
     function renderItemPicker($row, query = '') {
         const $panel = $row.find('.item-picker-panel');
         const $list = $row.find('.item-picker-list');
         const normalizedQuery = String(query || '').trim().toLowerCase();
-        const filtered = baseItems.filter(item => {
+        let itemsToUse = getSourceItems();
+
+        if (!itemsToUse.length) {
+            const fallbackItems = [];
+            $row.find('.item-name option').each(function () {
+                const value = $(this).attr('value');
+                if (!value) return;
+                fallbackItems.push({
+                    id: value,
+                    name: $(this).data('label') || $(this).text().trim(),
+                    item_code: $(this).data('item-code') || '',
+                    description: $(this).data('description') || '',
+                    sale_price: $(this).data('sale-price') || $(this).data('price') || 0,
+                    purchase_price: $(this).data('purchase-price') || 0,
+                    opening_qty: $(this).data('stock') || 0,
+                    location: $(this).data('location') || '',
+                });
+            });
+            itemsToUse = fallbackItems;
+        }
+
+        const filtered = itemsToUse.filter(item => {
             const label = String(item.name || '').toLowerCase();
             const code = String(item.item_code || '').toLowerCase();
-            return !normalizedQuery || label.includes(normalizedQuery) || code.includes(normalizedQuery);
+            const description = String(item.description || item.item_description || '').toLowerCase();
+            return !normalizedQuery ||
+                   label.includes(normalizedQuery) ||
+                   code.includes(normalizedQuery) ||
+                   description.includes(normalizedQuery);
         });
 
         $list.html(buildItemPickerRowsHtml(filtered));
-        $panel.addClass('open');
+        $panel.addClass('open').css('display', 'block');
+        positionItemPickerPanel($row);
     }
 
     function syncItemPickerInput($row) {
         const $selected = $row.find('.item-name option:selected');
+        const selectedValue = String($selected.val() || '').trim();
         const plainLabel = $selected.data('label') || $selected.text() || '';
-        $row.find('.item-picker-input').val(plainLabel.trim());
+        $row.find('.item-picker-input').val(selectedValue ? plainLabel.trim() : '');
+    }
+
+    function setupPartyDropdownSearch() {
+        const $partySearchInput = $ctx.find('.party-search-input').first();
+        const $partyDropdown = $ctx.find('.party-dropdown-wrapper').first();
+
+        if (!$partySearchInput.length) {
+            return;
+        }
+
+        $partySearchInput.on('click focus', function(e) {
+            e.stopPropagation();
+        });
+
+        $partySearchInput.on('input', function() {
+            const searchTerm = String($(this).val() || '').trim().toLowerCase();
+            $ctx.find('.party-option').each(function() {
+                const $option = $(this);
+                const partyName = String($.trim($option.find('span').first().text() || '')).toLowerCase();
+                const partyPhone = String($option.data('phone') || '').toLowerCase();
+                const isVisible = !searchTerm || partyName.includes(searchTerm) || partyPhone.includes(searchTerm);
+                $option.closest('li').toggleClass('d-none', !isVisible);
+            });
+        });
+
+        if ($partyDropdown.length) {
+            $partyDropdown.on('show.bs.dropdown', function() {
+                setTimeout(() => {
+                    $partySearchInput.trigger('focus').trigger('select');
+                }, 100);
+            });
+            $partyDropdown.on('hide.bs.dropdown', function() {
+                $partySearchInput.val('');
+                $ctx.find('.party-option').closest('li').removeClass('d-none');
+            });
+        }
+
+        $ctx.on('click', '.dropdown-header-search', function(e) {
+            e.stopPropagation();
+        });
+
+        $ctx.on('click', '.party-search-input', function(e) {
+            e.stopPropagation();
+        });
+
+        $ctx.on('keydown keyup', '.party-search-input', function(e) {
+            e.stopPropagation();
+        });
     }
 
     function refreshItemsList(selectedItem = null) {
-        fetch('/items?json=1&include_inactive=1', {
-            headers: { 'Accept': 'application/json' }
-        })
-        .then(response => response.json())
+        fetchJson(`${itemRoutes.index}?json=1&include_inactive=1`)
         .then(items => {
-            baseItems.splice(0, baseItems.length, ...items);
+            const uniqueItems = dedupeItemsById(items);
+            baseItems.splice(0, baseItems.length, ...uniqueItems);
+            window.items = uniqueItems;
             updateItemSelectOptions();
 
             if (selectedItem && selectedItem.id) {
@@ -85,6 +379,26 @@ function initializeForm(context) {
             }
         })
         .catch(() => {});
+    }
+
+    function refreshUnitsList(selectedUnit = '') {
+        return fetchJson(`${itemRoutes.unitsIndex}?json=1`)
+        .then(data => {
+            const units = Array.isArray(data.units) ? data.units : defaultSaleUnits;
+            window.saleUnits = units;
+            renderNewItemUnitMenu(selectedUnit);
+            syncItemUnitSelects();
+            if (selectedUnit) {
+                $('#newItemUnit').val(selectedUnit);
+                $('#newItemUnitBtn').text(selectedUnit);
+            }
+            return units;
+        })
+        .catch(() => {
+            renderNewItemUnitMenu(selectedUnit);
+            syncItemUnitSelects();
+            return getNormalizedSaleUnits();
+        });
     }
 
     if (!window.__saleItemModalMessageBound) {
@@ -568,10 +882,19 @@ function initializeForm(context) {
         $ctx.find('.address-input').val(address);
         $ctx.find('.billing-address').val(billing);
         $ctx.find('.shipping-address').val(shipping);
+
+        const dropdownBtn = document.getElementById('partyDropdownBtn');
+        if (dropdownBtn) {
+            const dropdown = bootstrap.Dropdown.getOrCreateInstance(dropdownBtn);
+            if (dropdown) {
+                dropdown.hide();
+            }
+        }
     });
 
     // Add row functionality
-    $ctx.find('.add-row-btn').on('click', function() {
+    $ctx.off('click', '.add-row-btn').on('click', '.add-row-btn', function(e) {
+        e.preventDefault();
         addRow();
     });
 
@@ -582,6 +905,7 @@ function initializeForm(context) {
         const isDescVisible = $ctx.find('.check-description').is(':checked');
         const isDiscVisible = $ctx.find('.check-discount').is(':checked');
         const optionsHtml = buildItemOptionsHtml(getFilteredItems());
+        const unitOptionsHtml = buildUnitOptionsHtml();
 
         const newRow = `
             <tr class="item-row">
@@ -614,11 +938,7 @@ function initializeForm(context) {
                 <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><input type="number" class="item-discount" value="0"></td>
                 <td><input type="number" class="item-qty" value="1"></td>
                 <td>
-                    <select class="item-unit">
-                        <option>NONE</option>
-                        <option>PCS</option>
-                        <option>BOX</option>
-                    </select>
+                    <select class="item-unit">${unitOptionsHtml}</select>
                 </td>
                 <td><input type="number" class="item-price" value="0"></td>
                 <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
@@ -657,7 +977,7 @@ function initializeForm(context) {
         const description = ($modal.find('.item-filter-description').val() || '').toString().trim().toLowerCase();
         const discountFilter = ($modal.find('.item-filter-discount').val() || '').toString().trim();
 
-        return baseItems.filter(item => {
+        return getSourceItems().filter(item => {
             const meta = getItemMeta(item);
             const categoryValue = String(meta.categoryLabel || '').toLowerCase();
             const codeValue = String(meta.itemCode || '').toLowerCase();
@@ -676,15 +996,21 @@ function initializeForm(context) {
     function updateItemSelectOptions() {
         const filteredItems = getFilteredItems();
         const optionsHtml = buildItemOptionsHtml(filteredItems);
+        const sourceItems = getSourceItems();
+
         $ctx.find('.item-name').each(function () {
             const $select = $(this);
             const currentValue = $select.val();
-            $select.empty();
-            $select.append('<option value="" selected disabled>Select Item</option>');
-            $select.append(optionsHtml);
-            if (currentValue) {
-                $select.val(currentValue);
+
+            if (sourceItems.length) {
+                $select.empty();
+                $select.append('<option value="" selected disabled>Select Item</option>');
+                $select.append(optionsHtml);
+                if (currentValue) {
+                    $select.val(currentValue);
+                }
             }
+
             syncItemPickerInput($select.closest('tr'));
         });
     }
@@ -791,29 +1117,79 @@ function initializeForm(context) {
         calculateTotals();
     });
 
+    const loadItemsIfNeeded = ($row, query) => {
+        if (getSourceItems().length) {
+            return false;
+        }
+
+        refreshItemsList().then(() => {
+            renderItemPicker($row, query);
+        }).catch(() => {
+            renderItemPicker($row, query);
+        });
+
+        return true;
+    };
+
     $ctx.on('focus click', '.item-picker-input', function() {
         const $row = $(this).closest('tr');
-        renderItemPicker($row, $(this).val());
+        const rawQuery = String($(this).val() || '').trim();
+        const query = rawQuery.toLowerCase() === 'select item' ? '' : rawQuery;
+        if (loadItemsIfNeeded($row, query)) {
+            return;
+        }
+        renderItemPicker($row, query);
     });
 
     $ctx.on('input', '.item-picker-input', function() {
         const $row = $(this).closest('tr');
-        renderItemPicker($row, $(this).val());
+        const rawQuery = String($(this).val() || '').trim();
+        const query = rawQuery.toLowerCase() === 'select item' ? '' : rawQuery;
+        if (loadItemsIfNeeded($row, query)) {
+            return;
+        }
+        renderItemPicker($row, query);
     });
 
-    $ctx.on('click', '.item-picker-option', function() {
+    $ctx.on('click', '.item-picker-option', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         const $row = $(this).closest('tr');
         const itemId = String($(this).data('id') || '');
         $row.find('.item-name').val(itemId).trigger('change');
     });
 
+    $(document).off('click', '.unit-option').on('click', '.unit-option', function(e) {
+        e.preventDefault();
+        const unit = $(this).data('unit') || $(this).text().trim();
+        $('#newItemUnitBtn').text(unit);
+        $('#newItemUnit').val(unit);
+    });
+
+    $(document).on('click', '#assignItemCodeBtn', function(e) {
+        e.preventDefault();
+        const itemName = $('#newItemName').val().trim();
+        if (!itemName) {
+            return;
+        }
+        const code = itemName.toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9-_]/g, '').substring(0, 50);
+        $('#newItemCode').val(code);
+    });
+
     $ctx.on('click', '.item-picker-add', function() {
         const $row = $(this).closest('tr');
         window.activeSaleItemRowIndex = $ctx.find('.item-row').index($row);
-        const frame = document.getElementById('addItemFrame');
-        if (frame) {
-            frame.src = '/items/create?modal=1&ts=' + Date.now();
-        }
+
+        // Close all item picker dropdowns when opening modal
+        hideItemPickerPanels();
+
+        // Clear form
+        document.getElementById('addItemForm').reset();
+        $('#newItemUnitBtn').text('Select Unit');
+        $('#newItemUnit').val('');
+        renderNewItemUnitMenu();
+
+        // Show modal
         const modalEl = document.getElementById('addItemModal');
         if (modalEl) {
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -821,10 +1197,237 @@ function initializeForm(context) {
     });
 
     $(document).on('click.saleItemPicker', function(e) {
+        // Don't close dropdowns if modal is open
+        if ($('#addItemModal').hasClass('show')) {
+            return;
+        }
         if (!$(e.target).closest('.item-picker').length) {
-            $ctx.find('.item-picker-panel').removeClass('open');
+            hideItemPickerPanels();
         }
     });
+
+    // Prevent dropdown from closing when clicking inside panel or input
+    $ctx.on('click', '.item-picker-input, .item-picker-panel', function(e) {
+        e.stopPropagation();
+    });
+
+    // Handle modal events to control item dropdown behavior
+    $('#addItemModal').on('show.bs.modal', function() {
+        // Close all item picker dropdowns when modal opens
+        hideItemPickerPanels();
+        refreshUnitsList($('#newItemUnit').val() || '');
+        const pricingTabEl = document.getElementById('pricing-tab');
+        const stockTabEl = document.getElementById('stock-tab');
+        const pricingTabPane = document.getElementById('pricing-tab-pane');
+        const stockTabPaneEl = document.getElementById('stock-tab-pane');
+
+        if (pricingTabEl && pricingTabPane) {
+            const pricingTab = bootstrap.Tab.getOrCreateInstance(pricingTabEl);
+            pricingTab.show();
+            $(pricingTabEl).attr('aria-selected', 'true');
+            $(pricingTabPane).addClass('active show').show();
+        }
+        if (stockTabEl && stockTabPaneEl) {
+            $(stockTabEl).removeClass('active').attr('aria-selected', 'false');
+            $(stockTabPaneEl).removeClass('active show').show();
+        }
+    });
+
+    $('#addItemModal').on('hidden.bs.modal', function() {
+        // Clear form when modal is closed
+        document.getElementById('addItemForm').reset();
+        $('#newItemUnitBtn').text('Select Unit');
+        $('#newItemUnit').val('');
+        $('#newItemCategory').val('');
+        $('#newItemType').val('product');
+        $('#newItemTypeToggle').prop('checked', false);
+        $('#newItemProductLabel').text('Product');
+        $('#newItemNameLabel').text('Item Name *');
+        $('#stock-tab').show().removeClass('active').attr('aria-selected', 'false');
+        $('#pricing-tab').addClass('active').attr('aria-selected', 'true');
+        $('#stock-tab-pane').removeClass('active show').show();
+        $('#pricing-tab-pane').addClass('active show').show();
+        $('#purchase-sec').show();
+        const thumb = document.getElementById('newItemImageThumb');
+        const label = document.getElementById('newItemImageLabel');
+        if (thumb) {
+            thumb.innerHTML = '<i class="fa-regular fa-image fa-2x text-secondary"></i>';
+            thumb.style.border = '1.5px solid #93c5fd';
+        }
+        if (label) {
+            label.textContent = 'Click to choose image';
+        }
+    });
+
+    $('#newItemCategory').on('change', function() {
+        if ($(this).val() !== '__add_new__') {
+            return;
+        }
+
+        $(this).val('');
+        $('#quickCategoryName').val('');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).show();
+        setTimeout(() => $('#quickCategoryName').trigger('focus'), 150);
+    });
+
+    $(document).on('click', '#openAddUnitModalBtn', function(e) {
+        e.preventDefault();
+        const dropdownEl = document.getElementById('newItemUnitBtn');
+        const dropdown = dropdownEl ? bootstrap.Dropdown.getOrCreateInstance(dropdownEl) : null;
+        dropdown?.hide();
+        $('#quickUnitName').val('');
+        $('#quickUnitShortName').val('');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
+        setTimeout(() => $('#quickUnitName').trigger('focus'), 150);
+    });
+
+    $(document).off('click', '#saveQuickCategoryBtn').on('click', '#saveQuickCategoryBtn', function() {
+        const name = $('#quickCategoryName').val().trim();
+        if (!name) {
+            alert('Please enter a category name');
+            return;
+        }
+
+        fetchJson(itemRoutes.categoryStore, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({ name })
+        })
+        .then(data => {
+            if (!data.category) {
+                throw new Error('Category not returned');
+            }
+
+            const category = data.category;
+            const $categorySelect = $('#newItemCategory');
+            const $existing = $categorySelect.find(`option[value="${category.id}"]`);
+            if (!$existing.length) {
+                $categorySelect.find('option[value="__add_new__"]').before(
+                    `<option value="${category.id}">${category.name}</option>`
+                );
+            }
+            $categorySelect.val(String(category.id));
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).hide();
+        })
+        .catch(error => {
+            console.error(error);
+            alert(error.message || 'Error saving category');
+        });
+    });
+
+    $(document).off('click', '#saveQuickUnitBtn').on('click', '#saveQuickUnitBtn', function() {
+        const name = $('#quickUnitName').val().trim();
+        const shortName = $('#quickUnitShortName').val().trim().toUpperCase();
+
+        if (!name || !shortName) {
+            alert('Please enter both unit name and short name');
+            return;
+        }
+
+        fetchJson(itemRoutes.unitsStore, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({ name, short_name: shortName })
+        })
+        .then(data => {
+            const unitCode = String(data.unit?.short_name || shortName).toUpperCase();
+            window.saleUnits = Array.isArray(data.units) ? data.units : getNormalizedSaleUnits();
+            renderNewItemUnitMenu(unitCode);
+            syncItemUnitSelects();
+            $('#newItemUnit').val(unitCode);
+            $('#newItemUnitBtn').text(unitCode);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
+        })
+        .catch(error => {
+            console.error(error);
+            alert(error.message || 'Error saving unit');
+        });
+    });
+
+    // Handle saving new item
+    $(document).off('click', '#saveNewItemBtn').on('click', '#saveNewItemBtn', function() {
+        const itemName = document.getElementById('newItemName').value.trim();
+        if (!itemName) {
+            alert('Please enter an item name');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('name', itemName);
+        formData.append('category_id', document.getElementById('newItemCategory').value);
+        formData.append('unit', document.getElementById('newItemUnit').value);
+        const newItemType = document.getElementById('newItemType')?.value || 'product';
+        formData.append('item_type', newItemType);
+        formData.append('type', newItemType);
+        formData.append('sale_price', document.getElementById('newItemSalePrice').value || 0);
+        formData.append('purchase_price', document.getElementById('newItemPurchasePrice').value || 0);
+        formData.append('wholesale_price', document.getElementById('newItemWholesalePrice').value || 0);
+        formData.append('wholesale_min_qty', document.getElementById('newItemWholesaleMinQty').value || 0);
+        formData.append('item_code', document.getElementById('newItemCode').value);
+        formData.append('opening_qty', document.getElementById('newItemStock').value || 0);
+        formData.append('at_price', document.getElementById('newItemAtPrice').value || 0);
+        formData.append('as_of_date', document.getElementById('newItemAsOfDate').value);
+        formData.append('min_stock', document.getElementById('newItemMinStock').value || 0);
+        formData.append('location', document.getElementById('newItemLocation').value);
+        formData.append('description', document.getElementById('newItemDescription').value);
+
+        // Add image if selected
+        const imageInput = document.getElementById('newItemImage');
+        if (imageInput && imageInput.files.length > 0) {
+            formData.append('item_image', imageInput.files[0]);
+        }
+
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+        fetchJson(itemRoutes.store, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: formData
+        })
+        .then(data => {
+            if (data.item) {
+                // Refresh the item picker from the server so the list stays consistent.
+                refreshItemsList(data.item);
+
+                // Close modal
+                const modalEl = document.getElementById('addItemModal');
+                bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+
+                // Add the new item to the current row if applicable
+                if (window.activeSaleItemRowIndex !== undefined) {
+                    const $targetRow = $ctx.find('.item-row').eq(window.activeSaleItemRowIndex);
+                    $targetRow.find('.item-name').val(data.item.id).trigger('change');
+                }
+
+                alert('Item saved successfully!');
+            } else {
+                alert('Error saving item');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(error.message || 'Error saving item');
+        });
+    });
+
+    $(window).on('resize scroll', function() {
+        $ctx.find('.item-row').each(function() {
+            positionItemPickerPanel($(this));
+        });
+    });
+
+    syncItemUnitSelects();
+    renderNewItemUnitMenu();
+    refreshUnitsList();
+    refreshItemsList();
 
     // Line item calculation
     $ctx.on('keyup change', '.item-qty, .item-price, .item-discount', function() {
@@ -845,7 +1448,7 @@ function initializeForm(context) {
     });
 
     // Payment entry management
-    $ctx.on('click', '.add-payment-entry', function(e) {
+    $ctx.off('click', '.add-payment-entry').on('click', '.add-payment-entry', function(e) {
         e.preventDefault();
 
         const $defaultAmount = $ctx.find('.default-payment-amount');
@@ -950,13 +1553,8 @@ function initializeForm(context) {
     });
 
     // Ensure amount and reference inputs are kept visible for all payment rows
-    $ctx.on('change', '.payment-type-entry', function() {
+    $ctx.off('change', '.payment-type-entry').on('change', '.payment-type-entry', function() {
         updatePaymentSummary();
-    });
-
-
-    $ctx.on('click', '.remove-payment-entry', function() {
-        $(this).closest('.payment-entry').remove();
     });
 
     // Helper: collect data from form
@@ -1069,18 +1667,10 @@ function initializeForm(context) {
             round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0,
             grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0,
             description: $ctx.find('.description-input').val() || null,
-            image_path: (function() {
-                const file = $ctx.find('.image-input')[0]?.files?.[0];
-                if (file) return file.name;
-                if (window.editSaleData && window.editSaleData.image_path) return window.editSaleData.image_path;
-                return null;
-            })(),
-            document_path: (function() {
-                const file = $ctx.find('.document-input')[0]?.files?.[0];
-                if (file) return file.name;
-                if (window.editSaleData && window.editSaleData.document_path) return window.editSaleData.document_path;
-                return null;
-            })(),
+            image_path: selectedImages.length ? selectedImages[0].name : (window.editSaleData?.image_path || null),
+            image_paths: selectedImages.map(file => file.name),
+            document_path: selectedDocuments.length ? selectedDocuments[0].name : (window.editSaleData?.document_path || null),
+            document_paths: selectedDocuments.map(file => file.name),
             items,
             payments,
         };
@@ -1104,14 +1694,37 @@ function initializeForm(context) {
 
         btn.prop('disabled', true).text(loadingText);
 
+        const hasUploadFiles = selectedImages.length > 0 || selectedDocuments.length > 0;
+        let requestBody;
+        const requestHeaders = {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+        };
+
+        if (hasUploadFiles) {
+            const formData = new FormData();
+            Object.entries(saleData).forEach(([key, value]) => {
+                if (value === undefined || value === null) {
+                    return;
+                }
+                if (typeof value === 'object') {
+                    formData.append(key, JSON.stringify(value));
+                    return;
+                }
+                formData.append(key, value);
+            });
+            selectedImages.forEach(imageFile => formData.append('images[]', imageFile));
+            selectedDocuments.forEach(docFile => formData.append('documents[]', docFile));
+            requestBody = formData;
+        } else {
+            requestHeaders['Content-Type'] = 'application/json';
+            requestBody = JSON.stringify(saleData);
+        }
+
         fetch(window.saleStoreUrl, {
             method: window.saleMethod || 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify(saleData),
+            headers: requestHeaders,
+            body: requestBody,
         })
             .then(async res => {
                 const text = await res.text();
@@ -1190,45 +1803,96 @@ function initializeForm(context) {
     });
 
     // Add description/image/document actions
-    $ctx.on('click', '.add-description', function() {
-        const $pane = $ctx.find('.description-pane');
+    $ctx.off('click', '.add-description').on('click', '.add-description', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $button = $(this);
+        const $pane = $button.closest('.bottom-left, .invoice-container, body').find('.description-pane').first();
+        if (!$pane.length) {
+            return;
+        }
         $pane.toggleClass('d-none');
         if (!$pane.hasClass('d-none')) {
             $pane.find('.description-input').focus();
         }
     });
 
-    $ctx.on('click', '.add-image', function() {
+    $ctx.off('click', '.add-image').on('click', '.add-image', function() {
         const $container = $(this).closest('.invoice-container');
         $container.find('.image-input').trigger('click');
     });
 
-    $ctx.on('click', '.add-document', function() {
+    $ctx.off('click', '.add-document').on('click', '.add-document', function() {
         const $container = $(this).closest('.invoice-container');
         $container.find('.document-input').trigger('click');
     });
 
-    // Image preview UI
-    function updateImagePreview(file) {
-        const $preview = $ctx.find('.image-preview');
-        const $img = $preview.find('.image-preview-img');
-
-        if (!file) {
-            $preview.addClass('d-none');
+    function renderSelectedImages() {
+        if (!selectedImages.length) {
+            $imageFilesList.empty();
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            $img.attr('src', e.target.result);
-            $preview.removeClass('d-none');
-        };
-        reader.readAsDataURL(file);
+        const html = selectedImages.map((file, index) => {
+            const url = URL.createObjectURL(file);
+            return `
+                <div class="image-file-card position-relative border rounded overflow-hidden" data-index="${index}">
+                    <button type="button" class="btn-close position-absolute end-0 top-0 m-1 remove-selected-image" aria-label="Remove" data-index="${index}"></button>
+                    <img src="${url}" alt="${file.name}" class="img-fluid" style="width:120px;height:120px;object-fit:cover;" />
+                    <div class="small text-truncate p-1 text-center" style="max-width:120px;">${file.name}</div>
+                </div>
+            `;
+        }).join('');
+
+        $imageFilesList.html(html);
+    }
+
+    function renderSelectedDocuments() {
+        if (!selectedDocuments.length) {
+            $documentFilesList.empty();
+            return;
+        }
+
+        const html = selectedDocuments.map((file, index) => {
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-center" data-index="${index}">
+                    <span class="text-truncate" style="max-width: calc(100% - 32px);">${file.name}</span>
+                    <button type="button" class="btn-close remove-selected-document" aria-label="Remove" data-index="${index}"></button>
+                </div>
+            `;
+        }).join('');
+
+        $documentFilesList.html(html);
+    }
+
+    function addSelectedImages(files) {
+        Array.from(files || []).forEach(file => {
+            const duplicate = selectedImages.some(existing => existing.name === file.name && existing.size === file.size && existing.type === file.type);
+            if (!duplicate) {
+                selectedImages.push(file);
+            }
+        });
+        renderSelectedImages();
+    }
+
+    function addSelectedDocuments(files) {
+        Array.from(files || []).forEach(file => {
+            const duplicate = selectedDocuments.some(existing => existing.name === file.name && existing.size === file.size && existing.type === file.type);
+            if (!duplicate) {
+                selectedDocuments.push(file);
+            }
+        });
+        renderSelectedDocuments();
     }
 
     $ctx.on('change', '.image-input', function() {
-        const file = this.files?.[0];
-        updateImagePreview(file);
+        addSelectedImages(this.files);
+        this.value = '';
+    });
+
+    $ctx.on('change', '.document-input', function() {
+        addSelectedDocuments(this.files);
+        this.value = '';
     });
 
     $ctx.on('click', '.image-placeholder', function() {
@@ -1239,18 +1903,16 @@ function initializeForm(context) {
         $ctx.find('.image-input').trigger('click');
     });
 
-    $ctx.on('click', '.remove-image', function() {
-        $ctx.find('.image-input').val('');
-        updateImagePreview(null);
+    $ctx.on('click', '.remove-selected-image', function() {
+        const index = Number($(this).data('index'));
+        selectedImages.splice(index, 1);
+        renderSelectedImages();
     });
 
-    $ctx.on('change', '.document-input', function() {
-        const fileName = this.files?.[0]?.name;
-        if (fileName) {
-            $ctx.find('.selected-document-name').text('Document: ' + fileName);
-        } else {
-            $ctx.find('.selected-document-name').text('');
-        }
+    $ctx.on('click', '.remove-selected-document', function() {
+        const index = Number($(this).data('index'));
+        selectedDocuments.splice(index, 1);
+        renderSelectedDocuments();
     });
 
     function calculateTotals() {
@@ -1379,14 +2041,19 @@ function initializeForm(context) {
     $ctx.on('input change', '.round-off-val', calculateTotals);
 
     // Update when payment rows are removed
-    $ctx.on('click', '.remove-payment-entry', function() {
+    $ctx.off('click', '.remove-payment-entry').on('click', '.remove-payment-entry', function() {
         $(this).closest('.payment-entry').remove();
         updatePaymentSummary();
     });
 
     setupAdjustmentControls();
     syncDefaultPaymentFields();
+    setupPartyDropdownSearch();
     applyColumnVisibility();
+    updateItemSelectOptions();
+    if (!getSourceItems().length) {
+        refreshItemsList();
+    }
     calculateTotals();
     updateBrokerageFields();
 

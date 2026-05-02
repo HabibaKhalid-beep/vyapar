@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use App\Models\AppSetting;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Models\SaleItem;
@@ -11,14 +12,67 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ItemController extends Controller
 {
+    private function defaultUnits(): array
+    {
+        return [
+            ['id' => 'pcs', 'name' => 'PIECES', 'short_name' => 'PCS'],
+            ['id' => 'box', 'name' => 'BOX', 'short_name' => 'BOX'],
+            ['id' => 'pack', 'name' => 'PACK', 'short_name' => 'PACK'],
+            ['id' => 'set', 'name' => 'SET', 'short_name' => 'SET'],
+            ['id' => 'kg', 'name' => 'KILOGRAMS', 'short_name' => 'KG'],
+            ['id' => 'g', 'name' => 'GRAM', 'short_name' => 'G'],
+            ['id' => 'm', 'name' => 'METER', 'short_name' => 'M'],
+            ['id' => 'ft', 'name' => 'FEET', 'short_name' => 'FT'],
+            ['id' => 'l', 'name' => 'LITER', 'short_name' => 'L'],
+            ['id' => 'ml', 'name' => 'MILLILITER', 'short_name' => 'ML'],
+        ];
+    }
+
+    private function getStoredUnits(): array
+    {
+        $stored = AppSetting::getValue('item_units', null);
+        $units = is_string($stored) ? json_decode($stored, true) : $stored;
+
+        if (!is_array($units) || empty($units)) {
+            $units = $this->defaultUnits();
+            AppSetting::setValue('item_units', json_encode($units));
+        }
+
+        return array_values(array_map(function ($unit) {
+            $name = strtoupper(trim((string) ($unit['name'] ?? '')));
+            $shortName = strtoupper(trim((string) ($unit['short_name'] ?? $unit['short'] ?? '')));
+
+            return [
+                'id' => (string) ($unit['id'] ?? Str::slug($shortName ?: $name ?: uniqid('unit_'))),
+                'name' => $name,
+                'short_name' => $shortName ?: $name,
+            ];
+        }, $units));
+    }
+
+    private function saveStoredUnits(array $units): void
+    {
+        AppSetting::setValue('item_units', json_encode(array_values($units)));
+    }
+
     private function itemListQuery(string $type, bool $includeInactive = false)
     {
-        $query = Item::with('category')->where('type', $type);
+        $query = Item::with('category');
+
+        if ($type === 'product') {
+            $query->where(function ($typeQuery) {
+                $typeQuery->where('type', 'product')
+                    ->orWhereNull('type');
+            });
+        } else {
+            $query->where('type', $type);
+        }
 
         if (!$includeInactive) {
             $query->active();
@@ -119,6 +173,12 @@ class ItemController extends Controller
         $categories = Category::all();
         $units      = [];
         $taxes      = [];
+        
+        // Check if this is a modal request
+        if ($request->get('modal') == '1') {
+            return view('items.create-modal', compact('categories', 'units', 'taxes'));
+        }
+        
         return view('items.create', compact('categories', 'units', 'taxes'));
     }
 
@@ -136,24 +196,68 @@ class ItemController extends Controller
         }
 
         $imagePaths = $this->storeItemImages($request);
+        $salePrice = $this->normalizeDecimal($data['sale_price'] ?? $data['price'] ?? 0);
+        $purchasePrice = $this->normalizeDecimal($data['purchase_price'] ?? $data['cost_price'] ?? 0);
+        $openingQty = $this->normalizeDecimal($data['opening_qty'] ?? 0);
+        $minStock = $this->normalizeDecimal($data['min_stock'] ?? 0);
+        $itemStocksTableExists = Schema::hasTable('item_stocks');
+        $itemStocksColumns = $itemStocksTableExists ? array_flip(Schema::getColumnListing('item_stocks')) : [];
 
-        $item = Item::create([
-            'type'            => $type,
-            'name'            => $data['name']           ?? '',
-            'category_id'     => $categoryId,
-            'unit'            => $data['unit']            ?? '',
-            'sale_price'      => $this->normalizeDecimal($data['sale_price'] ?? 0),
-            'wholesale_price' => $this->normalizeDecimal($data['wholesale_price'] ?? 0),
-            'purchase_price'  => $this->normalizeDecimal($data['purchase_price'] ?? $data['cost_price'] ?? 0),
-            'opening_qty'     => $this->normalizeDecimal($data['opening_qty'] ?? 0),
-            'item_code'       => $data['item_code']       ?? null,
-            'location'        => $data['location']        ?? null,
-            'description'     => $data['description']     ?? null,
-            'image_path'      => $imagePaths[0] ?? null,
-            'image_paths'     => $imagePaths ?: null,
-            'min_stock'       => $this->normalizeDecimal($data['min_stock'] ?? 0),
-            'is_active'       => array_key_exists('is_active', $data) ? filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN) : true,
-        ]);
+        $item = DB::transaction(function () use (
+            $data,
+            $type,
+            $categoryId,
+            $imagePaths,
+            $salePrice,
+            $purchasePrice,
+            $openingQty,
+            $minStock,
+            $itemStocksTableExists,
+            $itemStocksColumns
+        ) {
+            $item = Item::create([
+                'type'            => $type,
+                'name'            => $data['name'] ?? '',
+                'category_id'     => $categoryId,
+                'unit'            => $data['unit'] ?? '',
+                'price'           => $salePrice,
+                'sale_price'      => $salePrice,
+                'wholesale_price' => $this->normalizeDecimal($data['wholesale_price'] ?? 0),
+                'purchase_price'  => $purchasePrice,
+                'opening_qty'     => $openingQty,
+                'item_code'       => $data['item_code'] ?? null,
+                'location'        => $data['location'] ?? null,
+                'description'     => $data['description'] ?? null,
+                'image_path'      => $imagePaths[0] ?? null,
+                'image_paths'     => $imagePaths ?: null,
+                'min_stock'       => $minStock,
+                'is_active'       => array_key_exists('is_active', $data) ? filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN) : true,
+            ]);
+
+            if ($itemStocksTableExists) {
+                $stockData = [
+                    'item_id' => $item->id,
+                    'opening_stock' => $openingQty,
+                    'current_stock' => $openingQty,
+                    'at_price' => $this->normalizeDecimal($data['at_price'] ?? $purchasePrice),
+                    'as_of_date' => $data['as_of_date'] ?? now()->toDateString(),
+                    'min_stock_level' => $minStock,
+                    'location' => $data['location'] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                $stockData = array_filter(
+                    $stockData,
+                    fn ($value, $key) => isset($itemStocksColumns[$key]),
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                DB::table('item_stocks')->insert($stockData);
+            }
+
+            return $item->load('category');
+        });
 
         return response()->json([
             'redirect' => $type === 'service' ? route('items.services') : route('items'),
@@ -195,6 +299,7 @@ class ItemController extends Controller
             'name'            => $data['name']            ?? $item->name,
             'category_id'     => $categoryId,
             'unit'            => $data['unit']             ?? $item->unit,
+            'price'           => $this->normalizeDecimal($data['sale_price'] ?? $data['price'] ?? $item->price, (float) ($item->price ?? $item->sale_price ?? 0)),
             'sale_price'      => $this->normalizeDecimal($data['sale_price'] ?? $item->sale_price, (float) $item->sale_price),
             'wholesale_price' => $this->normalizeDecimal($data['wholesale_price'] ?? $item->wholesale_price, (float) $item->wholesale_price),
             'purchase_price'  => $this->normalizeDecimal($data['purchase_price'] ?? $data['cost_price'] ?? $item->purchase_price, (float) $item->purchase_price),
@@ -551,24 +656,82 @@ class ItemController extends Controller
 
     // ── Units ──────────────────────────────────────────────────────
 
-    public function units()
+    public function units(Request $request)
     {
-        return view('items.units');
+        $units = $this->getStoredUnits();
+
+        if ($request->has('json')) {
+            return response()->json(['units' => $units]);
+        }
+
+        return view('items.units', compact('units'));
     }
 
     public function storeUnit(Request $request)
     {
-        return response()->json(['success' => true]);
+        $payload = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'short_name' => ['required', 'string', 'max:50'],
+        ]);
+
+        $units = $this->getStoredUnits();
+        $name = strtoupper(trim($payload['name']));
+        $shortName = strtoupper(trim($payload['short_name']));
+
+        foreach ($units as $unit) {
+            if (strtoupper($unit['name']) === $name || strtoupper($unit['short_name']) === $shortName) {
+                return response()->json([
+                    'message' => 'Unit name or short name already exists.',
+                ], 422);
+            }
+        }
+
+        $unit = [
+            'id' => (string) Str::uuid(),
+            'name' => $name,
+            'short_name' => $shortName,
+        ];
+
+        $units[] = $unit;
+        $this->saveStoredUnits($units);
+
+        return response()->json(['success' => true, 'unit' => $unit, 'units' => $units]);
     }
 
     public function updateUnit(Request $request, $id)
     {
-        return response()->json(['success' => true]);
+        $payload = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'short_name' => ['required', 'string', 'max:50'],
+        ]);
+
+        $units = $this->getStoredUnits();
+        $updated = null;
+
+        foreach ($units as &$unit) {
+            if ((string) $unit['id'] === (string) $id) {
+                $unit['name'] = strtoupper(trim($payload['name']));
+                $unit['short_name'] = strtoupper(trim($payload['short_name']));
+                $updated = $unit;
+                break;
+            }
+        }
+
+        if (!$updated) {
+            return response()->json(['message' => 'Unit not found.'], 404);
+        }
+
+        $this->saveStoredUnits($units);
+
+        return response()->json(['success' => true, 'unit' => $updated, 'units' => $units]);
     }
 
     public function destroyUnit($id)
     {
-        return response()->json(['success' => true]);
+        $units = array_values(array_filter($this->getStoredUnits(), fn ($unit) => (string) $unit['id'] !== (string) $id));
+        $this->saveStoredUnits($units);
+
+        return response()->json(['success' => true, 'units' => $units]);
     }
 
     public function show(string $id)

@@ -409,11 +409,29 @@ td {
     color: var(--text-muted);
     cursor: pointer;
     text-align: left;
-    width: 100%;
 }
 
 .btn-action-light i {
     font-size: 16px;
+}
+
+.btn-action-light.action-btn {
+    width: auto;
+    min-width: 180px;
+    max-width: 240px;
+    justify-content: center;
+}
+
+.description-action-group {
+    width: 100%;
+}
+
+.description-action-group .description-pane {
+    width: 100%;
+}
+
+.action-buttons {
+    width: 100%;
 }
 
 /* Calculation Rows */

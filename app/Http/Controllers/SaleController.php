@@ -82,8 +82,16 @@ class SaleController extends Controller
     {
         $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
-        $items = Item::active()->orderBy('name')->get();
+        $items = Item::with('category')
+            ->active()
+            ->where(function ($query) {
+                $query->where('type', 'product')
+                    ->orWhereNull('type');
+            })
+            ->orderBy('name')
+            ->get();
         $parties = Party::orderBy('name')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $prefixTypeMap = [
@@ -112,7 +120,7 @@ class SaleController extends Controller
             $convertedSaleData['payments'] = [];
         }
 
-        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
+        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'categories', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
     }
 
     public function createFromEstimate(Sale $sale)
@@ -489,6 +497,8 @@ private function posData(): array
 
     public function update(Request $request, Sale $sale)
     {
+        $this->normalizeSaleRequestPayload($request);
+
         // Validate incoming data (same as store)
         $data = $request->validate([
             'type' => 'nullable|in:invoice,estimate,sale_order,proforma,delivery_challan,sale_return,pos',
@@ -531,6 +541,14 @@ private function posData(): array
             'description' => 'nullable|string',
             'image_path' => 'nullable|string|max:255',
             'document_path' => 'nullable|string|max:255',
+            'image_paths' => 'nullable|array',
+            'image_paths.*' => 'nullable|string|max:255',
+            'document_paths' => 'nullable|array',
+            'document_paths.*' => 'nullable|string|max:255',
+            'images' => 'nullable|array',
+            'images.*' => 'file|max:5120|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
+            'documents' => 'nullable|array',
+            'documents.*' => 'file|max:5120|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
             'items' => 'required|array|min:1',
             'items.*.item_name' => 'nullable|string|max:255',
             'items.*.item_category' => 'nullable|string|max:255',
@@ -577,6 +595,11 @@ private function posData(): array
             $sale->status
         );
 
+        $uploadedImagePaths = $this->storeSaleAttachmentFiles($request->file('images', []), 'sales/images');
+        $uploadedDocumentPaths = $this->storeSaleAttachmentFiles($request->file('documents', []), 'sales/documents');
+        $existingImagePaths = array_values(array_filter(array_merge($sale->image_paths ?? [], $uploadedImagePaths)));
+        $existingDocumentPaths = array_values(array_filter(array_merge($sale->document_paths ?? [], $uploadedDocumentPaths)));
+
         $sale->update([
             'type' => $type,
             'party_id' => $data['party_id'] ?? $sale->party_id,
@@ -609,8 +632,10 @@ private function posData(): array
             'balance' => $balance,
             'status' => $status,
             'description' => $data['description'] ?? null,
-            'image_path' => $data['image_path'] ?? null,
-            'document_path' => $data['document_path'] ?? null,
+            'image_path' => $existingImagePaths[0] ?? $sale->image_path,
+            'document_path' => $existingDocumentPaths[0] ?? $sale->document_path,
+            'image_paths' => $existingImagePaths ?: null,
+            'document_paths' => $existingDocumentPaths ?: null,
         ]);
 
         // Replace items (keep payment history intact for edit mode)
@@ -733,6 +758,8 @@ private function posData(): array
 
     public function store(Request $request)
     {
+        $this->normalizeSaleRequestPayload($request);
+
         $data = $request->validate([
             'type' => 'nullable|in:invoice,estimate,sale_order,proforma,delivery_challan,sale_return,pos',
             'source_estimate_id' => 'nullable|exists:sales,id',
@@ -774,6 +801,14 @@ private function posData(): array
             'description' => 'nullable|string',
             'image_path' => 'nullable|string|max:255',
             'document_path' => 'nullable|string|max:255',
+            'image_paths' => 'nullable|array',
+            'image_paths.*' => 'nullable|string|max:255',
+            'document_paths' => 'nullable|array',
+            'document_paths.*' => 'nullable|string|max:255',
+            'images' => 'nullable|array',
+            'images.*' => 'file|max:5120|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
+            'documents' => 'nullable|array',
+            'documents.*' => 'file|max:5120|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
             'items' => 'required|array|min:1',
             'items.*.item_name' => 'nullable|string|max:255',
             'items.*.item_category' => 'nullable|string|max:255',
@@ -850,9 +885,28 @@ private function posData(): array
             'balance' => $balance,
             'status' => $status,
             'description' => $data['description'] ?? null,
-            'image_path' => $data['image_path'] ?? null,
-            'document_path' => $data['document_path'] ?? null,
+            'image_path' => null,
+            'document_path' => null,
+            'image_paths' => null,
+            'document_paths' => null,
         ]);
+
+        $uploadedImagePaths = $this->storeSaleAttachmentFiles($request->file('images', []), 'sales/images');
+        $uploadedDocumentPaths = $this->storeSaleAttachmentFiles($request->file('documents', []), 'sales/documents');
+
+        if (!empty($uploadedImagePaths)) {
+            $sale->image_path = $uploadedImagePaths[0];
+            $sale->image_paths = $uploadedImagePaths;
+        }
+
+        if (!empty($uploadedDocumentPaths)) {
+            $sale->document_path = $uploadedDocumentPaths[0];
+            $sale->document_paths = $uploadedDocumentPaths;
+        }
+
+        if ($sale->isDirty(['image_path', 'document_path', 'image_paths', 'document_paths'])) {
+            $sale->save();
+        }
 
         // Auto-generate invoice number based on the sale ID if not provided
         if (empty($sale->bill_number)) {
@@ -1754,6 +1808,32 @@ private function posData(): array
     private function normalizePaymentDirection(?string $direction): string
     {
         return 'payment_in';
+    }
+
+    private function normalizeSaleRequestPayload(Request $request): void
+    {
+        foreach (['items', 'payments', 'image_paths', 'document_paths'] as $field) {
+            $value = $request->input($field);
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $request->merge([$field => $decoded]);
+                }
+            }
+        }
+    }
+
+    private function storeSaleAttachmentFiles(array $files = [], string $directory = ''): array
+    {
+        $storedPaths = [];
+
+        foreach ($files as $file) {
+            if ($file instanceof \Illuminate\Http\UploadedFile) {
+                $storedPaths[] = $file->store($directory, 'public');
+            }
+        }
+
+        return $storedPaths;
     }
 
     private function recalculatePartyLedgerBalances(?int $partyId): void

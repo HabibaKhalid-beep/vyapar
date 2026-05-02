@@ -24,11 +24,21 @@
 <style>
     /* Dropdown with two columns and scrollbar */
     #partyDropdownMenu {
-    min-width: 250px; /* Adjust as needed */
-    max-width: 100%;  /* Never exceed container */
-    max-height: 350px; /* Add max-height for scrollbar */
-    overflow-y: auto; /* Enable vertical scrolling */
-    overflow-x: hidden; /* Hide horizontal scroll */
+    min-width: 280px;
+    max-width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+}
+
+#partyDropdownMenu li.p-2 {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#partyDropdownMenu .form-control-sm {
+    font-size: 13px;
 }
 
 /* Scrollbar styling for responsive dropdown */
@@ -71,34 +81,67 @@
 .item-picker {
     position: relative;
     min-width: 260px;
+    flex: 1;
+    overflow: visible;
 }
 
 .item-picker-input {
     width: 100%;
     border: 1px solid #cfd8e3;
     border-radius: 6px;
-    padding: 10px 12px;
+    padding: 10px 14px;
     font-size: 14px;
     background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item-picker-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .item-picker-panel {
-    position: absolute;
+    position: fixed;
     top: calc(100% + 4px);
     left: 0;
-    width: 760px;
-    max-width: min(760px, 80vw);
-    background: #fff;
-    border: 1px solid #d9e2ec;
-    border-radius: 10px;
-    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
-    z-index: 1060;
+    width: 100%;
+    min-width: 320px;
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1055;
     display: none;
     overflow: hidden;
+    max-width: none;
 }
 
 .item-picker-panel.open {
-    display: block;
+    display: block !important;
+}
+
+.item-picker-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.item-picker-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.item-picker-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.item-picker-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.item-picker-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .item-picker-add {
@@ -106,18 +149,59 @@
     align-items: center;
     gap: 8px;
     padding: 12px 18px;
-    color: #2d7ff9;
-    font-weight: 700;
-    border-bottom: 1px solid #eef2f7;
+    color: #2563eb;
+    font-weight: 600;
     cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.item-picker-add:hover {
+    background: #f8fbff;
 }
 
 .item-picker-head,
 .item-picker-row {
     display: grid;
-    grid-template-columns: minmax(0, 1.9fr) 120px 140px 90px;
-    gap: 16px;
+    grid-template-columns: minmax(0, 2fr) 100px 110px 80px;
+    gap: 12px;
     align-items: center;
+}
+
+@media (max-width: 768px) {
+    .item-picker-head,
+    .item-picker-row {
+        grid-template-columns: minmax(0, 2fr) 80px 90px 70px;
+        gap: 8px;
+    }
+
+    .item-picker-panel {
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 576px) {
+    .item-picker {
+        min-width: 200px;
+    }
+
+    .item-picker-head,
+    .item-picker-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .item-picker-head span:nth-child(2),
+    .item-picker-head span:nth-child(3),
+    .item-picker-head span:nth-child(4),
+    .item-picker-row > div:nth-child(2),
+    .item-picker-row > div:nth-child(3),
+    .item-picker-row > div:nth-child(4) {
+        display: none;
+    }
+
+    .item-picker-panel {
+        max-width: 300px;
+    }
 }
 
 .item-picker-head {
@@ -156,6 +240,50 @@
     padding: 14px 18px;
     color: #8a94a6;
     font-size: 13px;
+}
+
+.table-container {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+}
+
+.item-table {
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
+}
+
+.item-table th,
+.item-table td {
+    white-space: nowrap;
+}
+
+.item-table td {
+    overflow: visible;
+}
+
+.item-table td:first-child + td {
+    min-width: 320px;
+}
+
+.item-table td input,
+.item-table td select {
+    min-width: 84px;
+}
+
+.item-picker-input {
+    min-width: 240px;
+}
+
+.modal-stack-top {
+    z-index: 1085;
+}
+
+.unit-menu-scroll {
+    max-height: 260px;
+    overflow-y: auto;
 }
 
 /* Header style */
@@ -617,6 +745,24 @@
 }
     </style>
 
+@php
+    $saleItemsSource = collect($items ?? []);
+
+    if ($saleItemsSource->isEmpty()) {
+        $saleItemsSource = \App\Models\Item::with('category')
+            ->where(function ($query) {
+                $query->where('type', 'product')
+                    ->orWhereNull('type');
+            })
+            ->where(function ($query) {
+                $query->where('is_active', true)
+                    ->orWhereNull('is_active');
+            })
+            ->orderBy('name')
+            ->get();
+    }
+@endphp
+
 <body>
 
     <div class="container-fluid min-vh-100 d-flex flex-column p-0">
@@ -667,7 +813,7 @@
                                 <div class="input-group party-selector-group">
                                 <div class="party-selector-panel">
                                 <!-- Party dropdown button -->
-<div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
+<div class="dropdown party-dropdown-wrapper" data-bs-auto-close="outside" style="position: relative; display: inline-block;">
     <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
         Select Party
     </button>
@@ -678,50 +824,52 @@
 
     <!-- Dropdown menu (existing) -->
     <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+        <li class="dropdown-header-search px-2 py-2">
+            <input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;">
+        </li>
         <li class="dropdown-header d-flex justify-content-between px-3">
             <span>Party Name</span>
             <span>Opening Balance</span>
         </li>
           @foreach($parties as $party)
-    <li>
-        <a class="dropdown-item d-flex justify-content-between party-option" href="#"
-           data-id="{{ $party->id }}"
-           data-name="{{ $party->name }}"
-           data-phone="{{ $party->phone }}"
-           data-phone-number-2="{{ $party->phone_number_2 }}"
-           data-city="{{ $party->city }}"
-           data-ptcl="{{ $party->ptcl_number }}"
-           data-email="{{ $party->email }}"
-           data-address="{{ addslashes($party->address ?? '') }}"
-           data-billing="{{ addslashes($party->billing_address ?? '') }}"
-           data-shipping="{{ addslashes($party->shipping_address ?? '') }}"
-           data-party-group="{{ $party->party_group }}"
-           data-due-days="{{ $party->due_days ?? '' }}"
-           data-opening="{{ $party->opening_balance ?? 0 }}"
-           data-type="{{ $party->transaction_type }}"
-           data-party-type="{{ is_array($party->party_type) ? implode(',', $party->party_type) : ($party->party_type ?? '') }}"
-           data-credit-limit-enabled="{{ $party->credit_limit_enabled ?? 0 }}"
-           data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
-           data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
-            <span>{{ $party->name }}</span>
-         <span
-    @if($party->transaction_type == 'pay')
-        class="text-danger"
-    @elseif($party->transaction_type == 'receive')
-        class="text-success"
-    @endif
->
-    @if($party->transaction_type == 'pay')
-        <i class="fa-solid fa-arrow-up me-1"></i>
-    @elseif($party->transaction_type == 'receive')
-        <i class="fa-solid fa-arrow-down me-1"></i>
-    @endif
-
-    ₹{{ number_format($party->opening_balance ?? 0, 2) }}
-</span>
-        </a>
-    </li>
-@endforeach
+          <li>
+            <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+               data-id="{{ $party->id }}"
+               data-name="{{ $party->name }}"
+               data-phone="{{ $party->phone }}"
+               data-phone-number-2="{{ $party->phone_number_2 }}"
+               data-city="{{ $party->city }}"
+               data-ptcl="{{ $party->ptcl_number }}"
+               data-email="{{ $party->email }}"
+               data-address="{{ addslashes($party->address ?? '') }}"
+               data-billing="{{ addslashes($party->billing_address ?? '') }}"
+               data-shipping="{{ addslashes($party->shipping_address ?? '') }}"
+               data-party-group="{{ $party->party_group }}"
+               data-due-days="{{ $party->due_days ?? '' }}"
+               data-opening="{{ $party->opening_balance ?? 0 }}"
+               data-type="{{ $party->transaction_type }}"
+               data-party-type="{{ is_array($party->party_type) ? implode(',', $party->party_type) : ($party->party_type ?? '') }}"
+               data-credit-limit-enabled="{{ $party->credit_limit_enabled ?? 0 }}"
+               data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
+               data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
+                <span>{{ $party->name }}</span>
+                <span
+                  @if($party->transaction_type == 'pay')
+                      class="text-danger"
+                  @elseif($party->transaction_type == 'receive')
+                      class="text-success"
+                  @endif
+                >
+                  @if($party->transaction_type == 'pay')
+                      <i class="fa-solid fa-arrow-up me-1"></i>
+                  @elseif($party->transaction_type == 'receive')
+                      <i class="fa-solid fa-arrow-down me-1"></i>
+                  @endif
+                  ₹{{ number_format($party->opening_balance ?? 0, 2) }}
+                </span>
+            </a>
+          </li>
+          @endforeach
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
     </ul>
@@ -835,23 +983,40 @@
                                         </td>
                                         <td>
                                             <div class="item-picker">
-                                                <input type="text" class="item-picker-input" placeholder="Search Item">
-                                                <div class="item-picker-panel">
-                                                    <div class="item-picker-add"><i class="fa-regular fa-circle-plus"></i> Add Item</div>
-                                                    <div class="item-picker-head">
+                                                <input type="text" class="item-picker-input" placeholder="Search Item" style="position: relative; z-index: 10;">
+                                                <div class="item-picker-panel" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; width: 100%; min-width: 320px; background: white; border: 1px solid #e1e8ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: none; overflow: hidden;">
+                                                    <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-circle-plus"></i> Add Item</div>
+                                                    <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
                                                         <span>Item</span>
                                                         <span>Sale Price</span>
                                                         <span>Purchase Price</span>
                                                         <span>Stock</span>
                                                     </div>
-                                                    <div class="item-picker-list"></div>
+                                                    <div class="item-picker-list" style="max-height: 280px; overflow-y: auto;">
+                                                        @forelse($saleItemsSource as $item)
+                                                            <div class="item-picker-row item-picker-option" data-id="{{ $item->id }}">
+                                                                <div class="item-picker-name">
+                                                                    {{ $item->name }}
+                                                                    @if(!empty($item->item_code))
+                                                                        <small>({{ $item->item_code }})</small>
+                                                                    @endif
+                                                                </div>
+                                                                <div>{{ number_format((float) ($item->sale_price ?? $item->price ?? 0), 2, '.', '') }}</div>
+                                                                <div>{{ number_format((float) ($item->purchase_price ?? 0), 2, '.', '') }}</div>
+                                                                <div class="item-picker-stock {{ (float) ($item->opening_qty ?? 0) < 0 ? 'neg' : '' }}">{{ (float) ($item->opening_qty ?? 0) }}</div>
+                                                            </div>
+                                                        @empty
+                                                            <div class="item-picker-empty">No items found</div>
+                                                        @endforelse
+                                                    </div>
                                                 </div>
                                                 <select class="form-select item-name d-none">
                                                     <option value="" selected disabled>Select Item</option>
-                                                    @foreach($items as $item)
+                                                    @foreach($saleItemsSource as $item)
                                                         <option value="{{ $item->id }}"
                                                             data-price="{{ $item->price }}"
                                                             data-sale-price="{{ $item->sale_price }}"
+                                                            data-purchase-price="{{ $item->purchase_price }}"
                                                             data-stock="{{ $item->opening_qty }}"
                                                             data-location="{{ $item->location }}"
                                                             data-label="{{ $item->name }}"
@@ -987,41 +1152,41 @@
                                     </div>
                                 </template>
 
-                                <button type="button" class="btn-action-light w-50 add-description">
-                                    <i class="fa-solid fa-align-left"></i>
-                                    ADD DESCRIPTION
-                                </button>
-                                <button type="button" class="btn-action-light w-50 add-image">
-                                    <i class="fa-solid fa-camera"></i>
-                                    ADD IMAGE
-                                </button>
-                                <button type="button" class="btn-action-light w-50 add-document">
-                                    <i class="fa-solid fa-align-left "></i>
-                                    ADD DOCUMENT
-                                </button>
+                                <div class="description-action-group mb-2">
+                                    <button type="button" class="btn-action-light action-btn add-description">
+                                        <i class="fa-solid fa-align-left"></i>
+                                        ADD DESCRIPTION
+                                    </button>
+                                    <div class="description-pane d-none mt-2">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                    </div>
+                                </div>
 
-                                <div class="description-pane d-none mt-2">
-                                    <label class="form-label">Description</label>
-                                    <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                <div class="action-buttons d-flex flex-wrap gap-2 mb-2">
+                                    <button type="button" class="btn-action-light action-btn add-image">
+                                        <i class="fa-solid fa-camera"></i>
+                                        ADD IMAGE
+                                    </button>
+
+                                    <button type="button" class="btn-action-light action-btn add-document">
+                                        <i class="fa-solid fa-align-left"></i>
+                                        ADD DOCUMENT
+                                    </button>
+
                                 </div>
 
                                 <div class="image-upload-section mt-2">
-                                    <div class="image-preview d-none">
-                                        <img class="image-preview-img" src="" alt="Selected Image" />
-                                        <div class="image-preview-actions mt-2">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary replace-image">Replace</button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger remove-image">Remove</button>
-                                        </div>
-                                    </div>
                                     <div class="image-placeholder text-center p-3 border border-dashed rounded" style="cursor:pointer;">
-                                        <div class="text-muted">Click to select an image</div>
-                                        <div class="small text-muted">(PNG/JPG, up to 5MB)</div>
+                                        <div class="text-muted">Click to select image(s)</div>
+                                        <div class="small text-muted">(PNG/JPG, up to 5MB each)</div>
                                     </div>
-                                    <div class="selected-document-name text-muted mt-2"></div>
+                                    <div class="image-files-list d-flex flex-wrap gap-2 mt-2"></div>
+                                    <div class="document-files-list list-group mt-2"></div>
                                 </div>
 
-                                <input type="file" class="d-none image-input" accept="image/*" />
-                                <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" />
+                                <input type="file" class="d-none image-input" accept="image/*" multiple />
+                                <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" multiple />
                             </div>
 
                             <!-- Right Column -->
@@ -1376,10 +1541,17 @@
 
 
 <script>
-    window.items = @json($items);
-    window.parties = @json($parties);
-    window.brokers = @json($brokers);
-    window.bankAccounts = @json($bankAccounts);
+    window.items = @json($saleItemsSource->values());
+    window.parties = @json($parties ?? []);
+    window.brokers = @json($brokers ?? []);
+    window.bankAccounts = @json($bankAccounts ?? []);
+    window.itemRoutes = {
+        index: "{{ url('dashboard/items') }}",
+        store: "{{ url('dashboard/items') }}",
+        categoryStore: "{{ url('dashboard/items/category') }}",
+        unitsIndex: "{{ url('dashboard/items/units') }}",
+        unitsStore: "{{ url('dashboard/items/units') }}"
+    };
 
     window.saleStoreUrl = "{{ route('sale.store') }}";
     window.saleMethod = 'POST';
@@ -1424,6 +1596,93 @@
     <script src="{{ asset('js/saleform_script.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('js/script.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const unitButtons = document.querySelectorAll('.unit-option');
+            const unitInput = document.getElementById('newItemUnit');
+            const unitBtn = document.getElementById('newItemUnitBtn');
+            const assignCodeBtn = document.getElementById('assignItemCodeBtn');
+            const itemNameInput = document.getElementById('newItemName');
+            const wholesaleToggle = document.getElementById('toggleWholesalePricing');
+            const wholesaleSection = document.querySelector('.wholesale-pricing');
+
+            if (unitButtons && unitInput && unitBtn) {
+                unitButtons.forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const unit = this.dataset.unit || '';
+                        unitInput.value = unit;
+                        unitBtn.textContent = unit || 'Select Unit';
+                    });
+                });
+            }
+
+            if (assignCodeBtn && itemNameInput) {
+                assignCodeBtn.addEventListener('click', function () {
+                    const name = itemNameInput.value.trim();
+                    const slug = name ? name.toUpperCase().replace(/[^A-Z0-9]+/g, '') : 'ITEM';
+                    const suffix = Math.floor(Math.random() * 9000) + 1000;
+                    document.getElementById('newItemCode').value = `${slug ? slug.substring(0, 6) : 'ITEM'}-${suffix}`;
+                });
+            }
+
+            const itemTypeToggle = document.getElementById('newItemTypeToggle');
+            const itemTypeHidden = document.getElementById('newItemType');
+            const productLabel = document.getElementById('newItemProductLabel');
+            const itemNameLabel = document.getElementById('newItemNameLabel');
+            const stockTabButton = document.getElementById('stock-tab');
+            const stockTabPane = document.getElementById('stock-tab-pane');
+            const purchaseSection = document.getElementById('purchase-sec');
+
+            if (itemTypeToggle && itemTypeHidden) {
+                itemTypeToggle.addEventListener('change', function () {
+                    const isService = this.checked;
+                    itemTypeHidden.value = isService ? 'service' : 'product';
+                    productLabel.textContent = isService ? 'Service' : 'Product';
+                    itemNameLabel.textContent = isService ? 'Service Name *' : 'Item Name *';
+                    if (stockTabButton && stockTabPane) {
+                        stockTabButton.style.display = isService ? 'none' : '';
+                        stockTabPane.style.display = isService ? 'none' : '';
+                    }
+                    if (purchaseSection) {
+                        purchaseSection.style.display = isService ? 'none' : '';
+                    }
+                    const pricingTabEl = document.getElementById('pricing-tab');
+                    if (pricingTabEl) {
+                        const pricingTab = bootstrap.Tab.getOrCreateInstance(pricingTabEl);
+                        pricingTab.show();
+                    }
+                });
+            }
+
+            const newItemImageInput = document.getElementById('newItemImage');
+            const newItemImageThumb = document.getElementById('newItemImageThumb');
+            const newItemImageLabel = document.getElementById('newItemImageLabel');
+
+            if (newItemImageInput) {
+                newItemImageInput.addEventListener('change', function (event) {
+                    const file = event.target.files[0];
+                    if (!file) {
+                        newItemImageThumb.innerHTML = '<i class="fa-regular fa-image fa-2x text-secondary"></i>';
+                        newItemImageLabel.textContent = 'Click to choose image';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        newItemImageThumb.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;"/>`;
+                        newItemImageLabel.textContent = file.name;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            if (wholesaleToggle && wholesaleSection) {
+                wholesaleToggle.addEventListener('click', function () {
+                    wholesaleSection.classList.toggle('d-none');
+                    this.textContent = wholesaleSection.classList.contains('d-none') ? '+ Add Wholesale Price' : '- Remove Wholesale Price';
+                });
+            }
+        });
+    </script>
      <div class="container">
         @yield('content')
     </div>
@@ -1488,7 +1747,7 @@
       <button type="button" class="dropdown-item text-primary" id="addNewGroupBtn">+ New Group</button>
       <div id="partyGroupList">
         @foreach($parties->pluck('party_group')->filter()->unique()->values() as $partyGroup)
-          <button type="button" class="dropdown-item">{{ $partyGroup }}</button>
+          <button type="button" class="dropdown-item" data-group="{{ $partyGroup }}">{{ $partyGroup }}</button>
         @endforeach
       </div>
       </div>
@@ -1499,17 +1758,17 @@
           <!-- Tabs -->
           <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
+              <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab" aria-controls="partyAddressPane" aria-selected="true">
                 <i class="fa-solid fa-location-dot me-1"></i> Address
               </button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
+              <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab" aria-controls="partyCreditPane" aria-selected="false">
                 <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
               </button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
+              <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab" aria-controls="partyAdditionalPane" aria-selected="false">
                 <i class="fa-solid fa-sliders me-1"></i> Additional Fields
               </button>
             </li>
@@ -1517,7 +1776,7 @@
 
           <div class="tab-content pt-3" id="partyModalTabContent">
             <!-- Address Tab -->
-            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
+            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel" aria-labelledby="party-address-tab">
               <div class="row g-3">
                 <div class="col-md-6" data-party-setting="email">
                   <label class="form-label">Email ID</label>
@@ -1540,65 +1799,68 @@
             </div>
 
             <!-- Credit & Balance Tab -->
-          <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
-  <div class="row g-3">
-    <div class="col-md-4" data-party-setting="opening_balance">
-      <label class="form-label">Opening Balance</label>
-      <div class="input-group">
-        <span class="input-group-text">₹</span>
-        <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
-      </div>
-    </div>
-    <div class="col-md-4" data-party-setting="as_of_date">
-      <label class="form-label">As Of Date</label>
-      <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
-    </div>
-    <div class="col-md-4" data-party-setting="credit_limit">
-      <label class="form-label d-block">Credit Limit</label>
-      <div class="form-check form-switch mt-2">
-        <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
-        <label class="form-check-label" for="creditLimitSwitch">Enable</label>
-      </div>
-      <div class="input-group mt-2 is-hidden" id="creditLimitAmountWrap">
-        <span class="input-group-text">Rs</span>
-        <input type="number" name="credit_limit_amount" class="form-control" placeholder="Enter credit limit" id="creditLimitAmountInput" min="0" step="0.01">
-      </div>
-    </div>
-    <div class="col-md-4" data-party-setting="due_days">
-      <label class="form-label">Due Days</label>
-      <input type="number" name="due_days" class="form-control" placeholder="e.g. 5, 10, 30" min="1" max="100" id="partyDueDaysInput">
-    </div>
-  </div>
+          <div class="tab-pane fade" id="partyCreditPane" role="tabpanel" aria-labelledby="party-credit-tab">
+            <div class="row g-3">
+              <div class="col-md-4" data-party-setting="opening_balance">
+                <label class="form-label">Opening Balance</label>
+                <div class="input-group">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-md-4" data-party-setting="as_of_date">
+                <label class="form-label">As Of Date</label>
+                <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
+              </div>
+              <div class="col-md-4" data-party-setting="credit_limit">
+                <label class="form-label d-block">Credit Limit</label>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
+                  <label class="form-check-label" for="creditLimitSwitch">Enable</label>
+                </div>
+                <div class="input-group mt-2 is-hidden" id="creditLimitAmountWrap">
+                  <span class="input-group-text">Rs</span>
+                  <input type="number" name="credit_limit_amount" class="form-control" placeholder="Enter credit limit" id="creditLimitAmountInput" min="0" step="0.01">
+                </div>
+              </div>
+              <div class="col-md-4" data-party-setting="due_days">
+                <label class="form-label">Due Days</label>
+                <input type="number" name="due_days" class="form-control" placeholder="e.g. 5, 10, 30" min="1" max="100" id="partyDueDaysInput">
+              </div>
+            </div>
 
-  <!-- To Receive / To Pay Options at the bottom -->
-  <div class="mt-4" data-party-setting="transaction_type">
-    <label class="form-label d-block">Transaction Type</label>
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
-      <label class="form-check-label" for="toReceive">To Receive</label>
-    </div>
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="toPay" value="pay">
-      <label class="form-check-label" for="toPay">To Pay</label>
-    </div>
-  </div>
-</div>
-<div class="col-md-6" data-party-setting="party_type">
-  <label class="form-label fw-600">Party Type</label>
+            <!-- To Receive / To Pay Options at the bottom -->
+            <div class="mt-4" data-party-setting="transaction_type">
+              <label class="form-label d-block">Transaction Type</label>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
+                <label class="form-check-label" for="toReceive">To Receive</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="toPay" value="pay">
+                <label class="form-check-label" for="toPay">To Pay</label>
+              </div>
+            </div>
 
-  <div class="form-check">
-    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="customerParty" value="customer">
-    <label class="form-check-label" for="customerParty">Customer</label>
-  </div>
+            <div class="row g-3 mt-3" data-party-setting="party_type">
+              <div class="col-md-6">
+                <label class="form-label fw-600">Party Type</label>
 
-  <div class="form-check">
-    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
-    <label class="form-check-label" for="supplierParty">Supplier</label>
-  </div>
-</div>
+                <div class="form-check">
+                  <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="customerParty" value="customer">
+                  <label class="form-check-label" for="customerParty">Customer</label>
+                </div>
+
+                <div class="form-check">
+                  <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
+                  <label class="form-check-label" for="supplierParty">Supplier</label>
+                </div>
+              </div>
+            </div>
+          </div>
 
             <!-- Additional Fields Tab -->
-            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel" data-party-setting="additional_fields">
+            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel" aria-labelledby="party-additional-tab" data-party-setting="additional_fields">
               <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
               <div class="row g-3">
                 @for($i=1; $i<=4; $i++)
@@ -1655,14 +1917,209 @@
 </div>
 
 <div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add Item</h5>
+      <div class="modal-header align-items-start justify-content-between">
+        <div>
+          <h5 class="modal-title">Add Item</h5>
+          <p class="text-muted small mb-0">Create item details, pricing, stock and description.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span id="newItemProductLabel" class="text-primary fw-semibold">Product</span>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="newItemTypeToggle">
+            <label class="form-check-label" for="newItemTypeToggle">Service</label>
+          </div>
+        </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body p-0" style="min-height:78vh;">
-        <iframe id="addItemFrame" src="{{ route('items.create') }}?modal=1" style="width:100%; min-height:78vh; border:0;"></iframe>
+      <div class="modal-body">
+        <form id="addItemForm">
+          <input type="hidden" id="newItemType" name="item_type" value="product">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label for="newItemName" class="form-label" id="newItemNameLabel">Item Name *</label>
+              <input type="text" class="form-control" id="newItemName" required>
+            </div>
+            <div class="col-md-4">
+              <label for="newItemCategory" class="form-label">Category</label>
+              <select class="form-select" id="newItemCategory">
+                <option value="">Select Category</option>
+                @foreach($categories ?? [] as $category)
+                  <option value="{{ $category->id ?? '' }}">{{ $category->name ?? '' }}</option>
+                @endforeach
+                <option value="__add_new__">+ Add Category</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Unit</label>
+              <div class="dropdown w-100">
+                <button class="btn btn-outline-primary dropdown-toggle w-100 text-start" type="button" id="newItemUnitBtn" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                  Select Unit
+                </button>
+                <ul class="dropdown-menu w-100 unit-menu-scroll" aria-labelledby="newItemUnitBtn" id="newItemUnitMenu">
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="PCS">PCS</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="BOX">BOX</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="PACK">PACK</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="SET">SET</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="KG">KG</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="G">G</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="M">M</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="FT">FT</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="L">L</button></li>
+                  <li><button class="dropdown-item unit-option" type="button" data-unit="ML">ML</button></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><button class="dropdown-item text-primary fw-semibold" type="button" id="openAddUnitModalBtn">+ Add Unit</button></li>
+                </ul>
+                <input type="hidden" id="newItemUnit" name="unit">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="newItemCode" class="form-label">Item Code</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="newItemCode" placeholder="Enter item code">
+                <button type="button" class="btn btn-outline-secondary" id="assignItemCodeBtn">Assign</button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Item Image</label>
+              <div class="border rounded-3 p-3 text-center h-100 d-flex flex-column justify-content-center align-items-center" style="cursor:pointer;" onclick="document.getElementById('newItemImage').click()">
+                <div id="newItemImageThumb" style="width:68px; height:68px; border:1.5px solid #93c5fd; border-radius:12px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); overflow:hidden;">
+                  <i class="fa-regular fa-image fa-2x text-secondary"></i>
+                </div>
+                <div class="text-secondary mt-2" id="newItemImageLabel">Click to choose image</div>
+                <input type="file" class="form-control d-none" id="newItemImage" accept="image/*">
+              </div>
+            </div>
+          </div>
+
+          <ul class="nav nav-tabs mt-4" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="pricing-tab" data-bs-toggle="tab" data-bs-target="#pricing-tab-pane" type="button" role="tab" aria-controls="pricing-tab-pane" aria-selected="true">Pricing</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock-tab-pane" type="button" role="tab" aria-controls="stock-tab-pane" aria-selected="false">Stock</button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-3">
+            <div class="tab-pane fade show active" id="pricing-tab-pane" role="tabpanel" aria-labelledby="pricing-tab">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="newItemSalePrice" class="form-label">Sale Price</label>
+                  <input type="number" class="form-control" id="newItemSalePrice" min="0" step="0.01" placeholder="Sale Price">
+                </div>
+                <div class="col-md-6">
+                  <label for="newItemPurchasePrice" class="form-label">Purchase Price</label>
+                  <input type="number" class="form-control" id="newItemPurchasePrice" min="0" step="0.01" placeholder="Purchase Price">
+                </div>
+                <div class="col-12">
+                  <div class="border rounded-3 p-3 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <div class="fw-semibold">Wholesale Pricing</div>
+                      <button type="button" class="btn btn-link btn-sm p-0" id="toggleWholesalePricing">+ Add Wholesale Price</button>
+                    </div>
+                    <div class="row g-2 wholesale-pricing d-none">
+                      <div class="col-md-6">
+                        <label for="newItemWholesalePrice" class="form-label">Wholesale Price</label>
+                        <input type="number" class="form-control" id="newItemWholesalePrice" min="0" step="0.01" placeholder="Wholesale Price">
+                      </div>
+                      <div class="col-md-6">
+                        <label for="newItemWholesaleMinQty" class="form-label">Minimum Wholesale Qty</label>
+                        <input type="number" class="form-control" id="newItemWholesaleMinQty" min="0" step="1" placeholder="Minimum Qty">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="stock-tab-pane" role="tabpanel" aria-labelledby="stock-tab">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label for="newItemStock" class="form-label">Opening Quantity</label>
+                  <input type="number" class="form-control" id="newItemStock" min="0" step="1" placeholder="Opening Qty">
+                </div>
+                <div class="col-md-4">
+                  <label for="newItemAtPrice" class="form-label">At Price</label>
+                  <input type="number" class="form-control" id="newItemAtPrice" min="0" step="0.01" placeholder="At Price">
+                </div>
+                <div class="col-md-4">
+                  <label for="newItemAsOfDate" class="form-label">As Of Date</label>
+                  <input type="date" class="form-control" id="newItemAsOfDate" value="{{ date('Y-m-d') }}">
+                </div>
+                <div class="col-md-6">
+                  <label for="newItemMinStock" class="form-label">Min Stock To Maintain</label>
+                  <input type="number" class="form-control" id="newItemMinStock" min="0" step="1" placeholder="Min Stock">
+                </div>
+                <div class="col-md-6">
+                  <label for="newItemLocation" class="form-label">Location</label>
+                  <input type="text" class="form-control" id="newItemLocation" placeholder="Location">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-4">
+            <div class="col-12">
+              <label for="newItemDescription" class="form-label">Description</label>
+              <textarea class="form-control" id="newItemDescription" rows="4" placeholder="Item description"></textarea>
+            </div>
+          </div>
+
+          <input type="hidden" name="_token" value="{{ csrf_token() }}">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveNewItemBtn">Save Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade modal-stack-top" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="quickCategoryName" class="form-label">Category Name</label>
+          <input type="text" class="form-control" id="quickCategoryName" placeholder="Enter category name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveQuickCategoryBtn">Save Category</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade modal-stack-top" id="addUnitModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Unit</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label for="quickUnitName" class="form-label">Unit Name</label>
+            <input type="text" class="form-control" id="quickUnitName" placeholder="e.g. KILOGRAMS">
+          </div>
+          <div class="col-md-4">
+            <label for="quickUnitShortName" class="form-label">Short Name</label>
+            <input type="text" class="form-control" id="quickUnitShortName" placeholder="e.g. KG">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveQuickUnitBtn">Save Unit</button>
       </div>
     </div>
   </div>
@@ -1686,6 +2143,46 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+
+    if (addModalEl) {
+        addModalEl.addEventListener('shown.bs.modal', function () {
+            const addressTabEl = document.getElementById('party-address-tab');
+            const addressPaneEl = document.getElementById('partyAddressPane');
+            const creditTabEl = document.getElementById('party-credit-tab');
+            const creditPaneEl = document.getElementById('partyCreditPane');
+            const additionalTabEl = document.getElementById('party-additional-tab');
+            const additionalPaneEl = document.getElementById('partyAdditionalPane');
+
+            [addressTabEl, creditTabEl, additionalTabEl].forEach(tab => {
+                if (tab) {
+                    tab.classList.remove('active');
+                    tab.setAttribute('aria-selected', 'false');
+                }
+            });
+
+            [addressPaneEl, creditPaneEl, additionalPaneEl].forEach(pane => {
+                if (pane) {
+                    pane.classList.remove('show', 'active');
+                }
+            });
+
+            if (addressTabEl) {
+                addressTabEl.classList.add('active');
+                addressTabEl.setAttribute('aria-selected', 'true');
+            }
+            if (addressPaneEl) {
+                addressPaneEl.classList.add('show', 'active');
+                addressPaneEl.style.display = '';
+            }
+
+            if (addressTabEl && bootstrap.Tab) {
+                const addressTab = bootstrap.Tab.getOrCreateInstance(addressTabEl);
+                addressTab.show();
+            }
+        });
+    }
+
+    // Party search functionality handled by saleform_script.js
 });
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1722,7 +2219,9 @@ document.addEventListener("DOMContentLoaded", function () {
         list.innerHTML = "";
         window.salePartyGroups.forEach(g => {
             const btn = document.createElement("button");
+            btn.type = "button";
             btn.className = "dropdown-item";
+            btn.dataset.group = g;
             btn.textContent = g;
 
             btn.onclick = () => {
@@ -1734,6 +2233,17 @@ document.addEventListener("DOMContentLoaded", function () {
             list.appendChild(btn);
         });
     }
+
+    renderGroups();
+
+    list.addEventListener("click", function (event) {
+        const btn = event.target.closest("button.dropdown-item");
+        if (!btn || btn.id === "addNewGroupBtn") return;
+
+        input.value = btn.dataset.group || btn.textContent.trim();
+        text.textContent = btn.dataset.group || btn.textContent.trim();
+        menu.classList.add("d-none");
+    });
 
     // Open modal
     const addNewGroupBtn = document.getElementById("addNewGroupBtn");
@@ -1772,6 +2282,23 @@ document.addEventListener("DOMContentLoaded", function () {
     const addModal = new bootstrap.Modal(addModalEl);
     const saveBtn = document.getElementById("btnSaveParty");
     const saveNewBtn = document.getElementById("btnSaveNewParty");
+
+    // Handle modal close - clean up backdrops to prevent black screen
+    addModalEl.addEventListener('hidden.bs.modal', function () {
+        // Remove any remaining backdrops
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+        // Remove modal-open class from body
+        document.body.classList.remove('modal-open');
+        // Reset overflow if it was set
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    });
+
+    // Handle modal show - ensure clean state
+    addModalEl.addEventListener('show.bs.modal', function () {
+        // Remove any orphaned backdrops before opening
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    });
 
 
 
@@ -1908,10 +2435,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (dropdownMenu) {
                     const existing = dropdownMenu.querySelector(`.party-option[data-id="${partyRecord.id}"]`);
                     if (existing) {
-                        existing.remove();
+                        existing.closest('li')?.remove();
                     }
 
                     const optionHtml = `
+                      <li>
                         <a class="dropdown-item d-flex justify-content-between party-option"
                            href="#"
                            data-id="${partyRecord.id}"
@@ -1923,7 +2451,7 @@ document.addEventListener("DOMContentLoaded", function () {
                            data-email="${partyRecord.email || ''}"
                            data-address="${partyRecord.address.replace(/"/g, '&quot;')}"
                            data-billing="${partyRecord.billing_address.replace(/"/g, '&quot;')}"
-                           data-shipping="${partyRecord.shipping_address.replace(/"/g, '&quot;')}"
+                           data-shipping="${partyRecord.shipping_address.replace(/"/g, '&quot;') }"
                            data-party-group="${partyRecord.party_group || ''}"
                            data-due-days="${partyRecord.due_days}"
                            data-opening="${partyRecord.opening_balance}"
@@ -1935,8 +2463,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             <span>${partyRecord.name}</span>
                             <span class="text-success">0</span>
                         </a>
+                      </li>
                     `;
-                    dropdownMenu.insertAdjacentHTML('beforeend', optionHtml);
+
+                    const divider = dropdownMenu.querySelector('li > hr.dropdown-divider');
+                    if (divider) {
+                        divider.closest('li')?.insertAdjacentHTML('beforebegin', optionHtml);
+                    } else {
+                        dropdownMenu.insertAdjacentHTML('beforeend', optionHtml);
+                    }
                 }
 
                 if (partyIdInput) partyIdInput.value = partyRecord.id;
@@ -1957,16 +2492,51 @@ document.addEventListener("DOMContentLoaded", function () {
                 applyPartyDueDays(partyRecord);
             }
 
-            alert("Party saved successfully!");
-            if(closeAfterSave) addModal.hide();
-            else form.reset();
+            // Close modal first, then show success message
+            if(closeAfterSave) {
+                addModal.hide();
+                // Wait for modal to close, then reset
+                setTimeout(() => {
+                    form.reset();
+                    // Clean up any leftover backdrops
+                    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                    document.body.classList.remove('modal-open');
+                }, 300);
+            } else {
+                form.reset();
+            }
+
+            // Show success message without blocking UI
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.innerHTML = `
+                <div style="background: #28a745; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-check me-2"></i> Party saved successfully!
+                </div>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         } else {
-            alert("Error saving party");
+            const errorToast = document.createElement('div');
+            errorToast.innerHTML = `
+                <div style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-exclamation me-2"></i> Error saving party
+                </div>
+            `;
+            document.body.appendChild(errorToast);
+            setTimeout(() => errorToast.remove(), 3000);
         }
     })
     .catch(err => {
         console.error(err);
-        alert("Something went wrong! Check console.");
+        const errorToast = document.createElement('div');
+        errorToast.innerHTML = `
+            <div style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-exclamation me-2"></i> Something went wrong! Check console.
+                </div>
+            `;
+        document.body.appendChild(errorToast);
+        setTimeout(() => errorToast.remove(), 3000);
     });
 }
     saveBtn.addEventListener('click', function () {
