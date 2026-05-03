@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\Party;
+use App\Models\PartyGroup;
 use App\Models\Sale;
 use App\Support\TransactionNumberPrefix;
 use Illuminate\Http\Request;
@@ -42,7 +44,9 @@ class EstimateController extends Controller
     public function create(Request $request)
     {
         $items = Item::active()->orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
+        $partyGroups = PartyGroup::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('estimate', $nextSaleId);
 
@@ -64,6 +68,6 @@ class EstimateController extends Controller
             $prefilledEstimateData['payments'] = [];
         }
 
-        return view('dashboard.sales.estimate-create', compact('items', 'parties', 'nextInvoiceNumber', 'estimate', 'prefilledEstimateData'));
+        return view('dashboard.sales.estimate-create', compact('items', 'categories', 'parties', 'partyGroups', 'nextInvoiceNumber', 'estimate', 'prefilledEstimateData'));
     }
 }

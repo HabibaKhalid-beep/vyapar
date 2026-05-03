@@ -1,15 +1,55 @@
 (function () {
-    const defaultUnits = [
-        { short_name: 'PCS' }, { short_name: 'BOX' }, { short_name: 'PACK' }, { short_name: 'SET' },
-        { short_name: 'KG' }, { short_name: 'G' }, { short_name: 'M' }, { short_name: 'FT' },
-        { short_name: 'L' }, { short_name: 'ML' }
-    ];
+    window.itemRoutes = Object.assign({
+        index: '/dashboard/items',
+        store: '/dashboard/items',
+        categoryStore: '/dashboard/items/category',
+        unitsIndex: '/dashboard/items/units',
+        unitsStore: '/dashboard/items/units'
+    }, window.itemRoutes || {});
 
-    const parseJsonSafely = (text) => {
-        try { return JSON.parse(text); } catch (_) { return null; }
-    };
+    let activePartyContext = null;
+    let activeItemContext = null;
+    let cachedUnits = [];
+    let currentItemImageObjectUrl = null;
 
-    const fetchJson = (url, options = {}) => {
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function generateItemCode(seed = '') {
+        const normalizedSeed = String(seed || '')
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^A-Z0-9-_]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '')
+            .substring(0, 24);
+        const suffix = String(Math.floor(1000 + Math.random() * 9000));
+        return normalizedSeed ? `${normalizedSeed}-${suffix}`.substring(0, 50) : `ITEM-${suffix}`;
+    }
+
+    function clearItemImagePreview() {
+        if (currentItemImageObjectUrl) {
+            URL.revokeObjectURL(currentItemImageObjectUrl);
+            currentItemImageObjectUrl = null;
+        }
+    }
+
+    function parseJsonSafely(text) {
+        try {
+            return JSON.parse(text);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function fetchJson(url, options = {}) {
         const headers = Object.assign({
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
@@ -20,27 +60,44 @@
                 const text = await response.text();
                 const data = parseJsonSafely(text);
                 if (!response.ok) {
-                    throw new Error(data?.message || `Request failed with status ${response.status}.`);
+                    throw new Error(data && data.message ? data.message : 'Request failed.');
                 }
                 if (data === null) {
                     throw new Error('Server response was not valid JSON.');
                 }
                 return data;
             });
-    };
+    }
 
-    const getItemMeta = (item = {}) => ({
-        plainLabel: item.name || '',
-        richLabel: `${item.name || ''} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ''}`,
-        categoryLabel: item.category_name || item.category?.name || item.category || item.category_id || '',
-        itemCode: item.item_code || '',
-        description: item.description || item.item_description || '',
-        discount: item.discount ?? item.sale_discount ?? 0,
-        purchasePrice: item.purchase_price ?? 0
-    });
+    function getBodyContext($target) {
+        const $context = $target.closest('.invoice-container, .tab-pane, .invoice-form, body');
+        return $context.length ? $context : $(document.body);
+    }
 
-    const buildPickerRowsHtml = (items = []) => {
-        if (!items.length) return '<div class="item-picker-empty">No items found</div>';
+    function getItemMeta(item) {
+        return {
+            plainLabel: item.name || '',
+            richLabel: `${item.name || ''} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ''}`,
+            categoryLabel: item.category_name || item.category?.name || item.category || item.category_id || '',
+            itemCode: item.item_code || '',
+            description: item.description || item.item_description || '',
+            discount: item.discount ?? item.sale_discount ?? 0,
+            purchasePrice: item.purchase_price ?? 0
+        };
+    }
+
+    function buildItemOptionsHtml(items = []) {
+        return items.map((item) => {
+            const meta = getItemMeta(item);
+            return `<option value="${item.id}" data-price="${item.price ?? ''}" data-sale-price="${item.sale_price ?? ''}" data-purchase-price="${meta.purchasePrice}" data-stock="${item.opening_qty ?? ''}" data-location="${item.location ?? ''}" data-label="${meta.plainLabel}" data-rich-label="${meta.richLabel}" data-unit="${item.unit || ''}" data-category="${meta.categoryLabel}" data-item-code="${meta.itemCode}" data-description="${meta.description}" data-discount="${meta.discount}">${meta.richLabel}</option>`;
+        }).join('');
+    }
+
+    function buildPickerRowsHtml(items = []) {
+        if (!items.length) {
+            return '<div class="item-picker-empty">No items found</div>';
+        }
+
         return items.map((item) => {
             const stock = parseFloat(item.opening_qty ?? 0) || 0;
             return `
@@ -52,74 +109,278 @@
                 </div>
             `;
         }).join('');
-    };
+    }
 
-    const buildOptionsHtml = (items = []) => items.map((item) => {
-        const meta = getItemMeta(item);
-        return `<option value="${item.id}" data-price="${item.price ?? ''}" data-sale-price="${item.sale_price ?? ''}" data-purchase-price="${meta.purchasePrice}" data-stock="${item.opening_qty ?? ''}" data-location="${item.location ?? ''}" data-label="${meta.plainLabel}" data-rich-label="${meta.richLabel}" data-unit="${item.unit || ''}" data-category="${meta.categoryLabel}" data-item-code="${meta.itemCode}" data-description="${meta.description}" data-discount="${meta.discount}">${meta.richLabel}</option>`;
-    }).join('');
+    function buildPartyOptionHtml(party) {
+        const amount = Number(party.opening_balance || 0).toFixed(2);
+        const type = party.transaction_type || '';
+        const colorClass = type === 'pay' ? 'text-danger' : (type === 'receive' ? 'text-success' : '');
+        const arrowIcon = type === 'pay'
+            ? '<i class="fa-solid fa-arrow-up me-1"></i>'
+            : (type === 'receive' ? '<i class="fa-solid fa-arrow-down me-1"></i>' : '');
 
-    const buildUnitMenuHtml = (units = []) => {
-        const normalized = (Array.isArray(units) && units.length ? units : defaultUnits)
-            .map((unit) => String(unit.short_name || unit.short || unit.name || '').trim().toUpperCase())
-            .filter(Boolean);
+        return `
+            <li>
+                <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+                   data-id="${party.id || ''}"
+                   data-name="${party.name || ''}"
+                   data-phone="${party.phone || ''}"
+                   data-phone-number-2="${party.phone_number_2 || ''}"
+                   data-city="${party.city || ''}"
+                   data-ptcl="${party.ptcl_number || ''}"
+                   data-email="${party.email || ''}"
+                   data-address="${party.address || ''}"
+                   data-billing="${party.billing_address || ''}"
+                   data-shipping="${party.shipping_address || ''}"
+                   data-party-group="${party.party_group || ''}"
+                   data-due-days="${party.due_days || ''}"
+                   data-opening="${party.opening_balance || 0}"
+                   data-type="${type}"
+                   data-party-type="${Array.isArray(party.party_type) ? party.party_type.join(',') : (party.party_type || '')}">
+                    <span>${party.name || ''}</span>
+                    <span class="${colorClass}">${arrowIcon}Rs ${amount}</span>
+                </a>
+            </li>
+        `;
+    }
 
-        return normalized.map((unit) => `<li><button class="dropdown-item unit-option" type="button" data-unit="${unit}">${unit}</button></li>`).join('');
-    };
+    function buildUnitMenuHtml(units = []) {
+        const normalized = (Array.isArray(units) ? units : [])
+            .map((unit) => ({
+                name: String(unit.name || unit.short_name || unit.short || '').trim(),
+                short_name: String(unit.short_name || unit.short || unit.name || '').trim().toUpperCase()
+            }))
+            .filter((unit) => unit.short_name);
 
-    function initPartySearch($ctx) {
-        const $partySearchInput = $ctx.find('.party-search-input');
-        const $partyDropdown = $ctx.find('.party-dropdown-wrapper');
+        if (!normalized.length) {
+            return '<li><span class="dropdown-item-text text-muted">No units found</span></li>';
+        }
 
-        if (!$partySearchInput.length) return;
+        return normalized.map((unit) => {
+            const label = unit.name && unit.name.toUpperCase() !== unit.short_name
+                ? `${unit.short_name} (${unit.name})`
+                : unit.short_name;
+            return `<li><button class="dropdown-item unit-option" type="button" data-unit="${escapeHtml(unit.short_name)}">${escapeHtml(label)}</button></li>`;
+        }).join('');
+    }
 
-        $partySearchInput.off('.sharedPartySearch').on('click.sharedPartySearch focus.sharedPartySearch keydown.sharedPartySearch keyup.sharedPartySearch', function (e) {
-            e.stopPropagation();
-        }).on('input.sharedPartySearch', function () {
-            const searchTerm = String($(this).val() || '').trim().toLowerCase();
-            $ctx.find('.party-option').each(function () {
-                const $option = $(this);
-                const partyName = String($.trim($option.find('span').first().text() || '')).toLowerCase();
-                const partyPhone = String($option.data('phone') || '').toLowerCase();
-                const visible = !searchTerm || partyName.includes(searchTerm) || partyPhone.includes(searchTerm);
-                $option.closest('li').toggleClass('d-none', !visible);
-            });
+    function populateUnitsMenu(units = []) {
+        cachedUnits = Array.isArray(units) ? units.slice() : [];
+        const baseHtml = buildUnitMenuHtml(cachedUnits);
+        $('#newItemUnitMenu').html(`${baseHtml}<li><hr class="dropdown-divider unit-menu-divider"></li><li class="unit-add-action"><button class="dropdown-item" type="button" id="openAddUnitModalBtn"><i class="fa-regular fa-square-plus me-2"></i>Add Unit</button></li>`);
+        syncAllRowUnitSelects();
+    }
+
+    function buildRowUnitOptionsHtml(selectedUnit = '') {
+        const normalizedSelected = String(selectedUnit || '').trim().toUpperCase();
+        const units = (Array.isArray(cachedUnits) ? cachedUnits : [])
+            .map((unit) => ({
+                short_name: String(unit.short_name || unit.short || unit.name || '').trim().toUpperCase()
+            }))
+            .filter((unit) => unit.short_name);
+
+        if (!units.length) {
+            return '<option value="">Select Unit</option>';
+        }
+
+        const seen = new Set();
+        const options = ['<option value="">Select Unit</option>'];
+        units.forEach((unit) => {
+            if (seen.has(unit.short_name)) {
+                return;
+            }
+            seen.add(unit.short_name);
+            options.push(`<option value="${escapeHtml(unit.short_name)}" ${normalizedSelected === unit.short_name ? 'selected' : ''}>${escapeHtml(unit.short_name)}</option>`);
         });
 
-        $partyDropdown.off('show.bs.dropdown.sharedPartySearch hide.bs.dropdown.sharedPartySearch')
-            .on('show.bs.dropdown.sharedPartySearch', function () {
-                setTimeout(() => $partySearchInput.trigger('focus').trigger('select'), 100);
+        if (normalizedSelected && !seen.has(normalizedSelected)) {
+            options.push(`<option value="${escapeHtml(normalizedSelected)}" selected>${escapeHtml(normalizedSelected)}</option>`);
+        }
+
+        return options.join('');
+    }
+
+    function syncAllRowUnitSelects() {
+        $('select.item-unit').each(function () {
+            const $select = $(this);
+            const currentValue = String($select.val() || '').trim().toUpperCase();
+            $select.html(buildRowUnitOptionsHtml(currentValue));
+            if (currentValue) {
+                $select.val(currentValue);
+            }
+        });
+    }
+
+    function fetchUnits() {
+        const unitsIndex = window.itemRoutes && window.itemRoutes.unitsIndex;
+        if (!unitsIndex) {
+            populateUnitsMenu([]);
+            return Promise.resolve([]);
+        }
+
+        const unitsUrl = String(unitsIndex).includes('?')
+            ? `${unitsIndex}&json=1`
+            : `${unitsIndex}?json=1`;
+
+        return fetchJson(unitsUrl)
+            .then((data) => {
+                const units = data.units || data.data || [];
+                populateUnitsMenu(units);
+                return units;
             })
-            .on('hide.bs.dropdown.sharedPartySearch', function () {
-                $partySearchInput.val('');
-                $ctx.find('.party-option').closest('li').removeClass('d-none');
+            .catch(() => {
+                populateUnitsMenu([]);
+                return [];
             });
     }
 
-    function positionPanel($picker) {
-        const $input = $picker.find('.item-picker-input');
-        const $panel = $picker.find('.item-picker-panel');
-        if (!$panel.hasClass('open')) return;
+    function resetPartyTabs() {
+        const tabEl = document.getElementById('party-address-tab');
+        if (tabEl && window.bootstrap && bootstrap.Tab) {
+            bootstrap.Tab.getOrCreateInstance(tabEl).show();
+        }
+        $('#partyAddressPane').addClass('show active');
+        $('#partyCreditPane, #partyAdditionalPane').removeClass('show active');
+        $('#party-address-tab').addClass('active').attr('aria-selected', 'true');
+        $('#party-credit-tab, #party-additional-tab').removeClass('active').attr('aria-selected', 'false');
+    }
 
-        const rect = $input.get(0).getBoundingClientRect();
-        const width = Math.max(rect.width, 320);
-        const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+    function resetItemTabs() {
+        const pricingTab = document.getElementById('pricing-tab');
+        if (pricingTab && window.bootstrap && bootstrap.Tab) {
+            bootstrap.Tab.getOrCreateInstance(pricingTab).show();
+        }
+        $('#pricing-tab-pane').addClass('show active');
+        $('#stock-tab-pane').removeClass('show active');
+        $('#pricing-tab').addClass('active').attr('aria-selected', 'true');
+        $('#stock-tab').removeClass('active').attr('aria-selected', 'false');
+    }
 
-        $panel.css({
-            position: 'fixed',
-            top: `${rect.bottom + 4}px`,
-            left: `${left}px`,
-            width: `${width}px`,
-            minWidth: `${width}px`,
-            zIndex: 1055,
-            display: 'block'
+    function resetPartyModal() {
+        const form = document.getElementById('addPartyForm');
+        if (form) {
+            form.reset();
+        }
+
+        $('#transactionTypeValue').val('');
+        $('#partyGroupInput').val('');
+        $('#partyGroupText').text('Select group');
+        $('#partyGroupMenu').addClass('d-none');
+        $('#creditLimitAmountWrap').addClass('is-hidden');
+        $('#btnUpdateParty, #btnDeleteParty').hide();
+        $('#btnSaveParty, #btnSaveNewParty').show();
+        resetPartyTabs();
+    }
+
+    function resetItemModal() {
+        const form = document.getElementById('addItemForm');
+        if (form) {
+            form.reset();
+        }
+
+        $('#newItemCategory').val('');
+        $('#newItemType').val('product');
+        $('#newItemTypeToggle').prop('checked', false);
+        $('#newItemProductLabel').text('Product');
+        $('#newItemNameLabel').text('Item Name *');
+        $('#purchase-sec').show();
+        $('.wholesale-pricing').addClass('d-none');
+        $('#toggleWholesalePricing').text('+ Add Wholesale Price');
+        $('#stock-tab').show();
+        resetItemTabs();
+
+        $('#newItemUnitBtn').text('Select Unit');
+        $('#newItemUnit').val('');
+        $('#quickCategoryName, #quickUnitName, #quickUnitShortName').val('');
+        $('#newItemImage').val('');
+        clearItemImagePreview();
+
+        const thumb = document.getElementById('newItemImageThumb');
+        const label = document.getElementById('newItemImageLabel');
+        if (thumb) {
+            thumb.innerHTML = '<i class="fa-regular fa-image fa-2x text-secondary"></i>';
+            thumb.style.border = '1.5px solid #93c5fd';
+        }
+        if (label) {
+            label.textContent = 'Click to choose image';
+        }
+    }
+
+    function showPartyModal($trigger) {
+        activePartyContext = getBodyContext($trigger);
+        resetPartyModal();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('addPartyModal')).show();
+    }
+
+    function showItemModal($trigger, rowIndex = null) {
+        activeItemContext = {
+            $context: getBodyContext($trigger),
+            rowIndex: rowIndex
+        };
+        window.activeCreateRow = rowIndex;
+        resetItemModal();
+        fetchUnits();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('addItemModal')).show();
+    }
+
+    function refreshPartyDropdowns() {
+        const parties = Array.isArray(window.parties) ? window.parties : [];
+        $('.party-dropdown-wrapper #partyDropdownMenu').each(function () {
+            const $menu = $(this);
+            $menu.find('.party-option').closest('li').remove();
+            const $divider = $menu.find('.dropdown-divider').first().closest('li');
+            const html = parties.map(buildPartyOptionHtml).join('');
+            if ($divider.length) {
+                $divider.before(html);
+            } else {
+                $menu.append(html);
+            }
         });
+    }
+
+    function applyPartySelection($context, party) {
+        if (!$context || !$context.length || !party) {
+            return;
+        }
+
+        $context.find('.party-id').first().val(party.id || '');
+        $context.find('#partyDropdownBtn').first().text(party.name || 'Select Party');
+        $context.find('.phone-input').first().val(party.phone || '');
+        $context.find('.billing-address').first().val(party.billing_address || '');
+        $context.find('.shipping-address').first().val(party.shipping_address || '');
+        $context.find('.party-group-input').first().val(party.party_group || '');
+
+        const $balance = $context.find('#partyBalanceDisplay').first();
+        if ($balance.length) {
+            const amount = Number(party.opening_balance || 0).toFixed(2);
+            if (party.transaction_type === 'pay') {
+                $balance.html(`<i class="fa-solid fa-arrow-up text-danger me-1"></i>Rs ${amount}`);
+            } else if (party.transaction_type === 'receive') {
+                $balance.html(`<i class="fa-solid fa-arrow-down text-success me-1"></i>Rs ${amount}`);
+            } else {
+                $balance.text(`Rs ${amount}`);
+            }
+        }
+    }
+
+    function updateWindowParties(party) {
+        window.parties = Array.isArray(window.parties) ? window.parties : [];
+        window.parties = window.parties.filter((entry) => String(entry.id) !== String(party.id));
+        window.parties.unshift(party);
+    }
+
+    function updateWindowItems(item) {
+        window.items = Array.isArray(window.items) ? window.items : [];
+        window.items = window.items.filter((entry) => String(entry.id) !== String(item.id));
+        window.items.push(item);
     }
 
     function getItemsFromSelect($select) {
         return $select.find('option').map(function () {
             const value = $(this).attr('value');
-            if (!value) return null;
+            if (!value) {
+                return null;
+            }
             return {
                 id: value,
                 name: $(this).attr('data-label') || $(this).text().trim(),
@@ -136,15 +397,44 @@
         }).get().filter(Boolean);
     }
 
+    function positionPanel($picker) {
+        const $panel = $picker.find('.item-picker-panel');
+        if (!$panel.hasClass('open')) {
+            return;
+        }
+
+        const input = $picker.find('.item-picker-input').get(0);
+        if (!input) {
+            return;
+        }
+
+        const rect = input.getBoundingClientRect();
+        const width = Math.max(rect.width, 320);
+        const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+
+        $panel.css({
+            position: 'fixed',
+            top: `${rect.bottom + 4}px`,
+            left: `${left}px`,
+            width: `${width}px`,
+            minWidth: `${width}px`,
+            zIndex: 1055,
+            display: 'block'
+        });
+    }
+
     function enhanceItemPicker($ctx, $select) {
-        if ($select.data('enhanced-picker')) return;
+        if ($select.data('enhanced-picker')) {
+            return;
+        }
+
         $select.data('enhanced-picker', true).addClass('d-none');
 
-        const pickerHtml = `
+        const $picker = $(`
             <div class="item-picker">
                 <input type="text" class="item-picker-input" placeholder="Search Item">
                 <div class="item-picker-panel">
-                    <div class="item-picker-add"><i class="fa-regular fa-circle-plus"></i> Add Item</div>
+                    <div class="item-picker-add open-item-modal"><i class="fa-regular fa-square-plus"></i> Add Item</div>
                     <div class="item-picker-head">
                         <span>Item</span>
                         <span>Sale Price</span>
@@ -154,29 +444,30 @@
                     <div class="item-picker-list"></div>
                 </div>
             </div>
-        `;
+        `);
 
-        const $picker = $(pickerHtml);
         $select.before($picker);
 
-        const syncInput = () => {
+        function syncInput() {
             const $selected = $select.find('option:selected');
             const value = String($selected.val() || '').trim();
             $picker.find('.item-picker-input').val(value ? (($selected.data('label') || $selected.text() || '').trim()) : '');
-        };
+        }
 
-        const renderPicker = (query = '') => {
+        function renderPicker(query) {
             const normalized = String(query || '').trim().toLowerCase();
-            const items = (window.items && window.items.length ? window.items : getItemsFromSelect($select)).filter((item) => {
+            const pool = window.items && window.items.length ? window.items : getItemsFromSelect($select);
+            const items = pool.filter((item) => {
                 const label = String(item.name || '').toLowerCase();
                 const code = String(item.item_code || '').toLowerCase();
                 const desc = String(item.description || '').toLowerCase();
                 return !normalized || label.includes(normalized) || code.includes(normalized) || desc.includes(normalized);
             });
+
             $picker.find('.item-picker-list').html(buildPickerRowsHtml(items));
             $picker.find('.item-picker-panel').addClass('open');
             positionPanel($picker);
-        };
+        }
 
         syncInput();
 
@@ -189,17 +480,18 @@
             renderPicker($(this).val());
         });
 
-        $picker.on('click', '.item-picker-option', function (e) {
-            e.preventDefault();
+        $picker.on('click', '.item-picker-option', function (event) {
+            event.preventDefault();
             const id = String($(this).data('id') || '');
             $select.val(id).trigger('change');
             syncInput();
             $picker.find('.item-picker-panel').removeClass('open').hide();
         });
 
-        $picker.on('click', '.item-picker-add', function () {
-            window.activeCreateRow = $ctx.find('.item-row').index($select.closest('tr'));
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('addItemModal')).show();
+        $picker.on('click', '.item-picker-add', function (event) {
+            event.preventDefault();
+            const rowIndex = $ctx.find('.item-row').index($select.closest('tr'));
+            showItemModal($(this), rowIndex);
         });
 
         $select.on('change.sharedPicker', function () {
@@ -207,164 +499,506 @@
         });
     }
 
-    function enhanceAllItemPickers($ctx) {
-        $ctx.find('select.item-name').each(function () {
-            enhanceItemPicker($ctx, $(this));
+    function enhanceAllItemPickers() {
+        $('select.item-name').each(function () {
+            enhanceItemPicker(getBodyContext($(this)), $(this));
         });
     }
 
     function refreshAllItemOptions(item) {
         if (item) {
-            window.items = Array.isArray(window.items) ? window.items : [];
-            window.items.push(item);
+            updateWindowItems(item);
         }
-        const unique = [];
-        const seen = new Set();
-        (window.items || []).forEach((entry) => {
-            const id = String(entry.id || '');
-            if (!id || seen.has(id)) return;
-            seen.add(id);
-            unique.push(entry);
-        });
-        window.items = unique;
-        const optionsHtml = buildOptionsHtml(unique);
+
+        const items = Array.isArray(window.items) ? window.items : [];
+        const optionsHtml = buildItemOptionsHtml(items);
         $('select.item-name').each(function () {
             const current = $(this).val();
             $(this).html('<option value="" selected disabled>Select Item</option>' + optionsHtml);
-            if (current) $(this).val(current);
+            if (current) {
+                $(this).val(current);
+            }
             $(this).trigger('change.sharedPicker');
         });
     }
 
-    function savePartyFromModal() {
+    function saveParty(closeAfterSave) {
         const form = document.getElementById('addPartyForm');
-        if (!form || !window.partyStoreUrl) return;
-        const formData = new FormData(form);
-        const creditSwitch = document.getElementById('creditLimitSwitch');
-        if (creditSwitch) {
-            formData.set('credit_limit_enabled', creditSwitch.checked ? 1 : 0);
+        if (!form || !window.partyStoreUrl) {
+            return;
         }
+
+        const formData = new FormData(form);
+        const transactionType = $('#toReceive').is(':checked') ? 'receive' : ($('#toPay').is(':checked') ? 'pay' : '');
+        formData.set('transaction_type', transactionType);
+        formData.set('credit_limit_enabled', $('#creditLimitSwitch').is(':checked') ? 1 : 0);
+        $('#transactionTypeValue').val(transactionType);
 
         fetchJson(window.partyStoreUrl, {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
             body: formData
         }).then((data) => {
             const party = data.party || data.data || null;
-            if (!party) throw new Error('Party was not returned from server.');
-            window.parties = Array.isArray(window.parties) ? window.parties : [];
-            window.parties.unshift(party);
-            $('.party-dropdown-wrapper #partyDropdownMenu').each(function () {
-                const $menu = $(this);
-                const $divider = $menu.find('.dropdown-divider').first();
-                const itemHtml = `<li><a class="dropdown-item d-flex justify-content-between party-option" href="#" data-id="${party.id}" data-phone="${party.phone || ''}" data-billing="${party.billing_address || ''}" data-shipping="${party.shipping_address || ''}" data-opening="${party.opening_balance || 0}" data-type="${party.transaction_type || ''}"><span>${party.name || ''}</span><span>Rs ${Number(party.opening_balance || 0).toFixed(2)}</span></a></li>`;
-                if ($divider.length) $divider.parent().before(itemHtml); else $menu.append(itemHtml);
-            });
-            $('#partyDropdownBtn').text(party.name || 'Select Party');
-            $('.party-id').val(party.id || '');
-            $('.phone-input').val(party.phone || '');
-            $('.billing-address').val(party.billing_address || '');
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('addPartyModal')).hide();
-            form.reset();
-        }).catch((error) => alert(error.message || 'Unable to save party.'));
+            if (!party) {
+                throw new Error('Party was not returned from server.');
+            }
+
+            updateWindowParties(party);
+            refreshPartyDropdowns();
+            applyPartySelection(activePartyContext || $(document.body), party);
+            $(window).trigger('partiesUpdated');
+
+            if (closeAfterSave) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('addPartyModal')).hide();
+            }
+            resetPartyModal();
+        }).catch((error) => {
+            alert(error.message || 'Unable to save party.');
+        });
     }
 
-    function bindSharedCreateEnhancements() {
-        const $ctx = $(document.body);
-        initPartySearch($ctx);
-        enhanceAllItemPickers($ctx);
+    function savePartyGroup() {
+        const name = $('#newGroupName').val().trim();
+        if (!name) {
+            alert('Enter group name');
+            return;
+        }
 
-        const observer = new MutationObserver(() => enhanceAllItemPickers($ctx));
-        const rowsRoot = document.querySelector('.item-rows');
-        if (rowsRoot) observer.observe(rowsRoot, { childList: true, subtree: true });
+        fetchJson(window.partyGroupStoreUrl || '/dashboard/party-groups', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({ name: name })
+        }).then((data) => {
+            const groupName = data.partyGroup && data.partyGroup.name ? data.partyGroup.name : name;
+            const exists = $('#partyGroupList [data-group]').filter(function () {
+                return $(this).data('group') === groupName;
+            }).length > 0;
 
-        $(document).on('click.sharedPickerClose', function (e) {
-            if (!$(e.target).closest('.item-picker').length) {
-                $('.item-picker-panel').removeClass('open').hide();
+            if (!exists) {
+                $('#partyGroupList').append(`<button type="button" class="dropdown-item" data-group="${groupName}">${groupName}</button>`);
+            }
+
+            $('#partyGroupInput').val(groupName);
+            $('#partyGroupText').text(groupName);
+            $('#newGroupName').val('');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('partyGroupModal')).hide();
+        }).catch((error) => {
+            alert(error.message || 'Could not save party group.');
+        });
+    }
+
+    function saveQuickCategory() {
+        const name = $('#quickCategoryName').val().trim();
+        if (!name) {
+            alert('Please enter a category name');
+            return;
+        }
+
+        fetchJson(window.itemRoutes.categoryStore, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({ name: name })
+        }).then((data) => {
+            const category = data.category || data.data || null;
+            if (!category) {
+                throw new Error('Category was not returned from server.');
+            }
+
+            const $select = $('#newItemCategory');
+            $select.find('option[value="__add_new__"]').before(`<option value="${category.id}">${category.name}</option>`);
+            $select.val(String(category.id));
+            $('#quickCategoryName').val('');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).hide();
+        }).catch((error) => {
+            alert(error.message || 'Unable to save category.');
+        });
+    }
+
+    function saveQuickUnit() {
+        const name = $('#quickUnitName').val().trim();
+        const shortName = $('#quickUnitShortName').val().trim().toUpperCase();
+
+        if (!name || !shortName) {
+            alert('Please enter both unit name and short name');
+            return;
+        }
+
+        fetchJson(window.itemRoutes.unitsStore, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({ name: name, short_name: shortName })
+        }).then((data) => {
+            const unit = data.unit || data.data || { name: name, short_name: shortName };
+            cachedUnits.push(unit);
+            populateUnitsMenu(cachedUnits);
+            const selectedUnit = unit.short_name || shortName;
+            $('#newItemUnitBtn').text(selectedUnit);
+            $('#newItemUnit').val(selectedUnit);
+            $('select.item-unit').each(function () {
+                const $select = $(this);
+                const exists = $select.find('option').filter(function () {
+                    return String($(this).val() || $(this).text()).trim().toUpperCase() === selectedUnit;
+                }).length > 0;
+                if (!exists) {
+                    $select.append(`<option value="${selectedUnit}">${selectedUnit}</option>`);
+                }
+            });
+            $('#quickUnitName, #quickUnitShortName').val('');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
+        }).catch((error) => {
+            alert(error.message || 'Unable to save unit.');
+        });
+    }
+
+    function saveItem() {
+        if (!window.itemRoutes || !window.itemRoutes.store) {
+            alert('Item store route is missing.');
+            return;
+        }
+
+        const itemName = $('#newItemName').val().trim();
+        if (!itemName) {
+            alert('Please enter an item name');
+            return;
+        }
+
+        const formData = new FormData();
+        const itemType = $('#newItemType').val() || 'product';
+        formData.append('name', itemName);
+        formData.append('category_id', $('#newItemCategory').val() || '');
+        formData.append('unit', $('#newItemUnit').val() || '');
+        formData.append('item_type', itemType);
+        formData.append('type', itemType);
+        formData.append('sale_price', $('#newItemSalePrice').val() || 0);
+        formData.append('purchase_price', $('#newItemPurchasePrice').val() || 0);
+        formData.append('wholesale_price', $('#newItemWholesalePrice').val() || 0);
+        formData.append('wholesale_min_qty', $('#newItemWholesaleMinQty').val() || 0);
+        formData.append('item_code', $('#newItemCode').val() || '');
+        formData.append('opening_qty', $('#newItemStock').val() || 0);
+        formData.append('at_price', $('#newItemAtPrice').val() || 0);
+        formData.append('as_of_date', $('#newItemAsOfDate').val() || '');
+        formData.append('min_stock', $('#newItemMinStock').val() || 0);
+        formData.append('location', $('#newItemLocation').val() || '');
+        formData.append('description', $('#newItemDescription').val() || '');
+
+        const imageInput = document.getElementById('newItemImage');
+        if (imageInput && imageInput.files.length > 0) {
+            formData.append('item_image', imageInput.files[0]);
+        }
+
+        fetchJson(window.itemRoutes.store, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: formData
+        }).then((data) => {
+            const item = data.item || data.data || null;
+            if (!item) {
+                throw new Error('Item was not returned from server.');
+            }
+
+            refreshAllItemOptions(item);
+
+            if (activeItemContext && activeItemContext.rowIndex !== null && activeItemContext.rowIndex !== undefined) {
+                const $row = activeItemContext.$context.find('.item-row').eq(activeItemContext.rowIndex);
+                const $select = $row.find('select.item-name').first();
+                if ($select.length) {
+                    $select.val(String(item.id)).trigger('change');
+                }
+            }
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addItemModal')).hide();
+            resetItemModal();
+        }).catch((error) => {
+            alert(error.message || 'Unable to save item.');
+        });
+    }
+
+    function syncItemType() {
+        const isService = $('#newItemTypeToggle').is(':checked');
+        $('#newItemType').val(isService ? 'service' : 'product');
+        $('#newItemProductLabel').text(isService ? 'Service' : 'Product');
+        $('#newItemNameLabel').text(isService ? 'Service Name *' : 'Item Name *');
+        $('#purchase-sec').toggle(!isService);
+        $('#stock-tab').toggle(!isService);
+        if (isService && window.bootstrap && bootstrap.Tab) {
+            const pricingTab = document.getElementById('pricing-tab');
+            if (pricingTab) {
+                bootstrap.Tab.getOrCreateInstance(pricingTab).show();
+            }
+            $('#pricing-tab-pane').addClass('show active');
+            $('#stock-tab-pane').removeClass('show active');
+        }
+    }
+
+    function bindPartySearch() {
+        $(document).on('click.sharedPartySearch focus.sharedPartySearch keydown.sharedPartySearch keyup.sharedPartySearch', '.party-search-input, .dropdown-header-search', function (event) {
+            event.stopPropagation();
+        });
+
+        $(document).on('input.sharedPartySearch', '.party-search-input', function () {
+            const searchTerm = String($(this).val() || '').trim().toLowerCase();
+            const $menu = $(this).closest('#partyDropdownMenu');
+            $menu.find('.party-option').each(function () {
+                const $option = $(this);
+                const partyName = String($.trim($option.find('span').first().text() || '')).toLowerCase();
+                const partyPhone = String($option.data('phone') || '').toLowerCase();
+                const visible = !searchTerm || partyName.includes(searchTerm) || partyPhone.includes(searchTerm);
+                $option.closest('li').toggleClass('d-none', !visible);
+            });
+        });
+
+        $(document).on('hide.bs.dropdown.sharedPartySearch', '.party-dropdown-wrapper', function () {
+            $(this).find('.party-search-input').val('');
+            $(this).find('.party-option').closest('li').removeClass('d-none');
+        });
+    }
+
+    function bindPartySelection() {
+        $(document).on('click.sharedPartySelect', '.party-option', function (event) {
+            event.preventDefault();
+            const $option = $(this);
+            const party = {
+                id: $option.data('id') || '',
+                name: $.trim($option.find('span').first().text()),
+                phone: $option.data('phone') || '',
+                billing_address: $option.data('billing') || '',
+                shipping_address: $option.data('shipping') || '',
+                opening_balance: $option.data('opening') || 0,
+                transaction_type: $option.data('type') || '',
+                party_group: $option.data('party-group') || ''
+            };
+            applyPartySelection(getBodyContext($option), party);
+            const button = $option.closest('.party-dropdown-wrapper').find('#partyDropdownBtn').get(0);
+            if (button && window.bootstrap && bootstrap.Dropdown) {
+                bootstrap.Dropdown.getOrCreateInstance(button).hide();
+            }
+        });
+    }
+
+    function bindEvents() {
+        bindPartySearch();
+        bindPartySelection();
+
+        $(document).on('click.sharedPartyModalOpen', '.open-party-modal, #addNewPartyBtn', function (event) {
+            event.preventDefault();
+            showPartyModal($(this));
+        });
+
+        $(document).on('click.sharedItemModalOpen', '.open-item-modal', function (event) {
+            event.preventDefault();
+            showItemModal($(this), null);
+        });
+
+        $(document).on('click.sharedPartySave', '#btnSaveParty', function (event) {
+            event.preventDefault();
+            saveParty(true);
+        });
+
+        $(document).on('click.sharedPartySaveNew', '#btnSaveNewParty', function (event) {
+            event.preventDefault();
+            saveParty(false);
+        });
+
+        $(document).on('click.sharedPartyGroupOpen', '#addNewGroupBtn', function (event) {
+            event.preventDefault();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('partyGroupModal')).show();
+        });
+
+        $(document).on('click.sharedPartyGroupSave', '#saveGroupBtn', function (event) {
+            event.preventDefault();
+            savePartyGroup();
+        });
+
+        $(document).on('click.sharedPartyGroupToggle', '#partyGroupTrigger', function (event) {
+            event.preventDefault();
+            $('#partyGroupMenu').toggleClass('d-none');
+        });
+
+        $(document).on('click.sharedPartyGroupSelect', '#partyGroupList [data-group]', function (event) {
+            event.preventDefault();
+            const groupName = $(this).data('group') || $(this).text().trim();
+            $('#partyGroupInput').val(groupName);
+            $('#partyGroupText').text(groupName);
+            $('#partyGroupMenu').addClass('d-none');
+        });
+
+        $(document).on('click.sharedPartyGroupOutside', function (event) {
+            if (!$(event.target).closest('#partyGroupTrigger, #partyGroupMenu').length) {
+                $('#partyGroupMenu').addClass('d-none');
             }
         });
 
-        $(window).on('resize.sharedPicker scroll.sharedPicker', function () {
-            $('.item-picker').each(function () { positionPanel($(this)); });
+        $(document).on('change.sharedCreditToggle', '#creditLimitSwitch', function () {
+            $('#creditLimitAmountWrap').toggleClass('is-hidden', !this.checked);
         });
 
-        $(document).on('click.sharedPartyOpen', '#addNewPartyBtn', function (e) {
-            e.preventDefault();
-            const modalEl = document.getElementById('addPartyModal');
-            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        $(document).on('change.sharedTransactionType', '#toReceive, #toPay', function () {
+            if (this.checked) {
+                $('#toReceive, #toPay').not(this).prop('checked', false);
+            }
+            const value = $('#toReceive').is(':checked') ? 'receive' : ($('#toPay').is(':checked') ? 'pay' : '');
+            $('#transactionTypeValue').val(value);
         });
 
-        if (window.useSharedPartySave) {
-            $(document).on('click.sharedPartySave', '#btnSaveParty, #btnSaveNewParty', function (e) {
-                e.preventDefault();
-                savePartyFromModal();
-            });
-        }
+        $(document).on('change.sharedItemType', '#newItemTypeToggle', syncItemType);
 
-        $(document).on('click.sharedUnitSelect', '.unit-option', function (e) {
-            e.preventDefault();
+        $(document).on('click.sharedWholesaleToggle', '#toggleWholesalePricing', function (event) {
+            event.preventDefault();
+            const $pricing = $('.wholesale-pricing');
+            const willShow = $pricing.hasClass('d-none');
+            $pricing.toggleClass('d-none', !willShow);
+            $(this).text(willShow ? 'Hide Wholesale Price' : '+ Add Wholesale Price');
+        });
+
+        $(document).on('click.sharedCategoryTrigger', '#newItemCategory', function () {
+            if (!cachedUnits.length) {
+                fetchUnits();
+            }
+        });
+
+        $(document).on('change.sharedCategoryAdd', '#newItemCategory', function () {
+            if ($(this).val() === '__add_new__') {
+                $(this).val('');
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).show();
+            }
+        });
+
+        $(document).on('click.sharedCategorySave', '#saveQuickCategoryBtn', function (event) {
+            event.preventDefault();
+            saveQuickCategory();
+        });
+
+        $(document).on('click.sharedUnitModalOpen', '#openAddUnitModalBtn', function (event) {
+            event.preventDefault();
+            const dropdownEl = document.getElementById('newItemUnitBtn');
+            const dropdown = dropdownEl && window.bootstrap && bootstrap.Dropdown
+                ? bootstrap.Dropdown.getOrCreateInstance(dropdownEl)
+                : null;
+            dropdown?.hide();
+            $('#quickUnitName, #quickUnitShortName').val('');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
+            setTimeout(() => $('#quickUnitName').trigger('focus'), 150);
+        });
+
+        $(document).on('click.sharedUnitSave', '#saveQuickUnitBtn', function (event) {
+            event.preventDefault();
+            saveQuickUnit();
+        });
+
+        $(document).on('click.sharedUnitSelect', '.unit-option', function (event) {
+            event.preventDefault();
             const unit = $(this).data('unit') || $(this).text().trim();
             $('#newItemUnitBtn').text(unit);
             $('#newItemUnit').val(unit);
         });
 
-        $(document).on('click.sharedAssignCode', '#assignItemCodeBtn', function (e) {
-            e.preventDefault();
-            const itemName = $('#newItemName').val().trim();
-            if (!itemName) return;
-            $('#newItemCode').val(itemName.toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9-_]/g, '').substring(0, 50));
+        $(document).on('click.sharedAssignCode', '#assignItemCodeBtn', function (event) {
+            event.preventDefault();
+            $('#newItemCode').val(generateItemCode($('#newItemName').val()));
         });
 
-        $(document).on('click.sharedItemSave', '#saveNewItemBtn', function () {
-            const itemRoutes = window.itemRoutes || {};
-            const storeUrl = itemRoutes.store;
-            if (!storeUrl) return alert('Item store route is missing.');
-            const itemName = $('#newItemName').val().trim();
-            if (!itemName) return alert('Please enter an item name');
+        $(document).on('click.sharedItemSave', '#saveNewItemBtn', function (event) {
+            event.preventDefault();
+            saveItem();
+        });
 
-            const formData = new FormData();
-            formData.append('name', itemName);
-            formData.append('category_id', $('#newItemCategory').val() || '');
-            formData.append('unit', $('#newItemUnit').val() || '');
-            const type = $('#newItemType').val() || 'product';
-            formData.append('item_type', type);
-            formData.append('type', type);
-            formData.append('sale_price', $('#newItemSalePrice').val() || 0);
-            formData.append('purchase_price', $('#newItemPurchasePrice').val() || 0);
-            formData.append('wholesale_price', $('#newItemWholesalePrice').val() || 0);
-            formData.append('wholesale_min_qty', $('#newItemWholesaleMinQty').val() || 0);
-            formData.append('item_code', $('#newItemCode').val() || '');
-            formData.append('opening_qty', $('#newItemStock').val() || 0);
-            formData.append('at_price', $('#newItemAtPrice').val() || 0);
-            formData.append('as_of_date', $('#newItemAsOfDate').val() || '');
-            formData.append('min_stock', $('#newItemMinStock').val() || 0);
-            formData.append('location', $('#newItemLocation').val() || '');
-            formData.append('description', $('#newItemDescription').val() || '');
+        $(document).on('click.sharedItemImageOpen', '.open-item-image-picker', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const input = document.getElementById('newItemImage');
+            if (input) {
+                input.click();
+            }
+        });
 
-            const imageInput = document.getElementById('newItemImage');
-            if (imageInput && imageInput.files.length > 0) {
-                formData.append('item_image', imageInput.files[0]);
+        $(document).on('click.sharedItemImageInput', '#newItemImage', function (event) {
+            event.stopPropagation();
+        });
+
+        $(document).on('change.sharedItemImagePreview', '#newItemImage', function () {
+            const file = this.files && this.files[0];
+            const thumb = document.getElementById('newItemImageThumb');
+            const label = document.getElementById('newItemImageLabel');
+            clearItemImagePreview();
+
+            if (!thumb || !label) {
+                return;
             }
 
-            fetchJson(storeUrl, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-                body: formData
-            }).then((data) => {
-                if (!data.item) throw new Error('Item was not returned from server.');
-                refreshAllItemOptions(data.item);
-                const rowIndex = Number(window.activeCreateRow || 0);
-                const $targetSelect = $('.item-row').eq(rowIndex).find('select.item-name').first();
-                if ($targetSelect.length) {
-                    $targetSelect.val(String(data.item.id)).trigger('change');
-                }
-                bootstrap.Modal.getOrCreateInstance(document.getElementById('addItemModal')).hide();
-                document.getElementById('addItemForm')?.reset();
-                $('#newItemUnitBtn').text('Select Unit');
-                $('#newItemUnit').val('');
-            }).catch((error) => alert(error.message || 'Unable to save item.'));
+            if (!file) {
+                thumb.innerHTML = '<i class="fa-regular fa-image fa-2x text-secondary"></i>';
+                thumb.style.border = '1.5px solid #93c5fd';
+                label.textContent = 'Click to choose image';
+                return;
+            }
+
+            label.textContent = file.name;
+            currentItemImageObjectUrl = URL.createObjectURL(file);
+            thumb.innerHTML = `<img src="${currentItemImageObjectUrl}" alt="${escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:cover;">`;
+            thumb.style.border = '1.5px solid #2563eb';
         });
+
+        $(document).on('shown.bs.modal.sharedPartyModal', '#addPartyModal', function () {
+            resetPartyTabs();
+            setTimeout(resetPartyTabs, 20);
+        });
+
+        $(document).on('shown.bs.modal.sharedItemModal', '#addItemModal', function () {
+            resetItemTabs();
+            setTimeout(resetItemTabs, 20);
+        });
+
+        $(document).on('click.sharedPickerClose', function (event) {
+            if (!$(event.target).closest('.item-picker').length) {
+                $('.item-picker-panel').removeClass('open').hide();
+            }
+        });
+
+        $(window).on('resize.sharedPicker scroll.sharedPicker', function () {
+            $('.item-picker').each(function () {
+                positionPanel($(this));
+            });
+        });
+
+        $(window).on('partiesUpdated.sharedPartyRefresh', refreshPartyDropdowns);
     }
 
-    document.addEventListener('DOMContentLoaded', bindSharedCreateEnhancements);
+    function initialize() {
+        window.partyGroupStoreUrl = window.partyGroupStoreUrl || '/dashboard/party-groups';
+        window.items = Array.isArray(window.items) ? window.items : [];
+        window.parties = Array.isArray(window.parties) ? window.parties : [];
+        refreshPartyDropdowns();
+        enhanceAllItemPickers();
+        fetchUnits();
+        resetPartyTabs();
+        resetItemTabs();
+
+        const observer = new MutationObserver(function () {
+            enhanceAllItemPickers();
+            syncAllRowUnitSelects();
+        });
+        const rowsRoot = document.querySelector('.item-rows');
+        if (rowsRoot) {
+            observer.observe(rowsRoot, { childList: true, subtree: true });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        bindEvents();
+        initialize();
+    });
 })();

@@ -985,7 +985,7 @@
                                             <div class="item-picker">
                                                 <input type="text" class="item-picker-input" placeholder="Search Item" style="position: relative; z-index: 10;">
                                                 <div class="item-picker-panel" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; width: 100%; min-width: 320px; background: white; border: 1px solid #e1e8ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: none; overflow: hidden;">
-                                                    <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-circle-plus"></i> Add Item</div>
+                                                    <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-square-plus"></i> Add Item</div>
                                                     <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
                                                         <span>Item</span>
                                                         <span>Sale Price</span>
@@ -1604,6 +1604,8 @@
             const itemNameInput = document.getElementById('newItemName');
             const wholesaleToggle = document.getElementById('toggleWholesalePricing');
             const wholesaleSection = document.querySelector('.wholesale-pricing');
+            const imagePickerCard = document.querySelector('.open-item-image-picker');
+            let currentImageObjectUrl = null;
 
             if (unitButtons && unitInput && unitBtn) {
                 unitButtons.forEach(btn => {
@@ -1657,20 +1659,35 @@
             const newItemImageThumb = document.getElementById('newItemImageThumb');
             const newItemImageLabel = document.getElementById('newItemImageLabel');
 
+            if (imagePickerCard && newItemImageInput) {
+                imagePickerCard.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    newItemImageInput.click();
+                });
+            }
+
             if (newItemImageInput) {
+                newItemImageInput.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                });
+
                 newItemImageInput.addEventListener('change', function (event) {
                     const file = event.target.files[0];
+                    if (currentImageObjectUrl) {
+                        URL.revokeObjectURL(currentImageObjectUrl);
+                        currentImageObjectUrl = null;
+                    }
                     if (!file) {
                         newItemImageThumb.innerHTML = '<i class="fa-regular fa-image fa-2x text-secondary"></i>';
+                        newItemImageThumb.style.border = '1.5px solid #93c5fd';
                         newItemImageLabel.textContent = 'Click to choose image';
                         return;
                     }
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        newItemImageThumb.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;"/>`;
-                        newItemImageLabel.textContent = file.name;
-                    };
-                    reader.readAsDataURL(file);
+                    currentImageObjectUrl = URL.createObjectURL(file);
+                    newItemImageThumb.innerHTML = `<img src="${currentImageObjectUrl}" style="width:100%;height:100%;object-fit:cover;"/>`;
+                    newItemImageThumb.style.border = '1.5px solid #2563eb';
+                    newItemImageLabel.textContent = file.name;
                 });
             }
 
@@ -1745,8 +1762,8 @@
       <div id="partyGroupMenu" class="border bg-white position-absolute w-100 mt-1 d-none" style="z-index:999;">
       <button type="button" class="dropdown-item text-primary" id="addNewGroupBtn">+ New Group</button>
       <div id="partyGroupList">
-        @foreach($parties->pluck('party_group')->filter()->unique()->values() as $partyGroup)
-          <button type="button" class="dropdown-item" data-group="{{ $partyGroup }}">{{ $partyGroup }}</button>
+        @foreach($partyGroups as $partyGroup)
+          <button type="button" class="dropdown-item" data-group="{{ $partyGroup->name }}">{{ $partyGroup->name }}</button>
         @endforeach
       </div>
       </div>
@@ -1915,6 +1932,17 @@
   </div>
 </div>
 
+@php
+    $salesModalUnits = [];
+
+    if (\Illuminate\Support\Facades\Schema::hasTable('item_units')) {
+        $salesModalUnits = \App\Models\ItemUnit::query()
+            ->where('is_active', true)
+            ->orderBy('short_name')
+            ->get(['name', 'short_name']);
+    }
+
+@endphp
 <div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
@@ -1957,18 +1985,19 @@
                   Select Unit
                 </button>
                 <ul class="dropdown-menu w-100 unit-menu-scroll" aria-labelledby="newItemUnitBtn" id="newItemUnitMenu">
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="PCS">PCS</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="BOX">BOX</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="PACK">PACK</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="SET">SET</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="KG">KG</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="G">G</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="M">M</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="FT">FT</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="L">L</button></li>
-                  <li><button class="dropdown-item unit-option" type="button" data-unit="ML">ML</button></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li><button class="dropdown-item text-primary fw-semibold" type="button" id="openAddUnitModalBtn">+ Add Unit</button></li>
+                  @if($salesModalUnits->isEmpty())
+                    <li><span class="dropdown-item-text text-muted">No units found</span></li>
+                  @endif
+                  @foreach($salesModalUnits as $unit)
+                    @php
+                      $unitShortName = strtoupper($unit['short_name'] ?? $unit->short_name ?? '');
+                      $unitName = strtoupper($unit['name'] ?? $unit->name ?? '');
+                      $unitLabel = $unitName && $unitName !== $unitShortName ? $unitShortName . ' (' . $unitName . ')' : $unitShortName;
+                    @endphp
+                    <li><button class="dropdown-item unit-option" type="button" data-unit="{{ $unitShortName }}">{{ $unitLabel }}</button></li>
+                  @endforeach
+                  <li><hr class="dropdown-divider unit-menu-divider"></li>
+                  <li class="unit-add-action"><button class="dropdown-item" type="button" id="openAddUnitModalBtn"><i class="fa-regular fa-square-plus me-2"></i>Add Unit</button></li>
                 </ul>
                 <input type="hidden" id="newItemUnit" name="unit">
               </div>
@@ -1982,7 +2011,7 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Item Image</label>
-              <div class="border rounded-3 p-3 text-center h-100 d-flex flex-column justify-content-center align-items-center" style="cursor:pointer;" onclick="document.getElementById('newItemImage').click()">
+              <div class="border rounded-3 p-3 text-center h-100 d-flex flex-column justify-content-center align-items-center open-item-image-picker" style="cursor:pointer;">
                 <div id="newItemImageThumb" style="width:68px; height:68px; border:1.5px solid #93c5fd; border-radius:12px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); overflow:hidden;">
                   <i class="fa-regular fa-image fa-2x text-secondary"></i>
                 </div>
@@ -2194,6 +2223,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const groupModal = new bootstrap.Modal(document.getElementById('partyGroupModal'));
     window.salePartyGroups = window.salePartyGroups || Array.from((list?.querySelectorAll('.dropdown-item') || []))
+        .filter((btn) => btn.id !== 'addNewGroupBtn')
         .map((btn) => btn.textContent.trim())
         .filter(Boolean);
 
@@ -2252,25 +2282,49 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
 
+    const partyGroupsStoreUrl = '{{ route("party-groups.store") }}';
+
     // Save group
     const saveGroupBtn = document.getElementById("saveGroupBtn");
     if (saveGroupBtn) {
-      saveGroupBtn.onclick = () => {
-        const name = document.getElementById("newGroupName").value.trim();
+      saveGroupBtn.onclick = async () => {
+        const nameEl = document.getElementById("newGroupName");
+        const name = nameEl.value.trim();
 
         if (!name) return alert("Enter group name");
 
-        if (!window.salePartyGroups.includes(name)) {
-            window.salePartyGroups.push(name);
+        try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const response = await fetch(partyGroupsStoreUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token || '',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ name }),
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Unable to save party group');
+            }
+
+            const groupName = result.partyGroup?.name || name;
+            if (!window.salePartyGroups.includes(groupName)) {
+                window.salePartyGroups.push(groupName);
+            }
+            renderGroups();
+
+            input.value = groupName;
+            text.textContent = groupName;
+
+            nameEl.value = "";
+            groupModal.hide();
+        } catch (error) {
+            console.error(error);
+            alert('Could not save party group. Please try again.');
         }
-        renderGroups();
-
-        // auto select
-        input.value = name;
-        text.textContent = name;
-
-        document.getElementById("newGroupName").value = "";
-        groupModal.hide();
       };
     }
 

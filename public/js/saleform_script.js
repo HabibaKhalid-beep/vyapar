@@ -5,19 +5,7 @@ function initializeForm(context) {
     const defaultPaymentDirection = 'payment_in';
 
     const baseItems = Array.isArray(window.items) ? window.items : [];
-    const defaultSaleUnits = [
-        { id: 'pcs', name: 'PIECES', short_name: 'PCS' },
-        { id: 'box', name: 'BOX', short_name: 'BOX' },
-        { id: 'pack', name: 'PACK', short_name: 'PACK' },
-        { id: 'set', name: 'SET', short_name: 'SET' },
-        { id: 'kg', name: 'KILOGRAMS', short_name: 'KG' },
-        { id: 'g', name: 'GRAM', short_name: 'G' },
-        { id: 'm', name: 'METER', short_name: 'M' },
-        { id: 'ft', name: 'FEET', short_name: 'FT' },
-        { id: 'l', name: 'LITER', short_name: 'L' },
-        { id: 'ml', name: 'MILLILITER', short_name: 'ML' }
-    ];
-    window.saleUnits = Array.isArray(window.saleUnits) && window.saleUnits.length ? window.saleUnits : defaultSaleUnits.slice();
+    window.saleUnits = Array.isArray(window.saleUnits) ? window.saleUnits : [];
     const getItemMeta = (item = {}) => {
         const plainLabel = item.name || "";
         const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`;
@@ -163,7 +151,7 @@ function initializeForm(context) {
     }
 
     const getNormalizedSaleUnits = () => {
-        const sourceUnits = Array.isArray(window.saleUnits) && window.saleUnits.length ? window.saleUnits : defaultSaleUnits;
+        const sourceUnits = Array.isArray(window.saleUnits) ? window.saleUnits : [];
         return sourceUnits.map(unit => {
             const shortName = String(unit.short_name || unit.short || unit.name || '').trim().toUpperCase();
             const name = String(unit.name || shortName || '').trim().toUpperCase();
@@ -210,9 +198,22 @@ function initializeForm(context) {
     function renderNewItemUnitMenu(selectedUnit = '') {
         const normalizedSelected = String(selectedUnit || '').trim().toUpperCase();
         const units = getNormalizedSaleUnits();
-        const itemsHtml = units.map(unit => `
-            <li><button class="dropdown-item unit-option ${normalizedSelected === unit.short_name ? 'active' : ''}" type="button" data-unit="${unit.short_name}">${unit.short_name}</button></li>
-        `).join('');
+        if (!units.length) {
+            $('#newItemUnitMenu').html(`
+                <li><span class="dropdown-item-text text-muted">No units found</span></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><button class="dropdown-item text-primary fw-semibold" type="button" id="openAddUnitModalBtn">+ Add Unit</button></li>
+            `);
+            return;
+        }
+        const itemsHtml = units.map(unit => {
+            const label = unit.name && unit.name !== unit.short_name
+                ? `${unit.short_name} (${unit.name})`
+                : unit.short_name;
+            return `
+            <li><button class="dropdown-item unit-option ${normalizedSelected === unit.short_name ? 'active' : ''}" type="button" data-unit="${unit.short_name}">${label}</button></li>
+        `;
+        }).join('');
 
         $('#newItemUnitMenu').html(`
             ${itemsHtml}
@@ -384,7 +385,7 @@ function initializeForm(context) {
     function refreshUnitsList(selectedUnit = '') {
         return fetchJson(`${itemRoutes.unitsIndex}?json=1`)
         .then(data => {
-            const units = Array.isArray(data.units) ? data.units : defaultSaleUnits;
+            const units = Array.isArray(data.units) ? data.units : [];
             window.saleUnits = units;
             renderNewItemUnitMenu(selectedUnit);
             syncItemUnitSelects();
@@ -395,9 +396,10 @@ function initializeForm(context) {
             return units;
         })
         .catch(() => {
+            window.saleUnits = [];
             renderNewItemUnitMenu(selectedUnit);
             syncItemUnitSelects();
-            return getNormalizedSaleUnits();
+            return [];
         });
     }
 
@@ -917,7 +919,7 @@ function initializeForm(context) {
                     <div class="item-picker">
                         <input type="text" class="item-picker-input" placeholder="Search Item">
                         <div class="item-picker-panel">
-                            <div class="item-picker-add"><i class="fa-regular fa-circle-plus"></i> Add Item</div>
+                            <div class="item-picker-add"><i class="fa-regular fa-square-plus"></i> Add Item</div>
                             <div class="item-picker-head">
                                 <span>Item</span>
                                 <span>Sale Price</span>
@@ -1169,10 +1171,9 @@ function initializeForm(context) {
     $(document).on('click', '#assignItemCodeBtn', function(e) {
         e.preventDefault();
         const itemName = $('#newItemName').val().trim();
-        if (!itemName) {
-            return;
-        }
-        const code = itemName.toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9-_]/g, '').substring(0, 50);
+        const normalized = itemName.toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9-_]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '').substring(0, 24);
+        const suffix = String(Math.floor(1000 + Math.random() * 9000));
+        const code = normalized ? `${normalized}-${suffix}`.substring(0, 50) : `ITEM-${suffix}`;
         $('#newItemCode').val(code);
     });
 

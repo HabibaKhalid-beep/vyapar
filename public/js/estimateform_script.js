@@ -13,6 +13,118 @@ function initializeForm(context) {
     const $imageFilesList = $ctx.find('.image-files-list');
     const $documentFilesList = $ctx.find('.document-files-list');
 
+    const defaultSaleUnits = [
+        { id: 'pcs', name: 'PIECES', short_name: 'PCS' },
+        { id: 'box', name: 'BOX', short_name: 'BOX' },
+        { id: 'pack', name: 'PACK', short_name: 'PACK' },
+        { id: 'set', name: 'SET', short_name: 'SET' },
+        { id: 'kg', name: 'KILOGRAMS', short_name: 'KG' },
+        { id: 'g', name: 'GRAM', short_name: 'G' },
+        { id: 'm', name: 'METER', short_name: 'M' },
+        { id: 'ft', name: 'FEET', short_name: 'FT' },
+        { id: 'l', name: 'LITER', short_name: 'L' },
+        { id: 'ml', name: 'MILLILITER', short_name: 'ML' }
+    ];
+    window.saleUnits = Array.isArray(window.saleUnits) && window.saleUnits.length ? window.saleUnits : defaultSaleUnits.slice();
+    const itemRoutes = Object.assign({
+        index: '/dashboard/items',
+        store: '/dashboard/items',
+        categoryStore: '/dashboard/items/category',
+        unitsIndex: '/dashboard/items/units',
+        unitsStore: '/dashboard/items/units'
+    }, window.itemRoutes || {});
+
+    function parseJsonSafely(text) {
+        try {
+            return JSON.parse(text);
+        } catch (_err) {
+            return null;
+        }
+    }
+
+    function fetchJson(url, options = {}) {
+        const headers = Object.assign({
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }, options.headers || {});
+
+        return fetch(url, Object.assign({}, options, { headers }))
+            .then(async response => {
+                const text = await response.text();
+                const data = parseJsonSafely(text);
+
+                if (!response.ok) {
+                    const message = data?.message || data?.error || `Request failed with status ${response.status}.`;
+                    throw new Error(message);
+                }
+
+                if (data === null) {
+                    throw new Error('Server response was not valid JSON.');
+                }
+
+                return data;
+            });
+    }
+
+    const getNormalizedSaleUnits = () => {
+        const sourceUnits = Array.isArray(window.saleUnits) && window.saleUnits.length ? window.saleUnits : defaultSaleUnits;
+        return sourceUnits.map(unit => {
+            const shortName = String(unit.short_name || unit.short || unit.name || '').trim().toUpperCase();
+            const name = String(unit.name || shortName || '').trim().toUpperCase();
+            return {
+                id: unit.id || shortName.toLowerCase(),
+                name,
+                short_name: shortName || name
+            };
+        }).filter(unit => unit.short_name);
+    };
+
+    const buildUnitOptionsHtml = (selectedUnit = '') => {
+        const normalizedSelected = String(selectedUnit || '').trim().toUpperCase();
+        const seen = new Set();
+        const options = ['<option value="">Select Unit</option>'];
+
+        getNormalizedSaleUnits().forEach(unit => {
+            const shortName = unit.short_name;
+            if (!shortName || seen.has(shortName)) {
+                return;
+            }
+            seen.add(shortName);
+            options.push(`<option value="${shortName}" ${normalizedSelected === shortName ? 'selected' : ''}>${shortName}</option>`);
+        });
+
+        if (normalizedSelected && !seen.has(normalizedSelected)) {
+            options.push(`<option value="${normalizedSelected}" selected>${normalizedSelected}</option>`);
+        }
+
+        return options.join('');
+    };
+
+    function syncItemUnitSelects() {
+        $ctx.find('.item-unit').each(function() {
+            const $select = $(this);
+            const currentValue = String($select.val() || '').trim().toUpperCase();
+            $select.html(buildUnitOptionsHtml(currentValue));
+            if (currentValue) {
+                $select.val(currentValue);
+            }
+        });
+    }
+
+    function renderNewItemUnitMenu(selectedUnit = '') {
+        const normalizedSelected = String(selectedUnit || '').trim().toUpperCase();
+        const units = getNormalizedSaleUnits();
+        const itemsHtml = units.map(unit => `
+            <li><button class="dropdown-item unit-option ${normalizedSelected === unit.short_name ? 'active' : ''}" type="button" data-unit="${unit.short_name}">${unit.short_name}</button></li>
+        `).join('');
+
+        $('#newItemUnitMenu').html(`
+            ${itemsHtml}
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item text-primary fw-semibold" type="button" id="openAddUnitModalBtn">+ Add Unit</button></li>
+        `);
+    }
+
     // Auto-fill invoice date and placeholder invoice no
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -410,6 +522,101 @@ function initializeForm(context) {
 
         $unitSelect.val(normalizedUnit);
     }
+
+    $('#addItemModal').on('show.bs.modal', function() {
+        renderNewItemUnitMenu($('#newItemUnit').val() || '');
+    });
+
+    $('#newItemCategory').on('change', function() {
+        if ($(this).val() !== '__add_new__') {
+            return;
+        }
+
+        $(this).val('');
+        $('#quickCategoryName').val('');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).show();
+        setTimeout(() => $('#quickCategoryName').trigger('focus'), 150);
+    });
+
+    $(document).on('click', '#openAddUnitModalBtn', function(e) {
+        e.preventDefault();
+        const dropdownEl = document.getElementById('newItemUnitBtn');
+        const dropdown = dropdownEl ? bootstrap.Dropdown.getOrCreateInstance(dropdownEl) : null;
+        dropdown?.hide();
+        $('#quickUnitName').val('');
+        $('#quickUnitShortName').val('');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
+        setTimeout(() => $('#quickUnitName').trigger('focus'), 150);
+    });
+
+    $(document).off('click', '#saveQuickCategoryBtn').on('click', '#saveQuickCategoryBtn', function() {
+        const name = $('#quickCategoryName').val().trim();
+        if (!name) {
+            alert('Please enter a category name');
+            return;
+        }
+
+        fetchJson(itemRoutes.categoryStore, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({ name })
+        })
+        .then(data => {
+            if (!data.category) {
+                throw new Error('Category not returned');
+            }
+
+            const category = data.category;
+            const $categorySelect = $('#newItemCategory');
+            const $existing = $categorySelect.find(`option[value="${category.id}"]`);
+            if (!$existing.length) {
+                $categorySelect.find('option[value="__add_new__"]').before(
+                    `<option value="${category.id}">${category.name}</option>`
+                );
+            }
+            $categorySelect.val(String(category.id));
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).hide();
+        })
+        .catch(error => {
+            console.error(error);
+            alert(error.message || 'Error saving category');
+        });
+    });
+
+    $(document).off('click', '#saveQuickUnitBtn').on('click', '#saveQuickUnitBtn', function() {
+        const name = $('#quickUnitName').val().trim();
+        const shortName = $('#quickUnitShortName').val().trim().toUpperCase();
+
+        if (!name || !shortName) {
+            alert('Please enter both unit name and short name');
+            return;
+        }
+
+        fetchJson(itemRoutes.unitsStore, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({ name, short_name: shortName })
+        })
+        .then(data => {
+            const unitCode = String(data.unit?.short_name || shortName).toUpperCase();
+            window.saleUnits = Array.isArray(data.units) ? data.units : getNormalizedSaleUnits();
+            renderNewItemUnitMenu(unitCode);
+            syncItemUnitSelects();
+            $('#newItemUnit').val(unitCode);
+            $('#newItemUnitBtn').text(unitCode);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
+        })
+        .catch(error => {
+            console.error(error);
+            alert(error.message || 'Error saving unit');
+        });
+    });
 
     $ctx.on('focus mousedown', '.item-name', function() {
         restoreRichItemDropdownLabels();

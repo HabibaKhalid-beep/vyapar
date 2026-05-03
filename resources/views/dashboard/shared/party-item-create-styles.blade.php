@@ -1,18 +1,22 @@
 <style>
 .item-picker { position: relative; min-width: 260px; flex: 1; overflow: visible; }
-.item-picker-input { width: 100%; border: 1px solid #cfd8e3; border-radius: 6px; padding: 10px 14px; font-size: 14px; background: #fff; transition: border-color 0.2s ease, box-shadow 0.2s ease; min-width: 240px; }
+.item-picker-input { width: 100%; border: 1px solid #d6dce5; border-radius: 8px; padding: 10px 14px; font-size: 14px; background: #fff; transition: border-color 0.2s ease, box-shadow 0.2s ease; min-width: 240px; }
 .item-picker-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-.item-picker-panel { position: fixed; top: calc(100% + 4px); left: 0; width: 100%; min-width: 320px; background: white; border: 1px solid #e1e8ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1055; display: none; overflow: hidden; }
+.item-picker-panel { position: fixed; top: calc(100% + 4px); left: 0; width: 100%; min-width: 320px; background: white; border: 1px solid #d9e1ec; border-radius: 12px; box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12); z-index: 1055; display: none; overflow: hidden; }
 .item-picker-panel.open { display: block !important; }
 .item-picker-list { max-height: 320px; overflow-y: auto; }
-.item-picker-add { display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; border-bottom: 1px solid #e1e8ed; }
+.item-picker-add { display: flex; align-items: center; gap: 10px; padding: 14px 20px; color: #2563eb; font-size: 18px; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; border-bottom: 1px solid #e8edf5; }
+.item-picker-add i { font-size: 22px; line-height: 1; }
 .item-picker-add:hover, .item-picker-row:hover { background: #f8fbff; }
 .item-picker-head, .item-picker-row { display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px; gap: 12px; align-items: center; }
-.item-picker-head { padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed; }
-.item-picker-row { padding: 12px 18px; cursor: pointer; border-top: 1px solid #f4f7fb; }
+.item-picker-head { padding: 14px 20px; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e5edf7; }
+.item-picker-row { padding: 16px 20px; cursor: pointer; border-top: 1px solid #eef3f8; font-size: 16px; color: #334155; }
 .item-picker-name small { color: #8a94a6; margin-left: 6px; }
 .item-picker-stock.neg { color: #dc3545; }
-.item-picker-empty { padding: 14px 18px; color: #8a94a6; font-size: 13px; }
+.item-picker-empty { padding: 18px 20px; color: #8a94a6; font-size: 15px; }
 .dropdown-header-search { position: sticky; top: 0; z-index: 2; background: #fff; }
 .unit-menu-scroll { max-height: 260px; overflow-y: auto; }
+.unit-menu-divider { margin: 0; }
+.unit-add-action { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e8edf5; }
+.unit-add-action .dropdown-item { padding: 12px 16px; font-weight: 600; color: #2563eb; }
 </style>

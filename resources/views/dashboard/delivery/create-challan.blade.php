@@ -348,8 +348,8 @@
         window.warehouses = @json($warehouses ?? []);
         window.warehouseStoreUrl = "{{ route('warehouses.store') }}";
         window.partyStoreUrl = "{{ route('parties.store') }}";
+        window.partyGroupStoreUrl = "{{ route('party-groups.store') }}";
         window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
-        window.useSharedPartySave = true;
         window.saleStoreUrl = "{{ isset($challan) ? route('delivery-challan.update', $challan->id) : route('delivery-challan.store') }}";
         window.saleHttpMethod = "{{ isset($challan) ? 'PUT' : 'POST' }}";
         window.challanId = @json($challan->id ?? null);
@@ -357,8 +357,8 @@
         window.docType = 'delivery_challan';
     </script>
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;"><div id="sale-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true"><div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div></div>
-    @include('dashboard.shared.party-create-modal')
-    @include('dashboard.shared.item-create-modals')
+    @include('components.modals.party-modal')
+    @include('components.modals.item-modal')
     <script src="{{ asset('js/challanform_script.js') }}"></script>
     <script src="{{ asset('js/challanscript.js') }}"></script>
     <script src="{{ asset('js/shared-party-item-create.js') }}"></script>

@@ -398,145 +398,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addPartyModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Party</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addPartyForm">
-                        @csrf
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
-                                <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-600">Phone Number</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-                                    <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
-                                </div>
-                            </div>
-                        </div>
-
-                        <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
-                                    <i class="fa-solid fa-location-dot me-1"></i> Address
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
-                                    <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
-                                    <i class="fa-solid fa-sliders me-1"></i> Additional Fields
-                                </button>
-                            </li>
-                        </ul>
-
-                        <div class="tab-content pt-3" id="partyModalTabContent">
-                            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Email ID</label>
-                                        <input type="email" name="email" class="form-control" placeholder="example@email.com">
-                                    </div>
-                                    <div class="col-md-6"></div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Billing Address</label>
-                                        <textarea class="form-control" name="billing_address" rows="3" placeholder="Enter billing address"></textarea>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Shipping Address</label>
-                                        <textarea class="form-control" name="shipping_address" rows="3" placeholder="Enter shipping address"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Opening Balance <span class="text-danger">*</span></label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">Rs</span>
-                                            <input type="number" name="opening_balance" class="form-control" placeholder="0.00" min="0" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">As Of Date</label>
-                                        <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label d-block">Credit Limit</label>
-                                        <div class="form-check form-switch mt-2">
-                                            <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
-                                            <label class="form-check-label" for="creditLimitSwitch">Enable</label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="mt-4">
-                                    <label class="form-label d-block">Transaction Type</label>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
-                                        <label class="form-check-label" for="toReceive">To Receive</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="checkbox" id="toPay" value="pay">
-                                        <label class="form-check-label" for="toPay">To Pay</label>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 mt-4">
-                                    <label class="form-label fw-600">Party Type</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="party_type" id="customerParty" value="customer" checked>
-                                        <label class="form-check-label" for="customerParty">Customer Party</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="party_type" id="supplierParty" value="supplier">
-                                        <label class="form-check-label" for="supplierParty">Supplier Party</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
-                                <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
-                                <div class="row g-3">
-                                    @for($i=1; $i<=4; $i++)
-                                        <div class="col-md-6">
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="customField{{$i}}Check">
-                                                <label class="form-check-label" for="customField{{$i}}Check">Custom Field {{$i}}</label>
-                                            </div>
-                                            <input type="text" name="custom_fields[]" class="form-control form-control-sm" placeholder="Field name">
-                                        </div>
-                                    @endfor
-                                    <input type="hidden" id="transactionTypeValue" name="transaction_type">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
-                                <i class="fa-solid fa-plus me-1"></i> Save & New
-                            </button>
-                            <button type="button" class="btn btn-primary" id="btnSaveParty">
-                                <i class="fa-solid fa-check me-1"></i> Save
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -546,6 +407,7 @@
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
             window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.partyGroupStoreUrl = "{{ route('party-groups.store') }}";
             window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleReturnStoreUrl = "{{ route('sale-return.update', $saleReturn->id) }}";
             window.saleReturnMethod = 'PUT';
@@ -558,6 +420,7 @@
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
             window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.partyGroupStoreUrl = "{{ route('party-groups.store') }}";
             window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
             window.saleReturnMethod = 'POST';
@@ -570,6 +433,7 @@
             window.parties = @json($parties ?? []);
             window.bankAccounts = @json($bankAccounts ?? []);
             window.partyStoreUrl = "{{ route('parties.store') }}";
+            window.partyGroupStoreUrl = "{{ route('party-groups.store') }}";
             window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
             window.saleReturnMethod = 'POST';
@@ -587,149 +451,11 @@
         </div>
     </div>
 
-    @include('dashboard.shared.item-create-modals')
+    @include('components.modals.party-modal')
+    @include('components.modals.item-modal')
     <script src="{{ asset('js/salereturnform_script.js') }}"></script>
     <script src="{{ asset('js/scriptreturn.js') }}"></script>
     <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const addPartyModalEl = document.getElementById('addPartyModal');
-            const addPartyModal = new bootstrap.Modal(addPartyModalEl);
-            const addPartyForm = document.getElementById('addPartyForm');
-            const transactionTypeValue = document.getElementById('transactionTypeValue');
-            const toReceive = document.getElementById('toReceive');
-            const toPay = document.getElementById('toPay');
-
-            [toReceive, toPay].forEach(function (checkbox) {
-                checkbox.addEventListener('change', function () {
-                    if (this.checked) {
-                        [toReceive, toPay].forEach(function (cb) {
-                            if (cb !== checkbox) cb.checked = false;
-                        });
-                        transactionTypeValue.value = checkbox.value;
-                    } else {
-                        transactionTypeValue.value = '';
-                    }
-                });
-            });
-
-            function resetPartyModal() {
-                addPartyForm.reset();
-                transactionTypeValue.value = '';
-            }
-
-            function appendPartyToDropdowns(party) {
-                document.querySelectorAll('#partyDropdownMenu').forEach(function (menu) {
-                    const divider = menu.querySelector('.dropdown-divider');
-                    const li = document.createElement('li');
-                    const amount = Number(party.opening_balance || 0).toFixed(2);
-                    const type = party.transaction_type || '';
-                    const colorClass = type === 'pay' ? 'text-danger' : (type === 'receive' ? 'text-success' : '');
-                    const arrowIcon = type === 'pay'
-                        ? '<i class="fa-solid fa-arrow-up me-1"></i>'
-                        : (type === 'receive' ? '<i class="fa-solid fa-arrow-down me-1"></i>' : '');
-
-                    li.innerHTML = `
-                        <a class="dropdown-item d-flex justify-content-between party-option" href="#"
-                           data-id="${party.id}"
-                           data-phone="${party.phone || ''}"
-                           data-billing="${party.billing_address || ''}"
-                           data-opening="${party.opening_balance || 0}"
-                           data-type="${type}">
-                            <span>${party.name}</span>
-                            <span class="${colorClass}">${arrowIcon}Rs ${amount}</span>
-                        </a>
-                    `;
-
-                    if (divider && divider.parentElement) {
-                        menu.insertBefore(li, divider.parentElement);
-                    } else {
-                        menu.appendChild(li);
-                    }
-                });
-            }
-
-            function selectCreatedParty(party) {
-                const activePane = document.querySelector('.tab-pane.active') || document;
-                const button = activePane.querySelector('#partyDropdownBtn');
-                const hiddenInput = activePane.querySelector('.party-id');
-                const balance = activePane.querySelector('#partyBalanceDisplay');
-                const phoneInput = activePane.querySelector('.phone-input');
-                const billingInput = activePane.querySelector('.billing-address');
-
-                if (button) button.textContent = party.name || 'Select Party';
-                if (hiddenInput) hiddenInput.value = party.id || '';
-                if (phoneInput) phoneInput.value = party.phone || '';
-                if (billingInput) billingInput.value = party.billing_address || '';
-                if (balance) {
-                    const amount = Number(party.opening_balance || 0).toFixed(2);
-                    if (party.transaction_type === 'pay') {
-                        balance.innerHTML = `<i class="fa-solid fa-arrow-up text-danger me-1"></i>Rs ${amount}`;
-                    } else if (party.transaction_type === 'receive') {
-                        balance.innerHTML = `<i class="fa-solid fa-arrow-down text-success me-1"></i>Rs ${amount}`;
-                    } else {
-                        balance.textContent = `Rs ${amount}`;
-                    }
-                }
-            }
-
-            function saveParty(closeAfterSave) {
-                const formData = new FormData(addPartyForm);
-                formData.set('transaction_type', transactionTypeValue.value || '');
-                formData.set('credit_limit_enabled', document.getElementById('creditLimitSwitch').checked ? 1 : 0);
-
-                fetch("{{ route('parties.store') }}", {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    },
-                    body: formData
-                })
-                    .then(async function (response) {
-                        const data = await response.json();
-                        if (!response.ok || !data.success) {
-                            throw new Error(data.message || 'Unable to save party.');
-                        }
-                        return data;
-                    })
-                    .then(function (data) {
-                        const party = data.party;
-                        window.parties = Array.isArray(window.parties) ? window.parties : [];
-                        window.parties.unshift(party);
-                        appendPartyToDropdowns(party);
-                        selectCreatedParty(party);
-
-                        if (closeAfterSave) {
-                            addPartyModal.hide();
-                            resetPartyModal();
-                        } else {
-                            resetPartyModal();
-                        }
-                    })
-                    .catch(function (error) {
-                        alert(error.message || 'Unable to save party.');
-                    });
-            }
-
-            document.addEventListener('click', function (event) {
-                const addPartyBtn = event.target.closest('#addNewPartyBtn');
-                if (addPartyBtn) {
-                    event.preventDefault();
-                    resetPartyModal();
-                    addPartyModal.show();
-                }
-            });
-
-            document.getElementById('btnSaveParty').addEventListener('click', function () {
-                saveParty(true);
-            });
-
-            document.getElementById('btnSaveNewParty').addEventListener('click', function () {
-                saveParty(false);
-            });
-        });
-    </script>
 </body>
 
 </html>

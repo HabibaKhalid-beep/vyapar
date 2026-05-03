@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\PartyController;
+use App\Http\Controllers\PartyGroupController;
 use App\Http\Controllers\LoanAccountController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\SaleController;
@@ -401,6 +402,7 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     // Parties
     Route::get('/parties', [PartyController::class, 'index'])->name('parties');
     Route::post('/parties', [PartyController::class, 'store'])->name('parties.store');
+    Route::post('/party-groups', [PartyGroupController::class, 'store'])->name('party-groups.store');
     Route::get('/parties/{party}', [PartyController::class, 'show'])->name('parties.show');
     Route::put('/parties/{party}', [PartyController::class, 'update'])->name('parties.update');
     Route::delete('/parties/{id}', [PartyController::class, 'destroy'])->name('parties.destroy');

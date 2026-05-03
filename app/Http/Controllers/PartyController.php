@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Party;
+use App\Models\PartyGroup;
 use App\Models\Sale;
 use App\Models\Purchase;
 use App\Models\Transaction;
@@ -66,6 +67,11 @@ class PartyController extends Controller
         }
 
         $party = Party::create($data);
+
+        if (!empty($data['party_group'])) {
+            PartyGroup::firstOrCreate(['name' => trim($data['party_group'])]);
+        }
+
         $openingBalance = $data['opening_balance'] ?? 0;
         $transactionType = $data['transaction_type'] ?? null;
 
@@ -589,6 +595,10 @@ public function update(Request $request, $id)
     }
 
     $party->update($data);
+
+    if (!empty($data['party_group'])) {
+        PartyGroup::firstOrCreate(['name' => trim($data['party_group'])]);
+    }
 
     // ✅ Transaction update
     $openingTransaction = Transaction::query()

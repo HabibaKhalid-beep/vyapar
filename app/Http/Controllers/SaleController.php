@@ -9,6 +9,7 @@ use App\Models\Broker;
 use App\Support\TransactionNumberPrefix;
 use App\Models\Item;
 use App\Models\Party;
+use App\Models\PartyGroup;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Transaction;
@@ -91,6 +92,7 @@ class SaleController extends Controller
             ->orderBy('name')
             ->get();
         $parties = Party::orderBy('name')->get();
+        $partyGroups = PartyGroup::orderBy('name')->get();
         $categories = \App\Models\Category::orderBy('name')->get();
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
@@ -120,7 +122,7 @@ class SaleController extends Controller
             $convertedSaleData['payments'] = [];
         }
 
-        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'categories', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
+        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'partyGroups', 'categories', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
     }
 
     public function createFromEstimate(Sale $sale)

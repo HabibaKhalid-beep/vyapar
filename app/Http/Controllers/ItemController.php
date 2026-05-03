@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\AppSetting;
 use App\Models\Category;
+use App\Models\ItemUnit;
 use Illuminate\Http\Request;
 use App\Models\SaleItem;
 use App\Models\Sale;
@@ -36,29 +37,53 @@ class ItemController extends Controller
 
     private function getStoredUnits(): array
     {
-        $stored = AppSetting::getValue('item_units', null);
-        $units = is_string($stored) ? json_decode($stored, true) : $stored;
+        if (!Schema::hasTable('item_units')) {
+            return array_values(array_map(function ($unit) {
+                $name = strtoupper(trim((string) ($unit['name'] ?? '')));
+                $shortName = strtoupper(trim((string) ($unit['short_name'] ?? $unit['short'] ?? '')));
 
-        if (!is_array($units) || empty($units)) {
-            $units = $this->defaultUnits();
-            AppSetting::setValue('item_units', json_encode($units));
+                return [
+                    'id' => (string) ($unit['id'] ?? Str::slug($shortName ?: $name ?: uniqid('unit_'))),
+                    'name' => $name,
+                    'short_name' => $shortName ?: $name,
+                ];
+            }, $this->defaultUnits()));
         }
 
-        return array_values(array_map(function ($unit) {
-            $name = strtoupper(trim((string) ($unit['name'] ?? '')));
-            $shortName = strtoupper(trim((string) ($unit['short_name'] ?? $unit['short'] ?? '')));
+        if (ItemUnit::count() === 0) {
+            $legacyStored = AppSetting::getValue('item_units', null);
+            $legacyUnits = is_string($legacyStored) ? json_decode($legacyStored, true) : $legacyStored;
+            $seedUnits = is_array($legacyUnits) && !empty($legacyUnits) ? $legacyUnits : $this->defaultUnits();
 
-            return [
-                'id' => (string) ($unit['id'] ?? Str::slug($shortName ?: $name ?: uniqid('unit_'))),
-                'name' => $name,
-                'short_name' => $shortName ?: $name,
-            ];
-        }, $units));
-    }
+            foreach ($seedUnits as $unit) {
+                $name = strtoupper(trim((string) ($unit['name'] ?? '')));
+                $shortName = strtoupper(trim((string) ($unit['short_name'] ?? $unit['short'] ?? $unit['name'] ?? '')));
 
-    private function saveStoredUnits(array $units): void
-    {
-        AppSetting::setValue('item_units', json_encode(array_values($units)));
+                if ($name === '' || $shortName === '') {
+                    continue;
+                }
+
+                ItemUnit::firstOrCreate(
+                    ['short_name' => $shortName],
+                    [
+                        'name' => $name,
+                        'is_active' => true,
+                    ]
+                );
+            }
+        }
+
+        return ItemUnit::query()
+            ->where('is_active', true)
+            ->orderBy('short_name')
+            ->get()
+            ->map(fn (ItemUnit $unit) => [
+                'id' => (string) $unit->id,
+                'name' => strtoupper(trim((string) $unit->name)),
+                'short_name' => strtoupper(trim((string) $unit->short_name)),
+            ])
+            ->values()
+            ->all();
     }
 
     private function itemListQuery(string $type, bool $includeInactive = false)
@@ -171,7 +196,7 @@ class ItemController extends Controller
     public function create(Request $request)
     {
         $categories = Category::all();
-        $units      = [];
+        $units      = $this->getStoredUnits();
         $taxes      = [];
         
         // Check if this is a modal request
@@ -269,7 +294,7 @@ class ItemController extends Controller
     {
         $item       = Item::with('category')->findOrFail($id);
         $categories = Category::all();
-        $units      = [];
+        $units      = $this->getStoredUnits();
         $taxes      = [];
         return view('items.edit', compact('item', 'categories', 'units', 'taxes'));
     }
@@ -674,28 +699,39 @@ class ItemController extends Controller
             'short_name' => ['required', 'string', 'max:50'],
         ]);
 
-        $units = $this->getStoredUnits();
         $name = strtoupper(trim($payload['name']));
         $shortName = strtoupper(trim($payload['short_name']));
 
-        foreach ($units as $unit) {
-            if (strtoupper($unit['name']) === $name || strtoupper($unit['short_name']) === $shortName) {
-                return response()->json([
-                    'message' => 'Unit name or short name already exists.',
-                ], 422);
-            }
+        if (!Schema::hasTable('item_units')) {
+            return response()->json(['message' => 'Item units table does not exist. Please run migration first.'], 500);
         }
 
-        $unit = [
-            'id' => (string) Str::uuid(),
+        $exists = ItemUnit::query()
+            ->whereRaw('UPPER(name) = ?', [$name])
+            ->orWhereRaw('UPPER(short_name) = ?', [$shortName])
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'message' => 'Unit name or short name already exists.',
+            ], 422);
+        }
+
+        $unit = ItemUnit::create([
             'name' => $name,
             'short_name' => $shortName,
-        ];
+            'is_active' => true,
+        ]);
 
-        $units[] = $unit;
-        $this->saveStoredUnits($units);
-
-        return response()->json(['success' => true, 'unit' => $unit, 'units' => $units]);
+        return response()->json([
+            'success' => true,
+            'unit' => [
+                'id' => (string) $unit->id,
+                'name' => $unit->name,
+                'short_name' => $unit->short_name,
+            ],
+            'units' => $this->getStoredUnits(),
+        ]);
     }
 
     public function updateUnit(Request $request, $id)
@@ -705,33 +741,59 @@ class ItemController extends Controller
             'short_name' => ['required', 'string', 'max:50'],
         ]);
 
-        $units = $this->getStoredUnits();
-        $updated = null;
-
-        foreach ($units as &$unit) {
-            if ((string) $unit['id'] === (string) $id) {
-                $unit['name'] = strtoupper(trim($payload['name']));
-                $unit['short_name'] = strtoupper(trim($payload['short_name']));
-                $updated = $unit;
-                break;
-            }
+        if (!Schema::hasTable('item_units')) {
+            return response()->json(['message' => 'Item units table does not exist. Please run migration first.'], 500);
         }
 
-        if (!$updated) {
+        $unit = ItemUnit::find($id);
+        if (!$unit) {
             return response()->json(['message' => 'Unit not found.'], 404);
         }
 
-        $this->saveStoredUnits($units);
+        $name = strtoupper(trim($payload['name']));
+        $shortName = strtoupper(trim($payload['short_name']));
 
-        return response()->json(['success' => true, 'unit' => $updated, 'units' => $units]);
+        $exists = ItemUnit::query()
+            ->where('id', '!=', $unit->id)
+            ->where(function ($query) use ($name, $shortName) {
+                $query->whereRaw('UPPER(name) = ?', [$name])
+                    ->orWhereRaw('UPPER(short_name) = ?', [$shortName]);
+            })
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['message' => 'Unit name or short name already exists.'], 422);
+        }
+
+        $unit->update([
+            'name' => $name,
+            'short_name' => $shortName,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'unit' => [
+                'id' => (string) $unit->id,
+                'name' => $unit->name,
+                'short_name' => $unit->short_name,
+            ],
+            'units' => $this->getStoredUnits(),
+        ]);
     }
 
     public function destroyUnit($id)
     {
-        $units = array_values(array_filter($this->getStoredUnits(), fn ($unit) => (string) $unit['id'] !== (string) $id));
-        $this->saveStoredUnits($units);
+        if (!Schema::hasTable('item_units')) {
+            return response()->json(['message' => 'Item units table does not exist. Please run migration first.'], 500);
+        }
 
-        return response()->json(['success' => true, 'units' => $units]);
+        $unit = ItemUnit::find($id);
+        if ($unit) {
+            $unit->delete();
+        }
+
+        return response()->json(['success' => true, 'units' => $this->getStoredUnits()]);
     }
 
     public function show(string $id)
