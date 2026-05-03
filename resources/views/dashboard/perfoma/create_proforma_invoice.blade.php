@@ -739,6 +739,46 @@
             document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
         });
 
+        // Handle modal shown - reinitialize tabs properly
+        addModalEl.addEventListener('shown.bs.modal', function () {
+            const addressTabEl = document.getElementById('party-address-tab');
+            const addressPaneEl = document.getElementById('partyAddressPane');
+            const creditTabEl = document.getElementById('party-credit-tab');
+            const creditPaneEl = document.getElementById('partyCreditPane');
+            const additionalTabEl = document.getElementById('party-additional-tab');
+            const additionalPaneEl = document.getElementById('partyAdditionalPane');
+
+            // Reset all tabs and panes first
+            [addressTabEl, creditTabEl, additionalTabEl].forEach(tab => {
+                if (tab) {
+                    tab.classList.remove('active');
+                    tab.setAttribute('aria-selected', 'false');
+                }
+            });
+
+            [addressPaneEl, creditPaneEl, additionalPaneEl].forEach(pane => {
+                if (pane) {
+                    pane.classList.remove('show', 'active');
+                }
+            });
+
+            // Activate the first (Address) tab
+            if (addressTabEl) {
+                addressTabEl.classList.add('active');
+                addressTabEl.setAttribute('aria-selected', 'true');
+            }
+            if (addressPaneEl) {
+                addressPaneEl.classList.add('show', 'active');
+                addressPaneEl.style.display = '';
+            }
+
+            // Use Bootstrap Tab API to show the tab
+            if (addressTabEl && bootstrap.Tab) {
+                const addressTab = bootstrap.Tab.getOrCreateInstance(addressTabEl);
+                addressTab.show();
+            }
+        });
+
 
 
 
