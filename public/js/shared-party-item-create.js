@@ -472,7 +472,7 @@
         }
 
         const rect = input.getBoundingClientRect();
-        const width = Math.max(rect.width, 320);
+        const width = Math.max(rect.width, 560);
         const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
 
         $panel.css({
