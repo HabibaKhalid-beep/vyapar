@@ -11,6 +11,7 @@
     let activeItemContext = null;
     let cachedUnits = [];
     let currentItemImageObjectUrl = null;
+    let currentStockImageObjectUrls = [];
 
     function escapeHtml(value) {
         return String(value ?? '')
@@ -39,6 +40,50 @@
             URL.revokeObjectURL(currentItemImageObjectUrl);
             currentItemImageObjectUrl = null;
         }
+    }
+
+    function clearStockImagePreviews() {
+        currentStockImageObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+        currentStockImageObjectUrls = [];
+        $('#newItemStockImages').val('');
+        $('#newItemStockImagesList').empty();
+    }
+
+    function updateUnitButtonLabel() {
+        const baseUnit = String($('#newItemUnit').val() || '').trim().toUpperCase();
+        const secondaryUnit = String($('#newItemSecondaryUnit').val() || '').trim().toUpperCase();
+        let label = 'Select Unit';
+        if (baseUnit && secondaryUnit && secondaryUnit !== baseUnit) {
+            label = `${baseUnit} / ${secondaryUnit}`;
+        } else if (baseUnit) {
+            label = baseUnit;
+        }
+        $('#newItemUnitBtn').text(label);
+        $('.base-unit-preview').text(baseUnit ? `1 ${baseUnit}` : '1 Base Unit');
+        $('.secondary-unit-preview').text(secondaryUnit || 'Secondary Unit');
+    }
+
+    function populateUnitSelectorOptions() {
+        const selects = ['#newItemBaseUnitSelect', '#newItemSecondaryUnitSelect'];
+        const options = ['<option value="">Select Unit</option>'];
+        const seen = new Set();
+        (Array.isArray(cachedUnits) ? cachedUnits : []).forEach((unit) => {
+            const shortName = String(unit.short_name || unit.short || unit.name || '').trim().toUpperCase();
+            const name = String(unit.name || shortName).trim().toUpperCase();
+            if (!shortName || seen.has(shortName)) {
+                return;
+            }
+            seen.add(shortName);
+            const label = name && name !== shortName ? `${name} (${shortName})` : shortName;
+            options.push(`<option value="${escapeHtml(shortName)}">${escapeHtml(label)}</option>`);
+        });
+        selects.forEach((selector) => {
+            const current = $(selector).val();
+            $(selector).html(options.join(''));
+            if (current) {
+                $(selector).val(current);
+            }
+        });
     }
 
     function parseJsonSafely(text) {
@@ -291,9 +336,15 @@
 
         $('#newItemUnitBtn').text('Select Unit');
         $('#newItemUnit').val('');
+        $('#newItemSecondaryUnit').val('');
+        $('#newItemUnitConversionRate').val('');
+        $('#newItemBaseUnitSelect, #newItemSecondaryUnitSelect').val('');
+        $('#newItemUnitConversionInput').val('0');
         $('#quickCategoryName, #quickUnitName, #quickUnitShortName').val('');
         $('#newItemImage').val('');
         clearItemImagePreview();
+        clearStockImagePreviews();
+        updateUnitButtonLabel();
 
         const thumb = document.getElementById('newItemImageThumb');
         const label = document.getElementById('newItemImageLabel');
@@ -655,6 +706,12 @@
                     $select.append(`<option value="${selectedUnit}">${selectedUnit}</option>`);
                 }
             });
+            populateUnitSelectorOptions();
+            if (!$('#newItemUnit').val()) {
+                $('#newItemUnit').val(selectedUnit);
+            }
+            $('#newItemBaseUnitSelect').val($('#newItemUnit').val() || selectedUnit);
+            updateUnitButtonLabel();
             $('#quickUnitName, #quickUnitShortName').val('');
             bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
         }).catch((error) => {
@@ -679,6 +736,8 @@
         formData.append('name', itemName);
         formData.append('category_id', $('#newItemCategory').val() || '');
         formData.append('unit', $('#newItemUnit').val() || '');
+        formData.append('secondary_unit', $('#newItemSecondaryUnit').val() || '');
+        formData.append('unit_conversion_rate', $('#newItemUnitConversionRate').val() || 0);
         formData.append('item_type', itemType);
         formData.append('type', itemType);
         formData.append('sale_price', $('#newItemSalePrice').val() || 0);
@@ -696,6 +755,12 @@
         const imageInput = document.getElementById('newItemImage');
         if (imageInput && imageInput.files.length > 0) {
             formData.append('item_image', imageInput.files[0]);
+        }
+        const stockImagesInput = document.getElementById('newItemStockImages');
+        if (stockImagesInput && stockImagesInput.files.length > 0) {
+            Array.from(stockImagesInput.files).forEach((file) => {
+                formData.append('item_images[]', file);
+            });
         }
 
         fetchJson(window.itemRoutes.store, {
@@ -884,11 +949,6 @@
 
         $(document).on('click.sharedUnitModalOpen', '#openAddUnitModalBtn', function (event) {
             event.preventDefault();
-            const dropdownEl = document.getElementById('newItemUnitBtn');
-            const dropdown = dropdownEl && window.bootstrap && bootstrap.Dropdown
-                ? bootstrap.Dropdown.getOrCreateInstance(dropdownEl)
-                : null;
-            dropdown?.hide();
             $('#quickUnitName, #quickUnitShortName').val('');
             bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
             setTimeout(() => $('#quickUnitName').trigger('focus'), 150);
@@ -899,11 +959,37 @@
             saveQuickUnit();
         });
 
-        $(document).on('click.sharedUnitSelect', '.unit-option', function (event) {
+        $(document).on('click.sharedUnitButton', '#newItemUnitBtn', function (event) {
             event.preventDefault();
-            const unit = $(this).data('unit') || $(this).text().trim();
-            $('#newItemUnitBtn').text(unit);
-            $('#newItemUnit').val(unit);
+            populateUnitSelectorOptions();
+            $('#newItemBaseUnitSelect').val($('#newItemUnit').val() || '');
+            $('#newItemSecondaryUnitSelect').val($('#newItemSecondaryUnit').val() || '');
+            $('#newItemUnitConversionInput').val($('#newItemUnitConversionRate').val() || '0');
+            updateUnitButtonLabel();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).show();
+        });
+
+        $(document).on('change.sharedUnitSelectionPreview', '#newItemBaseUnitSelect, #newItemSecondaryUnitSelect', function () {
+            const baseUnit = String($('#newItemBaseUnitSelect').val() || '').trim().toUpperCase();
+            const secondaryUnit = String($('#newItemSecondaryUnitSelect').val() || '').trim().toUpperCase();
+            $('.base-unit-preview').text(baseUnit ? `1 ${baseUnit}` : '1 Base Unit');
+            $('.secondary-unit-preview').text(secondaryUnit || 'Secondary Unit');
+        });
+
+        $(document).on('click.sharedUnitSelectionSave', '#saveSelectedUnitsBtn', function (event) {
+            event.preventDefault();
+            const baseUnit = String($('#newItemBaseUnitSelect').val() || '').trim().toUpperCase();
+            const secondaryUnit = String($('#newItemSecondaryUnitSelect').val() || '').trim().toUpperCase();
+            $('#newItemUnit').val(baseUnit);
+            $('#newItemSecondaryUnit').val(secondaryUnit);
+            $('#newItemUnitConversionRate').val($('#newItemUnitConversionInput').val() || 0);
+            updateUnitButtonLabel();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).hide();
+        });
+
+        $(document).on('click.sharedOpenAddUnitFromSelector', '.open-add-unit-from-selector', function (event) {
+            event.preventDefault();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
         });
 
         $(document).on('click.sharedAssignCode', '#assignItemCodeBtn', function (event) {
@@ -950,6 +1036,25 @@
             currentItemImageObjectUrl = URL.createObjectURL(file);
             thumb.innerHTML = `<img src="${currentItemImageObjectUrl}" alt="${escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:cover;">`;
             thumb.style.border = '1.5px solid #2563eb';
+        });
+
+        $(document).on('click.sharedStockImagesOpen', '.open-item-stock-images-picker', function (event) {
+            event.preventDefault();
+            const input = document.getElementById('newItemStockImages');
+            if (input) {
+                input.click();
+            }
+        });
+
+        $(document).on('change.sharedStockImagesPreview', '#newItemStockImages', function () {
+            clearStockImagePreviews();
+            const files = Array.from(this.files || []);
+            const html = files.map((file) => {
+                const objectUrl = URL.createObjectURL(file);
+                currentStockImageObjectUrls.push(objectUrl);
+                return `<div class="item-stock-image-card"><img src="${objectUrl}" alt="${escapeHtml(file.name)}"><div class="name">${escapeHtml(file.name)}</div></div>`;
+            }).join('');
+            $('#newItemStockImagesList').html(html);
         });
 
         $(document).on('shown.bs.modal.sharedPartyModal', '#addPartyModal', function () {

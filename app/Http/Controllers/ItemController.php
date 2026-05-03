@@ -139,6 +139,14 @@ class ItemController extends Controller
             $imagePaths[] = $request->file('image')->store('items', 'public');
         }
 
+        if ($request->hasFile('item_images')) {
+            foreach ((array) $request->file('item_images') as $image) {
+                if ($image) {
+                    $imagePaths[] = $image->store('items', 'public');
+                }
+            }
+        }
+
         return $imagePaths;
     }
 
@@ -245,6 +253,10 @@ class ItemController extends Controller
                 'name'            => $data['name'] ?? '',
                 'category_id'     => $categoryId,
                 'unit'            => $data['unit'] ?? '',
+                'secondary_unit'  => Schema::hasColumn('items', 'secondary_unit') ? ($data['secondary_unit'] ?? null) : null,
+                'unit_conversion_rate' => Schema::hasColumn('items', 'unit_conversion_rate')
+                    ? $this->normalizeDecimal($data['unit_conversion_rate'] ?? null, 0)
+                    : null,
                 'price'           => $salePrice,
                 'sale_price'      => $salePrice,
                 'wholesale_price' => $this->normalizeDecimal($data['wholesale_price'] ?? 0),
@@ -324,6 +336,10 @@ class ItemController extends Controller
             'name'            => $data['name']            ?? $item->name,
             'category_id'     => $categoryId,
             'unit'            => $data['unit']             ?? $item->unit,
+            'secondary_unit'  => Schema::hasColumn('items', 'secondary_unit') ? ($data['secondary_unit'] ?? $item->secondary_unit) : null,
+            'unit_conversion_rate' => Schema::hasColumn('items', 'unit_conversion_rate')
+                ? $this->normalizeDecimal($data['unit_conversion_rate'] ?? $item->unit_conversion_rate, (float) ($item->unit_conversion_rate ?? 0))
+                : null,
             'price'           => $this->normalizeDecimal($data['sale_price'] ?? $data['price'] ?? $item->price, (float) ($item->price ?? $item->sale_price ?? 0)),
             'sale_price'      => $this->normalizeDecimal($data['sale_price'] ?? $item->sale_price, (float) $item->sale_price),
             'wholesale_price' => $this->normalizeDecimal($data['wholesale_price'] ?? $item->wholesale_price, (float) $item->wholesale_price),

@@ -222,6 +222,35 @@ function initializeForm(context) {
         `);
     }
 
+    function updateNewItemUnitButton() {
+        const baseUnit = String($('#newItemUnit').val() || '').trim().toUpperCase();
+        const secondaryUnit = String($('#newItemSecondaryUnit').val() || '').trim().toUpperCase();
+        let label = 'Select Unit';
+        if (baseUnit && secondaryUnit && secondaryUnit !== baseUnit) {
+            label = `${baseUnit} / ${secondaryUnit}`;
+        } else if (baseUnit) {
+            label = baseUnit;
+        }
+        $('#newItemUnitBtn').text(label);
+        $('.base-unit-preview').text(baseUnit ? `1 ${baseUnit}` : '1 Base Unit');
+        $('.secondary-unit-preview').text(secondaryUnit || 'Secondary Unit');
+    }
+
+    function populateUnitSelectionModal() {
+        const options = ['<option value="">Select Unit</option>'];
+        getNormalizedSaleUnits().forEach(unit => {
+            const label = unit.name && unit.name !== unit.short_name
+                ? `${unit.name} (${unit.short_name})`
+                : unit.short_name;
+            options.push(`<option value="${unit.short_name}">${label}</option>`);
+        });
+        const currentBase = $('#newItemBaseUnitSelect').val();
+        const currentSecondary = $('#newItemSecondaryUnitSelect').val();
+        $('#newItemBaseUnitSelect, #newItemSecondaryUnitSelect').html(options.join(''));
+        if (currentBase) $('#newItemBaseUnitSelect').val(currentBase);
+        if (currentSecondary) $('#newItemSecondaryUnitSelect').val(currentSecondary);
+    }
+
     function positionItemPickerPanel($row) {
         const $input = $row.find('.item-picker-input');
         const $panel = $row.find('.item-picker-panel');
@@ -391,14 +420,16 @@ function initializeForm(context) {
             syncItemUnitSelects();
             if (selectedUnit) {
                 $('#newItemUnit').val(selectedUnit);
-                $('#newItemUnitBtn').text(selectedUnit);
+                updateNewItemUnitButton();
             }
+            populateUnitSelectionModal();
             return units;
         })
         .catch(() => {
             window.saleUnits = [];
             renderNewItemUnitMenu(selectedUnit);
             syncItemUnitSelects();
+            populateUnitSelectionModal();
             return [];
         });
     }
@@ -1271,11 +1302,32 @@ function initializeForm(context) {
         setTimeout(() => $('#quickCategoryName').trigger('focus'), 150);
     });
 
-    $(document).on('click', '#openAddUnitModalBtn', function(e) {
+    $(document).on('click', '#newItemUnitBtn', function(e) {
         e.preventDefault();
-        const dropdownEl = document.getElementById('newItemUnitBtn');
-        const dropdown = dropdownEl ? bootstrap.Dropdown.getOrCreateInstance(dropdownEl) : null;
-        dropdown?.hide();
+        populateUnitSelectionModal();
+        $('#newItemBaseUnitSelect').val($('#newItemUnit').val() || '');
+        $('#newItemSecondaryUnitSelect').val($('#newItemSecondaryUnit').val() || '');
+        $('#newItemUnitConversionInput').val($('#newItemUnitConversionRate').val() || '0');
+        updateNewItemUnitButton();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).show();
+    });
+
+    $(document).on('change', '#newItemBaseUnitSelect, #newItemSecondaryUnitSelect', function() {
+        $('.base-unit-preview').text($('#newItemBaseUnitSelect').val() ? `1 ${$('#newItemBaseUnitSelect').val()}` : '1 Base Unit');
+        $('.secondary-unit-preview').text($('#newItemSecondaryUnitSelect').val() || 'Secondary Unit');
+    });
+
+    $(document).on('click', '#saveSelectedUnitsBtn', function(e) {
+        e.preventDefault();
+        $('#newItemUnit').val($('#newItemBaseUnitSelect').val() || '');
+        $('#newItemSecondaryUnit').val($('#newItemSecondaryUnitSelect').val() || '');
+        $('#newItemUnitConversionRate').val($('#newItemUnitConversionInput').val() || 0);
+        updateNewItemUnitButton();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).hide();
+    });
+
+    $(document).on('click', '#openAddUnitModalBtn, .open-add-unit-from-selector', function(e) {
+        e.preventDefault();
         $('#quickUnitName').val('');
         $('#quickUnitShortName').val('');
         bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
@@ -1341,8 +1393,12 @@ function initializeForm(context) {
             window.saleUnits = Array.isArray(data.units) ? data.units : getNormalizedSaleUnits();
             renderNewItemUnitMenu(unitCode);
             syncItemUnitSelects();
-            $('#newItemUnit').val(unitCode);
-            $('#newItemUnitBtn').text(unitCode);
+            if (!$('#newItemUnit').val()) {
+                $('#newItemUnit').val(unitCode);
+            }
+            populateUnitSelectionModal();
+            $('#newItemBaseUnitSelect').val($('#newItemUnit').val() || unitCode);
+            updateNewItemUnitButton();
             bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
         })
         .catch(error => {
@@ -1363,6 +1419,8 @@ function initializeForm(context) {
         formData.append('name', itemName);
         formData.append('category_id', document.getElementById('newItemCategory').value);
         formData.append('unit', document.getElementById('newItemUnit').value);
+        formData.append('secondary_unit', document.getElementById('newItemSecondaryUnit')?.value || '');
+        formData.append('unit_conversion_rate', document.getElementById('newItemUnitConversionRate')?.value || 0);
         const newItemType = document.getElementById('newItemType')?.value || 'product';
         formData.append('item_type', newItemType);
         formData.append('type', newItemType);
@@ -1382,6 +1440,10 @@ function initializeForm(context) {
         const imageInput = document.getElementById('newItemImage');
         if (imageInput && imageInput.files.length > 0) {
             formData.append('item_image', imageInput.files[0]);
+        }
+        const stockImagesInput = document.getElementById('newItemStockImages');
+        if (stockImagesInput && stockImagesInput.files.length > 0) {
+            Array.from(stockImagesInput.files).forEach((file) => formData.append('item_images[]', file));
         }
 
         formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
@@ -1429,6 +1491,20 @@ function initializeForm(context) {
     renderNewItemUnitMenu();
     refreshUnitsList();
     refreshItemsList();
+
+    $(document).on('click', '.open-item-stock-images-picker', function(e) {
+        e.preventDefault();
+        document.getElementById('newItemStockImages')?.click();
+    });
+
+    $(document).on('change', '#newItemStockImages', function() {
+        const files = Array.from(this.files || []);
+        const html = files.map(file => {
+            const url = URL.createObjectURL(file);
+            return `<div class="item-stock-image-card"><img src="${url}" alt="${file.name}"><div class="name">${file.name}</div></div>`;
+        }).join('');
+        $('#newItemStockImagesList').html(html);
+    });
 
     // Line item calculation
     $ctx.on('keyup change', '.item-qty, .item-price, .item-discount', function() {

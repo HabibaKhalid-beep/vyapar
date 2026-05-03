@@ -1980,26 +1980,13 @@
             </div>
             <div class="col-md-3">
               <label class="form-label">Unit</label>
-              <div class="dropdown w-100">
-                <button class="btn btn-outline-primary dropdown-toggle w-100 text-start" type="button" id="newItemUnitBtn" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+              <div class="w-100">
+                <button class="btn btn-outline-primary w-100 text-start" type="button" id="newItemUnitBtn">
                   Select Unit
                 </button>
-                <ul class="dropdown-menu w-100 unit-menu-scroll" aria-labelledby="newItemUnitBtn" id="newItemUnitMenu">
-                  @if($salesModalUnits->isEmpty())
-                    <li><span class="dropdown-item-text text-muted">No units found</span></li>
-                  @endif
-                  @foreach($salesModalUnits as $unit)
-                    @php
-                      $unitShortName = strtoupper($unit['short_name'] ?? $unit->short_name ?? '');
-                      $unitName = strtoupper($unit['name'] ?? $unit->name ?? '');
-                      $unitLabel = $unitName && $unitName !== $unitShortName ? $unitShortName . ' (' . $unitName . ')' : $unitShortName;
-                    @endphp
-                    <li><button class="dropdown-item unit-option" type="button" data-unit="{{ $unitShortName }}">{{ $unitLabel }}</button></li>
-                  @endforeach
-                  <li><hr class="dropdown-divider unit-menu-divider"></li>
-                  <li class="unit-add-action"><button class="dropdown-item" type="button" id="openAddUnitModalBtn"><i class="fa-regular fa-square-plus me-2"></i>Add Unit</button></li>
-                </ul>
                 <input type="hidden" id="newItemUnit" name="unit">
+                <input type="hidden" id="newItemSecondaryUnit" name="secondary_unit">
+                <input type="hidden" id="newItemUnitConversionRate" name="unit_conversion_rate">
               </div>
             </div>
             <div class="col-md-6">
@@ -2083,6 +2070,14 @@
                   <label for="newItemLocation" class="form-label">Location</label>
                   <input type="text" class="form-control" id="newItemLocation" placeholder="Location">
                 </div>
+                <div class="col-12">
+                  <label class="form-label fw-semibold">Item Images</label>
+                  <div class="item-stock-images-trigger open-item-stock-images-picker">
+                    <span><i class="fa-regular fa-camera me-2"></i>Add Item Images</span>
+                  </div>
+                  <input type="file" class="d-none" id="newItemStockImages" accept="image/*" multiple>
+                  <div id="newItemStockImagesList" class="item-stock-images-list"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -2100,6 +2095,64 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" id="saveNewItemBtn">Save Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade modal-stack-top" id="selectItemUnitModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Select Unit</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="newItemBaseUnitSelect" class="form-label text-uppercase small fw-bold">Base Unit</label>
+            <select class="form-select" id="newItemBaseUnitSelect">
+              <option value="">Select Base Unit</option>
+              @foreach($salesModalUnits as $unit)
+                @php
+                  $unitShortName = strtoupper($unit['short_name'] ?? $unit->short_name ?? '');
+                  $unitName = strtoupper($unit['name'] ?? $unit->name ?? '');
+                  $unitLabel = $unitName && $unitName !== $unitShortName ? $unitName . ' (' . $unitShortName . ')' : $unitShortName;
+                @endphp
+                <option value="{{ $unitShortName }}">{{ $unitLabel }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="newItemSecondaryUnitSelect" class="form-label text-uppercase small fw-bold">Secondary Unit</label>
+            <select class="form-select" id="newItemSecondaryUnitSelect">
+              <option value="">Select Secondary Unit</option>
+              @foreach($salesModalUnits as $unit)
+                @php
+                  $unitShortName = strtoupper($unit['short_name'] ?? $unit->short_name ?? '');
+                  $unitName = strtoupper($unit['name'] ?? $unit->name ?? '');
+                  $unitLabel = $unitName && $unitName !== $unitShortName ? $unitName . ' (' . $unitShortName . ')' : $unitShortName;
+                @endphp
+                <option value="{{ $unitShortName }}">{{ $unitLabel }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="col-12 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-link text-primary p-0 open-add-unit-from-selector">+ Add Unit</button>
+          </div>
+          <div class="col-12">
+            <label for="newItemUnitConversionInput" class="form-label fw-semibold">Conversion Rate</label>
+            <div class="item-unit-conversion-row">
+              <span class="base-unit-preview">1 Base Unit</span>
+              <span>=</span>
+              <input type="number" class="form-control" id="newItemUnitConversionInput" min="0" step="0.0001" value="0">
+              <span class="secondary-unit-preview">Secondary Unit</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="saveSelectedUnitsBtn">Save</button>
       </div>
     </div>
   </div>

@@ -19,4 +19,12 @@
 .unit-menu-divider { margin: 0; }
 .unit-add-action { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e8edf5; }
 .unit-add-action .dropdown-item { padding: 12px 16px; font-weight: 600; color: #2563eb; }
+.item-stock-images-trigger { display:flex; align-items:center; justify-content:flex-start; gap:10px; padding:12px 16px; border:1px solid #dbe3ef; border-radius:10px; color:#52637a; cursor:pointer; background:#fff; max-width:220px; }
+.item-stock-images-trigger:hover { border-color:#2563eb; color:#2563eb; }
+.item-stock-images-list { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
+.item-stock-image-card { width:92px; }
+.item-stock-image-card img { width:92px; height:92px; object-fit:cover; border-radius:10px; border:1px solid #dbe3ef; display:block; }
+.item-stock-image-card .name { font-size:12px; color:#64748b; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.item-unit-conversion-row { display:grid; grid-template-columns:auto auto minmax(120px, 160px) auto; gap:12px; align-items:center; }
+.base-unit-preview, .secondary-unit-preview { font-weight:600; color:#475569; }
 </style>
