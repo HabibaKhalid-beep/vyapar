@@ -13,6 +13,54 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/saleorderform_style.css') }}">
     @include('dashboard.shared.party-item-create-styles')
+
+    <style>
+        /* Dropdown with two columns and scrollbar */
+        #partyDropdownMenu {
+            min-width: 250px; /* Adjust as needed */
+            max-width: 100%;  /* Never exceed container */
+            max-height: 350px; /* Add max-height for scrollbar */
+            overflow-y: auto; /* Enable vertical scrolling */
+            overflow-x: hidden; /* Hide horizontal scroll */
+        }
+
+        /* Scrollbar styling for responsive dropdown */
+        #partyDropdownMenu::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #partyDropdownMenu::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        #partyDropdownMenu::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        #partyDropdownMenu::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Firefox scrollbar */
+        #partyDropdownMenu {
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+        }
+
+        .party-option span {
+            display: inline-block;
+            width: 100%;
+        }
+        .party-option span:first-child {
+            width: 60%; /* Party name */
+        }
+        .party-option span:last-child {
+            width: 40%; /* Opening balance */
+            text-align: right;
+        }
+    </style>
 </head>
 
 <body>
@@ -46,7 +94,7 @@
                              <div class="input-group">
                                 <!-- Party dropdown button -->
 <div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
-    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
         Select Party
     </button>
     <!-- Balance display -->
@@ -55,7 +103,7 @@
     </div>
 
     <!-- Dropdown menu (existing) -->
-    <ul class="dropdown-menu w-110" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+    <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
         <li class="dropdown-header-search px-2 py-2">
             <input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;">
         </li>
@@ -67,10 +115,23 @@
     <li>
         <a class="dropdown-item d-flex justify-content-between party-option" href="#"
            data-id="{{ $party->id }}"
+           data-name="{{ $party->name }}"
            data-phone="{{ $party->phone }}"
+           data-phone-number-2="{{ $party->phone_number_2 }}"
+           data-city="{{ $party->city }}"
+           data-ptcl="{{ $party->ptcl_number }}"
+           data-email="{{ $party->email }}"
+           data-address="{{ addslashes($party->address ?? '') }}"
            data-billing="{{ addslashes($party->billing_address ?? '') }}"
+           data-shipping="{{ addslashes($party->shipping_address ?? '') }}"
+           data-party-group="{{ $party->party_group }}"
+           data-due-days="{{ $party->due_days ?? '' }}"
            data-opening="{{ $party->opening_balance ?? 0 }}"
-           data-type="{{ $party->transaction_type }}">
+           data-type="{{ $party->transaction_type }}"
+           data-party-type="{{ is_array($party->party_type) ? implode(',', $party->party_type) : ($party->party_type ?? '') }}"
+           data-credit-limit-enabled="{{ $party->credit_limit_enabled ?? 0 }}"
+           data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
+           data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
             <span>{{ $party->name }}</span>
          <span
     @if($party->transaction_type == 'pay')
@@ -265,6 +326,12 @@
                                     <i class="fa-solid fa-align-left"></i>
                                     ADD DESCRIPTION
                                 </button>
+
+                                <div class="description-pane d-none w-50">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                </div>
+
                                 <button type="button" class="btn-action-light w-50 add-image">
                                     <i class="fa-solid fa-camera"></i>
                                     ADD IMAGE
@@ -273,11 +340,6 @@
                                     <i class="fa-solid fa-file-lines"></i>
                                     ADD DOCUMENT
                                 </button>
-
-                                <div class="description-pane d-none mt-2">
-                                    <label class="form-label">Description</label>
-                                    <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
-                                </div>
 
                                 <div class="image-upload-section mt-2">
                                     <div class="image-preview d-none">
