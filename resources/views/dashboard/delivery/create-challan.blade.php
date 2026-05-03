@@ -250,12 +250,24 @@
                             <div class="bottom-left">
 
 
-                                <button type="button" class="btn-action-light w-50 add-description"><i class="fa-solid fa-align-left"></i>ADD DESCRIPTION</button>
-                                <button type="button" class="btn-action-light w-50 add-image"><i class="fa-solid fa-camera"></i>ADD IMAGE</button>
-                                <div class="description-pane d-none mt-2">
+                                <button type="button" class="btn-action-light w-50 add-description">
+                                    <i class="fa-solid fa-align-left"></i>
+                                    ADD DESCRIPTION
+                                </button>
+
+                                <div class="description-pane d-none mt-2 w-50">
                                     <label class="form-label">Description</label>
                                     <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
                                 </div>
+
+                                <button type="button" class="btn-action-light w-50 add-image">
+                                    <i class="fa-solid fa-camera"></i>
+                                    ADD IMAGE
+                                </button>
+                                <button type="button" class="btn-action-light w-50 add-document">
+                                    <i class="fa-solid fa-align-left "></i>
+                                    ADD DOCUMENT
+                                </button>
                                 <div class="warehouse-compact-grid">
                                     <div class="party-meta-field warehouse-field">
                                         <label>Warehouse Name</label>
