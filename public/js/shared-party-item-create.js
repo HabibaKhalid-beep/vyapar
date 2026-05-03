@@ -993,7 +993,7 @@
         });
         const rowsRoot = document.querySelector('.item-rows');
         if (rowsRoot) {
-            observer.observe(rowsRoot, { childList: true, subtree: true });
+            observer.observe(rowsRoot, { childList: true });
         }
     }
 
