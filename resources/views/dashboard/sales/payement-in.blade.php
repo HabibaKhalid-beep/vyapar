@@ -1085,6 +1085,14 @@
   <script src="{{ asset('js/payment_in.js') }}"></script>
   <script>
     $(document).ready(function () {
+      // Add New Party button - Open modal
+      $('#addNewPartyBtn').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const addPartyModal = new bootstrap.Modal(document.getElementById('addPartyModal'));
+        addPartyModal.show();
+      });
+
       const $searchInput = $("#paymentInSearch");
       const $periodSelect = $("#paymentInPeriodSelect");
       const $firmSelect = $("#paymentInFirmSelect");
