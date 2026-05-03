@@ -12,6 +12,7 @@
     let cachedUnits = [];
     let currentItemImageObjectUrl = null;
     let currentStockImageObjectUrls = [];
+    let reopenUnitSelectorAfterQuickAdd = false;
 
     function escapeHtml(value) {
         return String(value ?? '')
@@ -47,6 +48,16 @@
         currentStockImageObjectUrls = [];
         $('#newItemStockImages').val('');
         $('#newItemStockImagesList').empty();
+    }
+
+    function renderStockImagePreviews(files) {
+        clearStockImagePreviews();
+        const html = (files || []).map((file) => {
+            const objectUrl = URL.createObjectURL(file);
+            currentStockImageObjectUrls.push(objectUrl);
+            return `<div class="item-stock-image-card"><img src="${objectUrl}" alt="${escapeHtml(file.name)}"><div class="name">${escapeHtml(file.name)}</div></div>`;
+        }).join('');
+        $('#newItemStockImagesList').html(html);
     }
 
     function updateUnitButtonLabel() {
@@ -145,12 +156,13 @@
 
         return items.map((item) => {
             const stock = parseFloat(item.opening_qty ?? 0) || 0;
+            const stockClass = stock > 0 ? 'pos' : 'zero';
             return `
                 <div class="item-picker-row item-picker-option" data-id="${item.id}">
                     <div class="item-picker-name">${item.name || ''}${item.item_code ? `<small>(${item.item_code})</small>` : ''}</div>
                     <div>${(parseFloat(item.sale_price ?? item.price ?? 0) || 0).toFixed(2)}</div>
                     <div>${(parseFloat(item.purchase_price ?? 0) || 0).toFixed(2)}</div>
-                    <div class="item-picker-stock ${stock < 0 ? 'neg' : ''}">${stock}</div>
+                    <div class="item-picker-stock ${stockClass}">${stock}</div>
                 </div>
             `;
         }).join('');
@@ -714,6 +726,16 @@
             updateUnitButtonLabel();
             $('#quickUnitName, #quickUnitShortName').val('');
             bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
+            if (reopenUnitSelectorAfterQuickAdd) {
+                reopenUnitSelectorAfterQuickAdd = false;
+                $('#newItemBaseUnitSelect').val($('#newItemUnit').val() || selectedUnit);
+                if (!$('#newItemSecondaryUnit').val()) {
+                    $('#newItemSecondaryUnitSelect').val(selectedUnit);
+                }
+                setTimeout(() => {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).show();
+                }, 180);
+            }
         }).catch((error) => {
             alert(error.message || 'Unable to save unit.');
         });
@@ -989,6 +1011,8 @@
 
         $(document).on('click.sharedOpenAddUnitFromSelector', '.open-add-unit-from-selector', function (event) {
             event.preventDefault();
+            reopenUnitSelectorAfterQuickAdd = true;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).hide();
             bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
         });
 
@@ -1047,14 +1071,7 @@
         });
 
         $(document).on('change.sharedStockImagesPreview', '#newItemStockImages', function () {
-            clearStockImagePreviews();
-            const files = Array.from(this.files || []);
-            const html = files.map((file) => {
-                const objectUrl = URL.createObjectURL(file);
-                currentStockImageObjectUrls.push(objectUrl);
-                return `<div class="item-stock-image-card"><img src="${objectUrl}" alt="${escapeHtml(file.name)}"><div class="name">${escapeHtml(file.name)}</div></div>`;
-            }).join('');
-            $('#newItemStockImagesList').html(html);
+            renderStockImagePreviews(Array.from(this.files || []));
         });
 
         $(document).on('shown.bs.modal.sharedPartyModal', '#addPartyModal', function () {

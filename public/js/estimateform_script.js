@@ -523,100 +523,106 @@ function initializeForm(context) {
         $unitSelect.val(normalizedUnit);
     }
 
-    $('#addItemModal').on('show.bs.modal', function() {
-        renderNewItemUnitMenu($('#newItemUnit').val() || '');
-    });
+    if (document.getElementById('selectItemUnitModal')) {
+        $(document).off('click', '#saveQuickUnitBtn');
+        $(document).off('click', '#saveQuickCategoryBtn');
+        $(document).off('click', '#openAddUnitModalBtn');
+    } else {
+        $('#addItemModal').on('show.bs.modal', function() {
+            renderNewItemUnitMenu($('#newItemUnit').val() || '');
+        });
 
-    $('#newItemCategory').on('change', function() {
-        if ($(this).val() !== '__add_new__') {
-            return;
-        }
-
-        $(this).val('');
-        $('#quickCategoryName').val('');
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).show();
-        setTimeout(() => $('#quickCategoryName').trigger('focus'), 150);
-    });
-
-    $(document).on('click', '#openAddUnitModalBtn', function(e) {
-        e.preventDefault();
-        const dropdownEl = document.getElementById('newItemUnitBtn');
-        const dropdown = dropdownEl ? bootstrap.Dropdown.getOrCreateInstance(dropdownEl) : null;
-        dropdown?.hide();
-        $('#quickUnitName').val('');
-        $('#quickUnitShortName').val('');
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
-        setTimeout(() => $('#quickUnitName').trigger('focus'), 150);
-    });
-
-    $(document).off('click', '#saveQuickCategoryBtn').on('click', '#saveQuickCategoryBtn', function() {
-        const name = $('#quickCategoryName').val().trim();
-        if (!name) {
-            alert('Please enter a category name');
-            return;
-        }
-
-        fetchJson(itemRoutes.categoryStore, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
-            },
-            body: JSON.stringify({ name })
-        })
-        .then(data => {
-            if (!data.category) {
-                throw new Error('Category not returned');
+        $('#newItemCategory').on('change', function() {
+            if ($(this).val() !== '__add_new__') {
+                return;
             }
 
-            const category = data.category;
-            const $categorySelect = $('#newItemCategory');
-            const $existing = $categorySelect.find(`option[value="${category.id}"]`);
-            if (!$existing.length) {
-                $categorySelect.find('option[value="__add_new__"]').before(
-                    `<option value="${category.id}">${category.name}</option>`
-                );
+            $(this).val('');
+            $('#quickCategoryName').val('');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).show();
+            setTimeout(() => $('#quickCategoryName').trigger('focus'), 150);
+        });
+
+        $(document).on('click', '#openAddUnitModalBtn', function(e) {
+            e.preventDefault();
+            const dropdownEl = document.getElementById('newItemUnitBtn');
+            const dropdown = dropdownEl ? bootstrap.Dropdown.getOrCreateInstance(dropdownEl) : null;
+            dropdown?.hide();
+            $('#quickUnitName').val('');
+            $('#quickUnitShortName').val('');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
+            setTimeout(() => $('#quickUnitName').trigger('focus'), 150);
+        });
+
+        $(document).off('click', '#saveQuickCategoryBtn').on('click', '#saveQuickCategoryBtn', function() {
+            const name = $('#quickCategoryName').val().trim();
+            if (!name) {
+                alert('Please enter a category name');
+                return;
             }
-            $categorySelect.val(String(category.id));
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).hide();
-        })
-        .catch(error => {
-            console.error(error);
-            alert(error.message || 'Error saving category');
+
+            fetchJson(itemRoutes.categoryStore, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ name })
+            })
+            .then(data => {
+                if (!data.category) {
+                    throw new Error('Category not returned');
+                }
+
+                const category = data.category;
+                const $categorySelect = $('#newItemCategory');
+                const $existing = $categorySelect.find(`option[value="${category.id}"]`);
+                if (!$existing.length) {
+                    $categorySelect.find('option[value="__add_new__"]').before(
+                        `<option value="${category.id}">${category.name}</option>`
+                    );
+                }
+                $categorySelect.val(String(category.id));
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).hide();
+            })
+            .catch(error => {
+                console.error(error);
+                alert(error.message || 'Error saving category');
+            });
         });
-    });
 
-    $(document).off('click', '#saveQuickUnitBtn').on('click', '#saveQuickUnitBtn', function() {
-        const name = $('#quickUnitName').val().trim();
-        const shortName = $('#quickUnitShortName').val().trim().toUpperCase();
+        $(document).off('click', '#saveQuickUnitBtn').on('click', '#saveQuickUnitBtn', function() {
+            const name = $('#quickUnitName').val().trim();
+            const shortName = $('#quickUnitShortName').val().trim().toUpperCase();
 
-        if (!name || !shortName) {
-            alert('Please enter both unit name and short name');
-            return;
-        }
+            if (!name || !shortName) {
+                alert('Please enter both unit name and short name');
+                return;
+            }
 
-        fetchJson(itemRoutes.unitsStore, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
-            },
-            body: JSON.stringify({ name, short_name: shortName })
-        })
-        .then(data => {
-            const unitCode = String(data.unit?.short_name || shortName).toUpperCase();
-            window.saleUnits = Array.isArray(data.units) ? data.units : getNormalizedSaleUnits();
-            renderNewItemUnitMenu(unitCode);
-            syncItemUnitSelects();
-            $('#newItemUnit').val(unitCode);
-            $('#newItemUnitBtn').text(unitCode);
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
-        })
-        .catch(error => {
-            console.error(error);
-            alert(error.message || 'Error saving unit');
+            fetchJson(itemRoutes.unitsStore, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ name, short_name: shortName })
+            })
+            .then(data => {
+                const savedUnitCode = String(data.unit?.short_name || shortName).toUpperCase();
+                window.saleUnits = Array.isArray(data.units) ? data.units : getNormalizedSaleUnits();
+                renderNewItemUnitMenu(savedUnitCode);
+                syncItemUnitSelects();
+                $('#newItemUnit').val(savedUnitCode);
+                $('#newItemUnitBtn').text(savedUnitCode);
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
+            })
+            .catch(error => {
+                console.error(error);
+                alert(error.message || 'Error saving unit');
+            });
         });
-    });
+    }
 
     $ctx.on('focus mousedown', '.item-name', function() {
         restoreRichItemDropdownLabels();

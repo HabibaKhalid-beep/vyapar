@@ -2600,7 +2600,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Close modal first, then show success message
             if(closeAfterSave) {
-                addModal.hide();
+                bootstrap.Modal.getOrCreateInstance(addModalEl).hide();
                 // Wait for modal to close, then reset
                 setTimeout(() => {
                     form.reset();

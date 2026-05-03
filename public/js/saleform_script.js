@@ -88,12 +88,13 @@ function initializeForm(context) {
             const salePrice = parseFloat(item.sale_price ?? item.price ?? 0) || 0;
             const purchasePrice = parseFloat(item.purchase_price ?? 0) || 0;
             const stock = parseFloat(item.opening_qty ?? 0) || 0;
+            const stockClass = stock > 0 ? 'pos' : 'zero';
             return `
                 <div class="item-picker-row item-picker-option" data-id="${item.id}">
                     <div class="item-picker-name">${plainLabel}${itemCode ? `<small>(${itemCode})</small>` : ''}</div>
                     <div>${salePrice.toFixed(2)}</div>
                     <div>${purchasePrice.toFixed(2)}</div>
-                    <div class="item-picker-stock ${stock < 0 ? 'neg' : ''}">${stock}</div>
+                    <div class="item-picker-stock ${stockClass}">${stock}</div>
                 </div>
             `;
         }).join('');
@@ -1326,10 +1327,18 @@ function initializeForm(context) {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).hide();
     });
 
+    let reopenUnitSelectorAfterQuickAdd = false;
+
     $(document).on('click', '#openAddUnitModalBtn, .open-add-unit-from-selector', function(e) {
         e.preventDefault();
         $('#quickUnitName').val('');
         $('#quickUnitShortName').val('');
+        if ($(this).hasClass('open-add-unit-from-selector')) {
+            reopenUnitSelectorAfterQuickAdd = true;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).hide();
+        } else {
+            reopenUnitSelectorAfterQuickAdd = false;
+        }
         bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).show();
         setTimeout(() => $('#quickUnitName').trigger('focus'), 150);
     });
@@ -1400,6 +1409,15 @@ function initializeForm(context) {
             $('#newItemBaseUnitSelect').val($('#newItemUnit').val() || unitCode);
             updateNewItemUnitButton();
             bootstrap.Modal.getOrCreateInstance(document.getElementById('addUnitModal')).hide();
+            if (reopenUnitSelectorAfterQuickAdd) {
+                reopenUnitSelectorAfterQuickAdd = false;
+                if (!$('#newItemSecondaryUnit').val()) {
+                    $('#newItemSecondaryUnitSelect').val(unitCode);
+                }
+                setTimeout(() => {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('selectItemUnitModal')).show();
+                }, 180);
+            }
         })
         .catch(error => {
             console.error(error);

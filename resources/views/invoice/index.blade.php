@@ -15,7 +15,7 @@
 
   @if (!empty($pdfDirectDownload) && !empty($reactCssInline))
     <style>{!! $reactCssInline !!}</style>
-  @elseif ($reactCss)
+  @elseif (!empty($reactCss))
     <link rel="stylesheet" href="{{ $reactCss }}">
   @endif
 
@@ -126,7 +126,7 @@
     </script>
   @endif
 
-  @if ($reactJs)
+  @if (!empty($reactJs))
     <div id="root"></div>
     <script>
       window.invoiceAppData = {
@@ -297,7 +297,7 @@
 
   @if (!empty($pdfDirectDownload) && !empty($reactJsInline))
     <script type="module">{!! $reactJsInline !!}</script>
-  @elseif ($reactJs)
+  @elseif (!empty($reactJs))
     <script type="module" src="{{ $reactJs }}"></script>
   @endif
 

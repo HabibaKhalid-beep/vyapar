@@ -836,7 +836,7 @@
         const wholesaleToggle = document.getElementById('toggleWholesalePricing');
         const wholesaleSection = document.querySelector('.wholesale-pricing');
 
-        if (unitButtons && unitInput && unitBtn) {
+        if (!document.getElementById('selectItemUnitModal') && unitButtons && unitInput && unitBtn) {
             unitButtons.forEach(btn => {
                 btn.addEventListener('click', function () {
                     const unit = this.dataset.unit || '';
@@ -1048,4 +1048,3 @@
 
 
 </html>
-
