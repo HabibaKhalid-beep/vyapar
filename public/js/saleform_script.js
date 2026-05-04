@@ -1935,6 +1935,7 @@ function initializeForm(context) {
             return;
         }
         $pane.toggleClass('d-none');
+        $button.toggleClass('d-none');
         if (!$pane.hasClass('d-none')) {
             $pane.find('.description-input').focus();
         }
