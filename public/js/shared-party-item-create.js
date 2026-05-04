@@ -376,12 +376,25 @@
     }
 
     function showItemModal($trigger, rowIndex = null) {
+        const effectiveRowIndex = rowIndex !== null && rowIndex !== undefined ? rowIndex : $trigger.closest('tr.item-row').index();
         activeItemContext = {
             $context: getBodyContext($trigger),
-            rowIndex: rowIndex
+            rowIndex: effectiveRowIndex >= 0 ? effectiveRowIndex : null
         };
-        window.activeCreateRow = rowIndex;
+        window.activeCreateRow = activeItemContext.rowIndex;
         resetItemModal();
+
+        const itemNameInput = document.getElementById('newItemName');
+        if (itemNameInput && activeItemContext.rowIndex !== null && activeItemContext.rowIndex !== undefined) {
+            const $row = activeItemContext.$context.find('.item-row').eq(activeItemContext.rowIndex);
+            const rowPickerValue = String($row.find('.item-picker-input').first().val() || '').trim();
+            const selectedOptionLabel = String($row.find('select.item-name option:selected').data('label') || $row.find('select.item-name option:selected').text() || '').trim();
+            const initialValue = rowPickerValue || selectedOptionLabel;
+            if (initialValue) {
+                itemNameInput.value = initialValue;
+            }
+        }
+
         fetchUnits();
         bootstrap.Modal.getOrCreateInstance(document.getElementById('addItemModal')).show();
     }
@@ -496,7 +509,19 @@
             return;
         }
 
-        $select.data('enhanced-picker', true).addClass('d-none');
+        $select.data('enhanced-picker', true)
+            .addClass('d-none')
+            .attr('aria-hidden', 'true')
+            .css({
+                display: 'none',
+                visibility: 'hidden',
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                overflow: 'hidden',
+                clip: 'rect(0,0,0,0)',
+                whiteSpace: 'nowrap'
+            });
 
         const $picker = $(`
             <div class="item-picker">
@@ -892,7 +917,8 @@
 
         $(document).on('click.sharedItemModalOpen', '.open-item-modal', function (event) {
             event.preventDefault();
-            showItemModal($(this), null);
+            const rowIndex = $(this).closest('tr.item-row').index();
+            showItemModal($(this), rowIndex >= 0 ? rowIndex : null);
         });
 
         $(document).on('click.sharedPartySave', '#btnSaveParty', function (event) {
