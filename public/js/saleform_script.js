@@ -1185,11 +1185,33 @@ function initializeForm(context) {
         renderItemPicker($row, query);
     });
 
+    // Track selected item in picker for pre-filling modal
+    window.selectedItemForModal = null;
+
     $ctx.on('click', '.item-picker-option', function(e) {
         e.preventDefault();
         e.stopPropagation();
         const $row = $(this).closest('tr');
         const itemId = String($(this).data('id') || '');
+
+        // Get item name from the clicked element (item-picker-option)
+        const $itemName = $(this).find('.item-picker-name');
+        let itemName = $itemName.text().trim();
+
+        // Extract only the item name (remove item code if present)
+        if (itemName.includes('(')) {
+            itemName = itemName.split('(')[0].trim();
+        }
+
+        // Store selected item for modal
+        window.selectedItemForModal = {
+            id: itemId,
+            name: itemName
+        };
+
+        // Log to verify (can remove later)
+        console.log('Selected item for modal:', window.selectedItemForModal);
+
         $row.find('.item-name').val(itemId).trigger('change');
     });
 
@@ -1221,6 +1243,12 @@ function initializeForm(context) {
         $('#newItemUnitBtn').text('Select Unit');
         $('#newItemUnit').val('');
         renderNewItemUnitMenu();
+
+        // Pre-fill item name if an item was selected in the picker
+        if (window.selectedItemForModal && window.selectedItemForModal.name) {
+            $('#newItemName').val(window.selectedItemForModal.name);
+            window.selectedItemForModal = null; // Reset after use
+        }
 
         // Show modal
         const modalEl = document.getElementById('addItemModal');
