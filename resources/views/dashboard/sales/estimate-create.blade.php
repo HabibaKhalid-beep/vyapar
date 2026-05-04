@@ -26,6 +26,84 @@
     <!-- Form Styles -->
     <link rel="stylesheet" href="{{ asset('css/estimateform_style.css') }}">
     @include('dashboard.shared.party-item-create-styles')
+    <style>
+    .party-group-dropdown {
+        position: relative;
+    }
+
+    .party-group-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        background: white;
+        border: 1px solid #ced4da;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .party-group-trigger:hover {
+        border-color: #adb5bd;
+        background: #f8f9fa;
+    }
+
+    .party-group-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        margin-top: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 1000;
+        display: none;
+    }
+
+    .party-group-menu.show {
+        display: block;
+    }
+
+    .party-group-add-btn {
+        width: 100%;
+        padding: 10px 12px;
+        background: white;
+        border: none;
+        border-bottom: 1px solid #ced4da;
+        text-align: left;
+        cursor: pointer;
+        color: #007bff;
+        font-weight: 500;
+        font-size: 13px;
+    }
+
+    .party-group-add-btn:hover {
+        background: #f8f9fa;
+    }
+
+    .party-group-options {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .party-group-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-size: 13px;
+        display: block;
+    }
+
+    .party-group-option:hover {
+        background: #e2f0ff;
+    }
+    </style>
 </head>
 
 <body>
@@ -684,6 +762,12 @@
             addNewPartyBtn.addEventListener("click", function(e) {
                 e.preventDefault();
                 addPartyForm.reset();
+                const partyGroupInput = document.getElementById('partyGroupInput');
+                const partyGroupText = document.getElementById('partyGroupText');
+                const partyGroupMenu = document.getElementById('partyGroupMenu');
+                if (partyGroupInput) partyGroupInput.value = '';
+                if (partyGroupText) partyGroupText.textContent = 'Select group';
+                if (partyGroupMenu) partyGroupMenu.classList.add('d-none');
                 const modal = new bootstrap.Modal(addPartyModal);
                 modal.show();
             });
@@ -761,6 +845,12 @@
 
                         // Reset form
                         form.reset();
+                        const partyGroupInput = document.getElementById('partyGroupInput');
+                        const partyGroupText = document.getElementById('partyGroupText');
+                        const partyGroupMenu = document.getElementById('partyGroupMenu');
+                        if (partyGroupInput) partyGroupInput.value = '';
+                        if (partyGroupText) partyGroupText.textContent = 'Select group';
+                        if (partyGroupMenu) partyGroupMenu.classList.add('d-none');
 
                         // Dispatch event to refresh dropdown
                         window.dispatchEvent(new Event('partiesUpdated'));
@@ -847,6 +937,13 @@
                 const slug = name ? name.toUpperCase().replace(/[^A-Z0-9]+/g, '') : 'ITEM';
                 const suffix = Math.floor(Math.random() * 9000) + 1000;
                 document.getElementById('newItemCode').value = `${slug ? slug.substring(0, 6) : 'ITEM'}-${suffix}`;
+            });
+        }
+
+        if (wholesaleToggle && wholesaleSection) {
+            wholesaleToggle.addEventListener('click', function () {
+                wholesaleSection.classList.toggle('d-none');
+                this.textContent = wholesaleSection.classList.contains('d-none') ? '+ Add Wholesale Price' : '- Remove Wholesale Price';
             });
         }
 
@@ -1028,6 +1125,7 @@
 
                     input.value = groupName;
                     text.textContent = groupName;
+                    menu.classList.add("d-none");
 
                     nameEl.value = "";
                     groupModal.hide();
