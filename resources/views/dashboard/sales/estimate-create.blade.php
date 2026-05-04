@@ -947,7 +947,7 @@
             });
         }
 
-        if (wholesaleToggle && wholesaleSection) {
+        if (!window.__sharedPartyItemCreateLoaded && wholesaleToggle && wholesaleSection) {
             wholesaleToggle.addEventListener('click', function () {
                 wholesaleSection.classList.toggle('d-none');
                 this.textContent = wholesaleSection.classList.contains('d-none') ? '+ Add Wholesale Price' : '- Remove Wholesale Price';
@@ -1029,6 +1029,10 @@
 
     <script>
     document.addEventListener("DOMContentLoaded", function () {
+        if (window.__sharedPartyItemCreateLoaded) {
+            return;
+        }
+
         const trigger = document.getElementById("partyGroupTrigger");
         const menu = document.getElementById("partyGroupMenu");
         const list = document.getElementById("partyGroupList");

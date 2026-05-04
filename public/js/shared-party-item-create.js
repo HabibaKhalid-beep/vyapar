@@ -1,4 +1,5 @@
 (function () {
+    window.__sharedPartyItemCreateLoaded = true;
     window.itemRoutes = Object.assign({
         index: '/dashboard/items',
         store: '/dashboard/items',
@@ -509,19 +510,15 @@
             return;
         }
 
+        const existingPicker = $select.siblings('.item-picker');
+        if (existingPicker.length) {
+            existingPicker.remove();
+        }
+
         $select.data('enhanced-picker', true)
-            .addClass('d-none')
+            .addClass('d-none enhanced-hidden')
             .attr('aria-hidden', 'true')
-            .css({
-                display: 'none',
-                visibility: 'hidden',
-                position: 'absolute',
-                width: '1px',
-                height: '1px',
-                overflow: 'hidden',
-                clip: 'rect(0,0,0,0)',
-                whiteSpace: 'nowrap'
-            });
+            .attr('style', 'display:none!important;visibility:hidden!important;position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;');
 
         const $picker = $(`
             <div class="item-picker">

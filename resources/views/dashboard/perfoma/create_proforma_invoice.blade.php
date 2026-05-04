@@ -253,34 +253,6 @@
                                             <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                                         </td>
                                         <td>
-                                            <div class="item-picker">
-                                                <input type="text" class="item-picker-input" placeholder="Search Item" style="position: relative; z-index: 10;">
-                                                <div class="item-picker-panel" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; width: 100%; min-width: 320px; background: white; border: 1px solid #e1e8ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: none; overflow: hidden;">
-                                                    <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-square-plus"></i> Add Item</div>
-                                                    <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
-                                                        <span>Item</span>
-                                                        <span>Sale Price</span>
-                                                        <span>Purchase Price</span>
-                                                        <span>Stock</span>
-                                                    </div>
-                                                    <div class="item-picker-list" style="max-height: 280px; overflow-y: auto;">
-                                                        @forelse($items as $item)
-                                                            <div class="item-picker-row item-picker-option" data-id="{{ $item->id }}">
-                                                                <div class="item-picker-name">
-                                                                    {{ $item->name }}
-                                                                    @if(!empty($item->item_code))
-                                                                        <small>({{ $item->item_code }})</small>
-                                                                    @endif
-                                                                </div>
-                                                                <div>{{ number_format((float) ($item->sale_price ?? $item->price ?? 0), 2, '.', '') }}</div>
-                                                                <div>{{ number_format((float) ($item->purchase_price ?? 0), 2, '.', '') }}</div>
-                                                                <div class="item-picker-stock {{ (float) ($item->opening_qty ?? 0) < 0 ? 'neg' : '' }}">{{ (float) ($item->opening_qty ?? 0) }}</div>
-                                                            </div>
-                                                        @empty
-                                                            <div class="item-picker-empty">No items found</div>
-                                                        @endforelse
-                                                    </div>
-                                                </div>
                                                 <select class="form-select item-name d-none">
                                                     <option value="" selected disabled>Select Item</option>
                                                     @foreach($items as $item)
@@ -539,7 +511,6 @@
 
 
 </html>
-
 
 
 

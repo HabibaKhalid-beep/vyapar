@@ -6,6 +6,17 @@
     overflow: visible;
 }
 
+.item-name.enhanced-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+}
+
 .item-picker-input {
     width: 100%;
     border: 1px solid #cfd8e3;
