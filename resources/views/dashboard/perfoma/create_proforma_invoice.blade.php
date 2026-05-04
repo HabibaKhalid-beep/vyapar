@@ -304,25 +304,27 @@
 
 
 
-                                <div class="description-action-group mb-2">
-                                    <button type="button" class="btn-action-light action-btn add-description">
-                                        <i class="fa-solid fa-align-left"></i>
-                                        ADD DESCRIPTION
-                                    </button>
-
-                                    <div class="description-pane d-none mt-2">
-                                        <label class="form-label">Description</label>
-                                        <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
-                                    </div>
-                                </div>
-
                                 <div class="action-buttons d-flex flex-wrap gap-2 mb-2">
-                                    <button type="button" class="btn-action-light action-btn add-image">
+                                    <div class="description-action-group" style="width: 50%;">
+                                        <button type="button" class="btn-action-light action-btn add-description w-100">
+                                            <i class="fa-solid fa-align-left"></i>
+                                            ADD DESCRIPTION
+                                        </button>
+
+                                        <div class="description-pane d-none mt-2">
+                                            <label class="form-label">Description</label>
+                                            <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <button type="button" class="btn-action-light action-btn add-image" style="width: 50%;">
                                         <i class="fa-solid fa-camera"></i>
                                         ADD IMAGE
                                     </button>
+                                </div>
 
-                                    <button type="button" class="btn-action-light action-btn add-document">
+                                <div class="action-buttons d-flex flex-wrap gap-2 mb-2">
+                                    <button type="button" class="btn-action-light action-btn add-document" style="width: 50%;">
                                         <i class="fa-solid fa-align-left"></i>
                                         ADD DOCUMENT
                                     </button>
