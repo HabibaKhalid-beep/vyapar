@@ -323,7 +323,14 @@ function initializeForm(context) {
     $ctx.on('input change', '.item-qty, .item-price, .item-discount', function () { const $row = $(this).closest('tr'); const amount = ((parseFloat($row.find('.item-qty').val()) || 0) * (parseFloat($row.find('.item-price').val()) || 0)) - (parseFloat($row.find('.item-discount').val()) || 0); $row.find('.item-amount').val(amount.toFixed(2)); calculateTotals(); });
     $ctx.on('input change', '.discount-pct, .discount-rs, .tax-select, .round-off-check', function () { applyDiscountTax(parseFloat($ctx.find('.total-base-amount').text()) || 0); });
     $ctx.on('change input', '.brokerage-type, .brokerage-rate', updateBrokerageFields);
-    $ctx.on('click', '.add-description', function () { $ctx.find('.description-pane').toggleClass('d-none'); });
+    $ctx.on('click', '.add-description', function () {
+        const $btn = $(this);
+        const $pane = $btn.closest('.description-action-group').find('.description-pane');
+
+        $btn.addClass('d-none');
+        $pane.removeClass('d-none');
+        $pane.find('.description-input').focus();
+    });
     $ctx.on('click', '.add-image, .image-placeholder', function () { $ctx.find('.image-input').trigger('click'); });
     $ctx.on('change', '.image-input', async function () { await handleImageSelection(this.files); });
     $ctx.on('click', '.remove-new-image', function () { pendingImages.splice(Number($(this).closest('.image-card').data('new-index')), 1); renderImages(); });
