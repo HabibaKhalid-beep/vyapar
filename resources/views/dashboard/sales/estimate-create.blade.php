@@ -766,17 +766,19 @@
         const btnSaveParty = document.getElementById("btnSaveParty");
         const addPartyForm = document.getElementById("addPartyForm");
 
-        // Show modal when "Add New Party" is clicked
-        if (addNewPartyBtn && addPartyModal) {
+        if (!window.__sharedPartyItemCreateLoaded && addNewPartyBtn && addPartyModal && addPartyForm) {
             addNewPartyBtn.addEventListener("click", function(e) {
                 e.preventDefault();
+                const partySearchInput = document.getElementById('partyDropdownBtn');
+                const partyNameInput = document.getElementById('partyNameInput');
+                const partySearchValue = (partySearchInput?.value || '').trim();
+
                 addPartyForm.reset();
-                const partyGroupInput = document.getElementById('partyGroupInput');
-                const partyGroupText = document.getElementById('partyGroupText');
-                const partyGroupMenu = document.getElementById('partyGroupMenu');
-                if (partyGroupInput) partyGroupInput.value = '';
-                if (partyGroupText) partyGroupText.textContent = 'Select group';
-                if (partyGroupMenu) partyGroupMenu.classList.add('d-none');
+
+                if (partyNameInput && partySearchValue) {
+                    partyNameInput.value = partySearchValue;
+                }
+
                 const modal = new bootstrap.Modal(addPartyModal);
                 modal.show();
             });

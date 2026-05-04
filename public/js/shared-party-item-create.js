@@ -946,9 +946,29 @@
         bindPartySearch();
         bindPartySelection();
 
+        $(document).on('mousedown.sharedPartyPrefill touchstart.sharedPartyPrefill', '#addNewPartyBtn', function () {
+            const $trigger = $(this);
+            const $dropdownBtn = $trigger.closest('.party-dropdown-wrapper').find('#partyDropdownBtn').first();
+            const prefillName = $dropdownBtn.is('input, textarea')
+                ? String($dropdownBtn.val() || '').trim()
+                : String($dropdownBtn.text() || '').trim();
+            $trigger.data('prefill-name', prefillName);
+        });
+
         $(document).on('click.sharedPartyModalOpen', '.open-party-modal, #addNewPartyBtn', function (event) {
             event.preventDefault();
-            showPartyModal($(this));
+            const $trigger = $(this);
+            let prefillName = '';
+            if ($trigger.is('#addNewPartyBtn')) {
+                prefillName = String($trigger.data('prefill-name') || '').trim();
+                if (!prefillName) {
+                    const $dropdownBtn = $trigger.closest('.party-dropdown-wrapper').find('#partyDropdownBtn').first();
+                    prefillName = $dropdownBtn.is('input, textarea')
+                        ? String($dropdownBtn.val() || '').trim()
+                        : String($dropdownBtn.text() || '').trim();
+                }
+            }
+            showPartyModal($trigger, prefillName);
         });
 
         $(document).on('click.sharedItemModalOpen', '.open-item-modal', function (event) {
