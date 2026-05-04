@@ -407,7 +407,12 @@
         }
 
         $context.find('.party-id').first().val(party.id || '');
-        $context.find('#partyDropdownBtn').first().text(party.name || 'Select Party');
+        const $dropdownBtn = $context.find('#partyDropdownBtn').first();
+        if ($dropdownBtn.is('input, textarea')) {
+            $dropdownBtn.val(party.name || 'Select Party');
+        } else {
+            $dropdownBtn.text(party.name || 'Select Party');
+        }
         $context.find('.phone-input').first().val(party.phone || '');
         $context.find('.billing-address').first().val(party.billing_address || '');
         $context.find('.shipping-address').first().val(party.shipping_address || '');

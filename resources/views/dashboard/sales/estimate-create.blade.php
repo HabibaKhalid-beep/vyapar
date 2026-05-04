@@ -103,6 +103,13 @@
     .party-group-option:hover {
         background: #e2f0ff;
     }
+
+    /* Disable sticky dropdown header for estimate party selector */
+    #partyDropdownMenu .dropdown-header {
+        position: static !important;
+        top: auto !important;
+        z-index: auto !important;
+    }
     </style>
 </head>
 

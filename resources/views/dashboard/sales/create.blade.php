@@ -2650,7 +2650,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 if (partyIdInput) partyIdInput.value = partyRecord.id;
-                if (dropdownBtn) dropdownBtn.textContent = partyRecord.name || 'Select Party';
+                if (dropdownBtn) {
+                    if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {
+                        dropdownBtn.value = partyRecord.name || 'Select Party';
+                    } else {
+                        dropdownBtn.textContent = partyRecord.name || 'Select Party';
+                    }
+                }
                 if (balanceDisplay) {
                     balanceDisplay.textContent = partyRecord.transaction_type === 'pay'
                         ? `To Pay Rs ${partyRecord.opening_balance || 0}`
@@ -2809,7 +2815,7 @@ document.addEventListener("DOMContentLoaded", function() {
             };
 
             // Button pe sirf party name
-            dropdownBtn.textContent = name;
+            dropdownBtn.value = name;
 
             // Show balance below button with color
           if(type === "pay"){
@@ -2886,6 +2892,23 @@ document.addEventListener("DOMContentLoaded", function() {
             const modal = new bootstrap.Modal(addPartyModal);
             modal.show();
         });
+    }
+});
+
+document.addEventListener('click', function (e) {
+    const partyOption = e.target.closest('.party-option');
+    if (!partyOption) return;
+
+    const dropdownBtn = document.querySelector('#partyDropdownBtn.party-search-input');
+    if (!dropdownBtn) return;
+
+    const partyName = partyOption.dataset.name || partyOption.querySelector('span:first-child')?.textContent?.trim() || '';
+    if (!partyName) return;
+
+    if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {
+        dropdownBtn.value = partyName;
+    } else {
+        dropdownBtn.textContent = partyName;
     }
 });
 </script>
