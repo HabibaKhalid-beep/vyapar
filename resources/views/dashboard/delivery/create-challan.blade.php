@@ -13,11 +13,43 @@
     <link rel="stylesheet" href="{{ asset('css/estimateform_style.css') }}">
     @include('dashboard.shared.party-item-create-styles')
     <style>
-        #partyDropdownMenu, #brokerDropdownMenu, #warehouseDropdownMenu { min-width: 250px; max-width: 100%; }
+        #partyDropdownMenu, #brokerDropdownMenu, #warehouseDropdownMenu {
+            min-width: 250px;
+            max-width: 100%;
+            max-height: 350px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        #partyDropdownMenu::-webkit-scrollbar, #brokerDropdownMenu::-webkit-scrollbar, #warehouseDropdownMenu::-webkit-scrollbar {
+            width: 8px;
+        }
+        #partyDropdownMenu::-webkit-scrollbar-track, #brokerDropdownMenu::-webkit-scrollbar-track, #warehouseDropdownMenu::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        #partyDropdownMenu::-webkit-scrollbar-thumb, #brokerDropdownMenu::-webkit-scrollbar-thumb, #warehouseDropdownMenu::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        #partyDropdownMenu::-webkit-scrollbar-thumb:hover, #brokerDropdownMenu::-webkit-scrollbar-thumb:hover, #warehouseDropdownMenu::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        #partyDropdownMenu, #brokerDropdownMenu, #warehouseDropdownMenu {
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+        }
         .party-option span, .warehouse-option span { display: inline-block; width: 100%; }
         .party-option span:first-child, .warehouse-option span:first-child { width: 65%; }
         .party-option span:last-child, .warehouse-option span:last-child { width: 35%; text-align: right; }
-        .dropdown-header { font-weight: 600; font-size: 0.9rem; background: #f8f9fa; border-bottom: 1px solid #ddd; }
+        .dropdown-header {
+            font-weight: 600;
+            font-size: 0.9rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
         .dropdown-item.party-option:hover, .dropdown-item.warehouse-option:hover, .dropdown-item.broker-option:hover { background-color: #e2f0ff; }
         .party-dropdown-wrapper, .broker-dropdown-wrapper, .warehouse-dropdown-wrapper { width: 100%; }
         .header-section { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 28px; align-items: start; }
@@ -139,10 +171,9 @@
                                 <div class="input-group party-selector-group">
                                     <div class="party-selector-panel">
                                         <div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
-                                            <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">Select Party</button>
+                                            <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; min-height: 34px;">
                                             <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">No party selected</div>
                                             <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
-                                                <li class="dropdown-header-search px-2 py-2"><input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;"></li>
                                                 <li class="dropdown-header d-flex justify-content-between px-3"><span>Party Name</span><span>Opening Balance</span></li>
                                                 @foreach($parties as $party)
                                                 <li>

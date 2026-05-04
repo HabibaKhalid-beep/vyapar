@@ -29,7 +29,26 @@
     max-height: 400px;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
+}
+
+#partyDropdownMenu::before {
+    content: none !important;
+}
+
+.dropdown-menu.show {
+    padding-top: 0 !important;
+}
+
+#partyDropdownMenu.show {
+    padding-top: 0 !important;
+}
+
+ul#partyDropdownMenu {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
 }
 
 #partyDropdownMenu li.p-2 {
@@ -295,11 +314,65 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    margin: 0 !important;
+    padding: 8px 12px !important;
+}
+
+#partyDropdownMenu .dropdown-header {
+    margin: 0 !important;
+    padding: 8px 12px !important;
+    margin-top: 0 !important;
+}
+
+#partyDropdownMenu li:first-child {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#partyDropdownMenu li:first-child .dropdown-header {
+    margin: 0 !important;
 }
 
 /* Hover effect */
 .dropdown-item.party-option:hover {
     background-color: #e2f0ff;
+}
+
+/* Party dropdown styling */
+.party-dropdown-wrapper .dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.party-dropdown-wrapper .dropdown-toggle span {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+/* Search input styling */
+.party-dropdown-wrapper .party-search-input {
+    border: 1px solid #cbd5e1 !important;
+    font-size: 13px;
+    background: #fff !important;
+    width: 100%;
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    margin-bottom: 0 !important;
+}
+
+.party-dropdown-wrapper .dropdown-menu {
+    margin-top: 0 !important;
+    top: calc(100% + 0px) !important;
+}
+
+.party-dropdown-wrapper .party-search-input:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
+    outline: none;
 }
 
 .party-dropdown-wrapper,
@@ -814,9 +887,8 @@
                                 <div class="party-selector-panel">
                                 <!-- Party dropdown button -->
 <div class="dropdown party-dropdown-wrapper" data-bs-auto-close="outside" style="position: relative; display: inline-block;">
-    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-        Select Party
-    </button>
+    <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; min-height: 34px;">
+
     <!-- Balance display -->
     <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
         <!-- JS will populate balance here -->
@@ -824,9 +896,6 @@
 
     <!-- Dropdown menu (existing) -->
     <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
-        <li class="dropdown-header-search px-2 py-2">
-            <input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;">
-        </li>
         <li class="dropdown-header d-flex justify-content-between px-3">
             <span>Party Name</span>
             <span>Opening Balance</span>

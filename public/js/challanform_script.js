@@ -261,6 +261,42 @@ function initializeForm(context) {
     }
 
     $ctx.on('click', '.party-option', function (e) { e.preventDefault(); const party = (window.parties || []).find(p => String(p.id) === String($(this).data('id'))); setPartyDetails(party || { id: $(this).data('id') || '', name: $.trim($(this).find('span').first().text()), phone: $(this).data('phone') || '', billing_address: $(this).data('billing') || '', opening_balance: $(this).data('opening') || 0, transaction_type: $(this).data('type') || '' }); });
+
+    // Party search/filter functionality
+    $ctx.on('input', '.party-search-input', function(e) {
+        e.stopPropagation();
+        const searchValue = $(this).val().toLowerCase().trim();
+        const $partyOptions = $ctx.find('.party-option');
+
+        $partyOptions.each(function() {
+            const $this = $(this);
+            const partyName = $.trim($this.find('span').first().text()).toLowerCase();
+            const partyPhone = $this.data('phone') ? String($this.data('phone')).toLowerCase() : '';
+
+            if (searchValue === '' || partyName.includes(searchValue) || partyPhone.includes(searchValue)) {
+                $this.closest('li').removeClass('d-none');
+            } else {
+                $this.closest('li').addClass('d-none');
+            }
+        });
+    });
+
+    // Prevent dropdown from closing when clicking on search input
+    $ctx.on('click', '.party-search-input', function(e) {
+        e.stopPropagation();
+    });
+
+    // Prevent dropdown from closing when typing in search
+    $ctx.on('keydown keyup', '.party-search-input', function(e) {
+        e.stopPropagation();
+    });
+
+    // Clear search input when dropdown closes
+    $ctx.on('hidden.bs.dropdown', '#partyDropdownMenu', function() {
+        $ctx.find('.party-search-input').val('');
+        $ctx.find('.party-option').closest('li').removeClass('d-none');
+    });
+
     $ctx.on('change', '.broker-select', function () {
         const $selected = $(this).find('option:selected');
         setBrokerDetails({

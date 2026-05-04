@@ -6,6 +6,41 @@
 
 $(document).ready(function () {
 
+  // Party search/filter functionality
+  $(document).on('input', '.party-search-input', function(e) {
+    e.stopPropagation();
+    const searchValue = $(this).val().toLowerCase().trim();
+    const $partyOptions = $('.party-option');
+
+    $partyOptions.each(function() {
+        const $this = $(this);
+        const partyName = $.trim($this.find('span').first().text()).toLowerCase();
+        const partyPhone = $this.data('phone') ? String($this.data('phone')).toLowerCase() : '';
+
+        if (searchValue === '' || partyName.includes(searchValue) || partyPhone.includes(searchValue)) {
+            $this.closest('li').removeClass('d-none');
+        } else {
+            $this.closest('li').addClass('d-none');
+        }
+    });
+  });
+
+  // Prevent dropdown from closing when clicking on search input
+  $(document).on('click', '.party-search-input', function(e) {
+    e.stopPropagation();
+  });
+
+  // Prevent dropdown from closing when typing in search
+  $(document).on('keydown keyup', '.party-search-input', function(e) {
+    e.stopPropagation();
+  });
+
+  // Clear search input when dropdown closes
+  $(document).on('hidden.bs.dropdown', '#partyDropdownMenu', function() {
+    $('.party-search-input').val('');
+    $('.party-option').closest('li').removeClass('d-none');
+  });
+
   // Live update of "Bill To"
   $('#estimateCustomerName').on('input', function () {
     const val = $(this).val().trim() || '—';

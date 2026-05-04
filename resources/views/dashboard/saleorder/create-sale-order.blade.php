@@ -65,6 +65,15 @@
         width: 40%;
         text-align: right;
     }
+    .dropdown-header {
+        position: sticky;
+        top: 0;
+        z-index: 1020;
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border-bottom: 1px solid #ddd;
+    }
 </style>
 
 </head>
@@ -117,9 +126,7 @@
 <div class="input-group">
                                 <!-- Party dropdown button -->
 <div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
-    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-        Select Party
-    </button>
+    <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; min-height: 34px;">
     <!-- Balance display -->
     <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
         <!-- JS will populate balance here -->
@@ -127,9 +134,6 @@
 
     <!-- Dropdown menu (existing) -->
     <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
-        <li class="dropdown-header-search px-2 py-2">
-            <input type="text" class="form-control form-control-sm party-search-input" placeholder="Search party..." style="font-size: 13px;">
-        </li>
         <li class="dropdown-header d-flex justify-content-between px-3">
             <span>Party Name</span>
             <span>Opening Balance</span>

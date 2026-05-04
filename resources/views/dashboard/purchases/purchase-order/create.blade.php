@@ -70,9 +70,7 @@
 <div class="input-group">
                                 <!-- Party dropdown button -->
 <div class="party-dropdown-wrapper" style="position: relative; display: inline-block;">
-    <button class="btn btn-outline-secondary dropdown-toggle w-200 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-        Select Party
-    </button>
+    <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; min-height: 34px;">
     <!-- Balance display -->
     <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
         <!-- JS will populate balance here -->

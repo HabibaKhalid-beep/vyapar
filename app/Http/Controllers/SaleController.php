@@ -141,6 +141,7 @@ class SaleController extends Controller
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
+        $partyGroups = PartyGroup::orderBy('name')->get();
 
         $sale->load(['items']);
 
@@ -154,6 +155,7 @@ class SaleController extends Controller
             'brokers',
             'items',
             'parties',
+            'partyGroups',
             'nextInvoiceNumber',
             'convertedSaleData',
             'type'
@@ -176,6 +178,7 @@ class SaleController extends Controller
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
+        $partyGroups = PartyGroup::orderBy('name')->get();
 
         $sale->load(['items']);
 
@@ -189,6 +192,7 @@ class SaleController extends Controller
             'brokers',
             'items',
             'parties',
+            'partyGroups',
             'nextInvoiceNumber',
             'convertedSaleData',
             'type'
@@ -323,6 +327,7 @@ class SaleController extends Controller
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
+        $partyGroups = PartyGroup::orderBy('name')->get();
 
         $sale->load(['items']);
 
@@ -336,6 +341,7 @@ class SaleController extends Controller
             'brokers',
             'items',
             'parties',
+            'partyGroups',
             'nextInvoiceNumber',
             'convertedSaleData',
             'type'
