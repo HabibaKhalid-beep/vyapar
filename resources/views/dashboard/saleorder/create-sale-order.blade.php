@@ -379,21 +379,23 @@
                                     </div>
                                 </template>
 
-                                <button type="button" class="btn-action-light w-50 add-description">
-                                    <i class="fa-solid fa-align-left"></i>
-                                    ADD DESCRIPTION
-                                </button>
+                                <div class="description-action-group" style="width: 50%;">
+                                    <button type="button" class="btn-action-light action-btn add-description w-100">
+                                        <i class="fa-solid fa-align-left"></i>
+                                        ADD DESCRIPTION
+                                    </button>
 
-                                <div class="description-pane d-none mt-2 w-50">
-                                    <label class="form-label">Description</label>
-                                    <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                    <div class="description-pane d-none mt-2">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                    </div>
                                 </div>
 
-                                <button type="button" class="btn-action-light w-50 add-image">
+                                <button type="button" class="btn-action-light action-btn add-image" style="width: 50%;">
                                     <i class="fa-solid fa-camera"></i>
                                     ADD IMAGE
                                 </button>
-                                <button type="button" class="btn-action-light w-50 add-document">
+                                <button type="button" class="btn-action-light action-btn add-document" style="width: 50%;">
                                     <i class="fa-solid fa-align-left "></i>
                                     ADD DOCUMENT
                                 </button>

@@ -601,11 +601,12 @@ function initializeForm(context) {
     $ctx.on('input change', '.round-off-val', calculateTotals);
 
     $ctx.on('click', '.add-description', function() {
-        const $pane = $ctx.find('.description-pane');
-        $pane.toggleClass('d-none');
-        if (!$pane.hasClass('d-none')) {
-            $pane.find('.description-input').focus();
-        }
+        const $btn = $(this);
+        const $pane = $btn.closest('.description-action-group').find('.description-pane');
+
+        $btn.addClass('d-none');
+        $pane.removeClass('d-none');
+        $pane.find('.description-input').focus();
     });
 
     $ctx.on('click', '.add-image', function() {
