@@ -2744,6 +2744,40 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const addModal = new bootstrap.Modal(addModalEl);
 
+    const partySearchInput = dropdownBtn;
+    if (partySearchInput) {
+        partySearchInput.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+
+            const searchTerm = String(this.value || '').trim();
+            if (!searchTerm) {
+                return;
+            }
+
+            const options = Array.from(dropdownMenu.querySelectorAll('.party-option'));
+            const exactOption = options.find(opt => {
+                const name = String(opt.querySelector('span:first-child')?.textContent || '').trim().toLowerCase();
+                return name === searchTerm.toLowerCase();
+            });
+
+            if (exactOption) {
+                exactOption.click();
+                return;
+            }
+
+            addModal.show();
+            const nameInput = document.getElementById('partyNameInput');
+            if (nameInput) {
+                nameInput.value = searchTerm;
+                nameInput.focus();
+            }
+        });
+    }
+
     const setPartyFieldValues = (partyRecord = {}) => {
         document.querySelector(".phone-input").value = partyRecord.phone || "";
         document.querySelector(".city-input").value = partyRecord.city || "";
@@ -2842,8 +2876,14 @@ else {
             setDueDateFromParty(partyRecord);
         }
         else if(e.target.id === "addNewPartyBtn") {
+            const partySearchValue = dropdownBtn?.value?.toString().trim() || '';
             addModal.show();
-            document.getElementById("addPartyForm").reset();
+            const addPartyForm = document.getElementById("addPartyForm");
+            if (addPartyForm) addPartyForm.reset();
+            const partyNameInput = document.getElementById('partyNameInput');
+            if (partyNameInput && partySearchValue) {
+                partyNameInput.value = partySearchValue;
+            }
             balanceDisplay.textContent = "";
             setPartyFieldValues({});
         }
@@ -2890,6 +2930,13 @@ document.addEventListener("DOMContentLoaded", function() {
         addNewPartyBtn.addEventListener("click", function(e) {
             e.preventDefault();
             const modal = new bootstrap.Modal(addPartyModal);
+
+            const partySearchInput = document.getElementById('partyDropdownBtn');
+            const partyNameInput = document.getElementById('partyNameInput');
+            if (partyNameInput) {
+                partyNameInput.value = (partySearchInput?.value || '').trim();
+            }
+
             modal.show();
         });
     }

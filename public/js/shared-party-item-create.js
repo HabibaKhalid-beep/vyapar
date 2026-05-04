@@ -370,10 +370,21 @@
         }
     }
 
-    function showPartyModal($trigger) {
+    function showPartyModal($trigger, prefillName = '') {
         activePartyContext = getBodyContext($trigger);
         resetPartyModal();
+        if (prefillName) {
+            $('#partyNameInput').val(prefillName);
+        }
         bootstrap.Modal.getOrCreateInstance(document.getElementById('addPartyModal')).show();
+        if (prefillName) {
+            setTimeout(() => {
+                const input = document.getElementById('partyNameInput');
+                if (input) {
+                    input.focus();
+                }
+            }, 10);
+        }
     }
 
     function showItemModal($trigger, rowIndex = null) {
@@ -865,7 +876,7 @@
 
         $(document).on('input.sharedPartySearch', '.party-search-input', function () {
             const searchTerm = String($(this).val() || '').trim().toLowerCase();
-            const $menu = $(this).closest('#partyDropdownMenu');
+            const $menu = $(this).closest('.party-dropdown-wrapper').find('#partyDropdownMenu');
             $menu.find('.party-option').each(function () {
                 const $option = $(this);
                 const partyName = String($.trim($option.find('span').first().text() || '')).toLowerCase();
@@ -873,6 +884,34 @@
                 const visible = !searchTerm || partyName.includes(searchTerm) || partyPhone.includes(searchTerm);
                 $option.closest('li').toggleClass('d-none', !visible);
             });
+        });
+
+        $(document).on('keydown.sharedPartySearch', '.party-search-input', function (event) {
+            if (event.key !== 'Enter') {
+                return;
+            }
+
+            event.preventDefault();
+            const searchTerm = String($(this).val() || '').trim();
+            if (!searchTerm) {
+                return;
+            }
+
+            const $menu = $(this).closest('.party-dropdown-wrapper').find('#partyDropdownMenu');
+            const $visibleOptions = $menu.find('.party-option').filter(function () {
+                return !$(this).closest('li').hasClass('d-none');
+            });
+
+            const $exactMatch = $visibleOptions.filter(function () {
+                return String($.trim($(this).find('span').first().text() || '')).toLowerCase() === searchTerm.toLowerCase();
+            });
+
+            if ($exactMatch.length) {
+                $exactMatch.first().trigger('click');
+                return;
+            }
+
+            showPartyModal($(this), searchTerm);
         });
 
         $(document).on('hide.bs.dropdown.sharedPartySearch', '.party-dropdown-wrapper', function () {
