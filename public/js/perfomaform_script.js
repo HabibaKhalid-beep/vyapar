@@ -632,11 +632,13 @@ function initializeForm(context) {
 
     // Add description/image/document actions
     $ctx.on('click', '.add-description', function() {
-        const $pane = $ctx.find('.description-pane');
-        $pane.toggleClass('d-none');
-        if (!$pane.hasClass('d-none')) {
-            $pane.find('.description-input').focus();
-        }
+        const $btn = $(this);
+        const $pane = $btn.closest('.description-action-group').find('.description-pane');
+        const $container = $btn.closest('.description-action-group');
+
+        $btn.addClass('d-none');
+        $pane.removeClass('d-none');
+        $pane.find('.description-input').focus();
     });
 
     $ctx.on('click', '.add-image', function() {
