@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use App\Models\BankAccount;
 use App\Models\Party;
 use App\Models\Sale;
 use App\Support\TransactionNumberPrefix;
@@ -216,12 +217,14 @@ class PerfomaController extends Controller
     {
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('proforma_invoice', $nextSaleId);
 
         return view('dashboard.perfoma.create_proforma_invoice', compact(
             'items',
             'parties',
+            'bankAccounts',
             'nextInvoiceNumber',
             'proforma',
             'duplicateProforma'

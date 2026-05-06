@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\PartyGroup;
@@ -47,6 +48,7 @@ class EstimateController extends Controller
         $categories = Category::orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
         $partyGroups = PartyGroup::orderBy('name')->get();
+        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('estimate', $nextSaleId);
 
@@ -68,6 +70,6 @@ class EstimateController extends Controller
             $prefilledEstimateData['payments'] = [];
         }
 
-        return view('dashboard.sales.estimate-create', compact('items', 'categories', 'parties', 'partyGroups', 'nextInvoiceNumber', 'estimate', 'prefilledEstimateData'));
+        return view('dashboard.sales.estimate-create', compact('items', 'categories', 'parties', 'partyGroups', 'bankAccounts', 'nextInvoiceNumber', 'estimate', 'prefilledEstimateData'));
     }
 }

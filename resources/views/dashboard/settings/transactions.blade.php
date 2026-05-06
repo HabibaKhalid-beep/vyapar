@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>Settings Dashboard</title>
 
   <!-- Bootstrap 5 -->
@@ -154,7 +155,7 @@
             <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
           </label>
           <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" id="countCheckbox" />
+            <input type="checkbox" class="check-row__input" id="countCheckbox" {{ !empty($countEnabled) ? 'checked' : '' }} />
             <span class="check-row__label">Count</span>
             <span class="ps-4 text-muted" id="changeTextBtn" style="font-size: 12px; transition: color 0.2s;">Change
               text</span>
@@ -572,6 +573,8 @@
       const countCheckbox = document.getElementById('countCheckbox');
       const changeTextBtn = document.getElementById('changeTextBtn');
       const changeTextModalEl = document.getElementById('changeTextModal');
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const transactionSettingsUpdateUrl = @json(route('settings.transactions.update'));
 
       if (countCheckbox && changeTextBtn && changeTextModalEl) {
         const toggleChangeText = () => {
@@ -589,7 +592,39 @@
         // Initial state
         toggleChangeText();
 
-        countCheckbox.addEventListener('change', toggleChangeText);
+        countCheckbox.addEventListener('change', async function () {
+          toggleChangeText();
+          const defaultText = 'Change text';
+          changeTextBtn.textContent = 'Saving...';
+
+          try {
+            const response = await fetch(transactionSettingsUpdateUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+              },
+              body: JSON.stringify({
+                count_enabled: countCheckbox.checked ? 1 : 0
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to save setting');
+            }
+
+            changeTextBtn.textContent = 'Saved';
+          } catch (error) {
+            countCheckbox.checked = !countCheckbox.checked;
+            toggleChangeText();
+            changeTextBtn.textContent = 'Save failed';
+          } finally {
+            setTimeout(() => {
+              changeTextBtn.textContent = defaultText;
+            }, 1200);
+          }
+        });
 
         changeTextBtn.addEventListener('click', (e) => {
           if (!countCheckbox.checked) return; // Do nothing if inactive

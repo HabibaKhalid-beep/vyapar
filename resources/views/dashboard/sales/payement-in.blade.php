@@ -239,9 +239,9 @@
           <button type="button" class="btn btn-light" onclick="openCalculator()">
             <i class="fa-solid fa-calculator"></i>
           </button>
-          <button type="button" class="btn btn-light">
+          <a href="{{ route('settings.transactions') }}" class="btn btn-light" title="Settings">
             <i class="fa-solid fa-gear"></i>
-          </button>
+          </a>
           <button type="button" class="btn btn-light" data-bs-dismiss="modal">
             <i class="fa-solid fa-xmark"></i>
           </button>
@@ -322,7 +322,9 @@
          @endphp
          <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
       @endforeach
+      <option value="add_new_bank">+ Add Bank Account</option>
     </select>
+    <button type="button" class="btn btn-link btn-sm p-0 mt-2 open-bank-account-modal" data-bs-toggle="modal" data-bs-target="#bankAccountModal">+ Add Bank Account</button>
   </div>
 
   <div class="col-md-3">
@@ -1080,6 +1082,12 @@
      ═══════════════════════════════════════════ -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    window.bankAccounts = @json($bankAccounts ?? []);
+    window.bankAccountRoutes = {
+      store: "{{ route('bank-accounts.store') }}"
+    };
+  </script>
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script src="{{ asset('js/payment_in.js') }}"></script>
@@ -1586,7 +1594,9 @@
                   <button type="button" class="primary-close" onclick="window.close()">Close</button>
                 </div>
               </div>
-            </body>
+  @include('components.bank-account-modal')
+  <script src="{{ asset('js/bank-account-modal.js') }}"></script>
+</body>
           </html>
         `;
 
@@ -1765,7 +1775,9 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
                     @endphp
                     <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
                 @endforeach
+                <option value="add_new_bank">+ Add Bank Account</option>
             </select>
+            <button type="button" class="btn btn-link btn-sm p-0 mt-2 open-bank-account-modal" data-bs-toggle="modal" data-bs-target="#bankAccountModal">+ Add Bank Account</button>
         </div>
 
         <div class="col-md-3">

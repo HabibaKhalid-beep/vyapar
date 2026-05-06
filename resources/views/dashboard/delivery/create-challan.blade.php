@@ -153,7 +153,9 @@
                 </div>
                 <div class="window-controls d-flex align-items-center px-2 gap-3">
                     <i id="calc-icon" class="fa-solid fa-calculator" title="Calculator"></i>
-                    <i class="fa-solid fa-gear" title="Settings"></i>
+                            <a href="{{ route('settings.transactions') }}" class="text-reset" title="Settings">
+                                <i class="fa-solid fa-gear"></i>
+                            </a>
                     <i class="fa-solid fa-xmark close-app-icon" title="Close Window"></i>
                 </div>
             </div>
@@ -334,13 +336,19 @@
                                 <input type="file" class="d-none image-input" accept="image/*" multiple>
                             </div>
                             <div class="bottom-right">
-                                <div class="calc-row"><div class="calc-label">Discount</div><div class="calc-inputs"><input type="number" class="mini-input discount-pct" placeholder="%"><span>-</span><input type="number" class="mini-input discount-rs" placeholder="Rs"></div></div>
+                                <div class="calc-row"><div class="calc-label"><span class="editable-heading" data-label-key="discount">Discount</span></div><div class="calc-inputs"><input type="number" class="mini-input discount-pct" placeholder="%"><span>-</span><input type="number" class="mini-input discount-rs" placeholder="Rs"></div></div>
                                 <div class="calc-row" style="align-items: center;"><div class="calc-label" style="min-width: auto;"><input type="checkbox" class="custom-checkbox round-off-check" checked style="width: 16px; height: 16px; margin-right: 4px;"><label class="link-text" style="margin: 0; font-size: 12px;">Round Off</label></div><div class="calc-inputs"><input type="number" class="mini-input round-off-val" value="0" readonly style="width: 50px;"></div></div>
-                                <div class="calc-row"><div class="calc-label">Delivery Expense</div><div class="calc-inputs"><input type="number" class="mini-input delivery-expense" placeholder="Rs" min="0" step="0.01"></div></div>
-                                <div class="calc-row"><div class="calc-label">Brokerage Type</div><div class="calc-inputs"><select class="mini-input brokerage-type"><option value="">Select</option><option value="full">Poori Brokerage</option><option value="half">Aadhi Brokerage</option></select></div></div>
-                                <div class="calc-row"><div class="calc-label">Brokerage Amount</div><div class="calc-inputs"><input type="number" class="mini-input brokerage-amount" placeholder="Rs" min="0" step="0.01"></div></div>
-                                <div class="calc-row"><div class="calc-label">Tax</div><div class="calc-inputs"><select class="mini-input tax-select" style="width: 100px;"><option value="0">NONE</option><option value="5">GST@5%</option><option value="12">GST@12%</option><option value="18">GST@18%</option></select><span class="tax-amount-display">0</span></div></div>
-                                <div class="final-total-group"><div class="calc-row" style="margin-bottom: 2px;"><div class="calc-label" style="font-weight: 700;">Total</div></div><input type="text" class="total-input-large grand-total" value="0" readonly></div>
+                                <div class="calc-row"><div class="calc-label"><span class="editable-heading" data-label-key="delivery_expense">Delivery Expense</span></div><div class="calc-inputs"><input type="number" class="mini-input delivery-expense" placeholder="Rs" min="0" step="0.01"></div></div>
+                                <div class="calc-row"><div class="calc-label"><span class="editable-heading" data-label-key="brokerage_type">Brokerage Type</span></div><div class="calc-inputs"><select class="mini-input brokerage-type"><option value="">Select</option><option value="full">Poori Brokerage</option><option value="half">Aadhi Brokerage</option></select></div></div>
+                                <div class="calc-row"><div class="calc-label"><span class="editable-heading" data-label-key="brokerage_amount">Brokerage Amount</span></div><div class="calc-inputs"><input type="number" class="mini-input brokerage-amount" placeholder="Rs" min="0" step="0.01"></div></div>
+                                <div class="calc-row"><div class="calc-label"><span class="editable-heading" data-label-key="tax">Tax</span></div><div class="calc-inputs"><select class="mini-input tax-select" style="width: 100px;"><option value="0">NONE</option><option value="5">GST@5%</option><option value="12">GST@12%</option><option value="18">GST@18%</option></select><span class="tax-amount-display">0</span></div></div>
+                                <div class="final-total-group"><div class="calc-row" style="margin-bottom: 2px;"><div class="calc-label" style="font-weight: 700;"><span class="editable-heading" data-label-key="total">Total</span></div></div><input type="text" class="total-input-large grand-total" value="0" readonly></div>
+                                <input type="hidden" name="discount_label" class="heading-value" data-field="discount" value="Discount">
+                                <input type="hidden" name="delivery_expense_label" class="heading-value" data-field="delivery_expense" value="Delivery Expense">
+                                <input type="hidden" name="brokerage_type_label" class="heading-value" data-field="brokerage_type" value="Brokerage Type">
+                                <input type="hidden" name="brokerage_amount_label" class="heading-value" data-field="brokerage_amount" value="Brokerage Amount">
+                                <input type="hidden" name="tax_label" class="heading-value" data-field="tax" value="Tax">
+                                <input type="hidden" name="total_label" class="heading-value" data-field="total" value="Total">
                             </div>
                         </div>
                     </div>
@@ -378,6 +386,27 @@
     <div class="modal fade" id="tabLimitModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content bg-dark text-dark border-secondary"><div class="modal-body text-center p-4"><i class="bi bi-exclamation-triangle text-warning display-4 mb-3"></i><h5>Maximum Limit Reached</h5><p>You can open a maximum of 10 transactions at a time.</p><button type="button" class="btn btn-primary px-4 mt-2" data-bs-dismiss="modal">OK</button></div></div></div></div>
     <div class="modal fade" id="closeConfirmModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content bg-dark text-dark border-secondary"><div class="modal-header border-secondary"><h5 class="modal-title">Close Tab?</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p>Are you sure you want to close this tab? Your delivery challan will not be saved.</p></div><div class="modal-footer border-secondary"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" id="confirm-close-btn" class="btn btn-danger">Close</button></div></div></div></div>
 
+    <div class="modal fade" id="editHeadingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change field label</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="headingNameInput" class="form-label">Field name</label>
+                        <input type="text" id="headingNameInput" class="form-control" placeholder="Enter new label">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary save-heading-btn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     @php
@@ -389,6 +418,8 @@
         window.parties = @json($parties ?? []);
         window.brokers = @json($brokers ?? []);
         window.bankAccounts = @json($bankAccounts ?? []);
+        window.bankAccountRoutes = { store: "{{ route('bank-accounts.store') }}" };
+        window.transactionSettings = { countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled', '0') === '1'), countLabel: 'Count' };
         window.responsibleUsers = @json($users ?? []);
         window.warehouses = @json($warehouses ?? []);
         window.warehouseStoreUrl = "{{ route('warehouses.store') }}";
@@ -401,11 +432,123 @@
         window.editSaleData = @json($challanPayload ?? $duplicatePayload);
         window.docType = 'delivery_challan';
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalEl = document.getElementById('editHeadingModal');
+            const headingInput = document.getElementById('headingNameInput');
+            const saveButton = modalEl?.querySelector('.save-heading-btn');
+            const editModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+            const headingStorageKey = 'deliveryChallanHeadingLabels';
+            let currentHeadingKey = '';
+
+            const defaultLabels = {
+                discount: 'Discount',
+                delivery_expense: 'Delivery Expense',
+                brokerage_type: 'Brokerage Type',
+                brokerage_amount: 'Brokerage Amount',
+                tax: 'Tax',
+                total: 'Total'
+            };
+
+            const templateEl = document.getElementById('form-template');
+
+            const applyHeadingLabelsToRoot = (root) => {
+                if (!root) return;
+                Object.entries(getSavedHeadingLabels()).forEach(([key, label]) => {
+                    root.querySelectorAll(`.editable-heading[data-label-key="${key}"]`).forEach(function (el) {
+                        el.textContent = label;
+                    });
+                    root.querySelectorAll(`.heading-value[data-field="${key}"]`).forEach(function (el) {
+                        el.value = label;
+                    });
+                });
+            };
+           
+            const applyHeadingLabelsToTemplate = () => {
+                if (!templateEl) return;
+                const root = templateEl.content || templateEl;
+                applyHeadingLabelsToRoot(root);
+            };
+
+            const getSavedHeadingLabels = () => {
+                let labels = { ...defaultLabels };
+                try {
+                    const stored = localStorage.getItem(headingStorageKey);
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        if (parsed && typeof parsed === 'object') {
+                            labels = { ...labels, ...parsed };
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Unable to load saved heading labels:', error);
+                }
+                return labels;
+            };
+
+            const loadHeadingLabels = () => {
+                applyHeadingLabelsToRoot(document);
+                applyHeadingLabelsToTemplate();
+            };
+
+            const saveHeadingLabels = () => {
+                const labels = {};
+                document.querySelectorAll('.editable-heading').forEach(function (el) {
+                    const key = el.dataset.labelKey;
+                    if (key) {
+                        labels[key] = el.textContent.trim();
+                    }
+                });
+                try {
+                    localStorage.setItem(headingStorageKey, JSON.stringify(labels));
+                } catch (error) {
+                    console.warn('Unable to save heading labels:', error);
+                }
+            };
+
+            loadHeadingLabels();
+
+            document.body.addEventListener('click', function (event) {
+                const target = event.target.closest('.editable-heading');
+                if (!target) return;
+                event.preventDefault();
+                currentHeadingKey = target.dataset.labelKey || '';
+                if (!headingInput) return;
+                headingInput.value = target.textContent.trim();
+                editModal?.show();
+            });
+
+            saveButton?.addEventListener('click', function () {
+                if (!headingInput) return;
+                const newLabel = headingInput.value.trim();
+                if (!newLabel) return;
+                document.querySelectorAll(`.editable-heading[data-label-key="${currentHeadingKey}"]`).forEach(function (el) {
+                    el.textContent = newLabel;
+                });
+                document.querySelectorAll(`.heading-value[data-field="${currentHeadingKey}"]`).forEach(function (el) {
+                    el.value = newLabel;
+                });
+                saveHeadingLabels();
+                applyHeadingLabelsToTemplate();
+                editModal?.hide();
+            });
+
+            headingInput?.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    saveButton?.click();
+                }
+            });
+        });
+    </script>
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;"><div id="sale-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true"><div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div></div>
     @include('components.modals.party-modal')
     @include('components.modals.item-modal')
+    @include('components.bank-account-modal')
     <script src="{{ asset('js/challanform_script.js') }}"></script>
     <script src="{{ asset('js/challanscript.js') }}"></script>
     <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
+    <script src="{{ asset('js/bank-account-modal.js') }}"></script>
+    <script src="{{ asset('js/transaction-count-column.js') }}"></script>
 </body>
 </html>

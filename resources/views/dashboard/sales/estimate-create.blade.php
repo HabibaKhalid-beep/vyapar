@@ -130,7 +130,9 @@
 
                 <div class="window-controls d-flex align-items-center px-2 gap-3">
                     <i id="calc-icon" class="fa-solid fa-calculator" title="Calculator"></i>
-                    <i class="fa-solid fa-gear" title="Settings"></i>
+                            <a href="{{ route('settings.transactions') }}" class="text-reset" title="Settings">
+                                <i class="fa-solid fa-gear"></i>
+                            </a>
                     <i class="fa-solid fa-xmark close-app-icon" title="Close Window"></i>
                 </div>
             </div>
@@ -686,6 +688,9 @@
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
+            window.bankAccounts = @json($bankAccounts ?? []);
+            window.bankAccountRoutes = { store: "{{ route('bank-accounts.store') }}" };
+            window.transactionSettings = { countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled', '0') === '1'), countLabel: 'Count' };
             window.partyStoreUrl = "{{ route('parties.store') }}";
             window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleStoreUrl = "{{ route('sale.update', $estimate) }}";
@@ -698,6 +703,9 @@
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
+            window.bankAccounts = @json($bankAccounts ?? []);
+            window.bankAccountRoutes = { store: "{{ route('bank-accounts.store') }}" };
+            window.transactionSettings = { countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled', '0') === '1'), countLabel: 'Count' };
             window.partyStoreUrl = "{{ route('parties.store') }}";
             window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleStoreUrl = "{{ route('sale.store') }}";
@@ -710,6 +718,9 @@
         <script>
             window.items = @json($items ?? []);
             window.parties = @json($parties ?? []);
+            window.bankAccounts = @json($bankAccounts ?? []);
+            window.bankAccountRoutes = { store: "{{ route('bank-accounts.store') }}" };
+            window.transactionSettings = { countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled', '0') === '1'), countLabel: 'Count' };
             window.partyStoreUrl = "{{ route('parties.store') }}";
             window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
             window.saleStoreUrl = "{{ route('sale.store') }}";
@@ -731,6 +742,7 @@
     </div>
 
     @include('dashboard.shared.item-create-modals')
+    @include('components.bank-account-modal')
 
     <div class="modal fade" id="partyGroupModal" tabindex="-1">
       <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -757,6 +769,8 @@
     <!-- Custom JS -->
     <script src="{{ asset('js/script.js') }}"></script>
     <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
+    <script src="{{ asset('js/bank-account-modal.js') }}"></script>
+    <script src="{{ asset('js/transaction-count-column.js') }}"></script>
 
     <!-- Add Party Modal Handler -->
     <script>

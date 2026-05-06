@@ -99,8 +99,15 @@ class BankAccountController extends Controller
 
         $bankAccount = BankAccount::create($data);
 
-        if (request()->wantsJson()) {
-            return response()->json(['message' => 'Bank account added successfully.', 'bank' => $bankAccount]);
+        if ($request->expectsJson() || $request->wantsJson() || $request->ajax()) {
+            $bankAccount->refresh();
+
+            return response()->json([
+                'message' => 'Bank account added successfully.',
+                'id' => $bankAccount->id,
+                'name' => $bankAccount->display_with_account,
+                'bank' => $bankAccount,
+            ]);
         }
 
         return redirect()->route('bank-accounts')->with('success', 'Bank account added successfully.');

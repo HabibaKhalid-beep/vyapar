@@ -95,7 +95,9 @@
 
                 <div class="window-controls d-flex align-items-center px-2 gap-3">
                     <i id="calc-icon" class="fa-solid fa-calculator" title="Calculator"></i>
-                    <i class="fa-solid fa-gear" title="Settings"></i>
+                            <a href="{{ route('settings.transactions') }}" class="text-reset" title="Settings">
+                                <i class="fa-solid fa-gear"></i>
+                            </a>
                     <i class="fa-solid fa-xmark close-app-icon" title="Close Window"></i>
                 </div>
             </div>
@@ -339,13 +341,14 @@
                             <div class="bottom-left">
                                 <div class="payment-section">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
-                                        <select class="input-control default-payment-type">
-                                            <option value="" selected disabled>Select Payment Type</option>
-                                            <option value="cash">Cash</option>
-                                            @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
-                                            @endforeach
-                                        </select>
+                                         <select class="input-control default-payment-type">
+                                              <option value="">Select Payment Type</option>
+                                              <option value="cash" selected>Cash</option>
+                                              @foreach($bankAccounts as $bank)
+                                                  <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
+                                              @endforeach
+                                              <option value="add_new_bank">+ Add Bank Account</option>
+                                          </select>
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
                                     </div>
@@ -364,13 +367,14 @@
 
                                 <template id="payment-entry-template">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
-                                        <select class="input-control payment-type-entry">
-                                            <option value="" selected disabled>Select Bank Account</option>
-                                            <option value="cash">Cash</option>
-                                            @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
-                                            @endforeach
-                                        </select>
+                                         <select class="input-control payment-type-entry">
+                                              <option value="">Select Bank Account</option>
+                                              <option value="cash" selected>Cash</option>
+                                              @foreach($bankAccounts as $bank)
+                                                  <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
+                                              @endforeach
+                                              <option value="add_new_bank">+ Add Bank Account</option>
+                                          </select>
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control payment-reference" placeholder="Reference">
                                         <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
@@ -541,6 +545,13 @@
         window.items = @json($items);
         window.parties = @json($parties);
         window.bankAccounts = @json($bankAccounts);
+        window.bankAccountRoutes = {
+            store: "{{ route('bank-accounts.store') }}"
+        };
+        window.transactionSettings = {
+            countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled', '0') === '1'),
+            countLabel: 'Count'
+        };
         window.partyStoreUrl = "{{ route('parties.store') }}";
         window.partyGroupStoreUrl = "{{ route('party-groups.store') }}";
         window.itemRoutes = { index: "{{ url('dashboard/items') }}", store: "{{ url('dashboard/items') }}", unitsIndex: "{{ url('dashboard/items/units') }}", unitsStore: "{{ url('dashboard/items/units') }}", categoryStore: "{{ url('dashboard/items/category') }}" };
@@ -567,15 +578,11 @@
     <!-- Custom JS -->
     <script src="{{ asset('js/scriptorder.js') }}"></script>
     <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
-     <div class="container">
-        @yield('content')
-    </div>
-
-@section('modals')
-@include('components.modals.party-modal')
-@include('components.modals.item-modal')
-@endsection
-    @yield('modals')
+    <script src="{{ asset('js/transaction-count-column.js') }}"></script>
+    @include('components.modals.party-modal')
+    @include('components.modals.item-modal')
+    @include('components.bank-account-modal')
+    <script src="{{ asset('js/bank-account-modal.js') }}"></script>
 </body>
 
 </html>

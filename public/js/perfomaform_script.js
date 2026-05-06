@@ -172,7 +172,7 @@ function initializeForm(context) {
         window.existingBalance = parseFloat(sale.balance || 0) || 0;
 
         // Pre-select the same bank as the first payment (so user can quickly add more)
-        $ctx.find('.default-payment-type').val('');
+        $ctx.find('.default-payment-type').val('cash');
         $ctx.find('.default-payment-amount').val('0').addClass('d-none');
         $ctx.find('.default-payment-reference').val('').addClass('d-none');
         $ctx.find('.payment-entries').empty();

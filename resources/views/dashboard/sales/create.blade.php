@@ -853,7 +853,9 @@ ul#partyDropdownMenu {
 
                 <div class="window-controls d-flex align-items-center px-2 gap-3">
                     <i id="calc-icon" class="fa-solid fa-calculator" title="Calculator"></i>
-                    <i class="fa-solid fa-gear" title="Settings" data-bs-toggle="offcanvas" data-bs-target="#saleSettingsSidebar" aria-controls="saleSettingsSidebar"></i>
+                            <a href="{{ route('settings.transactions') }}" class="text-reset" title="Settings">
+                                <i class="fa-solid fa-gear"></i>
+                            </a>
                     <i class="fa-solid fa-xmark close-app-icon" title="Close Window"></i>
                 </div>
             </div>
@@ -1177,13 +1179,14 @@ ul#partyDropdownMenu {
                                             <option value="payment_in" selected>Payment In</option>
                                             <option value="payment_out">Payment Out</option>
                                         </select>
-                                         <select class="input-control default-payment-type">
-                                              <option value="" selected disabled>Select Payment Type</option>
-                                              <option value="cash">Cash</option>
-                                              @foreach($bankAccounts as $bank)
-                                                  <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
-                                              @endforeach
-                                          </select>
+                                        <select class="input-control default-payment-type">
+                                            <option value="">Select Payment Type</option>
+                                            <option value="cash" selected>Cash</option>
+                                            @foreach($bankAccounts as $bank)
+                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
+                                            @endforeach
+                                            <option value="add_new_bank">+ Add Bank Account</option>
+                                        </select>
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
                                     </div>
@@ -1207,11 +1210,12 @@ ul#partyDropdownMenu {
                                             <option value="payment_out">Payment Out</option>
                                         </select>
                                          <select class="input-control payment-type-entry">
-                                              <option value="" selected disabled>Select Bank Account</option>
-                                              <option value="cash">Cash</option>
+                                              <option value="">Select Bank Account</option>
+                                              <option value="cash" selected>Cash</option>
                                               @foreach($bankAccounts as $bank)
                                                   <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                               @endforeach
+                                              <option value="add_new_bank">+ Add Bank Account</option>
                                           </select>
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control payment-reference" placeholder="Reference">
@@ -1613,6 +1617,13 @@ ul#partyDropdownMenu {
     window.parties = @json($parties ?? []);
     window.brokers = @json($brokers ?? []);
     window.bankAccounts = @json($bankAccounts ?? []);
+    window.bankAccountRoutes = {
+        store: "{{ route('bank-accounts.store') }}"
+    };
+    window.transactionSettings = {
+        countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled', '0') === '1'),
+        countLabel: 'Count'
+    };
     window.itemRoutes = {
         index: "{{ url('dashboard/items') }}",
         store: "{{ url('dashboard/items') }}",
@@ -1660,10 +1671,14 @@ ul#partyDropdownMenu {
         </div>
     </div>
 
+    @include('components.bank-account-modal')
+
     <!-- Form Logic -->
     <script src="{{ asset('js/saleform_script.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('js/script.js') }}"></script>
+    <script src="{{ asset('js/bank-account-modal.js') }}"></script>
+    <script src="{{ asset('js/transaction-count-column.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const unitButtons = document.querySelectorAll('.unit-option');

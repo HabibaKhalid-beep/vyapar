@@ -34,7 +34,30 @@ class SettingController extends Controller
 
     public function transactions()
     {
-        return view('dashboard.settings.transactions');
+        return view('dashboard.settings.transactions', [
+            'countEnabled' => (bool) AppSetting::getValue('transaction_items_count_enabled', false),
+        ]);
+    }
+
+    public function updateTransactions(Request $request)
+    {
+        $data = $request->validate([
+            'count_enabled' => ['nullable', 'boolean'],
+        ]);
+
+        AppSetting::setValue('transaction_items_count_enabled', !empty($data['count_enabled']) ? '1' : '0');
+
+        if ($request->expectsJson() || $request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction settings updated successfully.',
+                'count_enabled' => !empty($data['count_enabled']),
+            ]);
+        }
+
+        return redirect()
+            ->route('settings.transactions')
+            ->with('success', 'Transaction settings updated successfully.');
     }
 
     public function taxes()

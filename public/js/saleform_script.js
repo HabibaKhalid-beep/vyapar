@@ -837,7 +837,7 @@ function initializeForm(context) {
         window.existingBalance = parseFloat(sale.balance || 0) || 0;
 
         // Pre-select the same bank as the first payment (so user can quickly add more)
-        $ctx.find('.default-payment-type').val('');
+        $ctx.find('.default-payment-type').val('cash');
         $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
         $ctx.find('.default-payment-amount').val('0').addClass('d-none');
         $ctx.find('.default-payment-reference').val('').addClass('d-none');
@@ -1634,36 +1634,6 @@ function initializeForm(context) {
         if (invalidItemRow || !saleData.items.length) {
             showToast('Please select at least one item before saving.', true);
             return false;
-        }
-
-        if (saleData.type !== 'estimate') {
-            const defaultPaymentType = $ctx.find('.default-payment-type').val() || '';
-            const additionalPaymentTypes = Array.from($ctx.find('.payment-type-entry')).filter(entry => $(entry).val()).length;
-
-            if (!defaultPaymentType && additionalPaymentTypes === 0) {
-                showToast('Please select payment type before saving.', true);
-                return false;
-            }
-
-            if (defaultPaymentType) {
-                const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
-                if (defaultAmount <= 0) {
-                    showToast('Please enter amount for selected payment type.', true);
-                    return false;
-                }
-            }
-
-            const invalidPaymentEntry = Array.from($ctx.find('.payment-entry')).find(entry => {
-                const $entry = $(entry);
-                const type = $entry.find('.payment-type-entry').val() || '';
-                const amount = parseFloat($entry.find('.payment-amount').val() || 0) || 0;
-                return type && amount <= 0;
-            });
-
-            if (invalidPaymentEntry) {
-                showToast('Please enter amount for each selected payment type.', true);
-                return false;
-            }
         }
 
         return true;
