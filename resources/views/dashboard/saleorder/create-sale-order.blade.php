@@ -248,27 +248,8 @@
                                         <th>PRICE/UNIT</th>
                                         <th>AMOUNT</th>
                                         <th class="add-col" style="position: relative;">
-                                            <button type="button" class="btn-add-circle table-settings-btn"><i
+                                            <button type="button" class="btn-add-circle table-settings-btn" data-bs-toggle="modal" data-bs-target="#itemColumnModal"><i
                                                     class="fa-solid fa-plus"></i></button>
-                                            <!-- Settings Box -->
-                                            <div class="settings-box">
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-category">
-                                                    <label>Item Category</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-item-code">
-                                                    <label>Item Code</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-description">
-                                                    <label>Description</label>
-                                                </div>
-                                                <div class="settings-item">
-                                                    <input type="checkbox" class="check-discount">
-                                                    <label>Discount</label>
-                                                </div>
-                                            </div>
                                         </th>
                                     </tr>
                                 </thead>
@@ -288,15 +269,12 @@
                                                 </select>
                                             </div>
                                         </td>
-                                        <td class="col-category d-none"><input type="text" class="item-category"
-                                                placeholder="Category"></td>
+                                        <td class="col-category d-none"><select class="item-category"><option value="">Select Category</option></select></td>
                                         <td class="col-item-code d-none"><input type="text" class="item-code"
-                                                placeholder="Item Code"></td>
+                                                placeholder="Item Code" readonly></td>
                                         <td class="col-description d-none"><input type="text" class="item-desc"
-                                                placeholder="Description"></td>
-                                        <td class="col-discount d-none"><input type="number" class="item-discount"
-                                                value="0">
-                                        </td>
+                                                placeholder="Description" readonly></td>
+                                        <td class="col-discount d-none"><div class="item-discount-fields"><input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%"><input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount"></div></td>
                                         <td><input type="number" class="item-qty" value="1"></td>
                                         <td class="custom-size-td">
                                             <select class="item-unit">
@@ -581,8 +559,22 @@
     <script src="{{ asset('js/transaction-count-column.js') }}"></script>
     @include('components.modals.party-modal')
     @include('components.modals.item-modal')
+    @include('dashboard.shared.item-column-modal')
     @include('components.bank-account-modal')
     <script src="{{ asset('js/bank-account-modal.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const closeIcon = document.querySelector('.close-app-icon');
+        if (!closeIcon) return;
+        closeIcon.addEventListener('click', function () {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/dashboard/sales';
+            }
+        });
+    });
+    </script>
 </body>
 
 </html>

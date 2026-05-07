@@ -6,7 +6,7 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vyapar — Estimate / Quotation</title>
+  <title>Vyapar — Payment In</title>
   <meta name="description" content="Create professional estimates and quotations for your customers in Vyapar.">
 
   <!-- Bootstrap 5 CSS -->
@@ -266,18 +266,16 @@
 
               <!-- Party Selection -->
               <div class="mb-3">
-                <div class="dropdown">
-                  <button class="btn btn-light dropdown-toggle w-100 text-start" type="button" id="partyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span id="partyDropdownBtnText">Select Party</span>
-                  </button>
-                  <ul class="dropdown-menu w-100" id="partyDropdownMenu" style="max-height: 300px; overflow-y: auto;">
+                <div class="dropdown party-dropdown-wrapper" data-bs-auto-close="outside">
+                  <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
+                  <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu" style="max-height: 300px; overflow-y: auto;">
                     @foreach($parties as $party)
                     <li class="party-option dropdown-item d-flex justify-content-between align-items-center" style="cursor: pointer;"
                         data-id="{{ $party->id }}"
                         data-opening="{{ $party->opening_balance ?? 0 }}"
                         data-type="{{ $party->transaction_type ?? '' }}"
-                        data-phone="{{ $party->phone ?? '' }}"
-                        data-billing="{{ addslashes($party->billing_address ?? '') }}">
+                        data-phone="{{ strtolower($party->phone ?? '') }}"
+                        data-billing="{{ strtolower(addslashes($party->billing_address ?? '')) }}">
                       <span class="party-name cursor-pointer">{{ $party->name }}</span>
                       <span class="party-balance small text-muted">
                         @if($party->transaction_type == 'pay')
@@ -290,6 +288,7 @@
                       </span>
                     </li>
                     @endforeach
+                    <li class="dropdown-item text-muted small d-none" id="partySearchNoResults">No matching parties found.</li>
                     <li class="dropdown-item text-primary" id="addNewPartyBtn">+ Add New Party</li>
                   </ul>
                 </div>
@@ -1594,9 +1593,7 @@
                   <button type="button" class="primary-close" onclick="window.close()">Close</button>
                 </div>
               </div>
-  @include('components.bank-account-modal')
-  <script src="{{ asset('js/bank-account-modal.js') }}"></script>
-</body>
+            </body>
           </html>
         `;
 
@@ -1613,57 +1610,155 @@
     });
   </script>
 
+  @include('components.bank-account-modal')
+  <script src="{{ asset('js/bank-account-modal.js') }}"></script>
+
   <script>
 
   document.addEventListener("DOMContentLoaded", function () {
     // Elements
     const dropdownBtn = document.getElementById("partyDropdownBtn");
-    const dropdownBtnText = document.getElementById("partyDropdownBtnText");
     const dropdownMenu = document.getElementById("partyDropdownMenu");
 
     const partyIdInput = document.querySelector(".party-id");
     const phoneInput = document.querySelector(".phone-input");
     const billingInput = document.querySelector(".billing-address");
     const balanceDisplay = document.getElementById("partyBalanceDisplay");
+    const partySearchInput = dropdownBtn;
+    const partySearchNoResults = document.getElementById("partySearchNoResults");
+    const partyDropdown = dropdownBtn?.closest('.dropdown');
 
     const addModalEl = document.getElementById('addPartyModal');
-    const addModal = addModalEl ? new bootstrap.Modal(addModalEl) : null;
+    const addModal = addModalEl && typeof bootstrap !== 'undefined' ? new bootstrap.Modal(addModalEl) : null;
 
     const saveBtn = document.getElementById("btnSaveParty");
     const saveNewBtn = document.getElementById("btnSaveNewParty");
 
-    // PARTY DROPDOWN CLICK
-    if(dropdownMenu) {
-        dropdownMenu.addEventListener("click", function(e) {
-            const option = e.target.closest(".party-option");
-            const addNew = e.target.closest("#addNewPartyBtn");
+    function filterPartyOptions(query) {
+        const normalizedQuery = String(query || '').trim().toLowerCase();
+        let visibleCount = 0;
 
-            if(option) {
-                // Party select
-                const partyName = option.dataset.name || option.querySelector(".party-name")?.innerText;
-                const partyId = option.dataset.id || null;
-                const phone = option.dataset.phone || "";
-                const billing = option.dataset.billing || "";
-                const opening = option.dataset.opening || 0;
-                const type = option.dataset.type || "";
+        document.querySelectorAll('#partyDropdownMenu .party-option').forEach(function(option) {
+            const name = option.querySelector('.party-name')?.textContent.trim().toLowerCase() || '';
+            const phone = String(option.dataset.phone || '').toLowerCase();
+            const billing = String(option.dataset.billing || '').toLowerCase();
+            const matches = !normalizedQuery || name.includes(normalizedQuery) || phone.includes(normalizedQuery) || billing.includes(normalizedQuery);
 
-                dropdownBtnText.innerText = partyName;
-                partyIdInput.value = partyId;
-                phoneInput.value = phone;
-                billingInput.value = billing;
-                resetLinkPaymentState();
-
-                // Balance display
-                balanceDisplay.innerHTML = type === 'pay'
-                    ? `<span class="text-danger">₹${opening}</span>`
-                    : `<span class="text-success">₹${opening}</span>`;
-            }
-
-            if(addNew) {
-                window.location.href = '/dashboard/parties';
+            option.classList.toggle('d-none', !matches);
+            if (matches) {
+                visibleCount += 1;
             }
         });
+
+        if (partySearchNoResults) {
+            partySearchNoResults.classList.toggle('d-none', visibleCount > 0 || !normalizedQuery);
+        }
     }
+
+    function showPartyDropdown() {
+        if (!dropdownBtn || !dropdownMenu) return;
+        dropdownMenu.classList.add('show');
+        dropdownBtn.setAttribute('aria-expanded', 'true');
+    }
+
+    function hidePartyDropdown() {
+        if (!dropdownBtn || !dropdownMenu) return;
+        dropdownMenu.classList.remove('show');
+        dropdownBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    partySearchInput?.addEventListener('focus', function() {
+        showPartyDropdown();
+        filterPartyOptions(this.value || '');
+    });
+
+    ['click', 'mousedown', 'keydown', 'keyup'].forEach(function(eventName) {
+        partySearchInput?.addEventListener(eventName, function(event) {
+            event.stopPropagation();
+        });
+    });
+
+    partySearchInput?.addEventListener('click', function() {
+        showPartyDropdown();
+        filterPartyOptions(this.value || '');
+    });
+
+    partySearchInput?.addEventListener('input', function(event) {
+        showPartyDropdown();
+        filterPartyOptions(event.target.value);
+    });
+
+    partySearchInput?.addEventListener('keydown', function(event) {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const searchTerm = String(this.value || '').trim();
+        if (!searchTerm) return;
+
+        const options = Array.from(dropdownMenu.querySelectorAll('.party-option'));
+        const exactOption = options.find((opt) => {
+            const name = String(opt.querySelector('.party-name')?.textContent || '').trim().toLowerCase();
+            return name === searchTerm.toLowerCase();
+        });
+
+        if (exactOption) {
+            exactOption.click();
+            return;
+        }
+
+        addModal?.show();
+        const nameInput = document.getElementById('partyNameInput');
+        if (nameInput) {
+            nameInput.value = searchTerm;
+            nameInput.focus();
+        }
+    });
+
+    document.addEventListener('click', function(event) {
+        if (partyDropdown?.contains(event.target)) {
+            return;
+        }
+
+        hidePartyDropdown();
+        if (partySearchInput && !partyIdInput?.value) {
+            partySearchInput.value = '';
+            filterPartyOptions('');
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        const option = e.target.closest('.party-option');
+        const addNew = e.target.closest('#addNewPartyBtn');
+        if (!option && !addNew) return;
+
+        if (option) {
+            const partyName = option.querySelector('.party-name')?.innerText || '';
+            const partyId = option.dataset.id || '';
+            const phone = option.dataset.phone || '';
+            const billing = option.dataset.billing || '';
+            const opening = parseFloat(option.dataset.opening || 0) || 0;
+            const type = option.dataset.type || '';
+
+            dropdownBtn.value = partyName;
+            partyIdInput.value = partyId;
+            phoneInput.value = phone;
+            billingInput.value = billing;
+            resetLinkPaymentState();
+
+            balanceDisplay.innerHTML = type === 'pay'
+                ? `<span class="text-danger">₹${opening.toFixed(2)}</span>`
+                : `<span class="text-success">₹${opening.toFixed(2)}</span>`;
+
+            filterPartyOptions('');
+            hidePartyDropdown();
+            return;
+        }
+
+        if (addNew) {
+            window.location.href = '/dashboard/parties';
+        }
+    });
 
     // SAVE PARTY FUNCTION
     function saveParty(closeAfterSave = true) {
@@ -1714,7 +1809,7 @@
 
                 // Auto-select the newly created party
                 const partyName = party.name;
-                dropdownBtnText.innerText = partyName;
+                dropdownBtn.value = partyName || '';
                 partyIdInput.value = party.id;
                 phoneInput.value = party.phone || '';
                 billingInput.value = party.billing_address || '';
@@ -2050,7 +2145,7 @@ function loadLinkableSales(partyId, options = {}) {
 
 function openLinkPaymentModal() {
     const partyId = $('.party-id').val();
-    const partyName = $('#partyDropdownBtnText').text().trim();
+    const partyName = $('#partyDropdownBtn').val().trim();
 
     if (!partyId) {
         alert('Pehle party select karein.');
@@ -2096,7 +2191,7 @@ function populateEditPaymentIn(paymentIn) {
 
     $('#paymentInId').val(paymentIn.id || '');
     $('.party-id').val(paymentIn.party_id || '');
-    $('#partyDropdownBtnText').text(paymentIn.party?.name || 'Select Party');
+    $('#partyDropdownBtn').val(paymentIn.party?.name || '');
     $('#receiptNo').val(paymentIn.receipt_no || '');
     $('input[name="date"]').val(paymentIn.date || '');
     $('#paymentDescription').val(paymentIn.description || '');

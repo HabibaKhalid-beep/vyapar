@@ -226,24 +226,18 @@
                                         <th style="min-width: 180px;">BROKER PHONE</th>
                                         <th>AMOUNT</th>
                                         <th class="add-col" style="position: relative;">
-                                            <button type="button" class="btn-add-circle table-settings-btn"><i class="fa-solid fa-plus"></i></button>
-                                            <div class="settings-box">
-                                                <div class="settings-item"><input type="checkbox" class="check-category"><label>Item Category</label></div>
-                                                <div class="settings-item"><input type="checkbox" class="check-item-code"><label>Item Code</label></div>
-                                                <div class="settings-item"><input type="checkbox" class="check-description"><label>Description</label></div>
-                                                <div class="settings-item"><input type="checkbox" class="check-discount"><label>Discount</label></div>
-                                            </div>
+                                            <button type="button" class="btn-add-circle table-settings-btn" data-bs-toggle="modal" data-bs-target="#itemColumnModal"><i class="fa-solid fa-plus"></i></button>
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody class="item-rows">
                                     <tr class="item-row">
                                         <td class="row-num"><span class="row-index-text">1</span><div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div></td>
-                                        <td><select class="form-select item-name"><option value="" selected disabled>Select Item</option>@foreach($items as $item)<option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>@endforeach</select></td>
-                                        <td class="col-category d-none"><input type="text" class="item-category" placeholder="Category"></td>
-                                        <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code"></td>
-                                        <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description"></td>
-                                        <td class="col-discount d-none"><input type="number" class="item-discount" value="0"></td>
+                                        <td><select class="form-select item-name"><option value="" selected disabled>Select Item</option>@foreach($items as $item)<option value="{{ $item->id }}" data-price="{{ $item->price }}" data-sale-price="{{ $item->sale_price }}" data-stock="{{ $item->opening_qty }}" data-location="{{ $item->location }}" data-label="{{ $item->name }}" data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}" data-unit="{{ $item->unit }}" data-category="{{ $item->category->name ?? $item->category_name ?? $item->category_id ?? '' }}" data-item-code="{{ $item->item_code ?? '' }}" data-description="{{ $item->description ?? $item->item_description ?? '' }}" data-discount="{{ $item->discount ?? 0 }}">{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}</option>@endforeach</select></td>
+                                        <td class="col-category d-none"><select class="item-category"><option value="">Select Category</option></select></td>
+                                        <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
+                                        <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description" readonly></td>
+                                        <td class="col-discount d-none"><div class="item-discount-fields"><input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%"><input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount"></div></td>
                                         <td><input type="number" class="item-qty" value="1"></td>
                                         <td class="custom-size-td"><select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select></td>
                                         <td><input type="number" class="item-price" value="0"></td>
@@ -463,7 +457,7 @@
                     });
                 });
             };
-           
+
             const applyHeadingLabelsToTemplate = () => {
                 if (!templateEl) return;
                 const root = templateEl.content || templateEl;
@@ -544,11 +538,25 @@
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;"><div id="sale-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true"><div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div></div>
     @include('components.modals.party-modal')
     @include('components.modals.item-modal')
+    @include('dashboard.shared.item-column-modal')
     @include('components.bank-account-modal')
     <script src="{{ asset('js/challanform_script.js') }}"></script>
     <script src="{{ asset('js/challanscript.js') }}"></script>
     <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
     <script src="{{ asset('js/bank-account-modal.js') }}"></script>
     <script src="{{ asset('js/transaction-count-column.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const closeIcon = document.querySelector('.close-app-icon');
+        if (!closeIcon) return;
+        closeIcon.addEventListener('click', function () {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/dashboard/sales';
+            }
+        });
+    });
+    </script>
 </body>
 </html>

@@ -181,6 +181,17 @@
     font-weight: 600;
 }
 
+.item-discount-fields {
+    display: grid;
+    grid-template-columns: 58px minmax(88px, 1fr);
+    gap: 6px;
+    align-items: center;
+}
+
+.item-discount-fields input {
+    width: 100%;
+}
+
 .item-picker-empty {
     padding: 14px 18px;
     color: #8a94a6;

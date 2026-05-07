@@ -146,7 +146,7 @@
     function buildItemOptionsHtml(items = []) {
         return items.map((item) => {
             const meta = getItemMeta(item);
-            return `<option value="${item.id}" data-price="${item.price ?? ''}" data-sale-price="${item.sale_price ?? ''}" data-purchase-price="${meta.purchasePrice}" data-stock="${item.opening_qty ?? ''}" data-location="${item.location ?? ''}" data-label="${meta.plainLabel}" data-rich-label="${meta.richLabel}" data-unit="${item.unit || ''}" data-category="${meta.categoryLabel}" data-item-code="${meta.itemCode}" data-description="${meta.description}" data-discount="${meta.discount}">${meta.richLabel}</option>`;
+            return `<option value="${item.id}" data-price="${item.price ?? ''}" data-sale-price="${item.sale_price ?? ''}" data-purchase-price="${meta.purchasePrice}" data-stock="${item.opening_qty ?? ''}" data-location="${item.location ?? ''}" data-label="${meta.plainLabel}" data-rich-label="${meta.richLabel}" data-unit="${item.unit || ''}" data-category="${meta.categoryLabel}" data-item-code="${meta.itemCode}" data-description="${meta.description}" data-discount="${meta.discount}" data-bag-weight="${item.bag_weight ?? ''}">${meta.richLabel}</option>`;
         }).join('');
     }
 
@@ -485,7 +485,8 @@
                 location: $(this).attr('data-location') || '',
                 unit: $(this).attr('data-unit') || '',
                 category_name: $(this).attr('data-category') || '',
-                discount: parseFloat($(this).attr('data-discount') || 0) || 0
+                discount: parseFloat($(this).attr('data-discount') || 0) || 0,
+                bag_weight: parseFloat($(this).attr('data-bag-weight') || 0) || 0
             };
         }).get().filter(Boolean);
     }
@@ -548,6 +549,49 @@
         `);
 
         $select.before($picker);
+        $select.data('all-options-html', $select.html() || '');
+
+        function getRowCategoryValue() {
+            return String($select.closest('tr').find('.item-category').val() || '').trim().toLowerCase();
+        }
+
+        function filterPoolByCategory(pool) {
+            const selectedCategory = getRowCategoryValue();
+            if (!selectedCategory) {
+                return pool;
+            }
+            return (pool || []).filter((item) => {
+                const categoryValue = String(item.category_name || item.category?.name || item.category || item.category_id || '').trim().toLowerCase();
+                return categoryValue === selectedCategory;
+            });
+        }
+
+        function rebuildSelectOptionsByCategory() {
+            const currentValue = String($select.val() || '').trim();
+            const allOptionsHtml = String($select.data('all-options-html') || '');
+            if (!allOptionsHtml) {
+                return;
+            }
+
+            const selectedCategory = getRowCategoryValue();
+            const $temp = $('<select>' + allOptionsHtml + '</select>');
+            const $options = $temp.find('option').filter(function () {
+                const value = String($(this).attr('value') || '').trim();
+                if (!value || !selectedCategory) {
+                    return true;
+                }
+                const optionCategory = String($(this).data('category') || '').trim().toLowerCase();
+                return optionCategory === selectedCategory;
+            });
+
+            $select.html($options);
+
+            if (currentValue && $select.find(`option[value="${currentValue.replace(/"/g, '\\"')}"]`).length) {
+                $select.val(currentValue);
+            } else {
+                $select.val('');
+            }
+        }
 
         function syncInput() {
             const $selected = $select.find('option:selected');
@@ -555,9 +599,19 @@
             $picker.find('.item-picker-input').val(value ? (($selected.data('label') || $selected.text() || '').trim()) : '');
         }
 
+        function getPickerPool() {
+            const selectItems = getItemsFromSelect($select);
+            if (selectItems.length) {
+                return selectItems;
+            }
+            const globalItems = Array.isArray(window.items) ? window.items : [];
+            return filterPoolByCategory(globalItems);
+        }
+
         function renderPicker(query) {
             const normalized = String(query || '').trim().toLowerCase();
-            const pool = window.items && window.items.length ? window.items : getItemsFromSelect($select);
+            rebuildSelectOptionsByCategory();
+            const pool = getPickerPool();
             const items = pool.filter((item) => {
                 const label = String(item.name || '').toLowerCase();
                 const code = String(item.item_code || '').toLowerCase();
@@ -571,9 +625,11 @@
         }
 
         syncInput();
+        rebuildSelectOptionsByCategory();
 
         $picker.on('focus click', '.item-picker-input', function () {
             const raw = String($(this).val() || '').trim();
+            rebuildSelectOptionsByCategory();
             renderPicker(raw.toLowerCase() === 'select item' ? '' : raw);
         });
 
@@ -587,6 +643,17 @@
             $select.val(id).trigger('change');
             syncInput();
             $picker.find('.item-picker-panel').removeClass('open').hide();
+        });
+
+        $ctx.on('change.sharedCategoryPicker', '.item-category', function () {
+            if ($(this).closest('tr').find('select.item-name').get(0) !== $select.get(0)) {
+                return;
+            }
+            rebuildSelectOptionsByCategory();
+            syncInput();
+            if ($picker.find('.item-picker-panel').hasClass('open')) {
+                renderPicker($picker.find('.item-picker-input').val());
+            }
         });
 
         $picker.on('click', '.item-picker-add', function (event) {
@@ -616,6 +683,7 @@
         $('select.item-name').each(function () {
             const current = $(this).val();
             $(this).html('<option value="" selected disabled>Select Item</option>' + optionsHtml);
+            $(this).data('all-options-html', $(this).html() || '');
             if (current) {
                 $(this).val(current);
             }
@@ -808,6 +876,7 @@
         formData.append('opening_qty', $('#newItemStock').val() || 0);
         formData.append('at_price', $('#newItemAtPrice').val() || 0);
         formData.append('as_of_date', $('#newItemAsOfDate').val() || '');
+        formData.append('bag_weight', $('#newItemBagWeight').val() || 0);
         formData.append('min_stock', $('#newItemMinStock').val() || 0);
         formData.append('location', $('#newItemLocation').val() || '');
         formData.append('description', $('#newItemDescription').val() || '');

@@ -257,6 +257,9 @@ class ItemController extends Controller
                 'unit_conversion_rate' => Schema::hasColumn('items', 'unit_conversion_rate')
                     ? $this->normalizeDecimal($data['unit_conversion_rate'] ?? null, 0)
                     : null,
+                'bag_weight'      => Schema::hasColumn('items', 'bag_weight')
+                    ? $this->normalizeDecimal($data['bag_weight'] ?? null, 0)
+                    : null,
                 'price'           => $salePrice,
                 'sale_price'      => $salePrice,
                 'wholesale_price' => $this->normalizeDecimal($data['wholesale_price'] ?? 0),
@@ -339,6 +342,9 @@ class ItemController extends Controller
             'secondary_unit'  => Schema::hasColumn('items', 'secondary_unit') ? ($data['secondary_unit'] ?? $item->secondary_unit) : null,
             'unit_conversion_rate' => Schema::hasColumn('items', 'unit_conversion_rate')
                 ? $this->normalizeDecimal($data['unit_conversion_rate'] ?? $item->unit_conversion_rate, (float) ($item->unit_conversion_rate ?? 0))
+                : null,
+            'bag_weight'      => Schema::hasColumn('items', 'bag_weight')
+                ? $this->normalizeDecimal($data['bag_weight'] ?? $item->bag_weight, (float) ($item->bag_weight ?? 0))
                 : null,
             'price'           => $this->normalizeDecimal($data['sale_price'] ?? $data['price'] ?? $item->price, (float) ($item->price ?? $item->sale_price ?? 0)),
             'sale_price'      => $this->normalizeDecimal($data['sale_price'] ?? $item->sale_price, (float) $item->sale_price),
@@ -564,6 +570,7 @@ class ItemController extends Controller
                 'stock_qty' => $item->stock_qty,
                 'min_stock' => $item->min_stock,
                 'location' => $item->location,
+                'bag_weight' => $item->bag_weight,
                 'created_at' => optional($item->created_at)->format('Y-m-d H:i:s'),
             ];
         });
@@ -666,6 +673,7 @@ class ItemController extends Controller
                 'as_of_date' => isset($stock->as_of_date) ? (string) $stock->as_of_date : optional($item->updated_at)->format('Y-m-d'),
                 'min_stock' => $stock->min_stock_level ?? $item->min_stock,
                 'location' => $stock->location ?? $item->location,
+                'bag_weight' => $item->bag_weight,
             ];
         })->values();
 
@@ -940,6 +948,9 @@ class ItemController extends Controller
                 }
                 if (array_key_exists('description', $fields) && Schema::hasColumn('items', 'description')) {
                     $item->description = $fields['description'] !== '' ? $fields['description'] : null;
+                }
+                if (Schema::hasColumn('items', 'bag_weight') && array_key_exists('bag_weight', $fields) && $fields['bag_weight'] !== '') {
+                    $item->bag_weight = floatval($fields['bag_weight']);
                 }
                 if (isset($fields['sale_price']) && $fields['sale_price'] !== null && $fields['sale_price'] !== '') {
                     $item->sale_price = floatval($fields['sale_price']);

@@ -121,11 +121,12 @@ ul#partyDropdownMenu {
 }
 
 .item-picker-panel {
-    position: fixed;
+    position: absolute;
     top: calc(100% + 4px);
     left: 0;
     width: 100%;
-    min-width: 320px;
+    min-width: 520px;
+    max-width: 100%;
     background: white;
     border: 1px solid #e1e8ed;
     border-radius: 8px;
@@ -133,11 +134,19 @@ ul#partyDropdownMenu {
     z-index: 1055;
     display: none;
     overflow: hidden;
-    max-width: none;
+    box-sizing: border-box;
 }
 
 .item-picker-panel.open {
     display: block !important;
+}
+
+.item-picker-head > span:first-child,
+.item-picker-row > .item-picker-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .item-picker-list {
@@ -181,7 +190,7 @@ ul#partyDropdownMenu {
 .item-picker-head,
 .item-picker-row {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) 100px 110px 80px;
+    grid-template-columns: minmax(0, 2.4fr) 110px 120px 90px;
     gap: 12px;
     align-items: center;
 }
@@ -189,7 +198,7 @@ ul#partyDropdownMenu {
 @media (max-width: 768px) {
     .item-picker-head,
     .item-picker-row {
-        grid-template-columns: minmax(0, 2fr) 80px 90px 70px;
+        grid-template-columns: minmax(0, 2fr) 90px 100px 90px;
         gap: 8px;
     }
 
@@ -582,6 +591,43 @@ ul#partyDropdownMenu {
     font-size: 12px;
 }
 
+.broker-dropdown-wrapper #brokerDropdownBtn {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #495057;
+}
+.broker-dropdown-wrapper .broker-selected-info {
+    display: none;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #495057;
+}
+.broker-dropdown-wrapper .broker-selected-info.visible {
+    display: block;
+}
+.broker-dropdown-wrapper .broker-selected-name {
+    font-weight: 600;
+}
+.broker-dropdown-wrapper .broker-selected-phone {
+    color: #6c757d;
+}
+.broker-dropdown-wrapper .broker-option {
+    min-height: 50px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+.broker-dropdown-wrapper .broker-option-name {
+    font-weight: 600;
+}
+.broker-dropdown-wrapper .broker-option-phone {
+    display: block;
+}
+.broker-dropdown-wrapper .broker-option-city {
+    margin-top: 2px;
+}
+
 #partyBalanceDisplay {
     margin-top: 2px !important;
     font-size: 11px;
@@ -640,8 +686,19 @@ ul#partyDropdownMenu {
     font-size: 12px;
 }
 
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
 .bottom-right .broker-calc-row {
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid #dbe4f0;
+    border-radius: 10px;
+    background: #fbfdff;
 }
 
 .bottom-right .market-calc-row {
@@ -649,11 +706,32 @@ ul#partyDropdownMenu {
 }
 
 .bottom-right .broker-calc-inputs {
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 220px) minmax(0, 260px) minmax(0, 180px);
     gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    width: 100%;
+    align-items: center;
+}
+
+.bottom-right .broker-dropdown-wrapper {
+    width: auto;
+    max-width: 220px;
+}
+
+.bottom-right .broker-dropdown-wrapper .btn.dropdown-toggle {
+    width: 100%;
+    min-width: 0;
+}
+
+.bottom-right .broker-phone-input {
+    width: 100%;
+    max-width: 180px;
+}
+
+.bottom-right .brokerage-inputs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
     width: 100%;
 }
 
@@ -668,9 +746,52 @@ ul#partyDropdownMenu {
     grid-template-columns: 1fr;
 }
 
-.bottom-right .broker-dropdown-wrapper {
+.bottom-right .summary-expense-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
     width: 100%;
-    max-width: 180px;
+    align-items: start;
+}
+
+.bottom-right .summary-expense-grid .calc-row {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1200px) {
+    .bottom-right .summary-expense-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .bottom-right .summary-expense-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.item-discount-fields {
+    display: grid;
+    grid-template-columns: 58px minmax(88px, 1fr);
+    gap: 6px;
+    align-items: center;
+}
+
+.item-discount-fields input {
+    width: 100%;
+}
+
+.bottom-right .broker-dropdown-wrapper {
+    width: auto;
+    max-width: 240px;
+}
+
+.bottom-right .broker-dropdown-wrapper .btn.dropdown-toggle {
+    min-width: 0;
+}
+
+.bottom-right .broker-phone-input {
+    max-width: 240px;
 }
 
 .bottom-right .market-mini-input {
@@ -689,13 +810,13 @@ ul#partyDropdownMenu {
 .bottom-right .brokerage-type,
 .bottom-right .brokerage-rate,
 .bottom-right .brokerage-amount {
-    min-height: 34px;
-    height: 34px;
-    padding: 6px 8px;
+    min-height: 30px;
+    height: 30px;
+    padding: 4px 8px;
     border-radius: 6px;
     border: 1px solid #d7e0ea;
     background: #fff;
-    font-size: 12px;
+    font-size: 11px;
     width: 100%;
 }
 
@@ -703,7 +824,18 @@ ul#partyDropdownMenu {
 .bottom-right .brokerage-type,
 .bottom-right .brokerage-rate,
 .bottom-right .brokerage-amount {
-    max-width: 98px;
+    max-width: 100%;
+}
+
+.bottom-right .broker-calc-row .calc-label {
+    margin-bottom: 0;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.bottom-right .brokerage-amount {
+    background: #f8fafc;
 }
 
 .header-right.w-25 {
@@ -805,6 +937,20 @@ ul#partyDropdownMenu {
         max-width: 100%;
     }
 
+    .bottom-right .broker-calc-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .bottom-right .broker-calc-row:first-of-type .broker-calc-inputs,
+    .bottom-right .broker-calc-row:last-of-type .broker-calc-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .bottom-right .brokerage-inputs {
+        grid-template-columns: 1fr;
+    }
+
     .bottom-right .market-calc-inputs {
         grid-template-columns: 1fr;
     }
@@ -834,6 +980,17 @@ ul#partyDropdownMenu {
             ->orderBy('name')
             ->get();
     }
+
+    $saleCategoryOptions = $saleItemsSource
+        ->map(function ($item) {
+            return $item->category->name ?? $item->category_name ?? $item->category_id ?? null;
+        })
+        ->filter()
+        ->map(fn ($value) => trim((string) $value))
+        ->filter()
+        ->unique()
+        ->sort()
+        ->values();
 @endphp
 
 <body>
@@ -898,7 +1055,9 @@ ul#partyDropdownMenu {
 
     <!-- Dropdown menu (existing) -->
     <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+        <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
         <li class="dropdown-header d-flex justify-content-between px-3">
+
             <span>Party Name</span>
             <span>Opening Balance</span>
         </li>
@@ -941,8 +1100,7 @@ ul#partyDropdownMenu {
             </a>
           </li>
           @endforeach
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
+
     </ul>
 </div>
 <input type="hidden" class="party-id" name="party_id">
@@ -1027,17 +1185,8 @@ ul#partyDropdownMenu {
                                         <th>QTY</th>
                                         <th class="custom-size-th">UNIT</th>
                                         <th>PRICE/UNIT</th>
-                                        <th>AMOUNT</th>
-                                        <th>PARCHI</th>
                                         <th>TOTAL WAZAN</th>
                                         <th>SAFI WAZAN</th>
-                                        <th>RATE</th>
-                                        <th>DEO</th>
-                                        <th>BARDANA</th>
-                                        <th>MAZDORI</th>
-                                        <th>REHRA MAZDORI</th>
-                                        <th>DAK KARAYA</th>
-                                        <th>LOCAL</th>
                                         <th class="add-col" style="position: relative;">
                                             <button type="button" class="btn-add-circle table-settings-btn" data-bs-toggle="modal" data-bs-target="#itemColumnModal">
                                                 <i class="fa-solid fa-plus"></i>
@@ -1055,7 +1204,7 @@ ul#partyDropdownMenu {
                                         <td>
                                             <div class="item-picker">
                                                 <input type="text" class="item-picker-input" placeholder="Search Item" style="position: relative; z-index: 10;">
-                                                <div class="item-picker-panel" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; width: 100%; min-width: 320px; background: white; border: 1px solid #e1e8ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: none; overflow: hidden;">
+                                                <div class="item-picker-panel">
                                                     <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-square-plus"></i> Add Item</div>
                                                     <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
                                                         <span>Item</span>
@@ -1104,14 +1253,23 @@ ul#partyDropdownMenu {
                                                 </select>
                                             </div>
                                         </td>
-                                        <td class="col-category d-none"><input type="text" class="item-category"
-                                                placeholder="Category"></td>
+                                        <td class="col-category d-none">
+                                            <select class="item-category">
+                                                <option value="">Select Category</option>
+                                                @foreach($saleCategoryOptions as $categoryOption)
+                                                    <option value="{{ $categoryOption }}">{{ $categoryOption }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
                                         <td class="col-item-code d-none"><input type="text" class="item-code"
-                                                placeholder="Item Code"></td>
+                                                placeholder="Item Code" readonly></td>
                                         <td class="col-description d-none"><input type="text" class="item-desc"
-                                                placeholder="Description"></td>
-                                        <td class="col-discount d-none"><input type="number" class="item-discount"
-                                                value="0">
+                                                placeholder="Description" readonly></td>
+                                        <td class="col-discount d-none">
+                                            <div class="item-discount-fields">
+                                                <input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%">
+                                                <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
+                                            </div>
                                         </td>
                                         <td><input type="number" class="item-qty" value="1"></td>
                                       <td class="custom-size-td">
@@ -1140,16 +1298,8 @@ ul#partyDropdownMenu {
                                         <td><input type="number" class="item-price" value="0"></td>
                                         <td class="col-amount"><input type="text" class="item-amount" value="0"
                                                 readonly></td>
-                                        <td><input type="number" class="item-inline-input tadad-input" value="0" min="0" step="1" placeholder="Tadad"></td>
                                         <td><input type="number" class="item-inline-input total-wazan-input" value="0" min="0" step="0.01" placeholder="Total Wazan"></td>
                                         <td><input type="number" class="item-inline-input safi-wazan-input" value="0" min="0" step="0.01" placeholder="Safi Wazan"></td>
-                                        <td><input type="number" class="item-inline-input rate-input" value="0" min="0" step="0.01" placeholder="Rate"></td>
-                                        <td><input type="number" class="item-inline-input deo-input" value="0" min="0" step="0.01" placeholder="Deo"></td>
-                                        <td><input type="number" class="item-inline-input bardana-input" value="0" min="0" step="0.01" placeholder="Bardana"></td>
-                                        <td><input type="number" class="item-inline-input labour-input" value="0" min="0" step="0.01" placeholder="Mazdori"></td>
-                                        <td><input type="number" class="item-inline-input rehra-mazdori-input" value="0" min="0" step="0.01" placeholder="Rehra Mazdori"></td>
-                                        <td><input type="number" class="item-inline-input post-expense-input" value="0" min="0" step="0.01" placeholder="Dak Karaya"></td>
-                                        <td><input type="number" class="item-inline-input extra-expense-input" value="0" min="0" step="0.01" placeholder="Local"></td>
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
@@ -1266,47 +1416,48 @@ ul#partyDropdownMenu {
                                 <div class="calc-row broker-calc-row">
                                     <div class="calc-label">Broker</div>
                                     <div class="calc-inputs broker-calc-inputs">
-                                        <div class="broker-dropdown-wrapper" style="position: relative; display: inline-block;">
-                                            <button class="btn btn-outline-secondary dropdown-toggle text-start" type="button" id="brokerDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                                Select Broker
-                                            </button>
+                                        <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 260px; max-width: 100%;">
+                                            <input type="text" class="form-control broker-search-input w-100" placeholder="Search or select broker..." id="brokerDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
+                                            <div class="broker-selected-info">
+                                                <div class="broker-selected-name"></div>
+                                                <div class="broker-selected-phone"></div>
+                                            </div>
                                             <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
-                                                <li class="dropdown-header d-flex justify-content-between px-3">
-                                                    <span>Broker Name</span>
-                                                    <span>City</span>
-                                                </li>
                                                 @foreach($brokers as $broker)
                                                 <li>
-                                                    <a class="dropdown-item d-flex justify-content-between broker-option" href="#"
+                                                    <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
                                                        data-id="{{ $broker->id }}"
                                                        data-phone="{{ $broker->phone }}"
-                                                       data-name="{{ $broker->name }}">
-                                                        <span>{{ $broker->name }}</span>
-                                                        <span>{{ $broker->city ?: '-' }}</span>
+                                                       data-name="{{ $broker->name }}"
+                                                       data-commission-rate="{{ $broker->commission_rate ?? 0 }}">
+                                                        <div class="broker-option-name">{{ $broker->name }}</div>
+                                                        <div class="broker-option-city text-muted small">{{ $broker->city ?: '-' }}</div>
                                                     </a>
                                                 </li>
                                                 @endforeach
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-primary" href="#" id="addNewBrokerBtn">+ Add New Broker</a></li>
                                             </ul>
                                         </div>
-                                        <input type="hidden" class="broker-id" name="broker_id">
-                                        <input type="text" class="broker-phone-input" readonly placeholder="Phone">
-                                    </div>
-                                </div>
-
-                                <div class="calc-row broker-calc-row">
-                                    <div class="calc-label">Brokerage</div>
-                                    <div class="calc-inputs broker-calc-inputs">
+                                        <div class="brokerage-inputs">
                                         <select class="brokerage-type">
                                             <option value="">Condition</option>
-                                            <option value="full">Poori Brokerage</option>
-                                            <option value="half">Aadhi Brokerage</option>
-                                            <option value="per_kg">Per Kilo</option>
+                                            <option value="broker_rate">Broker Rate</option>
+                                            <option value="full">Poori Brokerage (0.45%)</option>
+                                            <option value="half">Aadhi Brokerage (0.225%)</option>
+                                            <option value="custom_pct">Custom %</option>
+                                            <option value="per_kg">Per KG (Safi Wazan)</option>
                                         </select>
                                         <input type="number" class="brokerage-rate" min="0" step="0.01" placeholder="Value">
                                         <input type="hidden" class="brokerage-base-amount" value="0">
                                         <input type="number" class="brokerage-amount" min="0" step="0.01" value="0" readonly>
                                     </div>
+                                        <input type="hidden" class="broker-id" name="broker_id">
+                                        <input type="hidden" class="broker-phone-input" name="broker_phone">
+                                    </div>
                                 </div>
+
+
 
                                 <!-- Discount -->
                                 <div class="calc-row">
@@ -1329,6 +1480,53 @@ ul#partyDropdownMenu {
                                             <option value="18">GST@18%</option>
                                         </select>
                                         <span class="tax-amount-display">0</span>
+                                    </div>
+                                </div>
+
+                                <!-- Summary Expense Grid -->
+                                <div class="summary-expense-grid">
+                                    <div class="calc-row">
+                                        <div class="calc-label">Parachi</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input parachi-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Rate</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input rate-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+
+                                    <div class="calc-row">
+                                        <div class="calc-label">Bardana</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input bardana-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Mazdoori</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input labour-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Rehra Mazdoori</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input rehra-mazdori-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Dak Karaya</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input post-expense-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Local</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input extra-expense-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1486,6 +1684,7 @@ ul#partyDropdownMenu {
                     <i class="fa-solid fa-chevron-right"></i>
                 </a>
             </div>
+
             <div class="mb-3">
                 <div class="fw-semibold mb-2">Billing Type</div>
                 <div class="form-check">
@@ -1497,6 +1696,7 @@ ul#partyDropdownMenu {
                     <label class="form-check-label" for="billingFull">Full Sale</label>
                 </div>
             </div>
+
             <button class="btn btn-link text-decoration-none p-0"><i class="fa-solid fa-gear me-1"></i> More Settings</button>
         </div>
     </div>
@@ -1672,6 +1872,79 @@ ul#partyDropdownMenu {
     </div>
 
     @include('components.bank-account-modal')
+    <div class="modal fade" id="brokerModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content broker-modal-card">
+          <form id="brokerForm" action="{{ route('brokers.store') }}">
+            @csrf
+            <div class="modal-header broker-modal-header">
+              <div>
+                <h5 class="modal-title">Add Broker</h5>
+                <p class="broker-modal-subtitle mb-0">Save broker details and commission rate.</p>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Broker Name</label>
+                  <input type="text" class="form-control" name="name" id="brokerName" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  <input type="text" class="form-control" name="phone" id="brokerPhone">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">City</label>
+                  <input type="text" class="form-control" name="city" id="brokerCity">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Commission Type</label>
+                  <select class="form-select" name="commission_type" id="brokerCommissionType">
+                    <option value="fixed">Fixed</option>
+                    <option value="percent">Percent</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Commission Rate</label>
+                  <input type="number" step="0.01" min="0" class="form-control" name="commission_rate" id="brokerCommissionRate" value="0">
+                </div>
+                <div class="col-md-6 d-flex align-items-center">
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" role="switch" name="status" id="brokerStatus" checked>
+                        <label class="form-check-label" for="brokerStatus">Keep broker active</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Total Brokerage</label>
+                  <input type="number" step="0.01" min="0" class="form-control" name="total_brokerage" id="brokerTotalBrokerage" value="0">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Paid Brokerage</label>
+                  <input type="number" step="0.01" min="0" class="form-control" name="paid_brokerage" id="brokerPaidBrokerage" value="0">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Remaining</label>
+                  <input type="text" class="form-control" id="brokerRemainingBrokerage" value="0.00" readonly>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Address</label>
+                  <input type="text" class="form-control" name="address" id="brokerAddress">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Notes</label>
+                  <textarea class="form-control" name="notes" id="brokerNotes" rows="3"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer broker-modal-footer">
+              <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn brokers-submit-btn">Save Broker</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- Form Logic -->
     <script src="{{ asset('js/saleform_script.js') }}"></script>
@@ -2145,6 +2418,10 @@ ul#partyDropdownMenu {
                 <div class="col-md-4">
                   <label for="newItemAsOfDate" class="form-label">As Of Date</label>
                   <input type="date" class="form-control" id="newItemAsOfDate" value="{{ date('Y-m-d') }}">
+                </div>
+                <div class="col-md-4">
+                  <label for="newItemBagWeight" class="form-label">Bag Weight</label>
+                  <input type="number" class="form-control" id="newItemBagWeight" min="0" step="0.01" placeholder="Enter Bag Weight (KG)">
                 </div>
                 <div class="col-md-6">
                   <label for="newItemMinStock" class="form-label">Min Stock To Maintain</label>
@@ -2755,9 +3032,17 @@ document.addEventListener("DOMContentLoaded", function() {
     const brokerDropdownBtn = document.getElementById("brokerDropdownBtn");
     const brokerDropdownMenu = document.getElementById("brokerDropdownMenu");
     const brokerIdInput = document.querySelector(".broker-id");
+    const brokerSelectedName = document.querySelector('.broker-selected-name');
+    const brokerSelectedPhone = document.querySelector('.broker-selected-phone');
+    const brokerForm = document.getElementById("brokerForm");
+    const brokerModalEl = document.getElementById("brokerModal");
+    const brokerPhoneInput = document.querySelector(".broker-phone-input");
+    const brokerageTypeInput = document.querySelector(".brokerage-type");
+    const brokerageRateInput = document.querySelector(".brokerage-rate");
     const addModalEl = document.getElementById('addPartyModal');
 
     const addModal = new bootstrap.Modal(addModalEl);
+    const brokerModal = brokerModalEl ? new bootstrap.Modal(brokerModalEl) : null;
 
     const partySearchInput = dropdownBtn;
     if (partySearchInput) {
@@ -2905,6 +3190,15 @@ else {
     });
 
     brokerDropdownMenu?.addEventListener("click", function(e) {
+        if (e.target.closest("#addNewBrokerBtn")) {
+            e.preventDefault();
+            brokerForm?.reset();
+            if (brokerModal) {
+                brokerModal.show();
+            }
+            return;
+        }
+
         if (!e.target.closest(".broker-option")) return;
 
         e.preventDefault();
@@ -2912,10 +3206,104 @@ else {
         const name = option.dataset.name || option.querySelector("span:first-child").textContent;
         const phone = option.dataset.phone || "";
         const id = option.dataset.id || "";
+        const commissionRate = parseFloat(option.dataset.commissionRate || 0) || 0;
 
-        brokerDropdownBtn.textContent = name;
+        if (brokerDropdownBtn) {
+            brokerDropdownBtn.value = name;
+        }
+        if (brokerSelectedName) {
+            brokerSelectedName.textContent = name || '';
+        }
+        if (brokerSelectedPhone) {
+            brokerSelectedPhone.textContent = phone || '';
+            brokerSelectedPhone.closest('.broker-selected-info')?.classList.toggle('visible', !!phone);
+        }
         brokerIdInput.value = id;
-        document.querySelector(".broker-phone-input").value = phone;
+        if (brokerPhoneInput) {
+            brokerPhoneInput.value = phone;
+        }
+        if (brokerageTypeInput && brokerageRateInput) {
+            brokerageTypeInput.value = 'broker_rate';
+            brokerageRateInput.value = commissionRate ? commissionRate.toFixed(2) : '';
+            brokerageRateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+
+    brokerForm?.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(brokerForm);
+        formData.set('_token', document.querySelector('meta[name="csrf-token"]').content);
+        formData.set('status', document.getElementById('brokerStatus')?.checked ? '1' : '0');
+
+        fetch("{{ route('brokers.store') }}", {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                "Accept": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok || !data.success || !data.broker) {
+                throw new Error(data.message || 'Failed to save broker');
+            }
+            return data.broker;
+        })
+        .then((broker) => {
+            window.brokers = Array.isArray(window.brokers) ? window.brokers : [];
+            window.brokers = window.brokers.filter(entry => String(entry.id) !== String(broker.id));
+            window.brokers.unshift(broker);
+
+            const brokerHtml = `
+                <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
+                       data-id="${broker.id}"
+                       data-phone="${broker.phone || ''}"
+                       data-name="${broker.name || ''}"
+                       data-commission-rate="${broker.commission_rate || 0}">
+                        <div class="broker-option-name">${broker.name || ''}</div>
+                        <div class="broker-option-city text-muted small">${broker.city || '-'}</div>
+                    </a>
+                </li>
+            `;
+
+            const addBrokerItem = brokerDropdownMenu.querySelector('#addNewBrokerBtn')?.closest('li');
+            const divider = addBrokerItem?.previousElementSibling;
+            if (divider) {
+                divider.insertAdjacentHTML('beforebegin', brokerHtml);
+            } else {
+                brokerDropdownMenu.insertAdjacentHTML('beforeend', brokerHtml);
+            }
+
+            if (brokerDropdownBtn) {
+                brokerDropdownBtn.value = broker.name || 'Select Broker';
+            }
+            if (brokerSelectedName) {
+                brokerSelectedName.textContent = broker.name || '';
+            }
+            if (brokerSelectedPhone) {
+                brokerSelectedPhone.textContent = broker.phone || '';
+                brokerSelectedPhone.closest('.broker-selected-info')?.classList.toggle('visible', !!broker.phone);
+            }
+            brokerIdInput.value = broker.id || '';
+            if (brokerPhoneInput) {
+                brokerPhoneInput.value = broker.phone || '';
+            }
+            if (brokerageTypeInput && brokerageRateInput) {
+                brokerageTypeInput.value = 'broker_rate';
+                brokerageRateInput.value = broker.commission_rate ? Number(broker.commission_rate).toFixed(2) : '';
+                brokerageRateInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            brokerModal?.hide();
+            brokerForm.reset();
+        })
+        .catch((error) => {
+            alert(error.message || 'Unable to save broker.');
+        });
     });
 
 });
@@ -2933,6 +3321,28 @@ document.addEventListener("DOMContentLoaded", function() {
                 creditLimitAmountWrap.classList.add("is-hidden");
             }
         });
+    }
+});
+
+// Payment type switch: show/hide deal days and due date for Cash/Credit
+document.addEventListener("DOMContentLoaded", function() {
+    const saleToggleSwitch = document.getElementById("saleToggleSwitch");
+    const dealDaysGroup = document.querySelector('.deal-days-group');
+    const dueDateGroup = document.querySelector('.final-due-date-group');
+
+    function updatePaymentMode() {
+        const isCash = saleToggleSwitch?.checked;
+        if (dealDaysGroup) {
+            dealDaysGroup.style.display = isCash ? 'none' : '';
+        }
+        if (dueDateGroup) {
+            dueDateGroup.style.display = isCash ? 'none' : '';
+        }
+    }
+
+    if (saleToggleSwitch) {
+        saleToggleSwitch.addEventListener('change', updatePaymentMode);
+        updatePaymentMode();
     }
 });
 

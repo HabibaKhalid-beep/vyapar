@@ -1,5 +1,7 @@
 function initializeForm(context) {
     const $ctx = $(context);
+    let lastBrokerRateValue = 0;
+    let previousBrokerageType = ($ctx.find('.brokerage-type').val() || '').toString();
     const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
     const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
     const defaultPaymentDirection = 'payment_in';
@@ -19,7 +21,7 @@ function initializeForm(context) {
     const buildItemOptionsHtml = (items = []) => {
         return items.map(item => {
             const { plainLabel, richLabel, categoryLabel, itemCode, description, discount } = getItemMeta(item);
-            return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${categoryLabel}" data-item-code="${itemCode}" data-description="${description}" data-discount="${discount}">${richLabel}</option>`;
+            return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${categoryLabel}" data-item-code="${itemCode}" data-description="${description}" data-discount="${discount}" data-bag-weight="${item.bag_weight ?? ''}">${richLabel}</option>`;
         }).join('');
     };
 
@@ -38,7 +40,8 @@ function initializeForm(context) {
                 opening_qty: parseFloat($(this).attr('data-stock') || 0) || 0,
                 location: $(this).attr('data-location') || '',
                 unit: $(this).attr('data-unit') || '',
-                category_name: $(this).attr('data-category') || ''
+                category_name: $(this).attr('data-category') || '',
+                bag_weight: parseFloat($(this).attr('data-bag-weight') || 0) || 0
             });
         });
         return domItems;
@@ -75,6 +78,77 @@ function initializeForm(context) {
         }
 
         return [];
+    };
+
+    const getAvailableCategories = () => {
+        return Array.from(new Set(
+            getSourceItems()
+                .map(item => getItemMeta(item).categoryLabel)
+                .filter(Boolean)
+                .map(value => String(value).trim())
+                .filter(Boolean)
+        )).sort((a, b) => a.localeCompare(b));
+    };
+
+    const buildCategoryOptionsHtml = (selectedValue = '') => {
+        const normalizedSelected = String(selectedValue || '').trim();
+        const options = ['<option value="">Select Category</option>'];
+        getAvailableCategories().forEach(category => {
+            const isSelected = category === normalizedSelected ? ' selected' : '';
+            options.push(`<option value="${category}"${isSelected}>${category}</option>`);
+        });
+        return options.join('');
+    };
+
+    const syncRowCategoryOptions = ($row, selectedValue = '') => {
+        const $category = $row.find('.item-category');
+        if (!$category.length) {
+            return;
+        }
+        $category.html(buildCategoryOptionsHtml(selectedValue));
+    };
+
+    const updateRowDiscountFromPercent = ($row) => {
+        const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
+        const price = parseFloat($row.find('.item-price').val() || 0) || 0;
+        const discountPct = parseFloat($row.find('.item-discount-pct').val() || 0) || 0;
+        const baseAmount = qty * price;
+        const discountAmount = baseAmount > 0 ? (baseAmount * discountPct) / 100 : 0;
+        $row.find('.item-discount').val(discountAmount.toFixed(2));
+    };
+
+    const updateRowDiscountPercentFromAmount = ($row) => {
+        const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
+        const price = parseFloat($row.find('.item-price').val() || 0) || 0;
+        const discountAmount = parseFloat($row.find('.item-discount').val() || 0) || 0;
+        const baseAmount = qty * price;
+        const discountPct = baseAmount > 0 ? (discountAmount / baseAmount) * 100 : 0;
+        $row.find('.item-discount-pct').val(discountAmount > 0 ? discountPct.toFixed(2) : '');
+    };
+
+    const setPartyDropdownDisplay = (value = '') => {
+        const $partyField = $ctx.find('#partyDropdownBtn').first();
+        const displayValue = value || 'Select Party';
+        if (!$partyField.length) {
+            return;
+        }
+        if ($partyField.is('input, textarea, select')) {
+            $partyField.val(displayValue);
+            return;
+        }
+        $partyField.text(displayValue);
+    };
+
+    const getPartyDropdownDisplay = () => {
+        const $partyField = $ctx.find('#partyDropdownBtn').first();
+        if (!$partyField.length) {
+            return '';
+        }
+        const rawValue = $partyField.is('input, textarea, select')
+            ? ($partyField.val() || '')
+            : ($partyField.text() || '');
+        const displayValue = String(rawValue).trim();
+        return displayValue === 'Select Party' ? '' : displayValue;
     };
 
     const buildItemPickerRowsHtml = (items = []) => {
@@ -262,7 +336,8 @@ function initializeForm(context) {
 
         const inputRect = $input[0].getBoundingClientRect();
         const viewportPadding = 12;
-        const width = Math.max(inputRect.width, 320);
+        const maxWidth = Math.min(window.innerWidth - viewportPadding * 2, 760);
+        const width = Math.min(maxWidth, Math.max(inputRect.width + 220, 520));
         let left = inputRect.left;
 
         if (left + width > window.innerWidth - viewportPadding) {
@@ -302,7 +377,8 @@ function initializeForm(context) {
         const $panel = $row.find('.item-picker-panel');
         const $list = $row.find('.item-picker-list');
         const normalizedQuery = String(query || '').trim().toLowerCase();
-        let itemsToUse = getSourceItems();
+        let itemsToUse = getFilteredItems();
+        const selectedCategory = String($row.find('.item-category').val() || '').trim().toLowerCase();
 
         if (!itemsToUse.length) {
             const fallbackItems = [];
@@ -321,6 +397,13 @@ function initializeForm(context) {
                 });
             });
             itemsToUse = fallbackItems;
+        }
+
+        if (selectedCategory) {
+            itemsToUse = itemsToUse.filter(item => {
+                const categoryValue = String(getItemMeta(item).categoryLabel || '').trim().toLowerCase();
+                return categoryValue === selectedCategory;
+            });
         }
 
         const filtered = itemsToUse.filter(item => {
@@ -391,6 +474,67 @@ function initializeForm(context) {
         $ctx.on('keydown keyup', '.party-search-input', function(e) {
             e.stopPropagation();
         });
+    }
+
+    function setupBrokerDropdownSearch() {
+        const $brokerSearchInput = $ctx.find('.broker-search-input').first();
+        const $brokerDropdown = $ctx.find('.broker-dropdown-wrapper').first();
+
+        if (!$brokerSearchInput.length) {
+            return;
+        }
+
+        $brokerSearchInput.on('click focus', function(e) {
+            e.stopPropagation();
+        });
+
+        $brokerSearchInput.on('input', function() {
+            const searchTerm = String($(this).val() || '').trim().toLowerCase();
+            $ctx.find('.broker-option').each(function() {
+                const $option = $(this);
+                const brokerName = String($.trim($option.find('span').first().text() || '')).toLowerCase();
+                const brokerCity = String($.trim($option.find('span').last().text() || '')).toLowerCase();
+                const brokerPhone = String($option.data('phone') || '').toLowerCase();
+                const isVisible = !searchTerm || brokerName.includes(searchTerm) || brokerCity.includes(searchTerm) || brokerPhone.includes(searchTerm);
+                $option.closest('li').toggleClass('d-none', !isVisible);
+            });
+        });
+
+        if ($brokerDropdown.length) {
+            $brokerDropdown.on('show.bs.dropdown', function() {
+                setTimeout(() => {
+                    $brokerSearchInput.trigger('focus').trigger('select');
+                }, 100);
+            });
+            $brokerDropdown.on('hide.bs.dropdown', function() {
+                $brokerSearchInput.val('');
+                $ctx.find('.broker-option').closest('li').removeClass('d-none');
+            });
+        }
+
+        $ctx.on('click', '.broker-search-input', function(e) {
+            e.stopPropagation();
+        });
+
+        $ctx.on('keydown keyup', '.broker-search-input', function(e) {
+            e.stopPropagation();
+        });
+    }
+
+    function updateBrokerRemaining() {
+        const total = parseFloat($ctx.find('#brokerTotalBrokerage').val() || 0) || 0;
+        const paid = parseFloat($ctx.find('#brokerPaidBrokerage').val() || 0) || 0;
+        const remaining = Math.max(0, total - paid);
+        $ctx.find('#brokerRemainingBrokerage').val(remaining.toFixed(2));
+    }
+
+    function resetBrokerModal() {
+        const $modal = $ctx.find('#brokerModal');
+        $modal.find('#brokerForm')[0].reset();
+        $modal.find('#brokerStatus').prop('checked', true);
+        $modal.find('#brokerTotalBrokerage').val('0');
+        $modal.find('#brokerPaidBrokerage').val('0');
+        $modal.find('#brokerRemainingBrokerage').val('0.00');
     }
 
     function refreshItemsList(selectedItem = null) {
@@ -599,29 +743,101 @@ function initializeForm(context) {
 
     function updateBrokerageFields() {
         const brokerageType = ($ctx.find('.brokerage-type').val() || '').toString();
-        const totalQty = parseFloat($ctx.find('.total-qty').text() || 0) || 0;
-        const rawRate = parseFloat($ctx.find('.brokerage-rate').val() || 0) || 0;
-        const $brokerageAmount = $ctx.find('.brokerage-amount');
+        const totalSafiWazan = Array.from($ctx.find('.item-row')).reduce((sum, row) => {
+            return sum + (parseFloat($(row).find('.safi-wazan-input').val() || 0) || 0);
+        }, 0);
+        const itemAmountBase = parseFloat($ctx.find('.total-base-amount').text() || 0) || 0;
         const $brokerageRate = $ctx.find('.brokerage-rate');
+        let rawRate = parseFloat($brokerageRate.val() || 0) || 0;
+        const $brokerageAmount = $ctx.find('.brokerage-amount');
         const $brokerageBaseAmount = $ctx.find('.brokerage-base-amount');
+
+        if (brokerageType !== 'broker_rate' && previousBrokerageType === 'broker_rate') {
+            lastBrokerRateValue = parseFloat($brokerageRate.val() || 0) || 0;
+        }
+
+        if (brokerageType === 'broker_rate' && lastBrokerRateValue > 0) {
+            rawRate = lastBrokerRateValue;
+        }
 
         let amount = 0;
         let placeholder = 'Enter value';
+        let readOnly = false;
+        let step = '0.01';
 
         if (brokerageType === 'per_kg') {
-            amount = totalQty * rawRate;
-            placeholder = 'Rate per kilo';
-        } else if (brokerageType === 'half') {
-            amount = rawRate / 2;
-            placeholder = 'Full brokerage amount';
+            amount = totalSafiWazan * rawRate;
+            placeholder = 'Rate per KG';
+        } else if (brokerageType === 'broker_rate') {
+            amount = itemAmountBase * rawRate;
+            placeholder = 'Broker Rate';
         } else if (brokerageType === 'full') {
-            amount = rawRate;
-            placeholder = 'Full brokerage amount';
+            rawRate = 0.45;
+            amount = itemAmountBase * rawRate / 100;
+            placeholder = 'Poori Brokerage %';
+            readOnly = true;
+            step = '0.001';
+        } else if (brokerageType === 'half') {
+            rawRate = 0.225;
+            amount = itemAmountBase * rawRate / 100;
+            placeholder = 'Aadhi Brokerage %';
+            readOnly = true;
+            step = '0.001';
+        } else if (brokerageType === 'custom_pct') {
+            amount = itemAmountBase * rawRate / 100;
+            placeholder = 'Custom %';
+            step = '0.001';
         }
 
-        $brokerageRate.attr('placeholder', placeholder);
-        $brokerageBaseAmount.val(rawRate.toFixed(2));
+        const rateValue = (brokerageType === 'full' || brokerageType === 'half' || brokerageType === 'custom_pct')
+            ? rawRate.toFixed(3)
+            : (rawRate > 0 ? rawRate.toFixed(2) : '');
+
+        $brokerageRate.attr('placeholder', placeholder).prop('readonly', readOnly).attr('step', step);
+        if (brokerageType === 'full' || brokerageType === 'half') {
+            $brokerageRate.val(rateValue);
+        } else if (brokerageType === 'broker_rate' || brokerageType === 'per_kg' || brokerageType === 'custom_pct') {
+            if ($brokerageRate.val().trim() !== '' || rawRate > 0) {
+                $brokerageRate.val(rateValue);
+            }
+        }
+        $brokerageBaseAmount.val(rateValue);
         $brokerageAmount.val(amount.toFixed(2));
+        previousBrokerageType = brokerageType;
+    }
+
+    function getRowBagWeight($row) {
+        const storedValue = parseFloat($row.attr('data-bag-weight') || 0);
+        if (!Number.isNaN(storedValue) && storedValue > 0) {
+            return storedValue;
+        }
+
+        const selectedValue = String($row.find('.item-name').val() || '').trim();
+        const selectedItem = getSourceItems().find((item) => String(item.id) === selectedValue);
+        if (selectedItem && selectedItem.bag_weight !== undefined && selectedItem.bag_weight !== null) {
+            return parseFloat(selectedItem.bag_weight || 0) || 0;
+        }
+
+        const optionWeight = parseFloat($row.find('.item-name option:selected').attr('data-bag-weight') || 0);
+        return Number.isNaN(optionWeight) ? 0 : optionWeight;
+    }
+
+    function syncRowWazanFromBagWeight($row, syncSafi = true) {
+        if (!$row || !$row.length) {
+            return;
+        }
+
+        const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
+        const bagWeight = getRowBagWeight($row);
+        const totalWazan = qty * bagWeight;
+
+        if ($row.find('.total-wazan-input').length) {
+            $row.find('.total-wazan-input').val(totalWazan.toFixed(2));
+        }
+
+        if (syncSafi && $row.find('.safi-wazan-input').length) {
+            $row.find('.safi-wazan-input').val(totalWazan.toFixed(2));
+        }
     }
 
     function getMarketExpenseTotal() {
@@ -739,7 +955,7 @@ function initializeForm(context) {
             const party = (window.parties || []).find(p => String(p.id) === String(sale.party_id || ''));
             $ctx.find('.party-id').val(sale.party_id || '');
             if (party) {
-                $ctx.find('#partyDropdownBtn').text(party.name || 'Select Party');
+                setPartyDropdownDisplay(party.name || sale.party_name || 'Select Party');
                 $ctx.find('.phone-input').val(party.phone || sale.phone || '');
                 $ctx.find('.city-input').val(party.city || '');
                 $ctx.find('.ptcl-input').val(party.ptcl_number || party.ptcl || '');
@@ -747,7 +963,7 @@ function initializeForm(context) {
                 $ctx.find('.billing-address').val(party.billing_address || sale.billing_address || '');
                 $ctx.find('.shipping-address').val(party.shipping_address || sale.shipping_address || '');
             } else {
-                $ctx.find('#partyDropdownBtn').text('Select Party');
+                setPartyDropdownDisplay(sale.party_name || 'Select Party');
             }
         } else {
             const partyOption = $ctx.find('.party-select option').filter(function () {
@@ -782,10 +998,11 @@ function initializeForm(context) {
                 matchOption.prop('selected', true);
             }
 
-            $row.find('.item-category').val(item.item_category || '');
+            syncRowCategoryOptions($row, item.item_category || '');
             $row.find('.item-code').val(item.item_code || '');
             $row.find('.item-desc').val(item.item_description || '');
             $row.find('.item-discount').val(item.discount || 0);
+            updateRowDiscountPercentFromAmount($row);
             $row.find('.item-qty').val(item.quantity || 0);
             if (item.unit) {
                 ensureUnitOption($row.find('.item-unit'), item.unit);
@@ -800,18 +1017,16 @@ function initializeForm(context) {
         $ctx.find('.tax-select').val(sale.tax_pct || 0);
         $ctx.find('.round-off-val').val(sale.round_off || 0);
         $ctx.find('.grand-total').val(sale.grand_total || 0);
-        const $marketRow = $ctx.find('.item-rows tr').first();
-        $marketRow.find('.tadad-input').val(sale.tadad || sale.total_qty || '');
-        $marketRow.find('.total-wazan-input').val(sale.total_wazan || '');
-        $marketRow.find('.safi-wazan-input').val(sale.safi_wazan || '');
-        $marketRow.find('.rate-input').val(sale.rate || '');
-        $marketRow.find('.deo-input').val(sale.deo || '');
-        $marketRow.find('.bardana-input').val(sale.bardana || '');
-        $marketRow.find('.labour-input').val(sale.labour || '');
-        $marketRow.find('.rehra-mazdori-input').val(sale.rehra_mazdori || '');
-        $marketRow.find('.post-expense-input').val(sale.post_expense || '');
-        $marketRow.find('.extra-expense-input').val(sale.extra_expense || '');
-        updateMarketRowAmount($marketRow);
+        $ctx.find('.parachi-input').val(sale.tadad || sale.total_qty || '');
+        $ctx.find('.total-wazan-input').val(sale.total_wazan || '');
+        $ctx.find('.safi-wazan-input').val(sale.safi_wazan || '');
+        $ctx.find('.rate-input').val(sale.rate || '');
+        $ctx.find('.deo-input').val(sale.deo || '');
+        $ctx.find('.bardana-input').val(sale.bardana || '');
+        $ctx.find('.labour-input').val(sale.labour || '');
+        $ctx.find('.rehra-mazdori-input').val(sale.rehra_mazdori || '');
+        $ctx.find('.post-expense-input').val(sale.post_expense || '');
+        $ctx.find('.extra-expense-input').val(sale.extra_expense || '');
 
         // Description (show if already set)
         const desc = sale.description || '';
@@ -857,10 +1072,10 @@ function initializeForm(context) {
         const broker = (window.brokers || []).find(b => String(b.id) === String(sale.broker_id || ''));
         $ctx.find('.broker-id').val(sale.broker_id || '');
         if (broker) {
-            $ctx.find('#brokerDropdownBtn').text(broker.name || 'Select Broker');
+            $ctx.find('#brokerDropdownBtn').val(broker.name || '').attr('placeholder', broker.name || 'Search or select broker...');
             $ctx.find('.broker-phone-input').val(broker.phone || '');
         } else {
-            $ctx.find('#brokerDropdownBtn').text('Select Broker');
+            $ctx.find('#brokerDropdownBtn').val('').attr('placeholder', 'Search or select broker...');
             $ctx.find('.broker-phone-input').val('');
         }
 
@@ -909,7 +1124,7 @@ function initializeForm(context) {
         const shipping = $option.data('shipping') || '';
 
         $ctx.find('.party-id').val(partyId);
-        $ctx.find('#partyDropdownBtn').text(partyName || 'Select Party');
+        setPartyDropdownDisplay(partyName || 'Select Party');
         $ctx.find('.phone-input').val(phone);
         $ctx.find('.city-input').val(city);
         $ctx.find('.ptcl-input').val(ptcl);
@@ -934,10 +1149,16 @@ function initializeForm(context) {
 
     function addRow() {
         const rowCount = $ctx.find('.item-rows tr').length + 1;
-        const isCatVisible = $ctx.find('.check-category').is(':checked');
-        const isCodeVisible = $ctx.find('.check-item-code').is(':checked');
-        const isDescVisible = $ctx.find('.check-description').is(':checked');
-        const isDiscVisible = $ctx.find('.check-discount').is(':checked');
+        const settings = window.getItemColumnSettings ? window.getItemColumnSettings() : {
+            category: $('.check-category').is(':checked'),
+            code: $('.check-item-code').is(':checked'),
+            description: $('.check-description').is(':checked'),
+            discount: $('.check-discount').is(':checked')
+        };
+        const isCatVisible = settings.category;
+        const isCodeVisible = settings.code;
+        const isDescVisible = settings.description;
+        const isDiscVisible = settings.discount;
         const optionsHtml = buildItemOptionsHtml(getFilteredItems());
         const unitOptionsHtml = buildUnitOptionsHtml();
 
@@ -966,10 +1187,17 @@ function initializeForm(context) {
                         </select>
                     </div>
                 </td>
-                <td class="col-category ${isCatVisible ? '' : 'd-none'}"><input type="text" class="item-category" placeholder="Category"></td>
-                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code"></td>
-                <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description"></td>
-                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><input type="number" class="item-discount" value="0"></td>
+                <td class="col-category ${isCatVisible ? '' : 'd-none'}">
+                    <select class="item-category">${buildCategoryOptionsHtml()}</select>
+                </td>
+                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
+                <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description" readonly></td>
+                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}">
+                    <div class="item-discount-fields">
+                        <input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%">
+                        <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
+                    </div>
+                </td>
                 <td><input type="number" class="item-qty" value="1"></td>
                 <td>
                     <select class="item-unit">${unitOptionsHtml}</select>
@@ -1002,6 +1230,10 @@ function initializeForm(context) {
         $ctx.find('.col-item-code').toggleClass('d-none', !isCodeVisible);
         $ctx.find('.col-description').toggleClass('d-none', !isDescVisible);
         $ctx.find('.col-discount').toggleClass('d-none', !isDiscVisible);
+        $ctx.find('.item-row').each(function () {
+            const $row = $(this);
+            syncRowCategoryOptions($row, $row.find('.item-category').val() || '');
+        });
     }
 
     function getFilteredItems() {
@@ -1028,15 +1260,23 @@ function initializeForm(context) {
     }
 
     function updateItemSelectOptions() {
-        const filteredItems = getFilteredItems();
-        const optionsHtml = buildItemOptionsHtml(filteredItems);
-        const sourceItems = getSourceItems();
-
         $ctx.find('.item-name').each(function () {
             const $select = $(this);
+            const $row = $select.closest('tr');
             const currentValue = $select.val();
+            const currentCategory = String($row.find('.item-category').val() || '').trim().toLowerCase();
+            let filteredItems = getFilteredItems();
 
-            if (sourceItems.length) {
+            if (currentCategory) {
+                filteredItems = filteredItems.filter(item => {
+                    const categoryValue = String(getItemMeta(item).categoryLabel || '').trim().toLowerCase();
+                    return categoryValue === currentCategory;
+                });
+            }
+
+            const optionsHtml = buildItemOptionsHtml(filteredItems);
+
+            if (filteredItems.length || getSourceItems().length) {
                 $select.empty();
                 $select.append('<option value="" selected disabled>Select Item</option>');
                 $select.append(optionsHtml);
@@ -1045,7 +1285,18 @@ function initializeForm(context) {
                 }
             }
 
-            syncItemPickerInput($select.closest('tr'));
+            if (currentValue && !$select.find(`option[value="${currentValue}"]`).length) {
+                $select.val('');
+                $row.find('.item-picker-input').val('');
+                $row.find('.item-code').val('');
+                $row.find('.item-desc').val('');
+                $row.find('.item-price').val('0');
+                $row.find('.item-amount').val('0');
+                $row.find('.item-discount').val('0');
+                $row.find('.item-discount-pct').val('');
+            }
+
+            syncItemPickerInput($row);
         });
     }
 
@@ -1123,13 +1374,17 @@ function initializeForm(context) {
         const itemCode = $selected.data('item-code') || '';
         const description = $selected.data('description') || '';
         const discount = $selected.data('discount');
+        const selectedItemId = String($selected.val() || '').trim();
+        const selectedItem = getSourceItems().find((item) => String(item.id) === selectedItemId);
+        const bagWeight = parseFloat(selectedItem?.bag_weight ?? $selected.attr('data-bag-weight') ?? 0) || 0;
 
         const $qty = $row.find('.item-qty');
         // Always default selected item quantity to 1 when item is chosen
         $qty.val(1);
+        $row.attr('data-bag-weight', bagWeight.toFixed(2));
 
         $row.find('.item-price').val(price.toFixed(2));
-        $row.find('.item-category').val(category);
+        syncRowCategoryOptions($row, category);
         $row.find('.item-code').val(itemCode);
         $row.find('.item-desc').val(description);
         if (discount !== undefined && discount !== null && discount !== '') {
@@ -1137,6 +1392,7 @@ function initializeForm(context) {
             if (currentDiscount === 0) {
                 $row.find('.item-discount').val(discount);
             }
+            updateRowDiscountPercentFromAmount($row);
         }
         if (unit) {
             ensureUnitOption($row.find('.item-unit'), unit);
@@ -1147,6 +1403,7 @@ function initializeForm(context) {
         syncItemPickerInput($row);
         $row.find('.item-picker-panel').removeClass('open');
         $row.find('.item-amount').val(price.toFixed(2));
+        syncRowWazanFromBagWeight($row, true);
         updateMarketRowAmount($row);
         calculateTotals();
     });
@@ -1244,10 +1501,23 @@ function initializeForm(context) {
         $('#newItemUnit').val('');
         renderNewItemUnitMenu();
 
-        // Pre-fill item name if an item was selected in the picker
+        // Pre-fill item name from selected item or search input
+        let itemNameToFill = '';
+
+        // First priority: selected item from picker
         if (window.selectedItemForModal && window.selectedItemForModal.name) {
-            $('#newItemName').val(window.selectedItemForModal.name);
+            itemNameToFill = window.selectedItemForModal.name;
             window.selectedItemForModal = null; // Reset after use
+        } else {
+            // Second priority: search text in the input field
+            const searchText = String($row.find('.item-picker-input').val() || '').trim();
+            if (searchText && searchText.toLowerCase() !== 'search item') {
+                itemNameToFill = searchText;
+            }
+        }
+
+        if (itemNameToFill) {
+            $('#newItemName').val(itemNameToFill);
         }
 
         // Show modal
@@ -1478,6 +1748,7 @@ function initializeForm(context) {
         formData.append('opening_qty', document.getElementById('newItemStock').value || 0);
         formData.append('at_price', document.getElementById('newItemAtPrice').value || 0);
         formData.append('as_of_date', document.getElementById('newItemAsOfDate').value);
+        formData.append('bag_weight', document.getElementById('newItemBagWeight').value || 0);
         formData.append('min_stock', document.getElementById('newItemMinStock').value || 0);
         formData.append('location', document.getElementById('newItemLocation').value);
         formData.append('description', document.getElementById('newItemDescription').value);
@@ -1553,19 +1824,37 @@ function initializeForm(context) {
     });
 
     // Line item calculation
-    $ctx.on('keyup change', '.item-qty, .item-price, .item-discount', function() {
+    $ctx.on('keyup change', '.item-qty, .item-price, .item-discount, .item-discount-pct', function() {
         const $row = $(this).closest('tr');
+        const isPercentField = $(this).hasClass('item-discount-pct');
+        const isAmountField = $(this).hasClass('item-discount');
+
+        if (isPercentField) {
+            updateRowDiscountFromPercent($row);
+        } else if (isAmountField) {
+            updateRowDiscountPercentFromAmount($row);
+        } else if (($row.find('.item-discount-pct').val() || '').toString().trim() !== '') {
+            updateRowDiscountFromPercent($row);
+        } else {
+            updateRowDiscountPercentFromAmount($row);
+        }
+
         const qty = parseFloat($row.find('.item-qty').val()) || 0;
         const price = parseFloat($row.find('.item-price').val()) || 0;
         const itemDiscount = parseFloat($row.find('.item-discount').val()) || 0;
+        syncRowWazanFromBagWeight($row, true);
 
         const amount = (qty * price) - itemDiscount;
         $row.find('.item-amount').val(amount.toFixed(2));
         calculateTotals();
     });
 
-    $ctx.on('input change', '.tadad-input, .total-wazan-input, .safi-wazan-input, .rate-input, .deo-input, .bardana-input, .labour-input, .rehra-mazdori-input, .post-expense-input, .extra-expense-input', function() {
+    $ctx.on('input change', '.tadad-input, .total-wazan-input, .safi-wazan-input, .rate-input, .deo-input, .bardana-input, .labour-input, .rehra-mazdori-input, .post-expense-input, .extra-expense-input, .parachi-input, .rate-input, .deo-input, .bardana-input, .labour-input, .rehra-mazdori-input, .post-expense-input, .extra-expense-input', function() {
         const $row = $(this).closest('tr');
+        if ($(this).hasClass('total-wazan-input')) {
+            const totalWazan = parseFloat($(this).val() || 0) || 0;
+            $row.find('.safi-wazan-input').val(totalWazan.toFixed(2));
+        }
         updateMarketRowAmount($row);
         calculateTotals();
     });
@@ -1726,7 +2015,7 @@ function initializeForm(context) {
             brokerage_type: $ctx.find('.brokerage-type').val() || null,
             brokerage_rate: parseFloat($ctx.find('.brokerage-base-amount').val() || $ctx.find('.brokerage-rate').val() || 0) || 0,
             broker_amount: parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0,
-            party_name: $ctx.find('#partyDropdownBtn').text().trim() || $ctx.find('.party-select option:selected').text() || '',
+            party_name: getPartyDropdownDisplay() || $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
             shipping_address: $ctx.find('.shipping-address').val() || '',
@@ -1741,18 +2030,18 @@ function initializeForm(context) {
                 return parseInt(selectedValue || 0, 10) || 0;
             })(),
             due_date: $ctx.find('.due-date').val() || '',
-            tadad: parseInt($marketRow.find('.tadad-input').val() || 0, 10) || 0,
-            total_wazan: parseFloat($marketRow.find('.total-wazan-input').val() || 0) || 0,
-            safi_wazan: parseFloat($marketRow.find('.safi-wazan-input').val() || 0) || 0,
-            rate: parseFloat($marketRow.find('.rate-input').val() || 0) || 0,
-            deo: parseFloat($marketRow.find('.deo-input').val() || 0) || 0,
-            total_qty: parseInt($marketRow.find('.tadad-input').val() || $ctx.find('.total-qty').text() || 0, 10) || 0,
+            tadad: parseInt($ctx.find('.parachi-input').val() || 0, 10) || 0,
+            total_wazan: parseFloat($ctx.find('.total-wazan-input').val() || 0) || 0,
+            safi_wazan: parseFloat($ctx.find('.safi-wazan-input').val() || 0) || 0,
+            rate: parseFloat($ctx.find('.rate-input').val() || 0) || 0,
+            deo: parseFloat($ctx.find('.deo-input').val() || 0) || 0,
+            total_qty: parseInt($ctx.find('.parachi-input').val() || $ctx.find('.total-qty').text() || 0, 10) || 0,
             total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0,
-            labour: parseFloat($marketRow.find('.labour-input').val() || 0) || 0,
-            bardana: parseFloat($marketRow.find('.bardana-input').val() || 0) || 0,
-            rehra_mazdori: parseFloat($marketRow.find('.rehra-mazdori-input').val() || 0) || 0,
-            post_expense: parseFloat($marketRow.find('.post-expense-input').val() || 0) || 0,
-            extra_expense: parseFloat($marketRow.find('.extra-expense-input').val() || 0) || 0,
+            labour: parseFloat($ctx.find('.labour-input').val() || 0) || 0,
+            bardana: parseFloat($ctx.find('.bardana-input').val() || 0) || 0,
+            rehra_mazdori: parseFloat($ctx.find('.rehra-mazdori-input').val() || 0) || 0,
+            post_expense: parseFloat($ctx.find('.post-expense-input').val() || 0) || 0,
+            extra_expense: parseFloat($ctx.find('.extra-expense-input').val() || 0) || 0,
             discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,
             discount_rs: parseFloat($ctx.find('.discount-rs').val() || 0) || 0,
             tax_pct: parseFloat($ctx.find('.tax-select').val() || 0) || 0,
@@ -2017,7 +2306,7 @@ function initializeForm(context) {
             const $row = $(this);
             const tadad = parseFloat($row.find('.tadad-input').val() || 0) || 0;
             const safiWazan = parseFloat($row.find('.safi-wazan-input').val() || 0) || 0;
-            const rate = parseFloat($row.find('.rate-input').val() || 0) || 0;
+            const rate = parseFloat($ctx.find('.rate-input').val() || 0) || 0;
             const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
             const price = parseFloat($row.find('.item-price').val() || 0) || 0;
             const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
@@ -2072,6 +2361,19 @@ function initializeForm(context) {
             finalBase += taxAmount;
         }
         $ctx.find('.tax-amount-display').text(taxAmount.toFixed(2));
+
+        // Add summary expenses
+        const parachi = parseFloat($ctx.find('.parachi-input').val() || 0) || 0;
+        const rateExpense = parseFloat($ctx.find('.rate-input').val() || 0) || 0;
+        const deo = parseFloat($ctx.find('.deo-input').val() || 0) || 0;
+        const bardana = parseFloat($ctx.find('.bardana-input').val() || 0) || 0;
+        const labour = parseFloat($ctx.find('.labour-input').val() || 0) || 0;
+        const rehraMazdori = parseFloat($ctx.find('.rehra-mazdori-input').val() || 0) || 0;
+        const postExpense = parseFloat($ctx.find('.post-expense-input').val() || 0) || 0;
+        const extraExpense = parseFloat($ctx.find('.extra-expense-input').val() || 0) || 0;
+
+        const totalExpenses = parachi + rateExpense + deo + bardana + labour + rehraMazdori + postExpense + extraExpense;
+        finalBase += totalExpenses;
 
         const roundOffEnabled = $ctx.find('.round-off-check').is(':checked');
         let roundOffVal = roundOffEnabled ? (parseFloat($ctx.find('.round-off-val').val()) || 0) : 0;
@@ -2143,6 +2445,82 @@ function initializeForm(context) {
     setupAdjustmentControls();
     syncDefaultPaymentFields();
     setupPartyDropdownSearch();
+    setupBrokerDropdownSearch();
+
+    $ctx.on('click', '.broker-option', function(e) {
+        e.preventDefault();
+        const $option = $(this);
+        const brokerId = $option.data('id');
+        const brokerName = String($option.data('name') || $option.find('span').first().text() || '').trim();
+        const brokerPhone = String($option.data('phone') || '').trim();
+
+        $ctx.find('.broker-id').val(brokerId);
+        $ctx.find('#brokerDropdownBtn').val(brokerName || '').attr('placeholder', brokerName || 'Search or select broker...');
+        $ctx.find('.broker-selected-name').text(brokerName || '');
+        $ctx.find('.broker-selected-phone').text(brokerPhone || '').closest('.broker-selected-info').toggleClass('visible', !!brokerPhone);
+        $ctx.find('.broker-phone-input').val(brokerPhone);
+
+        const dropdownToggle = document.getElementById('brokerDropdownBtn');
+        const dropdown = bootstrap.Dropdown.getInstance(dropdownToggle) || bootstrap.Dropdown.getOrCreateInstance(dropdownToggle);
+        dropdown.hide();
+    });
+
+    $ctx.on('click', '#addNewBrokerBtn', function(e) {
+        e.preventDefault();
+        resetBrokerModal();
+        const brokerModalEl = document.getElementById('brokerModal');
+        bootstrap.Modal.getOrCreateInstance(brokerModalEl).show();
+    });
+
+    $ctx.on('submit', '#brokerForm', function(e) {
+        e.preventDefault();
+        const $form = $(this);
+        const url = $form.attr('action');
+        const formData = new FormData(this);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(async response => {
+            const data = await response.json().catch(() => null);
+            if (!response.ok || !data?.success) {
+                const message = data?.message || 'Unable to save broker. Please try again.';
+                alert(message);
+                return;
+            }
+
+            const broker = data.broker;
+            if (!broker) {
+                alert('Broker saved, but response was invalid.');
+                return;
+            }
+
+            window.brokers = Array.isArray(window.brokers) ? window.brokers.concat([broker]) : [broker];
+            const optionHtml = `<li><a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#" data-id="${broker.id}" data-phone="${broker.phone || ''}" data-name="${broker.name || ''}" data-commission-rate="${broker.commission_rate ?? 0}"><div class="broker-option-name">${broker.name || ''}</div><div class="broker-option-city text-muted small">${broker.city || '-'}</div></a></li>`;
+            const $dropdownMenu = $ctx.find('#brokerDropdownMenu');
+            $dropdownMenu.find('li:last-child').before(optionHtml);
+
+            $ctx.find('.broker-id').val(broker.id);
+            $ctx.find('#brokerDropdownBtn').val(broker.name || '').attr('placeholder', broker.name || 'Search or select broker...');
+            $ctx.find('.broker-selected-name').text(broker.name || '');
+            $ctx.find('.broker-selected-phone').text(broker.phone || '').closest('.broker-selected-info').toggleClass('visible', !!broker.phone);
+            $ctx.find('.broker-phone-input').val(broker.phone || '');
+
+            const brokerModalEl = document.getElementById('brokerModal');
+            bootstrap.Modal.getOrCreateInstance(brokerModalEl).hide();
+        })
+        .catch(() => {
+            alert('Unable to save broker. Please try again.');
+        });
+    });
+
+    $ctx.on('input change', '#brokerTotalBrokerage, #brokerPaidBrokerage', updateBrokerRemaining);
+
     applyColumnVisibility();
     updateItemSelectOptions();
     if (!getSourceItems().length) {
@@ -2153,6 +2531,12 @@ function initializeForm(context) {
 
     $(document).on('change', '.check-category, .check-item-code, .check-description, .check-discount', function() {
         applyColumnVisibility();
+    });
+
+    $ctx.on('change', '.item-category', function () {
+        const $row = $(this).closest('tr');
+        updateItemSelectOptions();
+        renderItemPicker($row, '');
     });
 
     $ctx.on('change', '.due-days-select', updateDueDateFromSelection);

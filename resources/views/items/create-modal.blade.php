@@ -227,6 +227,11 @@
             </div>
 
             <div class="form-group">
+                <label class="form-label">Bag Weight</label>
+                <input type="number" id="bagWeight" class="form-control" placeholder="Enter Bag Weight (KG)" min="0" step="0.01">
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Location</label>
                 <input type="text" id="location" class="form-control" placeholder="Enter location">
             </div>
@@ -282,6 +287,7 @@
             formData.append('sale_price', document.getElementById('salePrice').value || 0);
             formData.append('purchase_price', document.getElementById('purchasePrice').value || 0);
             formData.append('opening_qty', document.getElementById('openingQty').value || 0);
+            formData.append('bag_weight', document.getElementById('bagWeight').value || 0);
             formData.append('location', document.getElementById('location').value);
             formData.append('description', document.getElementById('description').value);
             formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));

@@ -900,6 +900,7 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
                     <label style="position:absolute;top:4px;left:14px;font-size:10px;color:#9ca3af;pointer-events:none;z-index:1;">As Of Date</label>
                     <input type="date" id="as-of-date" class="vy-price-input" style="padding-top:20px;padding-bottom:6px;width:240px;"/>
                 </div>
+                <input type="number" id="bag-weight" placeholder="Enter Bag Weight (KG)" min="0" step="0.01" class="vy-price-input"/>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;">
                 <input type="text" id="min-stock"  placeholder="Min Stock To Maintain" class="vy-price-input"/>
@@ -1584,6 +1585,7 @@ function buildItemFormData(){
     fd.append('min_wholesale_qty', getVal('min-wholesale-qty'));
     fd.append('at_price', getVal('at-price'));
     fd.append('as_of_date', getVal('as-of-date'));
+    fd.append('bag_weight', getVal('bag-weight'));
     fd.append('min_stock', getVal('min-stock'));
     fd.append('location', getVal('location'));
     fd.append('mrp_label', getVal('mrp-label'));
@@ -1620,7 +1622,7 @@ function buildItemFormData(){
 }
 function resetForm(){
     ['item-name','item-code','sale-price','purchase-price','wholesale-price',
-     'opening-qty','at-price','min-stock','location','mrp-label','mrp-value',
+     'opening-qty','at-price','bag-weight','min-stock','location','mrp-label','mrp-value',
      'barcode-value','item-description','serial-label','batch-label','batch-exp-date',
      'batch-mfg-date','model-no','size-value','min-wholesale-qty'].forEach(id=>{
         const el=document.getElementById(id); if(el) el.value='';

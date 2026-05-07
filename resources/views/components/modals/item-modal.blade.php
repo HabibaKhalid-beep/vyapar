@@ -130,6 +130,10 @@
                   <label for="newItemAsOfDate" class="form-label">As Of Date</label>
                   <input type="date" class="form-control" id="newItemAsOfDate" value="{{ date('Y-m-d') }}">
                 </div>
+                <div class="col-md-4">
+                  <label for="newItemBagWeight" class="form-label">Bag Weight</label>
+                  <input type="number" class="form-control" id="newItemBagWeight" min="0" step="0.01" placeholder="Enter Bag Weight (KG)">
+                </div>
                 <div class="col-md-6">
                   <label for="newItemMinStock" class="form-label">Min Stock To Maintain</label>
                   <input type="number" class="form-control" id="newItemMinStock" min="0" step="1" placeholder="Min Stock">

@@ -573,6 +573,12 @@ input:checked + .vy-slider:before { transform: translateX(20px); }
                            value="{{ $item->min_stock ?? '' }}" oninput="markDirty()"/>
                 </div>
                 <div class="vy-price-group">
+                    <span class="vy-price-lbl">Bag Weight</span>
+                    <input type="number" id="bag-weight" class="vy-stock-input"
+                           placeholder="Enter Bag Weight (KG)" min="0" step="0.01"
+                           value="{{ $item->bag_weight ?? '' }}" oninput="markDirty()"/>
+                </div>
+                <div class="vy-price-group">
                     <span class="vy-price-lbl">Location</span>
                     <input type="text" id="location" class="vy-stock-input"
                            placeholder="Location"
@@ -919,6 +925,7 @@ function buildUpdateFormData() {
     fd.append('opening_qty', document.getElementById('opening-qty').value);
     fd.append('at_price', document.getElementById('at-price').value);
     fd.append('as_of_date', document.getElementById('as-of-date').value);
+    fd.append('bag_weight', document.getElementById('bag-weight').value);
     fd.append('min_stock', document.getElementById('min-stock').value);
     fd.append('location', document.getElementById('location').value);
     fd.append('description', document.getElementById('item-description').value);

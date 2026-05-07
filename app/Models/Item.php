@@ -8,7 +8,7 @@ class Item extends Model
 {
     protected $fillable = [
         'type', 'name', 'category_id', 'unit', 'price',
-        'secondary_unit', 'unit_conversion_rate',
+        'secondary_unit', 'unit_conversion_rate', 'bag_weight',
         'sale_price', 'wholesale_price', 'purchase_price',
         'opening_qty', 'item_code', 'location', 'description',
         'image_path', 'image_paths', 'min_stock', 'is_active',
@@ -17,6 +17,7 @@ class Item extends Model
     protected $casts = [
         'image_paths' => 'array',
         'unit_conversion_rate' => 'decimal:4',
+        'bag_weight' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
