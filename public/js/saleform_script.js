@@ -21,7 +21,7 @@ function initializeForm(context) {
     const buildItemOptionsHtml = (items = []) => {
         return items.map(item => {
             const { plainLabel, richLabel, categoryLabel, itemCode, description, discount } = getItemMeta(item);
-            return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${categoryLabel}" data-item-code="${itemCode}" data-description="${description}" data-discount="${discount}" data-bag-weight="${item.bag_weight ?? ''}">${richLabel}</option>`;
+            return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-weight="${item.weight ?? 0}" data-category="${categoryLabel}" data-item-code="${itemCode}" data-description="${description}" data-discount="${discount}" data-bag-weight="${item.bag_weight ?? ''}">${richLabel}</option>`;
         }).join('');
     };
 
@@ -40,6 +40,7 @@ function initializeForm(context) {
                 opening_qty: parseFloat($(this).attr('data-stock') || 0) || 0,
                 location: $(this).attr('data-location') || '',
                 unit: $(this).attr('data-unit') || '',
+                weight: parseFloat($(this).attr('data-weight') || 0) || 0,
                 category_name: $(this).attr('data-category') || '',
                 bag_weight: parseFloat($(this).attr('data-bag-weight') || 0) || 0
             });
@@ -163,12 +164,14 @@ function initializeForm(context) {
             const purchasePrice = parseFloat(item.purchase_price ?? 0) || 0;
             const stock = parseFloat(item.opening_qty ?? 0) || 0;
             const stockClass = stock > 0 ? 'pos' : 'zero';
+            const bagWeight = parseFloat(item.bag_weight ?? 0) || 0;
             return `
                 <div class="item-picker-row item-picker-option" data-id="${item.id}">
                     <div class="item-picker-name">${plainLabel}${itemCode ? `<small>(${itemCode})</small>` : ''}</div>
                     <div>${salePrice.toFixed(2)}</div>
                     <div>${purchasePrice.toFixed(2)}</div>
                     <div class="item-picker-stock ${stockClass}">${stock}</div>
+                    <div>${bagWeight.toFixed(2)}</div>
                 </div>
             `;
         }).join('');
@@ -478,43 +481,71 @@ function initializeForm(context) {
 
     function setupBrokerDropdownSearch() {
         const $brokerSearchInput = $ctx.find('.broker-search-input').first();
-        const $brokerDropdown = $ctx.find('.broker-dropdown-wrapper').first();
-
         if (!$brokerSearchInput.length) {
             return;
         }
+
+        const $brokerDropdownWrapper = $brokerSearchInput.closest('.broker-dropdown-wrapper');
+        const $brokerDropdownMenu = $brokerDropdownWrapper.find('#brokerDropdownMenu').first();
+        if (!$brokerDropdownMenu.length) {
+            return;
+        }
+
+        let $brokerNoResultsItem = $brokerDropdownMenu.find('.broker-no-results').first();
+        if (!$brokerNoResultsItem.length) {
+            $brokerNoResultsItem = $(
+                '<li class="broker-no-results d-none"><span class="dropdown-item text-muted">No brokers found</span></li>'
+            );
+            const $addNewBrokerItem = $brokerDropdownMenu.find('#addNewBrokerBtn').closest('li').first();
+            if ($addNewBrokerItem.length) {
+                $addNewBrokerItem.before($brokerNoResultsItem);
+            } else {
+                $brokerDropdownMenu.append($brokerNoResultsItem);
+            }
+        }
+
+        const filterBrokerOptions = (searchTerm) => {
+            const query = String(searchTerm || '').trim().toLowerCase();
+            let anyVisible = false;
+
+            $brokerDropdownMenu.find('.broker-option').each(function() {
+                const $option = $(this);
+                const brokerName = String($.trim($option.data('name') || $option.find('.broker-option-name').text() || '')).toLowerCase();
+                const brokerCity = String($.trim($option.data('city') || $option.find('.broker-option-city').text() || '')).toLowerCase();
+                const brokerPhone = String($.trim($option.data('phone') || $option.find('.broker-option-phone').text() || '')).toLowerCase();
+                const optionText = [brokerName, brokerCity, brokerPhone].filter(Boolean).join(' ');
+                const isVisible = !query || optionText.includes(query);
+
+                $option.closest('li').toggleClass('d-none', !isVisible);
+                if (isVisible) {
+                    anyVisible = true;
+                }
+            });
+
+            $brokerNoResultsItem.toggleClass('d-none', anyVisible);
+        };
 
         $brokerSearchInput.on('click focus', function(e) {
             e.stopPropagation();
         });
 
         $brokerSearchInput.on('input', function() {
-            const searchTerm = String($(this).val() || '').trim().toLowerCase();
-            $ctx.find('.broker-option').each(function() {
-                const $option = $(this);
-                const brokerName = String($.trim($option.find('span').first().text() || '')).toLowerCase();
-                const brokerCity = String($.trim($option.find('span').last().text() || '')).toLowerCase();
-                const brokerPhone = String($option.data('phone') || '').toLowerCase();
-                const isVisible = !searchTerm || brokerName.includes(searchTerm) || brokerCity.includes(searchTerm) || brokerPhone.includes(searchTerm);
-                $option.closest('li').toggleClass('d-none', !isVisible);
-            });
+            filterBrokerOptions($(this).val());
         });
 
-        if ($brokerDropdown.length) {
-            $brokerDropdown.on('show.bs.dropdown', function() {
+        if ($brokerDropdownWrapper.length) {
+            $brokerDropdownWrapper.on('show.bs.dropdown', function() {
                 setTimeout(() => {
                     $brokerSearchInput.trigger('focus').trigger('select');
+                    filterBrokerOptions($brokerSearchInput.val());
                 }, 100);
             });
-            $brokerDropdown.on('hide.bs.dropdown', function() {
+            $brokerDropdownWrapper.on('hide.bs.dropdown', function() {
                 $brokerSearchInput.val('');
-                $ctx.find('.broker-option').closest('li').removeClass('d-none');
+                $brokerDropdownMenu.find('.broker-option').closest('li').removeClass('d-none');
+                $brokerNoResultsItem.addClass('d-none');
             });
         }
-
-        $ctx.on('click', '.broker-search-input', function(e) {
-            e.stopPropagation();
-        });
 
         $ctx.on('keydown keyup', '.broker-search-input', function(e) {
             e.stopPropagation();
@@ -854,23 +885,16 @@ function initializeForm(context) {
             return;
         }
 
-        const tadad = parseFloat($row.find('.tadad-input').val() || 0) || 0;
         const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
-        const price = parseFloat($row.find('.item-price').val() || 0) || 0;
+        const rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
         const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
-        const safiWazan = parseFloat($row.find('.safi-wazan-input').val() || 0) || 0;
-        const rate = parseFloat($row.find('.rate-input').val() || 0) || 0;
-        const hasMarketValues = safiWazan > 0 && rate > 0;
-        const effectiveQty = tadad > 0 ? tadad : qty;
+        const netW = parseFloat($row.find('.net-w-input').val() || 0) || 0;
 
-        if (tadad > 0) {
-            $row.find('.item-qty').val(tadad);
-        }
+        let amount = (qty * rate) - itemDiscount;
 
-        let amount = (effectiveQty * price) - itemDiscount;
-
-        if (hasMarketValues) {
-            amount = safiWazan * rate;
+        // If Net W is specified and Rate is specified, use Net W * Rate
+        if (netW > 0 && rate > 0) {
+            amount = (netW * rate) - itemDiscount;
         }
 
         $row.find('.item-amount').val(Math.max(amount, 0).toFixed(2));
@@ -1117,20 +1141,15 @@ function initializeForm(context) {
         const partyId = $option.data('id') || '';
         const partyName = $.trim($option.find('span').first().text());
         const phone = $option.data('phone') || '';
-        const city = $option.data('city') || '';
-        const ptcl = $option.data('ptcl') || '';
-        const address = $option.data('address') || '';
         const billing = $option.data('billing') || '';
         const shipping = $option.data('shipping') || '';
 
         $ctx.find('.party-id').val(partyId);
         setPartyDropdownDisplay(partyName || 'Select Party');
         $ctx.find('.phone-input').val(phone);
-        $ctx.find('.city-input').val(city);
-        $ctx.find('.ptcl-input').val(ptcl);
-        $ctx.find('.address-input').val(address);
         $ctx.find('.billing-address').val(billing);
         $ctx.find('.shipping-address').val(shipping);
+        $ctx.find('.party-details').removeClass('d-none');
 
         const dropdownBtn = document.getElementById('partyDropdownBtn');
         if (dropdownBtn) {
@@ -1149,16 +1168,6 @@ function initializeForm(context) {
 
     function addRow() {
         const rowCount = $ctx.find('.item-rows tr').length + 1;
-        const settings = window.getItemColumnSettings ? window.getItemColumnSettings() : {
-            category: $('.check-category').is(':checked'),
-            code: $('.check-item-code').is(':checked'),
-            description: $('.check-description').is(':checked'),
-            discount: $('.check-discount').is(':checked')
-        };
-        const isCatVisible = settings.category;
-        const isCodeVisible = settings.code;
-        const isDescVisible = settings.description;
-        const isDiscVisible = settings.discount;
         const optionsHtml = buildItemOptionsHtml(getFilteredItems());
         const unitOptionsHtml = buildUnitOptionsHtml();
 
@@ -1173,11 +1182,12 @@ function initializeForm(context) {
                         <input type="text" class="item-picker-input" placeholder="Search Item">
                         <div class="item-picker-panel">
                             <div class="item-picker-add"><i class="fa-regular fa-square-plus"></i> Add Item</div>
-                            <div class="item-picker-head">
+                            <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
                                 <span>Item</span>
                                 <span>Sale Price</span>
                                 <span>Purchase Price</span>
                                 <span>Stock</span>
+                                <span>Weight</span>
                             </div>
                             <div class="item-picker-list"></div>
                         </div>
@@ -1187,37 +1197,33 @@ function initializeForm(context) {
                         </select>
                     </div>
                 </td>
-                <td class="col-category ${isCatVisible ? '' : 'd-none'}">
+                <td><input type="text" class="item-tafseel" placeholder="Tafseel"></td>
+                <td><input type="number" class="item-qty tadaat-input" value="1"></td>
+                <td><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
+                <td><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
+                <td><input type="number" class="item-bag_weight" readonly></td>
+                <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
+                <td class="custom-size-td">
+                    <select class="item-unit">${unitOptionsHtml}</select>
+                </td>
+                <td><input type="number" class="item-price-unit" value="0" min="0" step="0.01"></td>
+                <td class="col-category d-none">
                     <select class="item-category">${buildCategoryOptionsHtml()}</select>
                 </td>
-                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
-                <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description" readonly></td>
-                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}">
+                <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
+                <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description" readonly></td>
+                <td class="col-discount d-none">
                     <div class="item-discount-fields">
                         <input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%">
                         <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
                     </div>
                 </td>
-                <td><input type="number" class="item-qty" value="1"></td>
-                <td>
-                    <select class="item-unit">${unitOptionsHtml}</select>
-                </td>
-                <td><input type="number" class="item-price" value="0"></td>
-                <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
-                <td><input type="number" class="item-inline-input tadad-input" value="0" min="0" step="1" placeholder="Tadad"></td>
-                <td><input type="number" class="item-inline-input total-wazan-input" value="0" min="0" step="0.01" placeholder="Total Wazan"></td>
-                <td><input type="number" class="item-inline-input safi-wazan-input" value="0" min="0" step="0.01" placeholder="Safi Wazan"></td>
-                <td><input type="number" class="item-inline-input rate-input" value="0" min="0" step="0.01" placeholder="Rate"></td>
-                <td><input type="number" class="item-inline-input deo-input" value="0" min="0" step="0.01" placeholder="Deo"></td>
-                <td><input type="number" class="item-inline-input bardana-input" value="0" min="0" step="0.01" placeholder="Bardana"></td>
-                <td><input type="number" class="item-inline-input labour-input" value="0" min="0" step="0.01" placeholder="Mazdori"></td>
-                <td><input type="number" class="item-inline-input rehra-mazdori-input" value="0" min="0" step="0.01" placeholder="Rehra Mazdori"></td>
-                <td><input type="number" class="item-inline-input post-expense-input" value="0" min="0" step="0.01" placeholder="Dak Karaya"></td>
-                <td><input type="number" class="item-inline-input extra-expense-input" value="0" min="0" step="0.01" placeholder="Local"></td>
+                <td class="d-none"><input type="number" class="item-amount" value="0"></td>
                 <td class="add-col"></td>
             </tr>
         `;
         $ctx.find('.item-rows').append(newRow);
+        calculateTotals();
     }
 
     function applyColumnVisibility() {
@@ -1369,6 +1375,7 @@ function initializeForm(context) {
         const $row = $(this).closest('tr');
         const $selected = $(this).find('option:selected');
         const price = parseFloat($selected.data('price')) || parseFloat($selected.data('sale-price')) || 0;
+        const weight = parseFloat($selected.data('weight')) || 0;
         const unit = $selected.data('unit') || '';
         const category = $selected.data('category') || '';
         const itemCode = $selected.data('item-code') || '';
@@ -1383,7 +1390,14 @@ function initializeForm(context) {
         $qty.val(1);
         $row.attr('data-bag-weight', bagWeight.toFixed(2));
 
-        $row.find('.item-price').val(price.toFixed(2));
+        // Populate the new fields
+        $row.find('.item-bag_weight').val(bagWeight.toFixed(2));
+        $row.find('.item-price-unit').val(price.toFixed(2));
+        $row.find('.item-tafseel').val('');
+        $row.find('.gross-w-input').val('0');
+        $row.find('.net-w-input').val('0');
+        $row.find('.item-rate').val('0');
+
         syncRowCategoryOptions($row, category);
         $row.find('.item-code').val(itemCode);
         $row.find('.item-desc').val(description);
@@ -1402,8 +1416,6 @@ function initializeForm(context) {
 
         syncItemPickerInput($row);
         $row.find('.item-picker-panel').removeClass('open');
-        $row.find('.item-amount').val(price.toFixed(2));
-        syncRowWazanFromBagWeight($row, true);
         updateMarketRowAmount($row);
         calculateTotals();
     });
@@ -1824,7 +1836,7 @@ function initializeForm(context) {
     });
 
     // Line item calculation
-    $ctx.on('keyup change', '.item-qty, .item-price, .item-discount, .item-discount-pct', function() {
+    $ctx.on('keyup change', '.item-qty, .item-rate, .item-price-unit, .gross-w-input, .net-w-input, .item-discount, .item-discount-pct', function() {
         const $row = $(this).closest('tr');
         const isPercentField = $(this).hasClass('item-discount-pct');
         const isAmountField = $(this).hasClass('item-discount');
@@ -1839,22 +1851,6 @@ function initializeForm(context) {
             updateRowDiscountPercentFromAmount($row);
         }
 
-        const qty = parseFloat($row.find('.item-qty').val()) || 0;
-        const price = parseFloat($row.find('.item-price').val()) || 0;
-        const itemDiscount = parseFloat($row.find('.item-discount').val()) || 0;
-        syncRowWazanFromBagWeight($row, true);
-
-        const amount = (qty * price) - itemDiscount;
-        $row.find('.item-amount').val(amount.toFixed(2));
-        calculateTotals();
-    });
-
-    $ctx.on('input change', '.tadad-input, .total-wazan-input, .safi-wazan-input, .rate-input, .deo-input, .bardana-input, .labour-input, .rehra-mazdori-input, .post-expense-input, .extra-expense-input, .parachi-input, .rate-input, .deo-input, .bardana-input, .labour-input, .rehra-mazdori-input, .post-expense-input, .extra-expense-input', function() {
-        const $row = $(this).closest('tr');
-        if ($(this).hasClass('total-wazan-input')) {
-            const totalWazan = parseFloat($(this).val() || 0) || 0;
-            $row.find('.safi-wazan-input').val(totalWazan.toFixed(2));
-        }
         updateMarketRowAmount($row);
         calculateTotals();
     });
@@ -2060,6 +2056,13 @@ function initializeForm(context) {
 
     function submitSale(btn, options = {}) {
         const saleData = gatherSaleData();
+
+        // Include custom header names in the submission
+        const savedHeaders = JSON.parse(localStorage.getItem('itemTableHeaders') || '{}');
+        if (Object.keys(savedHeaders).length > 0) {
+            saleData.custom_headers = savedHeaders;
+        }
+
         const redirectToShare = Boolean(options.redirectToShare);
         const idleText = options.idleText || 'Save';
         const loadingText = options.loadingText || 'Saving...';
@@ -2304,25 +2307,18 @@ function initializeForm(context) {
 
         $ctx.find('.item-row').each(function() {
             const $row = $(this);
-            const tadad = parseFloat($row.find('.tadad-input').val() || 0) || 0;
-            const safiWazan = parseFloat($row.find('.safi-wazan-input').val() || 0) || 0;
-            const rate = parseFloat($ctx.find('.rate-input').val() || 0) || 0;
             const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
-            const price = parseFloat($row.find('.item-price').val() || 0) || 0;
+            const rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
             const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
-            const effectiveQty = tadad > 0 ? tadad : qty;
+            const netW = parseFloat($row.find('.net-w-input').val() || 0) || 0;
 
-            let rowAmount = (effectiveQty * price) - itemDiscount;
+            totalQty += qty;
 
-            if (tadad > 0) {
-                $row.find('.item-qty').val(tadad);
-                totalQty += tadad;
-            } else {
-                totalQty += qty;
-            }
+            let rowAmount = (qty * rate) - itemDiscount;
 
-            if (safiWazan > 0 && rate > 0) {
-                rowAmount = safiWazan * rate;
+            // If Net W is specified, use it for amount calculation
+            if (netW > 0 && rate > 0) {
+                rowAmount = (netW * rate) - itemDiscount;
             }
 
             $row.find('.item-amount').val(rowAmount.toFixed(2));
@@ -2451,8 +2447,8 @@ function initializeForm(context) {
         e.preventDefault();
         const $option = $(this);
         const brokerId = $option.data('id');
-        const brokerName = String($option.data('name') || $option.find('span').first().text() || '').trim();
-        const brokerPhone = String($option.data('phone') || '').trim();
+        const brokerName = String($option.data('name') || $option.find('.broker-option-name').text() || '').trim();
+        const brokerPhone = String($option.data('phone') || $option.find('.broker-option-phone').text() || '').trim();
 
         $ctx.find('.broker-id').val(brokerId);
         $ctx.find('#brokerDropdownBtn').val(brokerName || '').attr('placeholder', brokerName || 'Search or select broker...');
@@ -2460,16 +2456,11 @@ function initializeForm(context) {
         $ctx.find('.broker-selected-phone').text(brokerPhone || '').closest('.broker-selected-info').toggleClass('visible', !!brokerPhone);
         $ctx.find('.broker-phone-input').val(brokerPhone);
 
-        const dropdownToggle = document.getElementById('brokerDropdownBtn');
-        const dropdown = bootstrap.Dropdown.getInstance(dropdownToggle) || bootstrap.Dropdown.getOrCreateInstance(dropdownToggle);
-        dropdown.hide();
-    });
-
-    $ctx.on('click', '#addNewBrokerBtn', function(e) {
-        e.preventDefault();
-        resetBrokerModal();
-        const brokerModalEl = document.getElementById('brokerModal');
-        bootstrap.Modal.getOrCreateInstance(brokerModalEl).show();
+        const dropdownToggle = $option.closest('.broker-dropdown-wrapper').find('.broker-search-input').get(0);
+        if (dropdownToggle) {
+            const dropdown = bootstrap.Dropdown.getInstance(dropdownToggle) || bootstrap.Dropdown.getOrCreateInstance(dropdownToggle);
+            dropdown.hide();
+        }
     });
 
     $ctx.on('submit', '#brokerForm', function(e) {

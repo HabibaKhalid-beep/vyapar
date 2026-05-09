@@ -120,6 +120,75 @@ ul#partyDropdownMenu {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+.floating-input-wrapper {
+    position: relative;
+}
+
+.floating-input-wrapper .meta-control {
+    width: 70%;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    padding: 18px 14px 10px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: #fff;
+}
+
+.floating-input-wrapper .meta-control:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.floating-input-wrapper textarea.meta-control {
+    min-height: 78px;
+    padding-top: 24px;
+}
+
+.floating-input-wrapper label {
+    position: absolute;
+    top: 16px;
+    left: 14px;
+    padding: 0 8px;
+    background: #fff;
+    font-size: 0.9rem;
+    color: #6b7280;
+    transition: top 0.2s ease, transform 0.2s ease, font-size 0.2s ease, color 0.2s ease;
+    pointer-events: none;
+}
+
+.floating-input-wrapper .meta-control:focus + label,
+.floating-input-wrapper .meta-control:not(:placeholder-shown) + label {
+    top: 0;
+    transform: translateY(-50%);
+    font-size: 0.78rem;
+    color: #2563eb;
+}
+
+.party-details .meta-control,
+.billing-name-field .meta-control {
+    min-height: 42px;
+
+}
+
+.party-meta-field.address-field {
+    width: 100%;
+    max-width: 100%;
+}
+
+.party-meta-field.address-field textarea.meta-control {
+    min-height: 120px;
+    height: 120px;
+    padding-top: 26px;
+    padding-bottom: 10px;
+}
+
+.party-meta-field.address-field .floating-input-wrapper label {
+    left: 16px;
+    top: 8px;
+    padding: 0 6px;
+}
+
+
 .item-picker-panel {
     position: absolute;
     top: calc(100% + 4px);
@@ -272,37 +341,84 @@ ul#partyDropdownMenu {
 
 .table-container {
     position: relative;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: visible;
-    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .item-table {
-    width: max-content;
-    min-width: 100%;
-    table-layout: auto;
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.item-table th {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    padding: 8px 4px !important;
+}
+
+.item-table th:hover {
+    background-color: #f0f4f8;
+}
+
+.item-table th.editable-header::after {
+    content: '✎';
+    margin-left: 4px;
+    opacity: 0.5;
+    font-size: 0.85em;
+}
+
+.item-table th.editable-header:hover::after {
+    opacity: 1;
 }
 
 .item-table th,
 .item-table td {
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    padding: 6px 4px;
 }
 
 .item-table td {
     overflow: visible;
 }
 
-.item-table td:first-child + td {
-    min-width: 320px;
+.item-table td:nth-child(1) {
+    width: 40px;
+    text-align: center;
+}
+
+.item-table td:nth-child(2) {
+    width: 180px;
+    min-width: 180px;
+}
+
+.item-table td:nth-child(3),
+.item-table td:nth-child(4),
+.item-table td:nth-child(5),
+.item-table td:nth-child(6),
+.item-table td:nth-child(7),
+.item-table td:nth-child(8),
+.item-table td:nth-child(9),
+.item-table td:nth-child(10) {
+    width: 90px;
 }
 
 .item-table td input,
 .item-table td select {
-    min-width: 84px;
+    width: 100%;
+    min-width: auto;
+    padding: 4px 6px;
+    font-size: 0.9em;
 }
 
 .item-picker-input {
-    min-width: 240px;
+    width: 100%;
+    min-width: auto;
 }
 
 .modal-stack-top {
@@ -1107,31 +1223,33 @@ ul#partyDropdownMenu {
                                 </div>
                                 </div>
                                 <div class="party-meta-grid">
-                                    <div class="party-meta-field">
-                                        <label>Phone No.</label>
-                                        <input type="text" class="meta-control phone-input" readonly>
+                                    <div class="party-meta-field billing-name-field">
+                                        <div class="floating-input-wrapper">
+                                            <input type="text" id="billingNameInput" name="billing_name" class="meta-control billing-name-input" placeholder=" ">
+                                            <label>Billing Name (Optional)</label>
+                                        </div>
                                     </div>
+                                </div>
+                                <div class="party-meta-grid party-details d-none">
                                     <div class="party-meta-field">
-                                        <label>City</label>
-                                        <input type="text" class="meta-control city-input" readonly>
+                                        <div class="floating-input-wrapper">
+                                            <input type="text" name="phone" class="meta-control phone-input" placeholder=" ">
+                                            <label>Phone No.</label>
+                                        </div>
                                     </div>
-                                    <div class="party-meta-field">
-                                        <label>PTCL No.</label>
-                                        <input type="text" class="meta-control ptcl-input" readonly>
+                                    <br>
+                                    <div class="party-meta-field address-field">
+                                        <div class="floating-input-wrapper">
+                                            <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "></textarea>
+                                            <label>Billing Address</label>
+                                        </div>
                                     </div>
                                     <div class="party-meta-field address-field">
-                                        <label>Address</label>
-                                        <textarea class="meta-control address-input" rows="2" readonly></textarea>
+                                        <div class="floating-input-wrapper">
+                                            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
+                                            <label>Shipping Address</label>
+                                        </div>
                                     </div>
-                                    <div class="party-meta-field address-field">
-                                        <label>Billing Address</label>
-                                        <textarea class="meta-control billing-address" rows="2" readonly></textarea>
-                                    </div>
-                                    <div class="party-meta-field address-field">
-                                        <label>Shipping Address</label>
-                                        <textarea class="meta-control shipping-address" rows="2" readonly></textarea>
-                                    </div>
-
                                 </div>
                             </div>
 
@@ -1178,15 +1296,18 @@ ul#partyDropdownMenu {
                                     <tr>
                                         <th class="row-num">#</th>
                                         <th style="width: 30%;">ITEM</th>
+                                        <th>TAFSEEL</th>
+                                        <th>TADAAT</th>
+                                        <th>GROSS W</th>
+                                        <th>NET W</th>
+                                        <th>WEIGHT</th>
+                                        <th>RATE</th>
+                                        <th class="custom-size-th">UNIT</th>
+                                        <th>PRICE UNIT</th>
                                         <th class="col-category d-none">CATEGORY</th>
                                         <th class="col-item-code d-none">ITEM CODE</th>
                                         <th class="col-description d-none">DESCRIPTION</th>
                                         <th class="col-discount d-none">DISCOUNT</th>
-                                        <th>QTY</th>
-                                        <th class="custom-size-th">UNIT</th>
-                                        <th>PRICE/UNIT</th>
-                                        <th>TOTAL WAZAN</th>
-                                        <th>SAFI WAZAN</th>
                                         <th class="add-col" style="position: relative;">
                                             <button type="button" class="btn-add-circle table-settings-btn" data-bs-toggle="modal" data-bs-target="#itemColumnModal">
                                                 <i class="fa-solid fa-plus"></i>
@@ -1206,11 +1327,12 @@ ul#partyDropdownMenu {
                                                 <input type="text" class="item-picker-input" placeholder="Search Item" style="position: relative; z-index: 10;">
                                                 <div class="item-picker-panel">
                                                     <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-square-plus"></i> Add Item</div>
-                                                    <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
+                                                    <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
                                                         <span>Item</span>
                                                         <span>Sale Price</span>
                                                         <span>Purchase Price</span>
                                                         <span>Stock</span>
+                                                        <span>Weight</span>
                                                     </div>
                                                     <div class="item-picker-list" style="max-height: 280px; overflow-y: auto;">
                                                         @forelse($saleItemsSource as $item)
@@ -1242,6 +1364,7 @@ ul#partyDropdownMenu {
                                                             data-label="{{ $item->name }}"
                                                             data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}"
                                                             data-unit="{{ $item->unit }}"
+                                                            data-weight="{{ $item->bag_weight ?? 0 }}"
                                                             data-category="{{ $item->category->name ?? $item->category_name ?? $item->category_id ?? '' }}"
                                                             data-item-code="{{ $item->item_code ?? '' }}"
                                                             data-description="{{ $item->description ?? $item->item_description ?? '' }}"
@@ -1253,6 +1376,32 @@ ul#partyDropdownMenu {
                                                 </select>
                                             </div>
                                         </td>
+                                        <td><input type="text" class="item-tafseel" placeholder="Tafseel"></td>
+                                        <td><input type="number" class="item-qty tadaat-input" value="1"></td>
+                                        <td><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="item-bag_weight" readonly></td>
+                                        <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
+                                        <td class="custom-size-td">
+                                            <select class="item-unit">
+                                                <option value="">Select Unit</option>
+                                                <!-- Quantity -->
+                                                <option value="PCS">PCS (Pieces)</option>
+                                                <option value="BOX">BOX</option>
+                                                <option value="PACK">PACK</option>
+                                                <option value="SET">SET</option>
+                                                <!-- Weight -->
+                                                <option value="KG">KG (Kilogram)</option>
+                                                <option value="G">Gram</option>
+                                                <!-- Length -->
+                                                <option value="M">Meter</option>
+                                                <option value="FT">Feet</option>
+                                                <!-- Volume -->
+                                                <option value="L">Liter</option>
+                                                <option value="ML">Milliliter</option>
+                                            </select>
+                                        </td>
+                                        <td><input type="number" class="item-price-unit" value="0" min="0" step="0.01"></td>
                                         <td class="col-category d-none">
                                             <select class="item-category">
                                                 <option value="">Select Category</option>
@@ -1261,45 +1410,15 @@ ul#partyDropdownMenu {
                                                 @endforeach
                                             </select>
                                         </td>
-                                        <td class="col-item-code d-none"><input type="text" class="item-code"
-                                                placeholder="Item Code" readonly></td>
-                                        <td class="col-description d-none"><input type="text" class="item-desc"
-                                                placeholder="Description" readonly></td>
+                                        <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
+                                        <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description" readonly></td>
                                         <td class="col-discount d-none">
                                             <div class="item-discount-fields">
                                                 <input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%">
                                                 <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
                                             </div>
                                         </td>
-                                        <td><input type="number" class="item-qty" value="1"></td>
-                                      <td class="custom-size-td">
-    <select class="item-unit">
-        <option value="">Select Unit</option>
-
-        <!-- Quantity -->
-        <option value="PCS">PCS (Pieces)</option>
-        <option value="BOX">BOX</option>
-        <option value="PACK">PACK</option>
-        <option value="SET">SET</option>
-
-        <!-- Weight -->
-        <option value="KG">KG (Kilogram)</option>
-        <option value="G">Gram</option>
-
-        <!-- Length -->
-        <option value="M">Meter</option>
-        <option value="FT">Feet</option>
-
-        <!-- Volume -->
-        <option value="L">Liter</option>
-        <option value="ML">Milliliter</option>
-    </select>
-                                        </td>
-                                        <td><input type="number" class="item-price" value="0"></td>
-                                        <td class="col-amount"><input type="text" class="item-amount" value="0"
-                                                readonly></td>
-                                        <td><input type="number" class="item-inline-input total-wazan-input" value="0" min="0" step="0.01" placeholder="Total Wazan"></td>
-                                        <td><input type="number" class="item-inline-input safi-wazan-input" value="0" min="0" step="0.01" placeholder="Safi Wazan"></td>
+                                        <td class="d-none"><input type="number" class="item-amount" value="0"></td>
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
@@ -1375,17 +1494,22 @@ ul#partyDropdownMenu {
                                     </div>
                                 </template>
 
-                                <div class="description-action-group mb-2">
+<div class="d-flex flex-column align-items-start w-100">
+
+                                <div class="description-action-group mb-2 w-100">
                                     <button type="button" class="btn-action-light action-btn add-description">
                                         <i class="fa-solid fa-align-left"></i>
                                         ADD DESCRIPTION
                                     </button>
                                     <div class="description-pane d-none w-50" style="margin-top: -2px;">
-                                        <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description"></textarea>
+                                        <div class="floating-input-wrapper">
+                                            <textarea class="form-control description-input meta-control" rows="3" placeholder=" "></textarea>
+                                            <label>Description</label>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="action-buttons d-flex flex-wrap gap-2 mb-2">
+                                <div class="action-buttons d-flex flex-wrap gap-2 mb-2 w-100">
                                     <button type="button" class="btn-action-light action-btn add-image">
                                         <i class="fa-solid fa-camera"></i>
                                         ADD IMAGE
@@ -1398,10 +1522,9 @@ ul#partyDropdownMenu {
 
                                 </div>
 
-                                <div class="image-upload-section mt-2">
+                                <div class="image-upload-section mt-2 w-100">
                                     <div class="image-placeholder text-center p-3 border border-dashed rounded" style="cursor:pointer;">
-                                        <div class="text-muted">Click to select image(s)</div>
-                                        <div class="small text-muted">(PNG/JPG, up to 5MB each)</div>
+                                        <div class="text-muted">select image</div>
                                     </div>
                                     <div class="image-files-list d-flex flex-wrap gap-2 mt-2"></div>
                                     <div class="document-files-list list-group mt-2"></div>
@@ -1410,6 +1533,8 @@ ul#partyDropdownMenu {
                                 <input type="file" class="d-none image-input" accept="image/*" multiple />
                                 <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" multiple />
                             </div>
+
+                        </div>
 
                             <!-- Right Column -->
                             <div class="bottom-right">
@@ -2054,7 +2179,74 @@ ul#partyDropdownMenu {
                     this.textContent = wholesaleSection.classList.contains('d-none') ? '+ Add Wholesale Price' : '- Remove Wholesale Price';
                 });
             }
+
+            // Initialize editable table headers
+            initializeEditableHeaders();
         });
+
+        function initializeEditableHeaders() {
+            const tableHeaders = document.querySelectorAll('.item-table th');
+            const storageKey = 'itemTableHeaders';
+            const defaultHeaders = {};
+
+            // Build default headers and add editable class
+            tableHeaders.forEach((th, index) => {
+                const text = th.textContent.trim();
+                if (text && text !== '+' && !th.classList.contains('add-col')) {
+                    th.classList.add('editable-header');
+                    defaultHeaders[index] = text;
+
+                    th.addEventListener('click', function(e) {
+                        if (e.target.tagName === 'BUTTON') return;
+                        editHeader(this, index);
+                    });
+                }
+            });
+
+            // Load saved headers from localStorage
+            loadSavedHeaders();
+        }
+
+        function editHeader(headerCell, index) {
+            const currentText = headerCell.textContent.trim();
+            const newText = prompt('Edit column name:', currentText);
+
+            if (newText !== null && newText.trim() !== '') {
+                const trimmedText = newText.trim();
+                headerCell.textContent = trimmedText;
+
+                // Save to localStorage
+                saveHeaderToStorage(index, trimmedText);
+            }
+        }
+
+        function saveHeaderToStorage(index, text) {
+            const storageKey = 'itemTableHeaders';
+            let savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            savedHeaders[index] = text;
+            localStorage.setItem(storageKey, JSON.stringify(savedHeaders));
+        }
+
+        function loadSavedHeaders() {
+            const storageKey = 'itemTableHeaders';
+            const savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
+            const tableHeaders = document.querySelectorAll('.item-table th.editable-header');
+            tableHeaders.forEach((th, index) => {
+                // Find the actual index considering hidden headers
+                let actualIndex = 0;
+                let realIndex = 0;
+                th.parentElement.querySelectorAll('th').forEach((h, i) => {
+                    if (h === th) {
+                        actualIndex = i;
+                    }
+                });
+
+                if (savedHeaders[actualIndex]) {
+                    th.textContent = savedHeaders[actualIndex];
+                }
+            });
+        }
     </script>
      <div class="container">
         @yield('content')
@@ -3031,6 +3223,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const balanceDisplay = document.getElementById("partyBalanceDisplay");
     const brokerDropdownBtn = document.getElementById("brokerDropdownBtn");
     const brokerDropdownMenu = document.getElementById("brokerDropdownMenu");
+    const brokerSearchInput = document.querySelector('.broker-search-input');
     const brokerIdInput = document.querySelector(".broker-id");
     const brokerSelectedName = document.querySelector('.broker-selected-name');
     const brokerSelectedPhone = document.querySelector('.broker-selected-phone');
@@ -3074,6 +3267,68 @@ document.addEventListener("DOMContentLoaded", function() {
             if (nameInput) {
                 nameInput.value = searchTerm;
                 nameInput.focus();
+            }
+        });
+    }
+
+    if (brokerSearchInput && brokerDropdownMenu) {
+        let brokerNoResultsItem = brokerDropdownMenu.querySelector('.broker-no-results');
+        if (!brokerNoResultsItem) {
+            brokerNoResultsItem = document.createElement('li');
+            brokerNoResultsItem.className = 'broker-no-results d-none';
+            brokerNoResultsItem.innerHTML = '<span class="dropdown-item text-muted">No brokers found</span>';
+            const addNewBrokerItem = brokerDropdownMenu.querySelector('#addNewBrokerBtn')?.closest('li');
+            if (addNewBrokerItem) {
+                addNewBrokerItem.insertAdjacentElement('beforebegin', brokerNoResultsItem);
+            } else {
+                brokerDropdownMenu.appendChild(brokerNoResultsItem);
+            }
+        }
+
+        const filterBrokerOptions = (value) => {
+            const searchText = String(value || '').trim().toLowerCase();
+            const options = Array.from(brokerDropdownMenu.querySelectorAll('li > .broker-option'));
+            let anyVisible = false;
+
+            options.forEach(option => {
+                const brokerName = String(option.dataset.name || option.querySelector('.broker-option-name')?.textContent || '').trim().toLowerCase();
+                const brokerCity = String(option.dataset.city || option.querySelector('.broker-option-city')?.textContent || '').trim().toLowerCase();
+                const brokerPhone = String(option.dataset.phone || option.querySelector('.broker-option-phone')?.textContent || '').trim().toLowerCase();
+                const optionText = [brokerName, brokerCity, brokerPhone].filter(Boolean).join(' ');
+                const shouldShow = !searchText || optionText.includes(searchText);
+                const listItem = option.closest('li');
+                if (listItem) {
+                    listItem.style.display = shouldShow ? '' : 'none';
+                }
+                if (shouldShow) {
+                    anyVisible = true;
+                }
+            });
+
+            brokerNoResultsItem.classList.toggle('d-none', anyVisible);
+        };
+
+        brokerSearchInput.addEventListener('input', function () {
+            filterBrokerOptions(this.value);
+        });
+
+        brokerSearchInput.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') {
+                return;
+            }
+            const searchTerm = String(this.value || '').trim().toLowerCase();
+            if (!searchTerm) {
+                return;
+            }
+            const matchingOption = Array.from(brokerDropdownMenu.querySelectorAll('li > .broker-option')).find(option => {
+                const brokerName = String(option.dataset.name || option.querySelector('.broker-option-name')?.textContent || '').trim().toLowerCase();
+                const brokerCity = String(option.dataset.city || option.querySelector('.broker-option-city')?.textContent || '').trim().toLowerCase();
+                const brokerPhone = String(option.dataset.phone || option.querySelector('.broker-option-phone')?.textContent || '').trim().toLowerCase();
+                const optionText = [brokerName, brokerCity, brokerPhone].filter(Boolean).join(' ');
+                return optionText.includes(searchTerm);
+            });
+            if (matchingOption) {
+                matchingOption.click();
             }
         });
     }
