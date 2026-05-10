@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (! Schema::hasColumn('sales', 'deal_days')) {
             Schema::table('sales', function (Blueprint $table) {
-                $table->integer('deal_days')->nullable()->after('due_date');
+                $table->integer('deal_days')->nullable()->after('balance');
             });
         }
     }

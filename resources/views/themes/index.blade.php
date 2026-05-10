@@ -150,20 +150,28 @@
             </div>
             <div id="regularThemeSections">
                 <div class="theme-dropdown" data-dropdown><div class="group-header" data-toggle><span>Classic Themes</span><span class="dropdown-arrow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 10.5L8 5.5l5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></div><ul class="theme-list">
-                    @foreach ($classicThemes as $theme)<li><button type="button" class="theme-list-button {{ $theme['id'] === 1 ? 'active' : '' }}" data-kind="regular" data-theme-id="{{ $theme['id'] }}">{{ $theme['name'] }}</button></li>@endforeach
+                    @foreach ($classicThemes as $theme)
+<li><button type="button" class="theme-list-button {{ $theme['id'] === 1 ? 'active' : '' }}" data-kind="regular" data-theme-id="{{ $theme['id'] }}">{{ $theme['name'] }}</button></li>
+@endforeach
                 </ul></div>
                 <div class="theme-dropdown" data-dropdown><div class="group-header" data-toggle><span>Vintage Themes</span><span class="dropdown-arrow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 10.5L8 5.5l5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></div><ul class="theme-list">
-                    @foreach ($vintageThemes as $theme)<li><button type="button" class="theme-list-button" data-kind="regular" data-theme-id="{{ $theme['id'] }}">{{ $theme['name'] }}</button></li>@endforeach
+                    @foreach ($vintageThemes as $theme)
+<li><button type="button" class="theme-list-button" data-kind="regular" data-theme-id="{{ $theme['id'] }}">{{ $theme['name'] }}</button></li>
+@endforeach
                 </ul></div>
             </div>
             <div id="thermalThemeSection" class="hidden">
                 <div class="theme-dropdown" data-dropdown><div class="group-header" data-toggle><span>Thermal Themes</span><span class="dropdown-arrow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 10.5L8 5.5l5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></div><ul class="theme-list">
-                    @foreach ($thermalThemes as $theme)<li><button type="button" class="theme-list-button {{ $theme['id'] === 1 ? 'active' : '' }}" data-kind="thermal" data-theme-id="{{ $theme['id'] }}">{{ $theme['name'] }}</button></li>@endforeach
+                    @foreach ($thermalThemes as $theme)
+<li><button type="button" class="theme-list-button {{ $theme['id'] === 1 ? 'active' : '' }}" data-kind="thermal" data-theme-id="{{ $theme['id'] }}">{{ $theme['name'] }}</button></li>
+@endforeach
                 </ul></div>
             </div>
             <div class="theme-color-panel">
                 <div class="theme-color-panel__title">Change Colors</div>
-                <div class="theme-color-grid">@foreach ($themePalette as $index => $color)<button type="button" class="theme-color-dot {{ $index === 0 ? 'active' : '' }}" data-accent="{{ $color }}" style="--dot:{{ $color }}"></button>@endforeach</div>
+                <div class="theme-color-grid">@foreach ($themePalette as $index => $color)
+<button type="button" class="theme-color-dot {{ $index === 0 ? 'active' : '' }}" data-accent="{{ $color }}" style="--dot:{{ $color }}"></button>
+@endforeach</div>
                 <label class="picker-row"><span>Custom Color</span><input type="color" id="customAccentPicker" value="#1f4e79"></label>
                 <label class="picker-row secondary"><span>Double Divine 2nd Color</span><input type="color" id="doubleDivineSecondPicker" value="#ff981f"></label>
             </div>
@@ -403,3 +411,4 @@
     </script>
 </body>
 </html>
+

@@ -20,6 +20,130 @@ function initializeForm(context) {
     $ctx.find('.invoice-date').val(todayValue);
     $ctx.find('.due-date').val(todayValue);
 
+    // ─── Party Autocomplete Setup ───────────────────────────────────────────────
+    const $partyInput = $ctx.find('.party-search-input');
+    const $partyHidden = $ctx.find('.party-id');
+    const $partyBalance = $ctx.find('#partyBalanceDisplay');
+
+    // Build autocomplete dropdown container
+    const $partyAutoList = $('<ul class="party-autocomplete-list"></ul>').css({
+        position: 'absolute',
+        zIndex: 9999,
+        background: '#fff',
+        border: '1px solid #cbd5e1',
+        borderRadius: '6px',
+        width: '100%',
+        maxHeight: '260px',
+        overflowY: 'auto',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+        listStyle: 'none',
+        padding: '4px 0',
+        margin: 0,
+        display: 'none',
+        top: '100%',
+        left: 0,
+    });
+
+    $partyInput.closest('.party-dropdown-wrapper').css('position', 'relative').append($partyAutoList);
+
+    function renderPartyList(query) {
+        const parties = window.parties || [];
+        const q = (query || '').toLowerCase().trim();
+        const filtered = q
+            ? parties.filter(p =>
+                (p.name || '').toLowerCase().includes(q) ||
+                (p.phone || '').toLowerCase().includes(q)
+              )
+            : parties;
+
+        $partyAutoList.empty();
+
+        if (!filtered.length) {
+            $partyAutoList.append('<li style="padding:8px 14px;color:#94a3b8;font-size:13px;">No party found</li>');
+        } else {
+            filtered.forEach(p => {
+                const balance = Number(p.opening_balance || 0).toFixed(2);
+                const $li = $(`
+                    <li style="padding:7px 14px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;">
+                        <span style="font-weight:500;">${p.name || ''}</span>
+                        <span style="color:#64748b;font-size:12px;">${p.phone || ''} &nbsp; Rs ${balance}</span>
+                    </li>
+                `);
+                $li.on('mousedown', function (e) {
+                    e.preventDefault();
+                    selectParty(p);
+                });
+                $li.on('mouseenter', function () { $(this).css('background', '#e2f0ff'); });
+                $li.on('mouseleave', function () { $(this).css('background', ''); });
+                $partyAutoList.append($li);
+            });
+        }
+
+        // Add New Party option
+        $partyAutoList.append(`
+            <li class="add-new-party-option" style="padding:7px 14px;cursor:pointer;font-size:13px;color:#2563eb;font-weight:500;border-top:1px solid #e2e8f0;">
+                + Add New Party
+            </li>
+        `);
+        $partyAutoList.find('.add-new-party-option').on('mousedown', function (e) {
+            e.preventDefault();
+            $('#addNewPartyBtn').trigger('click');
+            $partyAutoList.hide();
+        });
+
+        $partyAutoList.show();
+    }
+
+    function selectParty(party) {
+        $partyInput.val(party.name || '');
+        $partyHidden.val(party.id || '');
+        $ctx.find('.phone-input').val(party.phone || '');
+        $ctx.find('.billing-address').val(party.billing_address || party.billing || '');
+        setPartyBalance(party.opening_balance || 0, party.transaction_type || party.type || '');
+        $partyAutoList.hide();
+    }
+
+    $partyInput.on('focus', function () {
+        renderPartyList($(this).val());
+    });
+
+    $partyInput.on('input', function () {
+        renderPartyList($(this).val());
+    });
+
+    $partyInput.on('blur', function () {
+        setTimeout(() => $partyAutoList.hide(), 150);
+    });
+
+    // Keyboard navigation
+    $partyInput.on('keydown', function (e) {
+        const $items = $partyAutoList.find('li:not(.add-new-party-option)');
+        const $active = $partyAutoList.find('li.ac-active');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!$active.length) {
+                $items.first().addClass('ac-active').css('background', '#e2f0ff');
+            } else {
+                const $next = $active.next('li');
+                $active.removeClass('ac-active').css('background', '');
+                if ($next.length) $next.addClass('ac-active').css('background', '#e2f0ff');
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const $prev = $active.prev('li');
+            $active.removeClass('ac-active').css('background', '');
+            if ($prev.length) $prev.addClass('ac-active').css('background', '#e2f0ff');
+        } else if (e.key === 'Enter') {
+            if ($active.length) {
+                e.preventDefault();
+                $active.trigger('mousedown');
+            }
+        } else if (e.key === 'Escape') {
+            $partyAutoList.hide();
+        }
+    });
+    // ─── End Party Autocomplete ─────────────────────────────────────────────────
+
     function showToast(message, isError = false) {
         const toastEl = document.getElementById('sale-toast');
         if (!toastEl) return alert(message);
@@ -33,41 +157,16 @@ function initializeForm(context) {
         const amount = Number(opening || 0).toFixed(2);
         const icon = type === 'pay' ? '<i class="fa-solid fa-arrow-up me-1"></i>' : type === 'receive' ? '<i class="fa-solid fa-arrow-down me-1"></i>' : '';
         const klass = type === 'pay' ? 'text-danger' : type === 'receive' ? 'text-success' : 'text-primary';
-        $ctx.find('#partyBalanceDisplay').html(`<span class="${klass}">${icon}Rs ${amount}</span>`);
+        $partyBalance.html(`<span class="${klass}">${icon}Rs ${amount}</span>`);
     }
 
     function setPartyDetails(party) {
         if (!party) return;
-        $ctx.find('.party-id').val(party.id || '');
-        $ctx.find('#partyDropdownBtn').text(party.name || 'Select Party');
+        $partyHidden.val(party.id || '');
+        $partyInput.val(party.name || '');
         $ctx.find('.phone-input').val(party.phone || '');
         $ctx.find('.billing-address').val(party.billing_address || party.billing || '');
         setPartyBalance(party.opening_balance || party.opening || 0, party.transaction_type || party.type || '');
-    }
-
-    function setBrokerDetails({ id = '', name = '', phone = '' } = {}) {
-        $ctx.find('.broker-id').val(id || '');
-        const $brokerSelect = $ctx.find('.broker-select');
-        let selectedValue = '';
-        if ($brokerSelect.length) {
-            $brokerSelect.find('option').each(function () {
-                const $option = $(this);
-                const optionId = String($option.data('id') || '');
-                const optionName = String($option.data('name') || '');
-                if (id && optionId === String(id)) {
-                    selectedValue = $option.val();
-                    return false;
-                }
-                if (!id && name && optionName === String(name)) {
-                    selectedValue = $option.val();
-                    return false;
-                }
-                return true;
-            });
-            $brokerSelect.val(selectedValue);
-        }
-        $ctx.find('.broker-name-input').val(name || '');
-        $ctx.find('.broker-phone-input').val(phone || '');
     }
 
     function setWarehouseDetails(warehouse = {}) {
@@ -79,33 +178,6 @@ function initializeForm(context) {
         if (warehouse.responsible_user_id || warehouse.user_id) {
             $ctx.find('.responsible-user-select').val(warehouse.responsible_user_id || warehouse.user_id || '');
         }
-    }
-
-    function updateBrokerageFields() {
-        const brokerageType = ($ctx.find('.brokerage-type').val() || '').toString();
-        const totalQty = parseFloat($ctx.find('.total-qty').text() || 0) || 0;
-        const rawRate = parseFloat($ctx.find('.brokerage-rate').val() || 0) || 0;
-        const $brokerageAmount = $ctx.find('.brokerage-amount');
-        const $brokerageRate = $ctx.find('.brokerage-rate');
-        const $brokerageBaseAmount = $ctx.find('.brokerage-base-amount');
-
-        let amount = 0;
-        let placeholder = 'Value';
-
-        if (brokerageType === 'per_kg') {
-            amount = totalQty * rawRate;
-            placeholder = 'Rate/KG';
-        } else if (brokerageType === 'half') {
-            amount = rawRate / 2;
-            placeholder = 'Full amount';
-        } else if (brokerageType === 'full') {
-            amount = rawRate;
-            placeholder = 'Full amount';
-        }
-
-        $brokerageRate.attr('placeholder', placeholder);
-        $brokerageBaseAmount.val(rawRate.toFixed(2));
-        $brokerageAmount.val(amount.toFixed(2));
     }
 
     function normalizeExistingImagePaths(sale) {
@@ -154,18 +226,11 @@ function initializeForm(context) {
         $ctx.find('.description-input').val(sale.description || '');
         $ctx.find('.discount-pct').val(sale.discount_pct || 0);
         $ctx.find('.discount-rs').val(sale.discount_rs || 0);
-        $ctx.find('.tax-select').val(sale.tax_pct || 0);
         const challanDetail = sale.challan_detail || sale.challanDetail || {};
-        setBrokerDetails({ id: sale.broker_id || '', name: challanDetail.broker_name || sale.broker?.name || '', phone: challanDetail.broker_phone || sale.broker?.phone || '' });
-        $ctx.find('.brokerage-type').val(sale.brokerage_type || '');
-        const saleBrokerageRate = parseFloat(sale.brokerage_rate ?? sale.broker_amount ?? 0) || 0;
-        $ctx.find('.brokerage-rate').val(saleBrokerageRate ? saleBrokerageRate.toFixed(2) : '');
-        $ctx.find('.brokerage-base-amount').val(saleBrokerageRate.toFixed(2));
-        $ctx.find('.brokerage-amount').val((parseFloat(sale.broker_amount || 0) || 0).toFixed(2));
         setWarehouseDetails({ id: challanDetail.warehouse_id || '', name: challanDetail.warehouse_name || '', phone: challanDetail.warehouse_phone || '', handler_name: challanDetail.warehouse_handler_name || '', handler_phone: challanDetail.warehouse_handler_phone || '', responsible_user_id: challanDetail.responsible_user_id || '' });
         $ctx.find('.vehicle-number-input').val(challanDetail.vehicle_number || '');
         $ctx.find('.destination-input').val(challanDetail.destination || '');
-        $ctx.find('.delivery-expenses-input').val(challanDetail.delivery_expenses || 0);
+        $ctx.find('.delivery-expense').val(challanDetail.delivery_expenses || 0);
         existingImagePaths = normalizeExistingImagePaths(sale);
         renderImages();
         $ctx.find('.item-rows').empty();
@@ -185,7 +250,6 @@ function initializeForm(context) {
         });
         if (sale.description) $ctx.find('.description-pane').removeClass('d-none');
         calculateTotals();
-        updateBrokerageFields();
     }
 
     function addRow() {
@@ -213,15 +277,13 @@ function initializeForm(context) {
         let finalBase = base;
         const discPct = parseFloat($ctx.find('.discount-pct').val()) || 0;
         const discRs = parseFloat($ctx.find('.discount-rs').val()) || 0;
-        const taxPct = parseFloat($ctx.find('.tax-select').val()) || 0;
         if (discPct > 0) finalBase -= (finalBase * discPct / 100);
         if (discRs > 0) finalBase -= discRs;
-        let taxAmount = 0;
-        if (taxPct > 0) { taxAmount = (finalBase * taxPct / 100); finalBase += taxAmount; }
-        $ctx.find('.tax-amount-display').text(taxAmount.toFixed(2));
         let grandTotal = finalBase, roundOffVal = 0;
         if ($ctx.find('.round-off-check').is(':checked')) { const rounded = Math.round(grandTotal); roundOffVal = rounded - grandTotal; grandTotal = rounded; }
         $ctx.find('.round-off-val').val(roundOffVal.toFixed(2));
+        const deliveryExpense = parseFloat($ctx.find('.delivery-expense').val()) || 0;
+        grandTotal += deliveryExpense;
         $ctx.find('.grand-total').val(grandTotal.toFixed(2));
     }
 
@@ -254,67 +316,48 @@ function initializeForm(context) {
             return { item_name: selectedText, item_category: $row.find('.item-category').val() || '', item_code: $row.find('.item-code').val() || '', item_description: $row.find('.item-desc').val() || '', quantity: parseInt($row.find('.item-qty').val() || 0, 10) || 0, unit: $row.find('.item-unit').val() || '', unit_price: parseFloat($row.find('.item-price').val() || 0) || 0, discount: parseFloat($row.find('.item-discount').val() || 0) || 0, amount: parseFloat($row.find('.item-amount').val() || 0) || 0 };
         }).filter(item => item.item_name || item.quantity || item.amount);
         return {
-            party_id: $ctx.find('.party-id').val() || '', broker_id: $ctx.find('.broker-id').val() || '', broker_name: $ctx.find('.broker-name-input').val() || '', broker_phone: $ctx.find('.broker-phone-input').val() || '', phone: $ctx.find('.phone-input').val() || '', billing_address: $ctx.find('.billing-address').val() || '', bill_number: $ctx.find('.bill-number').val() || '', invoice_date: $ctx.find('.invoice-date').val() || todayValue, due_date: $ctx.find('.due-date').val() || todayValue,
-            brokerage_type: $ctx.find('.brokerage-type').val() || '', brokerage_rate: parseFloat($ctx.find('.brokerage-base-amount').val() || $ctx.find('.brokerage-rate').val() || 0) || 0, broker_amount: parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0,
-            warehouse_id: $ctx.find('.warehouse-id').val() || '', warehouse_name: $ctx.find('#warehouseDropdownBtn').text().trim() === 'Select Warehouse' ? '' : $ctx.find('#warehouseDropdownBtn').text().trim(), warehouse_phone: $ctx.find('.warehouse-phone-input').val() || '', warehouse_handler_name: $ctx.find('.warehouse-handler-input').val() || '', warehouse_handler_phone: $ctx.find('.warehouse-handler-phone-input').val() || '', responsible_user_id: $ctx.find('.responsible-user-select').val() || '',
-            vehicle_number: $ctx.find('.vehicle-number-input').val() || '', destination: $ctx.find('.destination-input').val() || '', delivery_expenses: $ctx.find('.delivery-expenses-input').val() || 0, total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0, total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0, discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0, discount_rs: parseFloat($ctx.find('.discount-rs').val() || 0) || 0, tax_pct: parseFloat($ctx.find('.tax-select').val() || 0) || 0, tax_amount: parseFloat($ctx.find('.tax-amount-display').text() || 0) || 0, round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0, grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0, heading_labels: {
+            party_id: $partyHidden.val() || '',
+            phone: $ctx.find('.phone-input').val() || '',
+            billing_address: $ctx.find('.billing-address').val() || '',
+            bill_number: $ctx.find('.bill-number').val() || '',
+            invoice_date: $ctx.find('.invoice-date').val() || todayValue,
+            due_date: $ctx.find('.due-date').val() || todayValue,
+            warehouse_id: $ctx.find('.warehouse-id').val() || '',
+            warehouse_name: $ctx.find('#warehouseDropdownBtn').text().trim() === 'Select Warehouse' ? '' : $ctx.find('#warehouseDropdownBtn').text().trim(),
+            warehouse_phone: $ctx.find('.warehouse-phone-input').val() || '',
+            warehouse_handler_name: $ctx.find('.warehouse-handler-input').val() || '',
+            warehouse_handler_phone: $ctx.find('.warehouse-handler-phone-input').val() || '',
+            responsible_user_id: $ctx.find('.responsible-user-select').val() || '',
+            vehicle_number: $ctx.find('.vehicle-number-input').val() || '',
+            destination: $ctx.find('.destination-input').val() || '',
+            delivery_expenses: $ctx.find('.delivery-expense').val() || 0,
+            total_qty: parseInt($ctx.find('.total-qty').text() || 0, 10) || 0,
+            total_amount: parseFloat($ctx.find('.total-base-amount').text() || 0) || 0,
+            discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,
+            discount_rs: parseFloat($ctx.find('.discount-rs').val() || 0) || 0,
+            round_off: parseFloat($ctx.find('.round-off-val').val() || 0) || 0,
+            grand_total: parseFloat($ctx.find('.grand-total').val() || 0) || 0,
+            heading_labels: {
                 discount: $ctx.find('.heading-value[data-field="discount"]').val() || 'Discount',
                 delivery_expense: $ctx.find('.heading-value[data-field="delivery_expense"]').val() || 'Delivery Expense',
-                brokerage_type: $ctx.find('.heading-value[data-field="brokerage_type"]').val() || 'Brokerage Type',
-                brokerage_amount: $ctx.find('.heading-value[data-field="brokerage_amount"]').val() || 'Brokerage Amount',
-                tax: $ctx.find('.heading-value[data-field="tax"]').val() || 'Tax',
                 total: $ctx.find('.heading-value[data-field="total"]').val() || 'Total',
-            }, status: 'open', description: $ctx.find('.description-input').val() || '', items,
+            },
+            status: 'open',
+            description: $ctx.find('.description-input').val() || '',
+            items,
         };
     }
 
-    $ctx.on('click', '.party-option', function (e) { e.preventDefault(); const party = (window.parties || []).find(p => String(p.id) === String($(this).data('id'))); setPartyDetails(party || { id: $(this).data('id') || '', name: $.trim($(this).find('span').first().text()), phone: $(this).data('phone') || '', billing_address: $(this).data('billing') || '', opening_balance: $(this).data('opening') || 0, transaction_type: $(this).data('type') || '' }); });
-
-    // Party search/filter functionality
-    $ctx.on('input', '.party-search-input', function(e) {
-        e.stopPropagation();
-        const searchValue = $(this).val().toLowerCase().trim();
-        const $partyOptions = $ctx.find('.party-option');
-
-        $partyOptions.each(function() {
-            const $this = $(this);
-            const partyName = $.trim($this.find('span').first().text()).toLowerCase();
-            const partyPhone = $this.data('phone') ? String($this.data('phone')).toLowerCase() : '';
-
-            if (searchValue === '' || partyName.includes(searchValue) || partyPhone.includes(searchValue)) {
-                $this.closest('li').removeClass('d-none');
-            } else {
-                $this.closest('li').addClass('d-none');
-            }
-        });
+    // Old party-option click kept for backward compat (dropdown in blade)
+    $ctx.on('click', '.party-option', function (e) {
+        e.preventDefault();
+        const party = (window.parties || []).find(p => String(p.id) === String($(this).data('id')));
+        setPartyDetails(party || { id: $(this).data('id') || '', name: $.trim($(this).find('span').first().text()), phone: $(this).data('phone') || '', billing_address: $(this).data('billing') || '', opening_balance: $(this).data('opening') || 0, transaction_type: $(this).data('type') || '' });
     });
 
-    // Prevent dropdown from closing when clicking on search input
-    $ctx.on('click', '.party-search-input', function(e) {
-        e.stopPropagation();
-    });
-
-    // Prevent dropdown from closing when typing in search
-    $ctx.on('keydown keyup', '.party-search-input', function(e) {
-        e.stopPropagation();
-    });
-
-    // Clear search input when dropdown closes
-    $ctx.on('hidden.bs.dropdown', '#partyDropdownMenu', function() {
-        $ctx.find('.party-search-input').val('');
-        $ctx.find('.party-option').closest('li').removeClass('d-none');
-    });
-
-    $ctx.on('change', '.broker-select', function () {
-        const $selected = $(this).find('option:selected');
-        setBrokerDetails({
-            id: $selected.data('source') === 'broker' ? ($selected.data('id') || '') : '',
-            name: $selected.data('name') || '',
-            phone: $selected.data('phone') || '',
-        });
-    });
     $ctx.on('click', '.warehouse-option', function (e) { e.preventDefault(); setWarehouseDetails({ id: $(this).data('id') || '', name: $(this).data('name') || '', phone: $(this).data('phone') || '', handler_name: $(this).data('handler-name') || '', handler_phone: $(this).data('handler-phone') || '', responsible_user_id: $(this).data('user-id') || '' }); });
     $ctx.on('click', '.add-warehouse-option', function (e) { e.preventDefault(); warehouseModal?.show(); });
+
     $(document).off('click.saveWarehouse').on('click.saveWarehouse', '.save-warehouse-btn', async function () {
         const form = document.getElementById('warehouseForm'); if (!form) return;
         const btn = $(this); btn.prop('disabled', true).text('Saving...');
@@ -329,12 +372,10 @@ function initializeForm(context) {
     $ctx.on('click', '.delete-row-icon', function () { if ($ctx.find('.item-rows tr').length > 1) { $(this).closest('tr').remove(); reindexRows(); calculateTotals(); } });
     $ctx.on('change', '.item-name', function () { const $row = $(this).closest('tr'); const $selected = $(this).find('option:selected'); const price = parseFloat($selected.data('sale-price')) || parseFloat($selected.data('price')) || 0; const unit = $selected.data('unit') || ''; const category = $selected.data('category') || ''; const itemCode = $selected.data('item-code') || ''; const description = $selected.data('description') || ''; const discount = $selected.data('discount'); ensureUnitOption($row.find('.item-unit'), unit); $row.find('.item-price').val(price.toFixed(2)); $row.find('.item-category').val(category); $row.find('.item-code').val(itemCode); $row.find('.item-desc').val(description); if (discount !== undefined && discount !== null && discount !== '') { const currentDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0; if (currentDiscount === 0) { $row.find('.item-discount').val(discount); } } $row.find('.item-qty').val(1).trigger('change'); });
     $ctx.on('input change', '.item-qty, .item-price, .item-discount', function () { const $row = $(this).closest('tr'); const amount = ((parseFloat($row.find('.item-qty').val()) || 0) * (parseFloat($row.find('.item-price').val()) || 0)) - (parseFloat($row.find('.item-discount').val()) || 0); $row.find('.item-amount').val(amount.toFixed(2)); calculateTotals(); });
-    $ctx.on('input change', '.discount-pct, .discount-rs, .tax-select, .round-off-check', function () { applyDiscountTax(parseFloat($ctx.find('.total-base-amount').text()) || 0); });
-    $ctx.on('change input', '.brokerage-type, .brokerage-rate', updateBrokerageFields);
+    $ctx.on('input change', '.discount-pct, .discount-rs, .round-off-check, .delivery-expense', function () { applyDiscountTax(parseFloat($ctx.find('.total-base-amount').text()) || 0); });
     $ctx.on('click', '.add-description', function () {
         const $btn = $(this);
         const $pane = $btn.closest('.description-action-group').find('.description-pane');
-
         $btn.addClass('d-none');
         $pane.removeClass('d-none');
         $pane.find('.description-input').focus();
@@ -376,22 +417,44 @@ function initializeForm(context) {
     }
 
     $ctx.on('click', '.btn-save', function () {
-        submitChallan($(this), {
-            idleText: 'Save',
-            loadingText: 'Saving...',
-            successMessage: 'Delivery challan saved successfully.',
-        });
+        submitChallan($(this), { idleText: 'Save', loadingText: 'Saving...', successMessage: 'Delivery challan saved successfully.' });
     });
 
     $ctx.on('click', '.btn-share-main', function () {
-        submitChallan($(this), {
-            redirectToShare: true,
-            idleText: 'Share',
-            loadingText: 'Saving...',
-            successMessage: 'Delivery challan saved successfully! Opening invoice preview...',
-        });
+        submitChallan($(this), { redirectToShare: true, idleText: 'Share', loadingText: 'Saving...', successMessage: 'Delivery challan saved successfully! Opening invoice preview...' });
     });
-
-    if (window.editSaleData) populateFormFromSale(window.editSaleData);
+if (window.editSaleData) populateFormFromSale(window.editSaleData);
     calculateTotals();
+
+    /* ════════════════════════════════════════════
+       GLOBAL FLOATING LABELS — ALL .party-meta-field
+    ════════════════════════════════════════════ */
+    function syncFloat(el) {
+        const field = el.closest('.party-meta-field');
+        if (!field) return;
+        field.classList.toggle('has-value', (el.value || '').trim() !== '');
+    }
+
+    function initFloats() {
+        $(context).find('.party-meta-field input, .party-meta-field textarea, .party-meta-field select').each(function() {
+            syncFloat(this);
+            $(this).off('input.float change.float blur.float').on('input.float change.float blur.float', function() {
+                syncFloat(this);
+            });
+        });
+    }
+
+    const _origWH = setWarehouseDetails;
+    setWarehouseDetails = function(wh) { _origWH(wh); setTimeout(initFloats, 30); };
+
+    const _origPD = setPartyDetails;
+    setPartyDetails = function(p) { _origPD(p); setTimeout(initFloats, 30); };
+
+    const _origSP = selectParty;
+    selectParty = function(p) { _origSP(p); setTimeout(initFloats, 30); };
+
+    const _origAR = addRow;
+    addRow = function() { _origAR(); setTimeout(initFloats, 30); };
+
+    initFloats();
 }
