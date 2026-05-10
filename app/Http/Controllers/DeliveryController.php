@@ -57,22 +57,27 @@ class DeliveryController extends Controller
         return $this->renderChallanForm(null, $sale);
     }
 
-    private function renderChallanForm(?Sale $challan = null, ?Sale $duplicateChallan = null)
-    {
-        $items = Item::active()->orderBy('name')->get();
-        $parties = Party::orderBy('name')->get();
-        $brokers = Broker::orderBy('name')->get();
-        $bankAccounts = BankAccount::orderBy('bank_name')->get();
-        $users = User::orderBy('name')->get(['id', 'name', 'email']);
-        $warehouses = Warehouse::with('responsibleUser:id,name,email')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-        $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = TransactionNumberPrefix::format('delivery_challan', $nextSaleId);
+  private function renderChallanForm(?Sale $challan = null, ?Sale $duplicateChallan = null)
+{
+    $items = Item::active()->orderBy('name')->get();
+    $parties = Party::orderBy('name')->get();
+    $brokers = Broker::orderBy('name')->get();
+    $bankAccounts = BankAccount::orderBy('bank_name')->get();
+    $users = User::orderBy('name')->get(['id', 'name', 'email']);
+    $warehouses = Warehouse::with('responsibleUser:id,name,email')
+        ->where('is_active', true)
+        ->orderBy('name')
+        ->get();
+    $partyGroups = \App\Models\PartyGroup::orderBy('name')->get();
+    $nextSaleId = (Sale::max('id') ?? 0) + 1;
+    $nextInvoiceNumber = TransactionNumberPrefix::format('delivery_challan', $nextSaleId);
 
-        return view('dashboard.delivery.create-challan', compact('items', 'parties', 'brokers', 'bankAccounts', 'users', 'warehouses', 'nextInvoiceNumber', 'challan', 'duplicateChallan'));
-    }
+    return view('dashboard.delivery.create-challan', compact(
+        'items', 'parties', 'brokers', 'bankAccounts', 'users',
+        'warehouses', 'nextInvoiceNumber', 'challan', 'duplicateChallan',
+        'partyGroups'
+    ));
+}
 
     public function store(Request $request)
     {

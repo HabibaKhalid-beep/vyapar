@@ -1,537 +1,1441 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ isset($challan) ? 'Edit' : 'Create' }} Delivery Challan | Vyapar</title>
+    <title>Sales</title>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/estimateform_style.css') }}">
-    @include('dashboard.shared.party-item-create-styles')
-    <style>
-        /* ══ FLOATING LABELS ══ */
-        .party-meta-field { position: relative; }
-        .party-meta-field label {
-            position: absolute; top: 50%; left: 12px; transform: translateY(-50%);
-            font-size: 12px; color: #94a3b8; font-weight: 400; pointer-events: none;
-            transition: top .15s, font-size .13s, color .15s, transform .15s;
-            z-index: 2; background: #fff; padding: 0 3px; line-height: 1; white-space: nowrap;
-        }
-        .party-meta-field:has(textarea) label { top: 16px; transform: none; }
-        .party-meta-field:focus-within label,
-        .party-meta-field.has-value label {
-            top: -1px; transform: none; font-size: 9px; color: #2563eb;
-            font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
-        }
-        .party-meta-field .meta-control:not(textarea),
-        .party-meta-field input.meta-control,
-        .party-meta-field select.meta-control { padding-top: 16px; padding-bottom: 4px; }
-        .party-meta-field textarea.meta-control { padding-top: 20px; padding-bottom: 4px; }
-        .party-meta-field .meta-control,
-        .party-meta-field input,
-        .party-meta-field select,
-        .party-meta-field textarea {
-            border: 1.5px solid #374151 !important; border-radius: 8px;
-            outline: none; transition: border-color .15s, box-shadow .15s;
-        }
-        .party-meta-field .meta-control:focus,
-        .party-meta-field input:focus,
-        .party-meta-field select:focus,
-        .party-meta-field textarea:focus {
-            border-color: #2563eb !important; box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-        }
-        .party-meta-field.has-value .meta-control,
-        .party-meta-field.has-value input,
-        .party-meta-field.has-value select,
-        .party-meta-field.has-value textarea { border-color: #2563eb !important; }
+    <!-- Form Styles -->
+    <link rel="stylesheet" href="{{ asset('css/saleform_style.css') }}">
 
-        /* ══ PARTY ACCORDION ══ */
-        .party-accordion {
-    display: none;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 10px;
-    animation: accordionDown .18s ease;
-}
-.party-accordion.open { display: grid; }
-        .party-accordion.open { display: grid; }
-        @keyframes accordionDown {
-            from { opacity: 0; transform: translateY(-6px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .accordion-field {
-            position: relative;
-        }
-        .accordion-field label {
-            position: absolute; top: -1px; left: 10px;
-            font-size: 9px; font-weight: 600; color: #2563eb;
-            text-transform: uppercase; letter-spacing: 0.05em;
-            background: #fff; padding: 0 3px; z-index: 2;
-            pointer-events: none; line-height: 1;
-        }
-        .accordion-field input {
-            width: 100%; min-height: 48px;
-            padding: 18px 12px 6px;
-            border: 1.5px solid #2563eb !important;
-            border-radius: 8px;
-            background: #f8fbff; color: #111827;
-            font-size: 13px; outline: none;
-            transition: border-color .15s, box-shadow .15s;
-        }
-        .accordion-field input:focus {
-            border-color: #2563eb !important;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-            background: #fff;
-        }
-
-        /* ══ SCROLLABLE DROPDOWNS ══ */
-        #partyDropdownMenu, #topbarWarehouseDropdownMenu {
-            min-width: 250px; max-width: 100%; max-height: 350px;
-            overflow-y: auto; overflow-x: hidden;
-            scrollbar-width: thin; scrollbar-color: #888 #f1f1f1;
-        }
-
-        /* ══ LAYOUT ══ */
-        .header-section {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 420px;
-            gap: 28px;
-            align-items: start;
-        }
-
-        .party-selector-panel { background: transparent; border: none; border-radius: 0; padding: 0; box-shadow: none; }
-
-        .party-meta-field .meta-control {
-            width: 100%; min-height: 48px; padding: 12px 14px;
-            border: 1.5px solid #374151 !important; border-radius: 10px;
-            background: #fbfdff; color: #111827; resize: none; font-size: 15px;
-        }
-        .party-meta-field textarea.meta-control { min-height: 82px; }
-
-        .header-right.w-25 {
-            width: 420px !important; min-width: 420px;
-            background: #ffffff; border: 1px solid #dbe4f0; border-radius: 16px;
-            padding: 18px 20px; box-shadow: 0 10px 24px rgba(15,23,42,0.04);
-        }
-
-        /* ══ TOP BAR ══ */
-        .vyapar-topbar {
-            display: flex; align-items: center; gap: 8px;
-            padding: 8px 16px 6px; background: #fff; border-bottom: 1px solid #e8edf3;
-        }
-        .btn-add-party-topbar {
-            display: inline-flex; align-items: center; gap: 5px;
-            background: #fff; border: 1.5px solid #cbd5e1; border-radius: 6px;
-            padding: 5px 12px; font-size: 13px; font-weight: 500; color: #374151;
-            cursor: pointer; transition: border-color .15s, color .15s, background .15s; white-space: nowrap;
-        }
-        .btn-add-party-topbar:hover, .btn-add-party-topbar.active {
-            border-color: #2563eb; color: #2563eb; background: #eff6ff;
-        }
-        .topbar-spacer { flex: 1; }
-        .topbar-right-group { display: flex; align-items: center; gap: 6px; }
-        .btn-store {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: #fff; border: 1.5px solid #cbd5e1; border-radius: 6px;
-            padding: 5px 12px 5px 9px; font-size: 13px; font-weight: 500; color: #374151;
-            cursor: pointer; transition: border-color .15s, box-shadow .15s; white-space: nowrap;
-        }
-        .btn-store:hover { border-color: #2563eb; color: #2563eb; }
-        .btn-store .store-icon {
-            width: 22px; height: 22px; background: #2563eb; border-radius: 4px;
-            display: inline-flex; align-items: center; justify-content: center;
-            color: #fff; font-size: 11px; flex-shrink: 0;
-        }
-        .btn-topbar-warehouse {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: #fff; border: 1.5px solid #cbd5e1; border-radius: 6px;
-            padding: 5px 12px; font-size: 13px; font-weight: 500; color: #374151;
-            cursor: pointer; transition: border-color .15s, color .15s, background .15s;
-            white-space: nowrap; min-width: 150px; justify-content: space-between;
-        }
-        .btn-topbar-warehouse:hover, .btn-topbar-warehouse.selected {
-            border-color: #2563eb; color: #2563eb; background: #eff6ff;
-        }
-        .btn-topbar-warehouse::after { display: none !important; }
-        #topbarWarehouseDropdownMenu {
-            min-width: 280px; border-radius: 8px; border: 1px solid #dbe4f0;
-            box-shadow: 0 8px 24px rgba(15,23,42,0.12); padding: 6px 0;
-        }
-
-        /* ══ BOTTOM RIGHT — Discount/Total panel ══ */
-        .bottom-right {
-            background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
-            padding: 18px 20px; box-shadow: 0 4px 20px rgba(15,23,42,0.07); min-width: 280px;
-        }
-        .bottom-right .calc-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 7px 0; border-bottom: 1px solid #f1f5f9; gap: 12px;
-        }
-        .bottom-right .calc-row:last-of-type { border-bottom: none; }
-        .bottom-right .calc-label { font-size: 13px; font-weight: 500; color: #374151; min-width: 130px; white-space: nowrap; }
-        .bottom-right .calc-inputs { display: flex; align-items: center; gap: 6px; }
-        .bottom-right .mini-input {
-            border: 1.5px solid #e2e8f0 !important; border-radius: 6px;
-            padding: 5px 10px; font-size: 13px; color: #111827; background: #f8fafc;
-            transition: border-color .15s, box-shadow .15s; outline: none; min-width: 0;
-        }
-        .bottom-right .mini-input:focus {
-            border-color: #2563eb !important; box-shadow: 0 0 0 3px rgba(37,99,235,0.10); background: #fff;
-        }
-        .bottom-right .final-total-group { margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0; }
-        .bottom-right .total-input-large {
-            width: 100% !important; font-size: 22px !important; font-weight: 700;
-            color: #2563eb; border: 2px solid #2563eb !important; border-radius: 10px;
-            padding: 10px 16px !important; background: #eff6ff; text-align: right; letter-spacing: 0.02em;
-        }
-        .bottom-right .tax-amount-display { font-size: 13px; color: #64748b; min-width: 40px; text-align: right; }
-
-        /* ══ BROKER INFO FIELDS (bottom left) ══ */
-        .broker-info-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
-        }
-        .broker-info-grid .broker-full-row { grid-column: 1 / -1; }
-        .broker-input-field { position: relative; }
-        .broker-input-field label {
-            position: absolute; top: -1px; left: 10px;
-            font-size: 9px; font-weight: 600; color: #2563eb;
-            text-transform: uppercase; letter-spacing: 0.05em;
-            background: #fff; padding: 0 3px; z-index: 2; pointer-events: none;
-        }
-        .broker-input-field input {
-            border: 1.5px solid #374151; border-radius: 8px;
-            padding: 14px 12px 6px; font-size: 13px; color: #111827;
-            background: #fff; width: 100%; outline: none;
-            transition: border-color .15s, box-shadow .15s;
-        }
-        .broker-input-field input:focus {
-            border-color: #2563eb !important; box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-        }
-
-        /* ══ ACTION BUTTONS ══ */
-        .btn-action-light {
-            display: flex !important; align-items: center; justify-content: center; gap: 8px;
-            border: 1.5px solid #374151 !important; border-radius: 8px !important;
-            background: #fff !important; color: #374151 !important;
-            font-size: 12px; font-weight: 500; padding: 10px 14px !important;
-            cursor: pointer; transition: background .15s, border-color .15s, color .15s; min-height: 44px;
-        }
-        .btn-action-light:hover { background: #eff6ff !important; border-color: #2563eb !important; color: #2563eb !important; }
-
-        /* ══ INLINE DESCRIPTION INPUT IN TABLE ══ */
-        .item-desc-inline {
-            border: 1.5px solid #e2e8f0; border-radius: 6px;
-            padding: 6px 10px; font-size: 12px; width: 100%; outline: none;
-            transition: border-color .15s;
-        }
-        .item-desc-inline:focus { border-color: #2563eb !important; }
-
-        /* ══ UNIT SELECT IN TABLE ══ */
-        .item-unit-select {
-            border: 1.5px solid #e2e8f0; border-radius: 6px;
-            padding: 5px 4px; font-size: 12px; width: 100%; outline: none;
-            background: #f8fafc; color: #374151; cursor: pointer;
-            transition: border-color .15s;
-        }
-        .item-unit-select:focus { border-color: #2563eb !important; background: #fff; }
-
-        /* ══ ADD PARTY POPUP ══ */
-        .party-quick-popup {
-            display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); z-index: 1060;
-            background: #fff; border: 2px solid #2563eb; border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(37,99,235,0.18), 0 4px 20px rgba(0,0,0,0.10);
-            width: 560px; max-width: 96vw; padding: 0; overflow: hidden;
-        }
-        .party-quick-popup.open { display: block; }
-        .party-popup-backdrop {
-            display: none; position: fixed; inset: 0; z-index: 1055; background: rgba(15,23,42,0.35);
-        }
-        .party-popup-backdrop.open { display: block; }
-        .party-popup-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 16px 20px 12px; border-bottom: 1px solid #e2e8f0;
-        }
-        .party-popup-header h5 { font-size: 15px; font-weight: 600; color: #111827; margin: 0; }
-        .popup-close-btn {
-            background: none; border: none; font-size: 18px; color: #64748b; cursor: pointer;
-            line-height: 1; padding: 2px 5px; border-radius: 4px; transition: background .12s, color .12s;
-        }
-        .popup-close-btn:hover { background: #f1f5f9; color: #111827; }
-        .party-popup-body { padding: 18px 20px; }
-        .party-popup-top-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-        .party-popup-tabs { display: flex; border-bottom: 2px solid #e2e8f0; margin-bottom: 16px; }
-        .party-popup-tab {
-            padding: 7px 16px; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer;
-            border-bottom: 2px solid transparent; margin-bottom: -2px;
-            transition: color .12s, border-color .12s; background: none;
-            border-top: none; border-left: none; border-right: none;
-        }
-        .party-popup-tab:hover { color: #2563eb; }
-        .party-popup-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
-        .party-popup-tab-pane { display: none; }
-        .party-popup-tab-pane.active { display: block; }
-        .credit-balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .pp-field { position: relative; margin-bottom: 4px; }
-        .pp-field > label { display: none; }
-        .pp-field input, .pp-field select, .pp-field textarea {
-            border: 1.5px solid #374151; border-radius: 6px; padding: 18px 10px 6px 10px;
-            font-size: 13px; color: #111827; background: #fff; outline: none;
-            transition: border-color .15s, box-shadow .15s; width: 100%; min-height: 46px;
-        }
-        .pp-field select { padding-top: 18px; padding-bottom: 6px; appearance: auto; }
-        .pp-field textarea { padding-top: 22px; padding-bottom: 6px; resize: vertical; min-height: 72px; }
-        .pp-field input:focus, .pp-field select:focus, .pp-field textarea:focus {
-            border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-        }
-        .pp-field::before {
-            content: attr(data-label); position: absolute; left: 10px; top: 50%;
-            transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;
-            transition: top .15s, font-size .15s, color .15s, transform .15s; z-index: 2; background: transparent; line-height: 1;
-        }
-        .pp-field.pp-textarea::before { top: 14px; transform: none; }
-        .pp-field.floated::before, .pp-field.pp-textarea.floated::before {
-            top: 7px; transform: none; font-size: 10px; color: #2563eb; font-weight: 600; letter-spacing: 0.03em;
-        }
-        .pp-field.pp-textarea.floated::before { top: 5px; }
-        .pp-field.pp-select::before { top: 7px; transform: none; font-size: 10px; color: #2563eb; font-weight: 600; }
-        .opening-balance-row { display: flex; align-items: center; border: 1.5px solid #374151; border-radius: 6px; overflow: hidden; }
-        .opening-balance-row input { border: none !important; border-radius: 0 !important; flex: 1; box-shadow: none !important; }
-        .opening-balance-type-select {
-            border: none !important; border-left: 1.5px solid #374151 !important;
-            border-radius: 0 !important; width: 100px !important; background: #f8faff !important;
-            box-shadow: none !important; font-size: 12px !important;
-        }
-        .credit-limit-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
-        .credit-limit-label { font-size: 13px; font-weight: 500; color: #374151; }
-        .toggle-switch { position: relative; display: inline-flex; align-items: center; cursor: pointer; gap: 6px; font-size: 12px; color: #64748b; }
-        .toggle-switch input[type="checkbox"] { display: none; }
-        .toggle-track { width: 36px; height: 20px; background: #2563eb; border-radius: 20px; position: relative; transition: background .15s; }
-        .toggle-track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: left .15s; }
-        .toggle-switch input:checked + .toggle-track { background: #2563eb; }
-        .toggle-switch input:checked + .toggle-track::after { left: 19px; }
-        .toggle-switch input:not(:checked) + .toggle-track { background: #94a3b8; }
-        .party-popup-footer {
-            display: flex; align-items: center; justify-content: flex-end; gap: 10px;
-            padding: 14px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc;
-        }
-        .btn-popup-secondary {
-            padding: 8px 20px; border: 1.5px solid #cbd5e1; border-radius: 6px;
-            background: #fff; font-size: 13px; font-weight: 500; color: #374151; cursor: pointer;
-        }
-        .btn-popup-primary {
-            padding: 8px 24px; border: none; border-radius: 6px; background: #2563eb;
-            font-size: 13px; font-weight: 600; color: #fff; cursor: pointer;
-        }
-        .btn-popup-primary:hover { background: #1d4ed8; }
-        .btn-popup-primary:disabled { background: #93c5fd; cursor: not-allowed; }
-
-        /* ══ ADD WAREHOUSE POPUP ══ */
-        .warehouse-quick-popup {
-            display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); z-index: 1060;
-            background: #fff; border: 2px solid #2563eb; border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(37,99,235,0.18); width: 540px; max-width: 96vw; padding: 0; overflow: hidden;
-        }
-        .warehouse-quick-popup.open { display: block; }
-        .image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap: 10px; margin-top: 10px; }
-        .image-card { border: 1px solid #dbe4f0; border-radius: 10px; overflow: hidden; background: #fff; }
-        .image-card img { width: 100%; height: 80px; object-fit: cover; }
-        .compression-status { font-size: 12px; color: #64748b; }
-
-        @media (max-width: 991px) {
-            .header-section { grid-template-columns: 1fr; }
-            .header-right.w-25 { width: 100% !important; min-width: 0; }
-            .broker-info-grid { grid-template-columns: 1fr; }
-            .party-accordion { grid-template-columns: 1fr; }
-        }
-    </style>
-    <style>.party-accordion{display:none!important}.party-accordion.open{display:grid!important}</style>
 </head>
+<style>
+    /* Dropdown with two columns and scrollbar */
+    #partyDropdownMenu {
+    min-width: 280px;
+    max-width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
+}
+
+#partyDropdownMenu::before {
+    content: none !important;
+}
+
+.dropdown-menu.show {
+    padding-top: 0 !important;
+}
+
+#partyDropdownMenu.show {
+    padding-top: 0 !important;
+}
+
+ul#partyDropdownMenu {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+#partyDropdownMenu li.p-2 {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#partyDropdownMenu .form-control-sm {
+    font-size: 13px;
+}
+
+/* Scrollbar styling for responsive dropdown */
+#partyDropdownMenu::-webkit-scrollbar {
+    width: 8px;
+}
+
+#partyDropdownMenu::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#partyDropdownMenu::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+#partyDropdownMenu::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Firefox scrollbar */
+#partyDropdownMenu {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+
+.party-option span {
+    display: inline-block;
+    width: 100%;
+}
+.party-option span:first-child {
+    width: 60%; /* Party name */
+}
+.party-option span:last-child {
+    width: 40%; /* Opening balance */
+    text-align: right;
+}
+
+.item-picker {
+    position: relative;
+    min-width: 260px;
+    flex: 1;
+    overflow: visible;
+}
+
+.item-picker-input {
+    width: 100%;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 14px;
+    background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item-picker-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.floating-input-wrapper {
+    position: relative;
+}
+
+.floating-input-wrapper .meta-control {
+    width: 70%;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    padding: 18px 14px 10px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: #fff;
+}
+
+.floating-input-wrapper .meta-control:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.floating-input-wrapper textarea.meta-control {
+    min-height: 78px;
+    padding-top: 24px;
+}
+
+.floating-input-wrapper label {
+    position: absolute;
+    top: 16px;
+    left: 14px;
+    padding: 0 8px;
+    background: #fff;
+    font-size: 0.9rem;
+    color: #6b7280;
+    transition: top 0.2s ease, transform 0.2s ease, font-size 0.2s ease, color 0.2s ease;
+    pointer-events: none;
+}
+
+.floating-input-wrapper .meta-control:focus + label,
+.floating-input-wrapper .meta-control:not(:placeholder-shown) + label {
+    top: 0;
+    transform: translateY(-50%);
+    font-size: 0.78rem;
+    color: #2563eb;
+}
+
+.party-details .meta-control,
+.billing-name-field .meta-control {
+    min-height: 42px;
+
+}
+
+.party-meta-field.address-field {
+    width: 100%;
+    max-width: 100%;
+}
+
+.party-meta-field.address-field textarea.meta-control {
+    min-height: 120px;
+    height: 120px;
+    padding-top: 26px;
+    padding-bottom: 10px;
+}
+
+.party-meta-field.address-field .floating-input-wrapper label {
+    left: 16px;
+    top: 8px;
+    padding: 0 6px;
+}
+
+
+.item-picker-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    min-width: 520px;
+    max-width: 100%;
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1055;
+    display: none;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.item-picker-panel.open {
+    display: block !important;
+}
+
+.item-picker-head > span:first-child,
+.item-picker-row > .item-picker-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item-picker-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.item-picker-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.item-picker-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.item-picker-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.item-picker-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.item-picker-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    color: #2563eb;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.item-picker-add:hover {
+    background: #f8fbff;
+}
+
+.item-picker-head,
+.item-picker-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.4fr) 110px 120px 90px;
+    gap: 12px;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .item-picker-head,
+    .item-picker-row {
+        grid-template-columns: minmax(0, 2fr) 90px 100px 90px;
+        gap: 8px;
+    }
+
+    .item-picker-panel {
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 576px) {
+    .item-picker {
+        min-width: 200px;
+    }
+
+    .item-picker-head,
+    .item-picker-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .item-picker-head span:nth-child(2),
+    .item-picker-head span:nth-child(3),
+    .item-picker-head span:nth-child(4),
+    .item-picker-row > div:nth-child(2),
+    .item-picker-row > div:nth-child(3),
+    .item-picker-row > div:nth-child(4) {
+        display: none;
+    }
+
+    .item-picker-panel {
+        max-width: 300px;
+    }
+}
+
+.item-picker-head {
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #97a3b6;
+    text-transform: uppercase;
+}
+
+.item-picker-list {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.item-picker-row {
+    padding: 12px 18px;
+    cursor: pointer;
+    border-top: 1px solid #f4f7fb;
+}
+
+.item-picker-row:hover {
+    background: #f8fbff;
+}
+
+.item-picker-name small {
+    color: #8a94a6;
+    margin-left: 6px;
+}
+
+.item-picker-stock.neg {
+    color: #dc3545;
+}
+
+.item-picker-empty {
+    padding: 14px 18px;
+    color: #8a94a6;
+    font-size: 13px;
+}
+
+.table-container {
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: visible;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.item-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.item-table th {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    padding: 8px 4px !important;
+}
+
+.item-table th:hover {
+    background-color: #f0f4f8;
+}
+
+.item-table th.editable-header::after {
+    content: '✎';
+    margin-left: 4px;
+    opacity: 0.5;
+    font-size: 0.85em;
+}
+
+.item-table th.editable-header:hover::after {
+    opacity: 1;
+}
+
+.item-table th,
+.item-table td {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    padding: 6px 4px;
+}
+
+.item-table td {
+    overflow: visible;
+}
+
+.item-table td:nth-child(1) {
+    width: 40px;
+    text-align: center;
+}
+
+.item-table td:nth-child(2) {
+    width: 180px;
+    min-width: 180px;
+}
+
+.item-table td:nth-child(3),
+.item-table td:nth-child(4),
+.item-table td:nth-child(5),
+.item-table td:nth-child(6),
+.item-table td:nth-child(7),
+.item-table td:nth-child(8),
+.item-table td:nth-child(9),
+.item-table td:nth-child(10) {
+    width: 90px;
+}
+
+.item-table td input,
+.item-table td select {
+    width: 100%;
+    min-width: auto;
+    padding: 4px 6px;
+    font-size: 0.9em;
+}
+
+.item-picker-input {
+    width: 100%;
+    min-width: auto;
+}
+
+.modal-stack-top {
+    z-index: 1085;
+}
+
+.unit-menu-scroll {
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+/* Header style */
+.dropdown-header {
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: 0 !important;
+    padding: 8px 12px !important;
+}
+
+#partyDropdownMenu .dropdown-header {
+    margin: 0 !important;
+    padding: 8px 12px !important;
+    margin-top: 0 !important;
+}
+
+#partyDropdownMenu li:first-child {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#partyDropdownMenu li:first-child .dropdown-header {
+    margin: 0 !important;
+}
+
+/* Hover effect */
+.dropdown-item.party-option:hover {
+    background-color: #e2f0ff;
+}
+
+/* Party dropdown styling */
+.party-dropdown-wrapper .dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.party-dropdown-wrapper .dropdown-toggle span {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+/* Search input styling */
+.party-dropdown-wrapper .party-search-input {
+    border: 1px solid #cbd5e1 !important;
+    font-size: 13px;
+    background: #fff !important;
+    width: 100%;
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    margin-bottom: 0 !important;
+}
+
+.party-dropdown-wrapper .dropdown-menu {
+    margin-top: 0 !important;
+    top: calc(100% + 0px) !important;
+}
+
+.party-dropdown-wrapper .party-search-input:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
+    outline: none;
+}
+
+.party-dropdown-wrapper,
+.broker-dropdown-wrapper {
+    width: 100%;
+}
+
+/* Hide element utility */
+.is-hidden {
+    display: none !important;
+}
+
+/* Party Group Dropdown Styles */
+.party-group-dropdown {
+    position: relative;
+}
+
+.party-group-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    border: 1px solid #ced4da;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.party-group-trigger:hover {
+    border-color: #adb5bd;
+    background: #f8f9fa;
+}
+
+.party-group-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    margin-top: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 100;
+    display: none;
+}
+
+.party-group-menu.show {
+    display: block;
+}
+
+.party-group-add-btn {
+    width: 100%;
+    padding: 10px 12px;
+    background: white;
+    border: none;
+    border-bottom: 1px solid #ced4da;
+    text-align: left;
+    cursor: pointer;
+    color: #007bff;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.party-group-add-btn:hover {
+    background: #f8f9fa;
+}
+
+.party-group-options {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.party-group-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 13px;
+    display: block;
+}
+
+.party-group-option:hover {
+    background: #e2f0ff;
+}
+
+/* Modal for Party Group */
+.txn-option-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1050;
+}
+
+.txn-option-modal.show {
+    display: flex;
+}
+
+.txn-option-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+}
+
+.txn-option-dialog {
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    margin: auto;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    z-index: 1051;
+}
+
+.txn-option-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.txn-option-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.txn-option-btn {
+    padding: 8px 16px;
+    border: 1px solid #ced4da;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.txn-option-btn.cancel {
+    color: #6c757d;
+}
+
+.txn-option-btn.cancel:hover {
+    background: #f8f9fa;
+}
+
+.txn-option-btn.ok {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.txn-option-btn.ok:hover {
+    background: #0056b3;
+}
+
+.header-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 18px;
+    align-items: start;
+}
+
+.header-left {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.2fr) repeat(3, minmax(120px, 1fr));
+    gap: 8px;
+    min-width: 0;
+    align-items: start;
+}
+
+.party-selector-group {
+    margin-top: 0 !important;
+}
+
+.party-selector-panel {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+}
+
+.party-dropdown-wrapper .btn.dropdown-toggle,
+.broker-dropdown-wrapper .btn.dropdown-toggle {
+    width: 100%;
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border-color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 500;
+    background: #fff;
+    font-size: 12px;
+}
+
+.broker-dropdown-wrapper #brokerDropdownBtn {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #495057;
+}
+.broker-dropdown-wrapper .broker-selected-info {
+    display: none;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #495057;
+}
+.broker-dropdown-wrapper .broker-selected-info.visible {
+    display: block;
+}
+.broker-dropdown-wrapper .broker-selected-name {
+    font-weight: 600;
+}
+.broker-dropdown-wrapper .broker-selected-phone {
+    color: #6c757d;
+}
+.broker-dropdown-wrapper .broker-option {
+    min-height: 50px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+.broker-dropdown-wrapper .broker-option-name {
+    font-weight: 600;
+}
+.broker-dropdown-wrapper .broker-option-phone {
+    display: block;
+}
+.broker-dropdown-wrapper .broker-option-city {
+    margin-top: 2px;
+}
+
+#partyBalanceDisplay {
+    margin-top: 2px !important;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.party-meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.party-meta-field label {
+    color: #334155;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.party-meta-field .meta-control {
+    width: 100%;
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 8px;
+    border: 1px solid #d7e0ea;
+    border-radius: 6px;
+    background: #fbfdff;
+    color: #111827;
+    resize: none;
+    font-size: 12px;
+}
+
+.party-meta-field textarea.meta-control {
+    min-height: 44px;
+    height: 44px;
+}
+
+.party-meta-grid {
+    display: contents;
+}
+
+.party-meta-field.address-field {
+    order: 4;
+}
+
+.item-inline-input {
+    width: 100%;
+    min-width: 88px;
+    height: 34px;
+    padding: 6px 8px;
+    border: 1px solid #d7e0ea;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 12px;
+}
+
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.bottom-right .broker-calc-row {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid #dbe4f0;
+    border-radius: 10px;
+    background: #fbfdff;
+}
+
+.bottom-right .market-calc-row {
+    align-items: flex-start;
+}
+
+.bottom-right .broker-calc-inputs {
+    display: grid;
+    grid-template-columns: minmax(0, 220px) minmax(0, 260px) minmax(0, 180px);
+    gap: 8px;
+    width: 100%;
+    align-items: center;
+}
+
+.bottom-right .broker-dropdown-wrapper {
+    width: auto;
+    max-width: 220px;
+}
+
+.bottom-right .broker-dropdown-wrapper .btn.dropdown-toggle {
+    width: 100%;
+    min-width: 0;
+}
+
+.bottom-right .broker-phone-input {
+    width: 100%;
+    max-width: 180px;
+}
+
+.bottom-right .brokerage-inputs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+}
+
+.bottom-right .market-calc-inputs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.bottom-right .market-calc-inputs.single-column {
+    grid-template-columns: 1fr;
+}
+
+.bottom-right .summary-expense-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    align-items: start;
+}
+
+.bottom-right .summary-expense-grid .calc-row {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1200px) {
+    .bottom-right .summary-expense-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .bottom-right .summary-expense-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.item-discount-fields {
+    display: grid;
+    grid-template-columns: 58px minmax(88px, 1fr);
+    gap: 6px;
+    align-items: center;
+}
+
+.item-discount-fields input {
+    width: 100%;
+}
+
+.bottom-right .broker-dropdown-wrapper {
+    width: auto;
+    max-width: 240px;
+}
+
+.bottom-right .broker-dropdown-wrapper .btn.dropdown-toggle {
+    min-width: 0;
+}
+
+.bottom-right .broker-phone-input {
+    max-width: 240px;
+}
+
+.bottom-right .market-mini-input {
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #d7e0ea;
+    background: #fff;
+    font-size: 12px;
+    width: 100%;
+}
+
+.bottom-right .broker-dropdown-wrapper .btn.dropdown-toggle,
+.bottom-right .broker-phone-input,
+.bottom-right .brokerage-type,
+.bottom-right .brokerage-rate,
+.bottom-right .brokerage-amount {
+    min-height: 30px;
+    height: 30px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #d7e0ea;
+    background: #fff;
+    font-size: 11px;
+    width: 100%;
+}
+
+.bottom-right .broker-phone-input,
+.bottom-right .brokerage-type,
+.bottom-right .brokerage-rate,
+.bottom-right .brokerage-amount {
+    max-width: 100%;
+}
+
+.bottom-right .broker-calc-row .calc-label {
+    margin-bottom: 0;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.bottom-right .brokerage-amount {
+    background: #f8fafc;
+}
+
+.header-right.w-25 {
+    width: 420px !important;
+    min-width: 420px;
+    justify-content: flex-end;
+    background: #ffffff;
+    border: 1px solid #dbe4f0;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    align-content: start;
+}
+
+.header-right.w-25 > .d-flex {
+    display: none !important;
+}
+
+.header-right.w-25 .input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    margin: 0;
+    min-width: 0;
+}
+
+.header-right.w-25 .input-group span {
+    color: #1e293b;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.header-right.w-25 .input-control {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    padding: 6px 8px;
+    border: 1px solid #d7e0ea;
+    border-radius: 6px;
+    background: #fbfdff;
+    font-size: 12px;
+}
+
+.header-right.w-25 .invoice-number-group {
+    grid-column: 1 / -1;
+}
+
+.header-right.w-25 .invoice-date-group {
+    grid-column: 1;
+}
+
+.header-right.w-25 .order-date-group {
+    grid-column: 2;
+}
+
+.header-right.w-25 .deal-days-group {
+    grid-column: 1;
+}
+
+.header-right.w-25 .final-due-date-group {
+    grid-column: 2;
+}
+
+.broker-option span:first-child {
+    width: 70%;
+}
+
+.broker-option span:last-child {
+    width: 30%;
+    text-align: right;
+    color: #64748b;
+}
+
+@media (max-width: 991px) {
+    .header-section {
+        grid-template-columns: 1fr;
+    }
+
+    .header-left {
+        grid-template-columns: 1fr;
+    }
+
+    .header-right.w-25 {
+        width: 100% !important;
+        min-width: 0;
+        grid-template-columns: 1fr;
+    }
+
+    .bottom-right .broker-dropdown-wrapper,
+    .bottom-right .broker-phone-input,
+    .bottom-right .brokerage-type,
+    .bottom-right .brokerage-rate,
+    .bottom-right .brokerage-amount {
+        max-width: 100%;
+    }
+
+    .bottom-right .broker-calc-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .bottom-right .broker-calc-row:first-of-type .broker-calc-inputs,
+    .bottom-right .broker-calc-row:last-of-type .broker-calc-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .bottom-right .brokerage-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .bottom-right .market-calc-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .header-right.w-25 .invoice-date-group,
+    .header-right.w-25 .order-date-group,
+    .header-right.w-25 .deal-days-group,
+    .header-right.w-25 .final-due-date-group {
+        grid-column: auto;
+    }
+}
+    </style>
+
+@php
+    $saleItemsSource = collect($items ?? []);
+
+    if ($saleItemsSource->isEmpty()) {
+        $saleItemsSource = \App\Models\Item::with('category')
+            ->where(function ($query) {
+                $query->where('type', 'product')
+                    ->orWhereNull('type');
+            })
+            ->where(function ($query) {
+                $query->where('is_active', true)
+                    ->orWhereNull('is_active');
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    $saleCategoryOptions = $saleItemsSource
+        ->map(function ($item) {
+            return $item->category->name ?? $item->category_name ?? $item->category_id ?? null;
+        })
+        ->filter()
+        ->map(fn ($value) => trim((string) $value))
+        ->filter()
+        ->unique()
+        ->sort()
+        ->values();
+@endphp
+
 <body>
-    
 
     <div class="container-fluid min-vh-100 d-flex flex-column p-0">
+        <!-- Explorer / Tab Bar Area -->
         <header class="tab-system-header">
             <div class="tab-strip-wrapper justify-content-between">
                 <div class="d-flex align-items-end flex-grow-1 overflow-hidden">
-                    <div id="tab-strip" class="tab-strip d-flex align-items-end"></div>
-                    <button id="add-tab-btn" class="btn add-tab-btn" title="New Tab"><i class="bi bi-plus-lg"></i></button>
+                    <div id="tab-strip" class="tab-strip d-flex align-items-end">
+                        <!-- Tabs will be dynamically inserted here -->
+                    </div>
+                    <button id="add-tab-btn" class="btn add-tab-btn" title="New Tab">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
                 </div>
+                <div class="d-flex align-items-center gap-2 px-3">
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                id="warehouseDropdownBtn" data-bs-toggle="dropdown">
+            <i class="fa-solid fa-warehouse me-1"></i>
+            <span id="warehouseLabel">Select Warehouse</span>
+        </button>
+        <ul class="dropdown-menu" id="warehouseDropdownMenu">
+            @forelse($warehouses ?? [] as $wh)
+                <li>
+                    <a class="dropdown-item warehouse-option" href="#"
+                       data-id="{{ $wh->id }}"
+                       data-name="{{ $wh->name }}">
+                        {{ $wh->name }}
+                    </a>
+                </li>
+            @empty
+                <li><span class="dropdown-item text-muted">No warehouses</span></li>
+            @endforelse
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-primary" href="#" id="addWarehouseBtn">+ Add Warehouse</a></li>
+        </ul>
+    </div>
+    <input type="hidden" class="warehouse-id" name="warehouse_id">
+</div>
+
                 <div class="window-controls d-flex align-items-center px-2 gap-3">
                     <i id="calc-icon" class="fa-solid fa-calculator" title="Calculator"></i>
-                    <a href="{{ route('settings.transactions') }}" class="text-reset" title="Settings">
-                        <i class="fa-solid fa-gear"></i>
-                    </a>
+                            <a href="{{ route('settings.transactions') }}" class="text-reset" title="Settings">
+                                <i class="fa-solid fa-gear"></i>
+                            </a>
                     <i class="fa-solid fa-xmark close-app-icon" title="Close Window"></i>
                 </div>
             </div>
-            <div class="browser-toolbar d-flex align-items-center px-3">
-                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Delivery Challan</p>
-            </div>
+            <!-- Browser Toolbar / Heading Area -->
+            <p class="mt-3 ms-3 mb-0 me-3 mb-2">Delivery Challan</p>
         </header>
 
-        {{-- ══ TOP ACTION BAR ══ --}}
-        <div class="vyapar-topbar">
-            <button type="button" class="btn-add-party-topbar" id="topbarAddPartyBtn">
-                <i class="fa-solid fa-user-plus"></i> Add Party
-            </button>
-            <div class="topbar-spacer"></div>
-            <div class="topbar-right-group">
-                <div class="dropdown">
-                    <button class="btn-topbar-warehouse" type="button" id="topbarWarehouseBtn"
-                            data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
-                        <span style="display:flex;align-items:center;gap:6px;">
-                            <i class="fa-solid fa-warehouse"></i>
-                            <span id="topbarWarehouseLabel">Select Warehouse</span>
-                        </span>
-                        <i class="fa-solid fa-chevron-down" style="font-size:10px;color:#94a3b8;"></i>
-                    </button>
-                    <ul class="dropdown-menu" id="topbarWarehouseDropdownMenu" aria-labelledby="topbarWarehouseBtn"></ul>
-                </div>
-                <button type="button" class="btn-store" id="mainStoreBtn">
-                    <span class="store-icon"><i class="fa-solid fa-store" style="font-size:11px;"></i></span>
-                    <span class="store-label">Main Store</span>
-                    <i class="fa-solid fa-chevron-down" style="font-size:10px;color:#94a3b8;margin-left:2px;"></i>
-                </button>
-            </div>
-        </div>
-
-        <main id="content-area">
+        <!-- Content Area -->
+        <main id="content-area" class="">
+            <!-- Tab contents will be dynamically inserted here
+            <button id="global-save-btn" class="btn btn-primary position-absolute bottom-0 end-0 m-4 shadow-lg z-3">
+                <i class="bi bi-save me-2"></i>Save
+            </button> -->
+            <!-- Form Template -->
             <template id="form-template">
                 <div class="invoice-container">
                     <div class="invoice-form invoice-card">
 
-                        {{-- ══ HEADER SECTION ══ --}}
+                        <!-- Header Section -->
                         <div class="header-section">
+                            <div class="header-left">
+                                <div class="input-group party-selector-group">
+                                <div class="party-selector-panel">
+                                <!-- Party dropdown button -->
+<div class="dropdown party-dropdown-wrapper" data-bs-auto-close="outside" style="position: relative; display: inline-block;">
+    <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; min-height: 34px;">
 
-                            {{-- LEFT: Party fields --}}
-                            <div>
-                                {{-- Row 1: Party | Billing Name (always visible) --}}
-                                <div style="display:flex; gap:12px; align-items:start;">
+    <!-- Balance display -->
+    <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
+        <!-- JS will populate balance here -->
+    </div>
 
-                                    {{-- Party dropdown --}}
-                                    <div class="party-selector-panel">
-                                        <div class="party-dropdown-wrapper" style="position:relative;">
-                                            <label style="position:absolute;top:-1px;left:10px;
-                                                font-size:9px;font-weight:600;color:#2563eb;
-                                                text-transform:uppercase;letter-spacing:0.05em;
-                                                background:#fff;padding:0 3px;z-index:2;
-                                                pointer-events:none;line-height:1;">Party <span style="color:#ef4444;">*</span></label>
-                                            <input type="text"
-                                                class="party-search-input"
-                                                placeholder=""
-                                                autocomplete="off"
-                                                style="width:100%;min-height:48px;
-                                                    padding:18px 34px 6px 10px;
-                                                    border:1.5px solid #374151;border-radius:8px;
-                                                    background:#fbfdff;color:#111827;
-                                                    font-size:13px;font-weight:500;cursor:pointer;
-                                                    outline:none;transition:border-color .15s,box-shadow .15s;">
-                                            <i class="fa-solid fa-chevron-down" style="position:absolute;right:10px;top:50%;
-                                                transform:translateY(-50%);font-size:10px;color:#94a3b8;pointer-events:none;"></i>
-                                        </div>
-                                        {{-- Hidden fields --}}
-                                        <input type="hidden" class="party-id" name="party_id">
-                                        <input type="hidden" class="party-shipping-address" name="shipping_address">
-                                        <div class="party-bal-display"
-                                            style="color:#2563eb;font-weight:600;margin-top:3px;font-size:12px;min-height:16px;">
-                                        </div>
-                                    </div>
+    <!-- Dropdown menu (existing) -->
+    <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
+        <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
+        <li class="dropdown-header d-flex justify-content-between px-3">
 
-                                    {{-- Billing Name (always visible) --}}
-                                    <div class="party-meta-field" style="width:200px;flex-shrink:0;">
-                                        <label>Billing Name(Optional)</label>
-                                        <input type="text" class="meta-control billing-name-input" name="billing_name">
-                                    </div>
+            <span>Party Name</span>
+            <span>Opening Balance</span>
+        </li>
+          @foreach($parties as $party)
+          <li>
+            <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+               data-id="{{ $party->id }}"
+               data-name="{{ $party->name }}"
+               data-phone="{{ $party->phone }}"
+               data-phone-number-2="{{ $party->phone_number_2 }}"
+               data-city="{{ $party->city }}"
+               data-ptcl="{{ $party->ptcl_number }}"
+               data-email="{{ $party->email }}"
+               data-address="{{ addslashes($party->address ?? '') }}"
+               data-billing="{{ addslashes($party->billing_address ?? '') }}"
+               data-shipping="{{ addslashes($party->shipping_address ?? '') }}"
+               data-party-group="{{ $party->party_group }}"
+               data-due-days="{{ $party->due_days ?? '' }}"
+               data-opening="{{ $party->opening_balance ?? 0 }}"
+               data-type="{{ $party->transaction_type }}"
+               data-party-type="{{ is_array($party->party_type) ? implode(',', $party->party_type) : ($party->party_type ?? '') }}"
+               data-credit-limit-enabled="{{ $party->credit_limit_enabled ?? 0 }}"
+               data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
+               data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
+                <span>{{ $party->name }}</span>
+                <span
+                  @if($party->transaction_type == 'pay')
+                      class="text-danger"
+                  @elseif($party->transaction_type == 'receive')
+                      class="text-success"
+                  @endif
+                >
+                  @if($party->transaction_type == 'pay')
+                      <i class="fa-solid fa-arrow-up me-1"></i>
+                  @elseif($party->transaction_type == 'receive')
+                      <i class="fa-solid fa-arrow-down me-1"></i>
+                  @endif
+                  ₹{{ number_format($party->opening_balance ?? 0, 2) }}
+                </span>
+            </a>
+          </li>
+          @endforeach
 
+    </ul>
+</div>
+<input type="hidden" class="party-id" name="party_id">
                                 </div>
-
-                                {{-- ══ ACCORDION: expands when a party is selected ══ --}}
-                                <div class="party-accordion">
-                                    <div class="accordion-field">
-                                        <label>Phone Number</label>
-                                        <input type="text" class="phone-visible-input" name="phone" placeholder="">
-                                    </div>
-                                    <div class="accordion-field">
-                                        <label>Billing Address</label>
-                                        <input type="text" class="billing-address-visible" name="billing_address" placeholder="">
+                                </div>
+                                <div class="party-meta-grid">
+                                    <div class="party-meta-field billing-name-field">
+                                        <div class="floating-input-wrapper">
+                                            <input type="text" id="billingNameInput" name="billing_name" class="meta-control billing-name-input" placeholder=" ">
+                                            <label>Billing Name (Optional)</label>
+                                        </div>
                                     </div>
                                 </div>
-
+                                <div class="party-meta-grid party-details d-none">
+                                    <div class="party-meta-field">
+                                        <div class="floating-input-wrapper">
+                                            <input type="text" name="phone" class="meta-control phone-input" placeholder=" ">
+                                            <label>Phone No.</label>
+                                        </div>
+                                    </div>
+                                    <br>
+                                    <div class="party-meta-field address-field">
+                                        <div class="floating-input-wrapper">
+                                            <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "></textarea>
+                                            <label>Billing Address</label>
+                                        </div>
+                                    </div>
+                                    <div class="party-meta-field address-field">
+                                        <div class="floating-input-wrapper">
+                                            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
+                                            <label>Shipping Address</label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            {{-- RIGHT: Challan info panel --}}
                             <div class="header-right w-25">
-                                <div class="input-group">
-                                    <span>Challan No.</span>
+                                <div class="d-flex justify-content-end mb-2">
+
+                                </div>
+                                <div class="input-group invoice-number-group">
+                                    <span>Invoice No.</span>
                                     <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
                                 </div>
-                                <div class="input-group date-wrapper mt-2">
+                                <div class="input-group date-wrapper invoice-date-group">
                                     <span>Invoice Date</span>
                                     <input type="date" class="input-control underline-input invoice-date">
                                 </div>
-                                <div class="input-group date-wrapper mt-2">
-                                    <span>Due Date</span>
-                                    <input type="date" class="input-control underline-input due-date">
+
+                                <div class="input-group date-wrapper deal-days-group">
+                                    <span>Deal Days</span>
+                                    <select class="input-control underline-input due-days-select">
+                                        <option value="0">0 Days</option>
+                                        <option value="5">5 Days</option>
+                                        <option value="10">10 Days</option>
+                                        <option value="15">15 Days</option>
+                                        <option value="30">30 Days</option>
+                                        <option value="45">45 Days</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                    <input type="number" class="input-control underline-input due-days-custom d-none" placeholder="Custom deal days" min="0">
                                 </div>
+                                <div class="input-group date-wrapper final-due-date-group">
+                                    <span>Due Date</span>
+                                    <input type="date" class="input-control underline-input due-date" readonly>
+                                </div>
+
                             </div>
                         </div>
 
                         <div class="alert alert-success d-none sale-success-msg"></div>
 
-                        {{-- ══ ITEMS TABLE ══ --}}
+                        <!-- Table Section -->
                         <div class="table-container">
                             <table class="item-table">
                                 <thead>
                                     <tr>
                                         <th class="row-num">#</th>
-                                        <th style="width:28%;">ITEM</th>
-                                        <th>GROSS WEIGHT</th>
-                                        <th>NET WEIGHT</th>
-                                        <th>DESCRIPTION</th>
-                                        <th>UNIT</th>
-                                        <th>AMOUNT</th>
-                                        <th class="add-col" style="position:relative;">
-                                            <button type="button" class="btn-add-circle table-settings-btn"
-                                                data-bs-toggle="modal" data-bs-target="#itemColumnModal">
+                                        <th style="width: 30%;">ITEM</th>
+                                        <th>TAFSEEL</th>
+                                        <th>TADAAT</th>
+                                        <th>GROSS W</th>
+                                        <th>NET W</th>
+                                        <th>WEIGHT</th>
+                                        <th>RATE</th>
+                                        <th class="custom-size-th">UNIT</th>
+                                        <th>PRICE UNIT</th>
+                                        <th class="col-category d-none">CATEGORY</th>
+                                        <th class="col-item-code d-none">ITEM CODE</th>
+                                        <th class="col-description d-none">DESCRIPTION</th>
+                                        <th class="col-discount d-none">DISCOUNT</th>
+                                        <th class="add-col" style="position: relative;">
+                                            <button type="button" class="btn-add-circle table-settings-btn" data-bs-toggle="modal" data-bs-target="#itemColumnModal">
                                                 <i class="fa-solid fa-plus"></i>
                                             </button>
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody class="item-rows">
+                                    <!-- Row 1 -->
                                     <tr class="item-row">
                                         <td class="row-num">
                                             <span class="row-index-text">1</span>
                                             <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                                         </td>
                                         <td>
-                                            <select class="form-select item-name">
-                                                <option value="" selected disabled>Select Item</option>
-                                            </select>
+                                            <div class="item-picker">
+                                                <input type="text" class="item-picker-input" placeholder="Search Item" style="position: relative; z-index: 10;">
+                                                <div class="item-picker-panel">
+                                                    <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-square-plus"></i> Add Item</div>
+                                                    <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
+                                                        <span>Item</span>
+                                                        <span>Sale Price</span>
+                                                        <span>Purchase Price</span>
+                                                        <span>Stock</span>
+                                                        <span>Weight</span>
+                                                    </div>
+                                                    <div class="item-picker-list" style="max-height: 280px; overflow-y: auto;">
+                                                        @forelse($saleItemsSource as $item)
+                                                            <div class="item-picker-row item-picker-option" data-id="{{ $item->id }}">
+                                                                <div class="item-picker-name">
+                                                                    {{ $item->name }}
+                                                                    @if(!empty($item->item_code))
+                                                                        <small>({{ $item->item_code }})</small>
+                                                                    @endif
+                                                                </div>
+                                                                <div>{{ number_format((float) ($item->sale_price ?? $item->price ?? 0), 2, '.', '') }}</div>
+                                                                <div>{{ number_format((float) ($item->purchase_price ?? 0), 2, '.', '') }}</div>
+                                                                <div class="item-picker-stock {{ (float) ($item->opening_qty ?? 0) < 0 ? 'neg' : '' }}">{{ (float) ($item->opening_qty ?? 0) }}</div>
+                                                            </div>
+                                                        @empty
+                                                            <div class="item-picker-empty">No items found</div>
+                                                        @endforelse
+                                                    </div>
+                                                </div>
+                                                <select class="form-select item-name d-none">
+                                                    <option value="" selected disabled>Select Item</option>
+                                                    @foreach($saleItemsSource as $item)
+                                                        <option value="{{ $item->id }}"
+                                                            data-price="{{ $item->price }}"
+                                                            data-sale-price="{{ $item->sale_price }}"
+                                                            data-purchase-price="{{ $item->purchase_price }}"
+                                                            data-stock="{{ $item->opening_qty }}"
+                                                            data-location="{{ $item->location }}"
+                                                            data-label="{{ $item->name }}"
+                                                            data-rich-label="{{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}"
+                                                            data-unit="{{ $item->unit }}"
+                                                            data-weight="{{ $item->bag_weight ?? 0 }}"
+                                                            data-category="{{ $item->category->name ?? $item->category_name ?? $item->category_id ?? '' }}"
+                                                            data-item-code="{{ $item->item_code ?? '' }}"
+                                                            data-description="{{ $item->description ?? $item->item_description ?? '' }}"
+                                                            data-discount="{{ $item->discount ?? 0 }}"
+                                                        >
+                                                            {{ $item->name }} | Sale: {{ $item->sale_price ?? $item->price ?? 0 }} | Stock: {{ $item->opening_qty ?? 0 }} | Location: {{ $item->location ?? '' }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                         </td>
-                                        <td><input type="number" class="item-qty gross-weight-input" value="0" min="0" step="0.01"></td>
-                                        <td><input type="number" class="item-price net-weight-input" value="0" min="0" step="0.01"></td>
-                                        <td><input type="text" class="item-desc-inline" placeholder="Description"></td>
-                                        <td>
-                                            <select class="item-unit-select" name="unit[]">
-                                                <option value="">NONE</option>
-                                                <option value="KGS">KGS</option>
-                                                <option value="PCS">PCS</option>
-                                                <option value="LTR">LTR</option>
-                                                <option value="MTR">MTR</option>
+                                        <td><input type="text" class="item-tafseel" placeholder="Tafseel"></td>
+                                        <td><input type="number" class="item-qty tadaat-input" value="1"></td>
+                                        <td><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="item-bag_weight" readonly></td>
+                                        <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
+                                        <td class="custom-size-td">
+                                            <select class="item-unit">
+                                                <option value="">Select Unit</option>
+                                                <!-- Quantity -->
+                                                <option value="PCS">PCS (Pieces)</option>
                                                 <option value="BOX">BOX</option>
-                                                <option value="CTN">CTN</option>
-                                                <option value="BAG">BAG</option>
-                                                <option value="TON">TON</option>
+                                                <option value="PACK">PACK</option>
+                                                <option value="SET">SET</option>
+                                                <!-- Weight -->
+                                                <option value="KG">KG (Kilogram)</option>
+                                                <option value="G">Gram</option>
+                                                <!-- Length -->
+                                                <option value="M">Meter</option>
+                                                <option value="FT">Feet</option>
+                                                <!-- Volume -->
+                                                <option value="L">Liter</option>
+                                                <option value="ML">Milliliter</option>
                                             </select>
                                         </td>
-                                        <td class="col-amount"><input type="number" class="item-amount" value="0"></td>
+                                        <td><input type="number" class="item-price-unit" value="0" min="0" step="0.01"></td>
+                                        <td class="col-category d-none">
+                                            <select class="item-category">
+                                                <option value="">Select Category</option>
+                                                @foreach($saleCategoryOptions as $categoryOption)
+                                                    <option value="{{ $categoryOption }}">{{ $categoryOption }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
+                                        <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description" readonly></td>
+                                        <td class="col-discount d-none">
+                                            <div class="item-discount-fields">
+                                                <input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%">
+                                                <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
+                                            </div>
+                                        </td>
+                                        <td class="d-none"><input type="number" class="item-amount" value="0"></td>
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
@@ -539,131 +1443,179 @@
                             <div class="table-footer">
                                 <button type="button" class="btn-add-row add-row-btn">ADD ROW</button>
                                 <div class="footer-totals">
-                                    <div><span class="total-label">TOTAL GROSS WT</span><span class="total-qty">0</span></div>
-                                    <div><span class="total-label">TOTAL AMOUNT</span><span class="total-base-amount">0</span></div>
-                                </div>
-                            </div>
-
-                            {{-- ══ TOTAL ROW BELOW TABLE ══ --}}
-                            <div style="display:flex; justify-content:flex-end; padding:10px 12px 4px; border-top:1px solid #e2e8f0;">
-                                <div style="display:flex; align-items:center; gap:12px;">
-                                    <span style="font-size:13px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em;">Total</span>
-                                    <div style="position:relative;">
-                                        <input type="text"
-                                            class="table-grand-total"
-                                            value="0.00"
-                                            readonly
-                                            style="width:160px; font-size:18px; font-weight:700; color:#2563eb;
-                                                border:2px solid #2563eb; border-radius:8px;
-                                                padding:8px 14px; background:#eff6ff;
-                                                text-align:right; outline:none; cursor:default;">
+                                    <div>
+                                        <span class="total-label">TOTAL QTY</span>
+                                        <span class="total-qty">0</span>
+                                    </div>
+                                    <div>
+                                        <span class="total-label">TOTAL AMOUNT</span>
+                                        <span class="total-base-amount">0</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- ══ BOTTOM SECTION ══ --}}
+                        <!-- Bottom Split Section -->
                         <div class="bottom-section">
+                            <!-- Left Column -->
                             <div class="bottom-left">
+                                <div class="payment-section">
+                                    <div class="payment-entry d-flex align-items-center gap-2 mb-2">
+                                        <select class="input-control default-payment-direction d-none" style="max-width: 140px;">
+                                            <option value="payment_in" selected>Payment In</option>
+                                            <option value="payment_out">Payment Out</option>
+                                        </select>
+                                        <select class="input-control default-payment-type">
+                                            <option value="">Select Payment Type</option>
+                                            <option value="cash" selected>Cash</option>
+                                            @foreach($bankAccounts as $bank)
+                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
+                                            @endforeach
+                                            <option value="add_new_bank">+ Add Bank Account</option>
+                                        </select>
+                                        <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
+                                        <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
+                                    </div>
 
-                                <div class="broker-info-grid">
-                                    <div class="broker-input-field">
-                                        <label>BROKAR</label>
-                                        <input type="text" name="broker_name" class="broker-name-field" placeholder="">
+                                    <div class="payment-entries">
+                                        <!-- Payment rows will be added here when "Add Payment type" is clicked -->
                                     </div>
-                                    <div class="broker-input-field">
-                                        <label>CITY</label>
-                                        <input type="text" name="broker_city" class="broker-city-field" placeholder="">
+
+                                    <div class="payment-total d-flex justify-content-between align-items-center mt-2">
+                                        <span class="text-muted">Total payment:</span>
+                                        <span class="fw-bold payment-total-amount">0</span>
                                     </div>
-                                    <div class="broker-input-field">
-                                        <label>TRANSPORT NAME / GOODZ</label>
-                                        <input type="text" name="transport_name" class="transport-name-field" placeholder="">
+
+                                    <a href="#" class="link-text add-payment-entry">+ Add Payment type</a>
+                                </div>
+
+                                <template id="payment-entry-template">
+                                    <div class="payment-entry d-flex align-items-center gap-2 mb-2">
+                                        <select class="input-control payment-direction-entry d-none" style="max-width: 140px;">
+                                            <option value="payment_in" selected>Payment In</option>
+                                            <option value="payment_out">Payment Out</option>
+                                        </select>
+                                         <select class="input-control payment-type-entry">
+                                              <option value="">Select Bank Account</option>
+                                              <option value="cash" selected>Cash</option>
+                                              @foreach($bankAccounts as $bank)
+                                                  <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
+                                              @endforeach
+                                              <option value="add_new_bank">+ Add Bank Account</option>
+                                          </select>
+                                        <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
+                                        <input type="text" class="input-control payment-reference" placeholder="Reference">
+                                        <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
                                     </div>
-                                    <div class="broker-input-field">
-                                        <label>DETAIL</label>
-                                        <input type="text" name="transport_detail" class="transport-detail-field" placeholder="">
-                                    </div>
-                                    <div class="broker-input-field broker-full-row">
-                                        <label>BILTI NO / GARI NO</label>
-                                        <input type="text" name="bilti_no" class="bilti-no-field" placeholder="">
+                                </template>
+
+<div class="d-flex flex-column align-items-start w-100">
+
+                                <div class="description-action-group mb-2 w-100">
+                                    <button type="button" class="btn-action-light action-btn add-description">
+                                        <i class="fa-solid fa-align-left"></i>
+                                        ADD DESCRIPTION
+                                    </button>
+                                    <div class="description-pane d-none w-50" style="margin-top: -2px;">
+                                        <div class="floating-input-wrapper">
+                                            <textarea class="form-control description-input meta-control" rows="3" placeholder=" "></textarea>
+                                            <label>Description</label>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div style="display:flex;gap:8px;width:100%;flex-wrap:wrap;margin-bottom:10px;">
-                                    <button type="button" class="btn-action-light add-image" style="flex:1;">
-                                        <i class="fa-solid fa-camera"></i> ADD IMAGE
+                                <div class="action-buttons d-flex flex-wrap gap-2 mb-2 w-100">
+                                    <button type="button" class="btn-action-light action-btn add-image">
+                                        <i class="fa-solid fa-camera"></i>
+                                        ADD IMAGE
                                     </button>
-                                    <button type="button" class="btn-action-light add-document" style="flex:1;">
-                                        <i class="fa-solid fa-file-lines"></i> ADD DOCUMENT
+
+                                    <button type="button" class="btn-action-light action-btn add-document">
+                                        <i class="fa-solid fa-align-left"></i>
+                                        ADD DOCUMENT
                                     </button>
+
                                 </div>
 
-                                <input type="hidden" class="warehouse-id" name="warehouse_id">
+                                <div class="image-upload-section mt-2 w-100">
+                                    <div class="image-placeholder text-center p-3 border border-dashed rounded" style="cursor:pointer;">
+                                        <div class="text-muted">select image</div>
+                                    </div>
+                                    <div class="image-files-list d-flex flex-wrap gap-2 mt-2"></div>
+                                    <div class="document-files-list list-group mt-2"></div>
+                                </div>
 
-                                <div class="image-gallery"></div>
-                                <div class="compression-status mt-2"></div>
-                                <input type="file" class="d-none image-input" accept="image/*" multiple>
+                                <input type="file" class="d-none image-input" accept="image/*" multiple />
+                                <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" multiple />
                             </div>
 
-                            {{-- ══ RIGHT: Discount / Tax / Total calc panel ══ --}}
+                        </div>
+
+                            <!-- Right Column -->
                             <div class="bottom-right">
-
-                                <div class="calc-row">
-                                    <div class="calc-label">
-                                        <span class="editable-heading" data-label-key="discount">Discount</span>
+                                <div class="calc-row broker-calc-row">
+                                    <div class="calc-label">Broker</div>
+                                    <div class="calc-inputs broker-calc-inputs">
+                                        <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 260px; max-width: 100%;">
+                                            <input type="text" class="form-control broker-search-input w-100" placeholder="Search or select broker..." id="brokerDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
+                                            <div class="broker-selected-info">
+                                                <div class="broker-selected-name"></div>
+                                                <div class="broker-selected-phone"></div>
+                                            </div>
+                                            <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
+                                                @foreach($brokers as $broker)
+                                                <li>
+                                                    <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
+                                                       data-id="{{ $broker->id }}"
+                                                       data-phone="{{ $broker->phone }}"
+                                                       data-name="{{ $broker->name }}"
+                                                       data-commission-rate="{{ $broker->commission_rate ?? 0 }}">
+                                                        <div class="broker-option-name">{{ $broker->name }}</div>
+                                                        <div class="broker-option-city text-muted small">{{ $broker->city ?: '-' }}</div>
+                                                    </a>
+                                                </li>
+                                                @endforeach
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-primary" href="#" id="addNewBrokerBtn">+ Add New Broker</a></li>
+                                            </ul>
+                                        </div>
+                                        <div class="brokerage-inputs">
+                                        <select class="brokerage-type">
+                                            <option value="">Condition</option>
+                                            <option value="broker_rate">Broker Rate</option>
+                                            <option value="full">Poori Brokerage (0.45%)</option>
+                                            <option value="half">Aadhi Brokerage (0.225%)</option>
+                                            <option value="custom_pct">Custom %</option>
+                                            <option value="per_kg">Per KG (Safi Wazan)</option>
+                                        </select>
+                                        <input type="number" class="brokerage-rate" min="0" step="0.01" placeholder="Value">
+                                        <input type="hidden" class="brokerage-base-amount" value="0">
+                                        <input type="number" class="brokerage-amount" min="0" step="0.01" value="0" readonly>
                                     </div>
-                                    <div class="calc-inputs">
-                                        <input type="number" class="mini-input discount-pct" placeholder="%" style="width:55px;" min="0" step="0.01">
-                                        <span style="color:#94a3b8;font-size:11px;">%</span>
-                                        <span style="color:#94a3b8;">-</span>
-                                        <input type="number" class="mini-input discount-rs" placeholder="Rs" style="width:72px;" min="0" step="0.01">
-                                    </div>
-                                </div>
-
-                                <div class="calc-row">
-                                    <div class="calc-label">
-                                        <input type="checkbox" class="custom-checkbox round-off-check" checked style="width:16px;height:16px;margin-right:4px;vertical-align:middle;">
-                                        <label style="margin:0;font-size:12px;vertical-align:middle;">Round Off</label>
-                                    </div>
-                                    <div class="calc-inputs">
-                                        <input type="number" class="mini-input round-off-val" value="0" readonly style="width:60px;text-align:right;">
-                                    </div>
-                                </div>
-
-                                <div class="calc-row">
-                                    <div class="calc-label">
-                                        <span class="editable-heading" data-label-key="delivery_expense">Karaya/extra kharc...</span>
-                                    </div>
-                                    <div class="calc-inputs">
-                                        <input type="number" class="mini-input delivery-expense" placeholder="Rs" min="0" step="0.01" style="width:95px;">
-                                        <span class="delivery-expense-display tax-amount-display">0</span>
-                                    </div>
-                                </div>
-
-                                <div class="calc-row">
-                                    <div class="calc-label">
-                                        <span class="editable-heading" data-label-key="brokerage_amount">BROKERI</span>
-                                    </div>
-                                    <div class="calc-inputs">
-                                        <input type="number" class="mini-input brokerage-amount" placeholder="Rs" min="0" step="0.01" style="width:95px;">
-                                    </div>
-                                </div>
-
-                                <div class="calc-row">
-                                    <div class="calc-label">
-                                        <span class="editable-heading" data-label-key="commission">COMISSION</span>
-                                    </div>
-                                    <div class="calc-inputs">
-                                        <input type="number" class="mini-input commission-amount" placeholder="Rs" min="0" step="0.01" style="width:95px;">
+                                        <input type="hidden" class="broker-id" name="broker_id">
+                                        <input type="hidden" class="broker-phone-input" name="broker_phone">
                                     </div>
                                 </div>
 
+
+
+                                <!-- Discount -->
                                 <div class="calc-row">
-                                    <div class="calc-label">
-                                        <span class="editable-heading" data-label-key="tax">Tax</span>
-                                    </div>
+                                    <div class="calc-label">Discount</div>
                                     <div class="calc-inputs">
-                                        <select class="mini-input tax-select" style="width:110px;">
+                                        <input type="number" class="mini-input discount-pct" placeholder="%">
+                                        <span>-</span>
+                                        <input type="number" class="mini-input discount-rs" placeholder="Rs">
+                                    </div>
+                                </div>
+
+                                <!-- Tax -->
+                                <div class="calc-row">
+                                    <div class="calc-label">Tax</div>
+                                    <div class="calc-inputs">
+                                        <select class="mini-input tax-select" style="width: 100px;">
                                             <option value="0">NONE</option>
                                             <option value="5">GST@5%</option>
                                             <option value="12">GST@12%</option>
@@ -673,29 +1625,94 @@
                                     </div>
                                 </div>
 
-                                <div class="final-total-group">
-                                    <div class="calc-row" style="margin-bottom:6px;border-bottom:none;">
-                                        <div class="calc-label" style="font-weight:700;font-size:14px;color:#111827;">
-                                            <span class="editable-heading" data-label-key="total">Total</span>
+                                <!-- Summary Expense Grid -->
+                                <div class="summary-expense-grid">
+                                    <div class="calc-row">
+                                        <div class="calc-label">Parachi</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input parachi-input" value="0" min="0" step="0.01" placeholder="Amount">
                                         </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Rate</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input rate-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+
+                                    <div class="calc-row">
+                                        <div class="calc-label">Bardana</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input bardana-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Mazdoori</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input labour-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Rehra Mazdoori</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input rehra-mazdori-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Dak Karaya</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input post-expense-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                    <div class="calc-row">
+                                        <div class="calc-label">Local</div>
+                                        <div class="calc-inputs">
+                                            <input type="number" class="mini-input extra-expense-input" value="0" min="0" step="0.01" placeholder="Amount">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Round Off -->
+                                <div class="calc-row">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" class="custom-checkbox round-off-check" checked>
+                                        <label class="link-text">Round Off</label>
+                                    </div>
+                                    <div class="calc-inputs">
+                                        <input type="number" class="mini-input round-off-val" value="0" readonly>
+                                    </div>
+                                </div>
+
+                                <!-- Final Total -->
+                                <div class="final-total-group">
+                                    <div class="calc-row" style="margin-bottom: 5px;">
+                                        <div class="calc-label" style="font-weight: 700;">Total</div>
                                     </div>
                                     <input type="text" class="total-input-large grand-total" value="0" readonly>
                                 </div>
 
-                                <input type="hidden" name="discount_label" class="heading-value" data-field="discount" value="Discount">
-                                <input type="hidden" name="delivery_expense_label" class="heading-value" data-field="delivery_expense" value="Karaya/extra kharc...">
-                                <input type="hidden" name="brokerage_amount_label" class="heading-value" data-field="brokerage_amount" value="BROKERI">
-                                <input type="hidden" name="commission_label" class="heading-value" data-field="commission" value="COMISSION">
-                                <input type="hidden" name="tax_label" class="heading-value" data-field="tax" value="Tax">
-                                <input type="hidden" name="total_label" class="heading-value" data-field="total" value="Total">
+                                <div class="calc-row">
+                                    <div class="calc-label">Paid Amount</div>
+                                    <div class="calc-inputs">
+                                        <input type="number" class="mini-input received-amount" value="0" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="calc-row">
+                                    <div class="calc-label">Remaining Amount</div>
+                                    <div class="calc-inputs">
+                                        <span class="fw-bold balance-amount">0</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Fixed Action Bar -->
                     <div class="sticky-actions">
                         <div class="btn-share">
-                            <button class="btn-share-main" type="button">Share</button>
-                            <button class="btn-share-arrow" type="button"><i class="fa-solid fa-chevron-down"></i></button>
+                            <button class="btn-share-main" type="button">Save &amp; Share</button>
+                            <button class="btn-share-arrow"><i class="fa-solid fa-chevron-down"></i></button>
                         </div>
                         <button class="btn-save" type="button">Save</button>
                     </div>
@@ -704,574 +1721,2060 @@
         </main>
     </div>
 
-    {{-- ADD PARTY POPUP --}}
-    <div class="party-popup-backdrop" id="partyPopupBackdrop"></div>
-    <div class="party-quick-popup" id="partyQuickPopup" role="dialog" aria-modal="true" aria-labelledby="partyPopupTitle">
-        <div class="party-popup-header">
-            <h5 id="partyPopupTitle">Add Party</h5>
-            <div class="d-flex align-items-center gap-2">
-                <button type="button" class="popup-close-btn" id="partyPopupCloseBtn">&times;</button>
-            </div>
-        </div>
-        <div class="party-popup-body">
-            <div class="party-popup-top-row">
-                <div class="pp-field" data-label="Party Name *"><label>Party Name</label><input type="text" id="pp_name" autocomplete="off"></div>
-                <div class="pp-field" data-label="Phone Number"><label>Phone Number</label><input type="text" id="pp_phone" autocomplete="off"></div>
-                <div class="pp-field pp-select" data-label="Party Group"><label>Party Group</label>
-                    <select id="pp_group">
-                        <option value=""></option>
-                        @foreach($partyGroups ?? [] as $group)
-                        <option value="{{ $group->id }}">{{ $group->name }}</option>
-                        @endforeach
-                    </select>
+    <!-- Item Column Settings Modal -->
+    <div class="modal fade" id="itemColumnModal" tabindex="-1" aria-labelledby="itemColumnModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="itemColumnModalLabel">Add fields to items</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
-            <div class="party-popup-tabs">
-                <button type="button" class="party-popup-tab active" data-tab="address">Address</button>
-                <button type="button" class="party-popup-tab" data-tab="credit">Credit &amp; Balance</button>
-                <button type="button" class="party-popup-tab" data-tab="additional">Additional Fields</button>
-            </div>
-            <div class="party-popup-tab-pane active" data-pane="address">
-                <div class="pp-field pp-textarea" data-label="Billing Address"><label>Billing Address</label><textarea id="pp_billing_address" rows="3"></textarea></div>
-                <div class="pp-field pp-textarea mt-3" data-label="Shipping Address"><label>Shipping Address</label><textarea id="pp_shipping_address" rows="2"></textarea></div>
-            </div>
-            <div class="party-popup-tab-pane" data-pane="credit">
-                <div class="credit-balance-grid">
-                    <div class="pp-field floated" data-label="Opening Balance"><label>Opening Balance</label>
-                        <div class="opening-balance-row">
-                            <input type="number" id="pp_opening_balance" min="0" step="0.01">
-                            <select class="opening-balance-type-select" id="pp_transaction_type">
-                                <option value="">Type</option>
-                                <option value="receive">To Receive</option>
-                                <option value="pay">To Pay</option>
-                            </select>
-                        </div>
+                <div class="modal-body">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input check-category" type="checkbox" id="colCategoryCheck">
+                        <label class="form-check-label" for="colCategoryCheck">Item Category</label>
                     </div>
-                    <div class="pp-field floated" data-label="As Of Date"><label>As Of Date</label><input type="date" id="pp_as_of_date"></div>
-                </div>
-                <div class="credit-limit-row">
-                    <span class="credit-limit-label">Credit Limit</span>
-                    <label class="toggle-switch"><input type="checkbox" id="pp_no_limit" checked><span class="toggle-track"></span><span>No Limit</span></label>
-                </div>
-                <div class="pp-field mt-3 d-none" id="pp_custom_limit_field" data-label="Credit Limit Amount"><label>Credit Limit Amount</label><input type="number" id="pp_credit_limit" min="0" step="0.01"></div>
-            </div>
-            <div class="party-popup-tab-pane" data-pane="additional">
-                <div class="pp-field" data-label="GST / Tax Number"><label>GST / Tax Number</label><input type="text" id="pp_gst"></div>
-                <div class="pp-field mt-3" data-label="Email"><label>Email</label><input type="email" id="pp_email"></div>
-            </div>
-        </div>
-        <div class="party-popup-footer">
-            <button type="button" class="btn-popup-secondary" id="partyPopupSaveNewBtn">Save &amp; New</button>
-            <button type="button" class="btn-popup-primary" id="partyPopupSaveBtn">Save</button>
-        </div>
-    </div>
-
-    {{-- ADD WAREHOUSE POPUP --}}
-    <div class="warehouse-quick-popup" id="warehouseQuickPopup" role="dialog" aria-modal="true">
-        <div class="party-popup-header">
-            <h5>Add New Warehouse</h5>
-            <button type="button" class="popup-close-btn" id="warehousePopupCloseBtn">&times;</button>
-        </div>
-        <div class="party-popup-body">
-            <div class="row g-3">
-                <div class="col-md-6"><div class="pp-field" data-label="Warehouse Name *"><label>Warehouse Name</label><input type="text" id="wh_name"></div></div>
-                <div class="col-md-6"><div class="pp-field" data-label="Warehouse Phone"><label>Phone</label><input type="text" id="wh_phone"></div></div>
-                <div class="col-md-6"><div class="pp-field" data-label="Handler Name"><label>Handler Name</label><input type="text" id="wh_handler_name"></div></div>
-                <div class="col-md-6"><div class="pp-field" data-label="Handler Phone"><label>Handler Phone</label><input type="text" id="wh_handler_phone"></div></div>
-                <div class="col-md-6">
-                    <div class="pp-field pp-select" data-label="Related User"><label>Related User</label>
-                        <select id="wh_user_id">
-                            <option value=""></option>
-                            @foreach($users as $user)
-                            <option value="{{ $user->id }}">{{ $user->name }}{{ $user->email ? ' (' . $user->email . ')' : '' }}</option>
-                            @endforeach
+                    <div class="mb-3">
+                        <select class="form-select form-select-sm item-filter-category" disabled>
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input check-item-code" type="checkbox" id="colItemCodeCheck">
+                        <label class="form-check-label" for="colItemCodeCheck">Item Code</label>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm item-filter-code" placeholder="Filter by code" disabled>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input check-description" type="checkbox" id="colDescriptionCheck">
+                        <label class="form-check-label" for="colDescriptionCheck">Description</label>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm item-filter-description" placeholder="Filter by description" disabled>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input check-discount" type="checkbox" id="colDiscountCheck">
+                        <label class="form-check-label" for="colDiscountCheck">Discount</label>
+                    </div>
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm item-filter-discount" disabled>
+                            <option value="">Any Discount</option>
+                            <option value="has">Has Discount</option>
+                            <option value="none">No Discount</option>
                         </select>
                     </div>
                 </div>
-                <div class="col-md-6"><div class="pp-field pp-textarea" data-label="Address"><label>Address</label><textarea id="wh_address" rows="2"></textarea></div></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary w-100 item-filter-apply" data-bs-dismiss="modal">Apply</button>
+                </div>
             </div>
-        </div>
-        <div class="party-popup-footer">
-            <button type="button" class="btn-popup-secondary" id="warehousePopupCancelBtn">Cancel</button>
-            <button type="button" class="btn-popup-primary" id="warehousePopupSaveBtn">Save Warehouse</button>
         </div>
     </div>
 
-    {{-- Modals --}}
-    <div class="modal fade" id="tabLimitModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content bg-dark text-dark border-secondary"><div class="modal-body text-center p-4"><i class="bi bi-exclamation-triangle text-warning display-4 mb-3"></i><h5>Maximum Limit Reached</h5><p>You can open a maximum of 10 transactions at a time.</p><button type="button" class="btn btn-primary px-4 mt-2" data-bs-dismiss="modal">OK</button></div></div></div></div>
-    <div class="modal fade" id="closeConfirmModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content bg-dark text-dark border-secondary"><div class="modal-header border-secondary"><h5 class="modal-title">Close Tab?</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>Are you sure you want to close this tab? Your delivery challan will not be saved.</p></div><div class="modal-footer border-secondary"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" id="confirm-close-btn" class="btn btn-danger">Close</button></div></div></div></div>
-    <div class="modal fade" id="editHeadingModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <!-- Sale Settings Sidebar -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="saleSettingsSidebar" aria-labelledby="saleSettingsSidebarLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="saleSettingsSidebarLabel">Sale Settings</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <div class="fw-semibold">Sale Prefix</div>
+                    <div class="text-muted small">INV- <a href="#" class="text-decoration-none">Edit</a></div>
+                </div>
+                <input class="form-check-input" type="checkbox" checked>
+            </div>
+            <div class="list-group mb-3">
+                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="modal" data-bs-target="#itemColumnModal">
+                    <div>
+                        <div class="fw-semibold">Add fields to invoice</div>
+                        <div class="text-muted small">Select columns to show</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <label class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">Quick Entry</div>
+                        <div class="text-muted small">Speed up data entry</div>
+                    </div>
+                    <input class="form-check-input" type="checkbox">
+                </label>
+                <label class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">Link payment to invoices</div>
+                        <div class="text-muted small">Keep payment history linked</div>
+                    </div>
+                    <input class="form-check-input" type="checkbox" checked>
+                </label>
+                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">Due dates &amp; payment terms</div>
+                        <div class="text-muted small">Set payment terms</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="modal" data-bs-target="#additionalChargesModal">
+                    <div>
+                        <div class="fw-semibold">Additional charges</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <a href="{{ route('settings.print-layout') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div class="fw-semibold">Print Settings</div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+
+            <div class="mb-3">
+                <div class="fw-semibold mb-2">Billing Type</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="billingType" id="billingLite" value="lite">
+                    <label class="form-check-label" for="billingLite">Lite Sale</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="billingType" id="billingFull" value="full" checked>
+                    <label class="form-check-label" for="billingFull">Full Sale</label>
+                </div>
+            </div>
+
+            <button class="btn btn-link text-decoration-none p-0"><i class="fa-solid fa-gear me-1"></i> More Settings</button>
+        </div>
+    </div>
+
+    <!-- Additional Charges Modal -->
+    <div class="modal fade" id="additionalChargesModal" tabindex="-1" aria-labelledby="additionalChargesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Change field label</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body"><div class="mb-3"><label for="headingNameInput" class="form-label">Field name</label><input type="text" id="headingNameInput" class="form-control" placeholder="Enter new label"></div></div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary save-heading-btn">Save</button></div>
+                <div class="modal-header">
+                    <h6 class="modal-title" id="additionalChargesModalLabel">Additional Charges</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="fw-semibold">Enable Additional Charges</span>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="additionalChargesToggle" checked>
+                        </div>
+                    </div>
+                    <div class="additional-charge-block">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input class="form-check-input additional-charge-check" type="checkbox" checked>
+                            <input type="text" class="form-control form-control-sm additional-charge-input" value="Shipping">
+                            <select class="form-select form-select-sm additional-charge-tax">
+                                <option>NONE</option>
+                                <option>GST 5%</option>
+                                <option>GST 12%</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch mb-3 ms-4">
+                            <input class="form-check-input additional-charge-tax-check" type="checkbox">
+                            <label class="form-check-label small">Enable tax for Shipping</label>
+                        </div>
+                    </div>
+                    <div class="additional-charge-block">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input class="form-check-input additional-charge-check" type="checkbox" checked>
+                            <input type="text" class="form-control form-control-sm additional-charge-input" value="Packaging">
+                            <select class="form-select form-select-sm additional-charge-tax">
+                                <option>NONE</option>
+                                <option>GST 5%</option>
+                                <option>GST 12%</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch mb-3 ms-4">
+                            <input class="form-check-input additional-charge-tax-check" type="checkbox">
+                            <label class="form-check-label small">Enable tax for Packaging</label>
+                        </div>
+                    </div>
+                    <div class="additional-charge-block">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input class="form-check-input additional-charge-check" type="checkbox" checked>
+                            <input type="text" class="form-control form-control-sm additional-charge-input" value="Adjustment">
+                            <select class="form-select form-select-sm additional-charge-tax">
+                                <option>NONE</option>
+                                <option>GST 5%</option>
+                                <option>GST 12%</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch ms-4">
+                            <input class="form-check-input additional-charge-tax-check" type="checkbox">
+                            <label class="form-check-label small">Enable tax for Adjustment</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger w-100">Save Details</button>
+                </div>
             </div>
         </div>
     </div>
 
+
+
+    <!-- Tab Limit Modal -->
+    <div class="modal fade" id="tabLimitModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-dark border-secondary">
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-exclamation-triangle text-warning display-4 mb-3"></i>
+                    <h5>Maximum Limit Reached</h5>
+                    <p>You can open a maximum of 10 transactions at a time.</p>
+                    <button type="button" class="btn btn-primary px-4 mt-2" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Close Confirmation Modal -->
+    <div class="modal fade" id="closeConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-dark border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Close Tab?</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to close this tab? Your purchase will not be saved. Use the Save button on
+                        the bottom right of the screen to save.</p>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirm-close-btn" class="btn btn-danger">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    @php
-        $challanPayload = isset($challan) ? $challan->load(['items','party','broker','challanDetail'])->toArray() : null;
-        $duplicatePayload = isset($duplicateChallan) ? array_merge($duplicateChallan->load(['items','party','broker','challanDetail'])->toArray(), ['bill_number' => $nextInvoiceNumber]) : null;
-    @endphp
 
-    <script>
-        window.items              = @json($items ?? []);
-        window.parties            = @json($parties ?? []);
-        window.brokers            = @json($brokers ?? []);
-        window.bankAccounts       = @json($bankAccounts ?? []);
-        window.bankAccountRoutes  = { store: "{{ route('bank-accounts.store') }}" };
-        window.transactionSettings = {
-            countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled','0') === '1'),
-            countLabel: 'Count'
-        };
-        window.responsibleUsers   = @json($users ?? []);
-        window.warehouses         = @json($warehouses ?? []);
-        window.warehouseStoreUrl  = "{{ route('warehouses.store') }}";
-        window.partyStoreUrl      = "{{ route('parties.store') }}";
-        window.partyGroupStoreUrl = "{{ route('party-groups.store') }}";
-        window.itemRoutes = {
-            index:         "{{ url('dashboard/items') }}",
-            store:         "{{ url('dashboard/items') }}",
-            unitsIndex:    "{{ url('dashboard/items/units') }}",
-            unitsStore:    "{{ url('dashboard/items/units') }}",
-            categoryStore: "{{ url('dashboard/items/category') }}"
-        };
-        window.saleStoreUrl   = "{{ isset($challan) ? route('delivery-challan.update', $challan->id) : route('delivery-challan.store') }}";
-        window.saleHttpMethod = "{{ isset($challan) ? 'PUT' : 'POST' }}";
-        window.challanId      = @json($challan->id ?? null);
-        window.editSaleData   = @json($challanPayload ?? $duplicatePayload);
-        window.docType        = 'delivery_challan';
-    </script>
+<script>
+    window.items = @json($saleItemsSource->values());
+    window.parties = @json($parties ?? []);
+    window.brokers = @json($brokers ?? []);
+    window.bankAccounts = @json($bankAccounts ?? []);
+    window.bankAccountRoutes = {
+        store: "{{ route('bank-accounts.store') }}"
+    };
+    window.transactionSettings = {
+        countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled', '0') === '1'),
+        countLabel: 'Count'
+    };
+    window.itemRoutes = {
+        index: "{{ url('dashboard/items') }}",
+        store: "{{ url('dashboard/items') }}",
+        categoryStore: "{{ url('dashboard/items/category') }}",
+        unitsIndex: "{{ url('dashboard/items/units') }}",
+        unitsStore: "{{ url('dashboard/items/units') }}"
+    };
 
-    {{-- ══ Editable Heading Labels ══ --}}
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var modalEl      = document.getElementById('editHeadingModal');
-        var headingInput = document.getElementById('headingNameInput');
-        var saveButton   = modalEl ? modalEl.querySelector('.save-heading-btn') : null;
-        var editModal    = modalEl ? new bootstrap.Modal(modalEl) : null;
-        var storageKey   = 'deliveryChallanHeadingLabels';
-        var currentKey   = '';
-        var defaults     = { discount:'Discount', delivery_expense:'Karaya/extra kharc...', brokerage_amount:'BROKERI', commission:'COMISSION', tax:'Tax', total:'Total' };
+    window.saleStoreUrl = "{{ route('sale.store') }}";
+    window.saleMethod = 'POST';
 
-        function getLabels() {
-            var labels = Object.assign({}, defaults);
-            try { var s = localStorage.getItem(storageKey); if (s) Object.assign(labels, JSON.parse(s)); } catch(e) {}
-            return labels;
-        }
-        function applyLabels(root) {
-            if (!root) return;
-            Object.entries(getLabels()).forEach(function(e) {
-                root.querySelectorAll('.editable-heading[data-label-key="'+e[0]+'"]').forEach(function(el){ el.textContent = e[1]; });
-                root.querySelectorAll('.heading-value[data-field="'+e[0]+'"]').forEach(function(el){ el.value = e[1]; });
-            });
-        }
-        applyLabels(document);
-        var tpl = document.getElementById('form-template');
-        if (tpl) applyLabels(tpl.content || tpl);
+    // Default values
+    window.editSaleData = null;
+    window.sourceEstimateId = null;
+    window.sourceSaleOrderId = null;
+    window.sourceChallanId = null;
+    window.sourceProformaId = null;
 
-        document.body.addEventListener('click', function(e) {
-            var t = e.target.closest('.editable-heading');
-            if (!t) return;
-            e.preventDefault();
-            currentKey = t.dataset.labelKey || '';
-            if (headingInput) headingInput.value = t.textContent.trim();
-            if (editModal) editModal.show();
-        });
-        if (saveButton) saveButton.addEventListener('click', function() {
-            var val = headingInput ? headingInput.value.trim() : '';
-            if (!val) return;
-            document.querySelectorAll('.editable-heading[data-label-key="'+currentKey+'"]').forEach(function(el){ el.textContent = val; });
-            document.querySelectorAll('.heading-value[data-field="'+currentKey+'"]').forEach(function(el){ el.value = val; });
-            try { var l={}; document.querySelectorAll('.editable-heading').forEach(function(el){ if(el.dataset.labelKey) l[el.dataset.labelKey]=el.textContent.trim(); }); localStorage.setItem(storageKey, JSON.stringify(l)); } catch(e){}
-            if (editModal) editModal.hide();
-        });
-        if (headingInput) headingInput.addEventListener('keydown', function(e){ if(e.key==='Enter'){e.preventDefault(); if(saveButton) saveButton.click();} });
-    });
-    </script>
+    // Optional doc type (avoid JS error)
+    window.docType = 'delivery_challan';
 
-    {{-- ══ Item select population ══ --}}
-    <script>
-    (function(){
-        function populateItemSelects(root) {
-            root = root || document;
-            var items = window.items || [];
-            root.querySelectorAll('select.item-name').forEach(function(sel){
-                var cur = sel.value;
-                while(sel.options.length > 1) sel.remove(1);
-                items.forEach(function(item){
-                    var opt = document.createElement('option');
-                    opt.value = item.id || '';
-                    opt.textContent = item.name || item.item_name || '';
-                    opt.dataset.price = item.sale_price || item.price || 0;
-                    opt.dataset.desc  = item.description || '';
-                    sel.appendChild(opt);
-                });
-                if(cur) sel.value = cur;
-            });
-        }
-        document.addEventListener('DOMContentLoaded', function(){
-            populateItemSelects();
-            document.addEventListener('challan:formAdded', function(){ populateItemSelects(); });
-            new MutationObserver(function(muts){
-                muts.forEach(function(m){
-                    m.addedNodes.forEach(function(n){
-                        if(n.nodeType===1 && n.querySelectorAll && n.querySelectorAll('select.item-name').length) populateItemSelects(n);
-                    });
-                });
-            }).observe(document.body, {childList:true, subtree:true});
+    @if(isset($sale))
+        // Edit mode
+        window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
+        window.saleMethod = 'PUT';
+        window.editSaleData = @json($sale->load(['items', 'payments']));
 
-            document.addEventListener('change', function(e){
-                if(!e.target.classList.contains('item-name')) return;
-                var sel = e.target, row = sel.closest('tr');
-                if(!row) return;
-                var opt = sel.options[sel.selectedIndex];
-                if(!opt || !opt.value) return;
-                var descInp = row.querySelector('.item-desc-inline');
-                if(descInp && opt.dataset.desc) descInp.value = opt.dataset.desc;
-                var grossInp = row.querySelector('.gross-weight-input');
-                var netInp   = row.querySelector('.net-weight-input');
-                var amtInp   = row.querySelector('.item-amount');
-                if(grossInp && netInp && amtInp){
-                    amtInp.value = ((parseFloat(grossInp.value)||0) * (parseFloat(netInp.value)||0)).toFixed(2);
-                }
-                var container = row.closest('.invoice-container') || document;
-                recalcTotal(container);
-            });
-        });
-    })();
-    </script>
+    @elseif(isset($convertedSaleData))
+        // Convert from estimate / sale order / challan
+        window.editSaleData = @json($convertedSaleData);
+        window.sourceEstimateId = @json($convertedSaleData['source_estimate_id'] ?? null);
+        window.sourceSaleOrderId = @json($convertedSaleData['source_sale_order_id'] ?? null);
+        window.sourceChallanId = @json($convertedSaleData['source_challan_id'] ?? null);
+        window.sourceProformaId = @json($convertedSaleData['source_proforma_id'] ?? null);
+    @endif
+</script>
 
-    {{-- ══ Total / Discount recalculation + Party Accordion ══ --}}
-    <script>
-    function recalcTotal(container) {
-        container = container || document;
-        var base = 0;
-        container.querySelectorAll('.item-amount').forEach(function(inp){ base += parseFloat(inp.value)||0; });
-        var totalGross = 0;
-        container.querySelectorAll('.gross-weight-input').forEach(function(inp){ totalGross += parseFloat(inp.value)||0; });
-        var tqEl = container.querySelector('.total-qty');
-        if(tqEl) tqEl.textContent = totalGross.toFixed(2);
-        var tbEl = container.querySelector('.total-base-amount');
-        if(tbEl) tbEl.textContent = base.toFixed(2);
-
-        var discPct = parseFloat(container.querySelector('.discount-pct')?.value)||0;
-        var discRs  = parseFloat(container.querySelector('.discount-rs')?.value)||0;
-        if(discPct > 0) discRs = base * discPct / 100;
-        var afterDisc = base - discRs;
-
-        var delivery   = parseFloat(container.querySelector('.delivery-expense')?.value)||0;
-        var brokeri    = parseFloat(container.querySelector('.brokerage-amount')?.value)||0;
-        var commission = parseFloat(container.querySelector('.commission-amount')?.value)||0;
-
-        var taxPct = parseFloat(container.querySelector('.tax-select')?.value)||0;
-        var taxAmt = afterDisc * taxPct / 100;
-        var taxDisplayEls = container.querySelectorAll('.tax-amount-display');
-        if(taxDisplayEls.length > 0) taxDisplayEls[taxDisplayEls.length-1].textContent = taxAmt.toFixed(2);
-
-        var subtotal = afterDisc + delivery + brokeri + commission + taxAmt;
-
-        var roCheck = container.querySelector('.round-off-check');
-        var roundVal = 0;
-        if(roCheck && roCheck.checked){
-            var rounded = Math.round(subtotal);
-            roundVal = rounded - subtotal;
-            subtotal = rounded;
-        }
-        var roEl = container.querySelector('.round-off-val');
-        if(roEl) roEl.value = roundVal.toFixed(2);
-
-        var gtEl = container.querySelector('.grand-total');
-        if(gtEl) gtEl.value = subtotal.toFixed(2);
-
-        // Also sync the table-level total display
-        var tgtEl = container.querySelector('.table-grand-total');
-        if(tgtEl) tgtEl.value = subtotal.toFixed(2);
-    }
-
-    document.addEventListener('DOMContentLoaded', function(){
-
-        /* ══ Floating label has-value tracking ══ */
-        function trackHasValue(root){
-            root = root||document;
-            root.querySelectorAll('.party-meta-field input,.party-meta-field textarea').forEach(function(el){
-                function upd(){ var f=el.closest('.party-meta-field'); if(f) f.classList.toggle('has-value',!!(el.value&&el.value.trim())); }
-                el.addEventListener('input',upd); el.addEventListener('blur',upd); upd();
-            });
-            root.querySelectorAll('.party-meta-field select').forEach(function(el){
-                function upd(){ var f=el.closest('.party-meta-field'); if(f) f.classList.toggle('has-value',!!(el.value&&el.value!=='')); }
-                el.addEventListener('change',upd); el.addEventListener('blur',upd); upd();
-            });
-        }
-        trackHasValue(document);
-        document.addEventListener('challan:formAdded',function(){ trackHasValue(document); });
-        new MutationObserver(function(m){ m.forEach(function(mu){ mu.addedNodes.forEach(function(n){ if(n.nodeType===1) trackHasValue(n); }); }); }).observe(document.body,{childList:true,subtree:true});
-
-        /* ══ Input events → recalc ══ */
-        document.addEventListener('input', function(e){
-            if(!e.target.matches('.item-amount,.gross-weight-input,.net-weight-input,.discount-pct,.discount-rs,.delivery-expense,.brokerage-amount,.commission-amount')) return;
-            var container = e.target.closest('.invoice-container')||document;
-            if(e.target.matches('.gross-weight-input,.net-weight-input')){
-                var row = e.target.closest('tr');
-                if(row){
-                    var gross = parseFloat(row.querySelector('.gross-weight-input')?.value)||0;
-                    var net   = parseFloat(row.querySelector('.net-weight-input')?.value)||0;
-                    var amtInp = row.querySelector('.item-amount');
-                    if(amtInp) amtInp.value = (gross*net).toFixed(2);
-                }
-            }
-            if(e.target.classList.contains('discount-pct')){
-                var base=0; container.querySelectorAll('.item-amount').forEach(function(i){ base+=parseFloat(i.value)||0; });
-                var rsInp = container.querySelector('.discount-rs');
-                if(rsInp) rsInp.value = (base*(parseFloat(e.target.value)||0)/100).toFixed(2);
-            }
-            if(e.target.classList.contains('discount-rs')){
-                var base2=0; container.querySelectorAll('.item-amount').forEach(function(i){ base2+=parseFloat(i.value)||0; });
-                var pctInp = container.querySelector('.discount-pct');
-                if(pctInp && base2>0) pctInp.value = ((parseFloat(e.target.value)||0)/base2*100).toFixed(2);
-            }
-            recalcTotal(container);
-        });
-        document.addEventListener('change', function(e){
-            if(!e.target.matches('.tax-select,.round-off-check')) return;
-            recalcTotal(e.target.closest('.invoice-container')||document);
-        });
-
-       
-
-  
-
-        /* ══ Topbar Warehouse Dropdown ══ */
-        function buildTopbarWarehouseDropdown(){
-            var menu = document.getElementById('topbarWarehouseDropdownMenu'); if(!menu) return;
-            menu.innerHTML='';
-            var whs = window.warehouses||[];
-            if(!whs.length){ menu.innerHTML='<li><span class="dropdown-item-text text-muted" style="font-size:12px;">No warehouses yet</span></li>'; }
-            else {
-                whs.forEach(function(wh){
-                    var li=document.createElement('li'), a=document.createElement('a');
-                    a.className='dropdown-item topbar-wh-option d-flex justify-content-between align-items-center'; a.href='#';
-                    a.dataset.id=wh.id||''; a.dataset.name=wh.name||''; a.dataset.phone=wh.phone||'';
-                    a.innerHTML='<span style="font-weight:500;">'+(wh.name||'')+'</span><span style="font-size:11px;color:#94a3b8;">'+(wh.phone||'')+'</span>';
-                    li.appendChild(a); menu.appendChild(li);
-                });
-                var d=document.createElement('li'); d.innerHTML='<hr class="dropdown-divider">'; menu.appendChild(d);
-            }
-            var addLi=document.createElement('li'), addA=document.createElement('a');
-            addA.className='dropdown-item topbar-wh-add'; addA.href='#';
-            addA.innerHTML='<i class="fa-solid fa-plus me-1"></i> Add New Warehouse';
-            addLi.appendChild(addA); menu.appendChild(addLi);
-        }
-        buildTopbarWarehouseDropdown();
-        document.addEventListener('challan:formAdded', buildTopbarWarehouseDropdown);
-
-        document.addEventListener('click', function(e){
-            var opt = e.target.closest('#topbarWarehouseDropdownMenu .topbar-wh-option');
-            if(opt){ e.preventDefault();
-                document.getElementById('topbarWarehouseLabel').textContent = opt.dataset.name||'Select Warehouse';
-                document.getElementById('topbarWarehouseBtn').classList.add('selected');
-                document.querySelectorAll('#topbarWarehouseDropdownMenu .topbar-wh-option').forEach(function(o){ o.classList.remove('active'); });
-                opt.classList.add('active');
-                document.querySelectorAll('.warehouse-id').forEach(function(el){ el.value=opt.dataset.id||''; });
-                return;
-            }
-            var addLink = e.target.closest('#topbarWarehouseDropdownMenu .topbar-wh-add');
-            if(addLink){ e.preventDefault(); resetWarehouseForm(); openWarehousePopup(); }
-        });
-
-        /* ══ ADD PARTY POPUP ══ */
-        var partyPopup    = document.getElementById('partyQuickPopup');
-        var partyBackdrop = document.getElementById('partyPopupBackdrop');
-        var addPartyBtn   = document.getElementById('topbarAddPartyBtn');
-
-        function initFloatingLabels(root){
-            if(!root) return;
-            root.querySelectorAll('.pp-field input,.pp-field textarea').forEach(function(el){
-                function upd(){ var f=el.closest('.pp-field'); if(f) f.classList.toggle('floated',!!(el.value||document.activeElement===el)); }
-                el.addEventListener('focus',upd); el.addEventListener('blur',upd); el.addEventListener('input',upd); upd();
-            });
-            root.querySelectorAll('.pp-field.pp-select select,.pp-field input[type="date"]').forEach(function(el){
-                var f=el.closest('.pp-field'); if(f) f.classList.add('floated');
-            });
-        }
-        initFloatingLabels(partyPopup);
-        initFloatingLabels(document.getElementById('warehouseQuickPopup'));
-
-        function openPartyPopup(){ partyPopup.classList.add('open'); partyBackdrop.classList.add('open'); if(addPartyBtn) addPartyBtn.classList.add('active'); var d=new Date().toISOString().split('T')[0]; var aod=document.getElementById('pp_as_of_date'); if(aod) aod.value=d; initFloatingLabels(partyPopup); setTimeout(function(){ var pn=document.getElementById('pp_name'); if(pn) pn.focus(); },80); }
-        function closePartyPopup(){ partyPopup.classList.remove('open'); partyBackdrop.classList.remove('open'); if(addPartyBtn) addPartyBtn.classList.remove('active'); }
-        function resetPartyForm(){
-            ['pp_name','pp_phone','pp_billing_address','pp_shipping_address','pp_opening_balance','pp_gst','pp_email','pp_credit_limit'].forEach(function(id){ var el=document.getElementById(id); if(el){el.value=''; var f=el.closest('.pp-field'); if(f) f.classList.remove('floated');} });
-            ['pp_group','pp_transaction_type'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
-            var nolimit=document.getElementById('pp_no_limit'); if(nolimit) nolimit.checked=true;
-            var clf=document.getElementById('pp_custom_limit_field'); if(clf) clf.classList.add('d-none');
-            document.querySelectorAll('.party-popup-tab').forEach(function(t){t.classList.remove('active');});
-            document.querySelectorAll('.party-popup-tab-pane').forEach(function(p){p.classList.remove('active');});
-            var at=document.querySelector('.party-popup-tab[data-tab="address"]'); if(at) at.classList.add('active');
-            var ap=document.querySelector('.party-popup-tab-pane[data-pane="address"]'); if(ap) ap.classList.add('active');
-        }
-
-        if(addPartyBtn) addPartyBtn.addEventListener('click', function(){ resetPartyForm(); openPartyPopup(); });
-        var closePBtn = document.getElementById('partyPopupCloseBtn');
-        if(closePBtn) closePBtn.addEventListener('click', closePartyPopup);
-        if(partyBackdrop) partyBackdrop.addEventListener('click', function(){ closePartyPopup(); closeWarehousePopup(); });
-        document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closePartyPopup(); closeWarehousePopup(); } });
-
-        document.querySelectorAll('.party-popup-tab').forEach(function(tab){
-            tab.addEventListener('click', function(){
-                document.querySelectorAll('.party-popup-tab').forEach(function(t){t.classList.remove('active');});
-                document.querySelectorAll('.party-popup-tab-pane').forEach(function(p){p.classList.remove('active');});
-                this.classList.add('active');
-                var pane=document.querySelector('.party-popup-tab-pane[data-pane="'+this.dataset.tab+'"]'); if(pane) pane.classList.add('active');
-                initFloatingLabels(partyPopup);
-            });
-        });
-
-        var ppNoLimit = document.getElementById('pp_no_limit');
-        if(ppNoLimit) ppNoLimit.addEventListener('change', function(){ var clf=document.getElementById('pp_custom_limit_field'); if(clf) clf.classList.toggle('d-none',this.checked); });
-
-        var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content||'';
-
-        function showToast(msg, isError){
-            var t=document.getElementById('sale-toast'); if(!t) return alert(msg);
-            t.querySelector('.toast-body').textContent=msg;
-            t.classList.toggle('text-bg-success',!isError); t.classList.toggle('text-bg-danger',!!isError);
-            new bootstrap.Toast(t,{delay:4000}).show();
-        }
-
-        async function saveParty(keepOpen){
-            var nameEl=document.getElementById('pp_name'), name=(nameEl.value||'').trim();
-            if(!name){ nameEl.style.borderColor='#e53e3e'; nameEl.focus(); showToast('Party Name is required.',true); return; }
-            nameEl.style.borderColor='';
-            var saveBtn=document.getElementById('partyPopupSaveBtn'), saveNewBtn=document.getElementById('partyPopupSaveNewBtn');
-            var activeBtn=keepOpen?saveNewBtn:saveBtn, origText=activeBtn.textContent;
-            saveBtn.disabled=saveNewBtn.disabled=true; activeBtn.textContent='Saving...';
-            try{
-                var fd=new FormData();
-                fd.append('name',name); fd.append('phone',(document.getElementById('pp_phone').value||'').trim());
-                fd.append('party_group_id',document.getElementById('pp_group').value||'');
-                fd.append('billing_address',(document.getElementById('pp_billing_address').value||'').trim());
-                fd.append('shipping_address',(document.getElementById('pp_shipping_address').value||'').trim());
-                fd.append('opening_balance',document.getElementById('pp_opening_balance').value||0);
-                fd.append('transaction_type',document.getElementById('pp_transaction_type').value||'');
-                fd.append('as_of_date',document.getElementById('pp_as_of_date').value||'');
-                fd.append('gst_number',(document.getElementById('pp_gst').value||'').trim());
-                fd.append('email',(document.getElementById('pp_email').value||'').trim());
-                if(!document.getElementById('pp_no_limit').checked) fd.append('credit_limit',document.getElementById('pp_credit_limit').value||'');
-                var res=await fetch(window.partyStoreUrl,{method:'POST',headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},body:fd});
-                var data=await res.json();
-                if(!res.ok){ var fe=data.errors?Object.values(data.errors)[0]:null; throw new Error(fe?(Array.isArray(fe)?fe[0]:fe):(data.message||'Failed')); }
-                var newParty=data.party||data.data||(data.id?data:null);
-                if(!newParty) throw new Error('Party saved but no data returned');
-                window.parties=window.parties||[]; window.parties.unshift(newParty);
-                showToast('Party "'+(newParty.name||name)+'" added successfully.');
-                if(keepOpen){ resetPartyForm(); initFloatingLabels(partyPopup); document.getElementById('pp_name').focus(); }
-                else{
-                    closePartyPopup();
-                    var ctx = document.querySelector('#content-area .invoice-container') || document;
-                    if(ctx && newParty.id){
-                        var pid = ctx.querySelector('.party-id'); if(pid) pid.value = newParty.id;
-                        var psi = ctx.querySelector('.party-search-input');
-                        if(psi){ psi.value = newParty.name||''; psi.style.borderColor='#2563eb'; psi.style.boxShadow='0 0 0 3px rgba(37,99,235,0.12)'; }
-                        var balEl = ctx.querySelector('.party-bal-display');
-                        if(balEl) balEl.textContent = 'BAL: '+parseFloat(newParty.opening_balance||0).toFixed(2);
-                        // Populate accordion
-                        var phoneInp = ctx.querySelector('.phone-visible-input');
-                        if(phoneInp) phoneInp.value = newParty.phone||'';
-                        var billAddrInp = ctx.querySelector('.billing-address-visible');
-                        if(billAddrInp) billAddrInp.value = newParty.billing_address||'';
-                        var staInp = ctx.querySelector('.party-shipping-address');
-                        if(staInp) staInp.value = newParty.shipping_address||'';
-                        // Open accordion
-                        var acc = ctx.querySelector('.party-accordion');
-                        if(acc) acc.classList.add('open');
-                        // Billing name
-                        var bni = ctx.querySelector('.billing-name-input');
-                        if(bni && !bni.value.trim()){ bni.value = newParty.name||''; var nf=bni.closest('.party-meta-field'); if(nf) nf.classList.toggle('has-value',!!bni.value.trim()); }
-                    }
-                }
-            }catch(err){ showToast(err.message||'Error saving party.',true); }
-            finally{ saveBtn.disabled=saveNewBtn.disabled=false; activeBtn.textContent=origText; }
-        }
-        var spb=document.getElementById('partyPopupSaveBtn'); if(spb) spb.addEventListener('click',function(){ saveParty(false); });
-        var spnb=document.getElementById('partyPopupSaveNewBtn'); if(spnb) spnb.addEventListener('click',function(){ saveParty(true); });
-
-        /* ══ ADD WAREHOUSE POPUP ══ */
-        var whPopup = document.getElementById('warehouseQuickPopup');
-        function openWarehousePopup(){ whPopup.classList.add('open'); partyBackdrop.classList.add('open'); initFloatingLabels(whPopup); setTimeout(function(){ var wn=document.getElementById('wh_name'); if(wn) wn.focus(); },80); }
-        function closeWarehousePopup(){ whPopup.classList.remove('open'); partyBackdrop.classList.remove('open'); }
-        function resetWarehouseForm(){
-            ['wh_name','wh_phone','wh_handler_name','wh_handler_phone','wh_address'].forEach(function(id){ var el=document.getElementById(id); if(el){el.value=''; var f=el.closest('.pp-field'); if(f) f.classList.remove('floated');} });
-            var wu=document.getElementById('wh_user_id'); if(wu) wu.value='';
-        }
-        var whCloseBtn=document.getElementById('warehousePopupCloseBtn'); if(whCloseBtn) whCloseBtn.addEventListener('click',closeWarehousePopup);
-        var whCancelBtn=document.getElementById('warehousePopupCancelBtn'); if(whCancelBtn) whCancelBtn.addEventListener('click',closeWarehousePopup);
-        var whSaveBtn=document.getElementById('warehousePopupSaveBtn');
-        if(whSaveBtn) whSaveBtn.addEventListener('click', async function(){
-            var nameEl=document.getElementById('wh_name'), name=(nameEl.value||'').trim();
-            if(!name){ nameEl.style.borderColor='#e53e3e'; nameEl.focus(); showToast('Warehouse Name is required.',true); return; }
-            nameEl.style.borderColor='';
-            var btn=this; btn.disabled=true; btn.textContent='Saving...';
-            try{
-                var fd=new FormData();
-                fd.append('name',name); fd.append('phone',(document.getElementById('wh_phone').value||'').trim());
-                fd.append('handler_name',(document.getElementById('wh_handler_name').value||'').trim());
-                fd.append('handler_phone',(document.getElementById('wh_handler_phone').value||'').trim());
-                fd.append('responsible_user_id',document.getElementById('wh_user_id').value||'');
-                fd.append('address',(document.getElementById('wh_address').value||'').trim());
-                var res=await fetch(window.warehouseStoreUrl,{method:'POST',headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},body:fd});
-                var data=await res.json();
-                if(!res.ok){ var fe=data.errors?Object.values(data.errors)[0]:null; throw new Error(fe?(Array.isArray(fe)?fe[0]:fe):(data.message||'Failed')); }
-                var wh=data.warehouse||data.data||(data.id?data:null);
-                if(!wh) throw new Error('Warehouse saved but no data returned');
-                window.warehouses=window.warehouses||[]; window.warehouses.push(wh);
-                buildTopbarWarehouseDropdown();
-                document.getElementById('topbarWarehouseLabel').textContent=wh.name||'Select Warehouse';
-                document.getElementById('topbarWarehouseBtn').classList.add('selected');
-                document.querySelectorAll('.warehouse-id').forEach(function(el){ el.value=wh.id||''; });
-                showToast('Warehouse "'+(wh.name||name)+'" added successfully.');
-                closeWarehousePopup();
-            }catch(err){ showToast(err.message||'Error saving warehouse',true); }
-            finally{ btn.disabled=false; btn.textContent='Save Warehouse'; }
-        });
-
-        var mainStoreBtn=document.getElementById('mainStoreBtn');
-        if(mainStoreBtn) mainStoreBtn.addEventListener('click',function(){ showToast('Main Store selected.'); });
-    });
-    </script>
-
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
-        <div id="sale-toast" class="toast align-items-center text-bg-success border-0" role="alert">
+    <!-- Toast container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+        <div id="sale-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body"></div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         </div>
     </div>
 
-    @include('components.modals.party-modal')
-    @include('components.modals.item-modal')
-    @include('dashboard.shared.item-column-modal')
     @include('components.bank-account-modal')
+    <div class="modal fade" id="brokerModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content broker-modal-card">
+          <form id="brokerForm" action="{{ route('brokers.store') }}">
+            @csrf
+            <div class="modal-header broker-modal-header">
+              <div>
+                <h5 class="modal-title">Add Broker</h5>
+                <p class="broker-modal-subtitle mb-0">Save broker details and commission rate.</p>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Broker Name</label>
+                  <input type="text" class="form-control" name="name" id="brokerName" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  <input type="text" class="form-control" name="phone" id="brokerPhone">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">City</label>
+                  <input type="text" class="form-control" name="city" id="brokerCity">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Commission Type</label>
+                  <select class="form-select" name="commission_type" id="brokerCommissionType">
+                    <option value="fixed">Fixed</option>
+                    <option value="percent">Percent</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Commission Rate</label>
+                  <input type="number" step="0.01" min="0" class="form-control" name="commission_rate" id="brokerCommissionRate" value="0">
+                </div>
+                <div class="col-md-6 d-flex align-items-center">
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" role="switch" name="status" id="brokerStatus" checked>
+                        <label class="form-check-label" for="brokerStatus">Keep broker active</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Total Brokerage</label>
+                  <input type="number" step="0.01" min="0" class="form-control" name="total_brokerage" id="brokerTotalBrokerage" value="0">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Paid Brokerage</label>
+                  <input type="number" step="0.01" min="0" class="form-control" name="paid_brokerage" id="brokerPaidBrokerage" value="0">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Remaining</label>
+                  <input type="text" class="form-control" id="brokerRemainingBrokerage" value="0.00" readonly>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Address</label>
+                  <input type="text" class="form-control" name="address" id="brokerAddress">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Notes</label>
+                  <textarea class="form-control" name="notes" id="brokerNotes" rows="3"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer broker-modal-footer">
+              <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn brokers-submit-btn">Save Broker</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
-    <script src="{{ asset('js/challanform_script.js') }}"></script>
-    <script src="{{ asset('js/challanscript.js') }}"></script>
-    <script src="{{ asset('js/shared-party-item-create.js') }}"></script>
+    <!-- Form Logic -->
+    <script src="{{ asset('js/saleform_script.js') }}"></script>
+    <!-- Custom JS -->
+    <script src="{{ asset('js/script.js') }}"></script>
     <script src="{{ asset('js/bank-account-modal.js') }}"></script>
     <script src="{{ asset('js/transaction-count-column.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const unitButtons = document.querySelectorAll('.unit-option');
+            const unitInput = document.getElementById('newItemUnit');
+            const unitBtn = document.getElementById('newItemUnitBtn');
+            const assignCodeBtn = document.getElementById('assignItemCodeBtn');
+            const itemNameInput = document.getElementById('newItemName');
+            const wholesaleToggle = document.getElementById('toggleWholesalePricing');
+            const wholesaleSection = document.querySelector('.wholesale-pricing');
+            const imagePickerCard = document.querySelector('.open-item-image-picker');
+            let currentImageObjectUrl = null;
+
+            if (unitButtons && unitInput && unitBtn) {
+                unitButtons.forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const unit = this.dataset.unit || '';
+                        unitInput.value = unit;
+                        unitBtn.textContent = unit || 'Select Unit';
+                    });
+                });
+            }
+
+            if (assignCodeBtn && itemNameInput) {
+                assignCodeBtn.addEventListener('click', function () {
+                    const name = itemNameInput.value.trim();
+                    const slug = name ? name.toUpperCase().replace(/[^A-Z0-9]+/g, '') : 'ITEM';
+                    const suffix = Math.floor(Math.random() * 9000) + 1000;
+                    document.getElementById('newItemCode').value = `${slug ? slug.substring(0, 6) : 'ITEM'}-${suffix}`;
+                });
+            }
+
+            const itemTypeToggle = document.getElementById('newItemTypeToggle');
+            const itemTypeHidden = document.getElementById('newItemType');
+            const productLabel = document.getElementById('newItemProductLabel');
+            const itemNameLabel = document.getElementById('newItemNameLabel');
+            const stockTabButton = document.getElementById('stock-tab');
+            const stockTabPane = document.getElementById('stock-tab-pane');
+            const purchaseSection = document.getElementById('purchase-sec');
+
+            if (itemTypeToggle && itemTypeHidden) {
+                itemTypeToggle.addEventListener('change', function () {
+                    const isService = this.checked;
+                    itemTypeHidden.value = isService ? 'service' : 'product';
+                    productLabel.textContent = isService ? 'Service' : 'Product';
+                    itemNameLabel.textContent = isService ? 'Service Name *' : 'Item Name *';
+                    if (stockTabButton && stockTabPane) {
+                        stockTabButton.style.display = isService ? 'none' : '';
+                        stockTabPane.style.display = isService ? 'none' : '';
+                    }
+                    if (purchaseSection) {
+                        purchaseSection.style.display = isService ? 'none' : '';
+                    }
+                    const pricingTabEl = document.getElementById('pricing-tab');
+                    if (pricingTabEl) {
+                        const pricingTab = bootstrap.Tab.getOrCreateInstance(pricingTabEl);
+                        pricingTab.show();
+                    }
+                });
+            }
+
+            const newItemImageInput = document.getElementById('newItemImage');
+            const newItemImageThumb = document.getElementById('newItemImageThumb');
+            const newItemImageLabel = document.getElementById('newItemImageLabel');
+
+            if (imagePickerCard && newItemImageInput) {
+                imagePickerCard.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    newItemImageInput.click();
+                });
+            }
+
+            if (newItemImageInput) {
+                newItemImageInput.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                });
+
+                newItemImageInput.addEventListener('change', function (event) {
+                    const file = event.target.files[0];
+                    if (currentImageObjectUrl) {
+                        URL.revokeObjectURL(currentImageObjectUrl);
+                        currentImageObjectUrl = null;
+                    }
+                    if (!file) {
+                        newItemImageThumb.innerHTML = '<i class="fa-regular fa-image fa-2x text-secondary"></i>';
+                        newItemImageThumb.style.border = '1.5px solid #93c5fd';
+                        newItemImageLabel.textContent = 'Click to choose image';
+                        return;
+                    }
+                    currentImageObjectUrl = URL.createObjectURL(file);
+                    newItemImageThumb.innerHTML = `<img src="${currentImageObjectUrl}" style="width:100%;height:100%;object-fit:cover;"/>`;
+                    newItemImageThumb.style.border = '1.5px solid #2563eb';
+                    newItemImageLabel.textContent = file.name;
+                });
+            }
+
+            if (wholesaleToggle && wholesaleSection) {
+                wholesaleToggle.addEventListener('click', function () {
+                    wholesaleSection.classList.toggle('d-none');
+                    this.textContent = wholesaleSection.classList.contains('d-none') ? '+ Add Wholesale Price' : '- Remove Wholesale Price';
+                });
+            }
+
+            // Initialize editable table headers
+            initializeEditableHeaders();
+        });
+
+        function initializeEditableHeaders() {
+            const tableHeaders = document.querySelectorAll('.item-table th');
+            const storageKey = 'itemTableHeaders';
+            const defaultHeaders = {};
+
+            // Build default headers and add editable class
+            tableHeaders.forEach((th, index) => {
+                const text = th.textContent.trim();
+                if (text && text !== '+' && !th.classList.contains('add-col')) {
+                    th.classList.add('editable-header');
+                    defaultHeaders[index] = text;
+
+                    th.addEventListener('click', function(e) {
+                        if (e.target.tagName === 'BUTTON') return;
+                        editHeader(this, index);
+                    });
+                }
+            });
+
+            // Load saved headers from localStorage
+            loadSavedHeaders();
+        }
+
+        function editHeader(headerCell, index) {
+            const currentText = headerCell.textContent.trim();
+            const newText = prompt('Edit column name:', currentText);
+
+            if (newText !== null && newText.trim() !== '') {
+                const trimmedText = newText.trim();
+                headerCell.textContent = trimmedText;
+
+                // Save to localStorage
+                saveHeaderToStorage(index, trimmedText);
+            }
+        }
+
+        function saveHeaderToStorage(index, text) {
+            const storageKey = 'itemTableHeaders';
+            let savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            savedHeaders[index] = text;
+            localStorage.setItem(storageKey, JSON.stringify(savedHeaders));
+        }
+
+        function loadSavedHeaders() {
+            const storageKey = 'itemTableHeaders';
+            const savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
+            const tableHeaders = document.querySelectorAll('.item-table th.editable-header');
+            tableHeaders.forEach((th, index) => {
+                // Find the actual index considering hidden headers
+                let actualIndex = 0;
+                let realIndex = 0;
+                th.parentElement.querySelectorAll('th').forEach((h, i) => {
+                    if (h === th) {
+                        actualIndex = i;
+                    }
+                });
+
+                if (savedHeaders[actualIndex]) {
+                    th.textContent = savedHeaders[actualIndex];
+                }
+            });
+        }
+    </script>
+     <div class="container">
+        @yield('content')
+    </div>
+
+@section('modals')
+<!-- MODAL: ADD PARTY -->
+ <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addPartyModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Party</h5>
+        <div class="d-flex align-items-center gap-2" style="margin-left:79%;">
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="partyModalSettingsTrigger" title="Settings"><i class="fa-solid fa-gear"></i></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <form id="addPartyForm">
+          @csrf
+          <div class="row g-3 mb-4">
+            <div class="col-md-4" data-party-setting="name">
+              <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
+            </div>
+            <div class="col-md-4" data-party-setting="phone">
+              <label class="form-label fw-600">Phone Number</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
+              </div>
+            </div>
+            <div class="col-md-4" data-party-setting="phone_2">
+              <label class="form-label fw-600">Phone Number 2</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone-volume"></i></span>
+                <input type="tel" name="phone_number_2" class="form-control" placeholder="Enter second phone number" id="partyPhone2Input">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-600">PTCL Number</label>
+              <input type="text" name="ptcl_number" class="form-control" placeholder="Enter PTCL number" id="partyPtclInput">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-600">City</label>
+              <input type="text" name="city" class="form-control" placeholder="Enter city" id="partyCityInput">
+            </div>
+
+
+            <div class="col-md-4">
+  <label class="form-label fw-600">Party Group</label>
+
+  <div class="position-relative">
+    <button type="button" class="form-control text-start" id="partyGroupTrigger">
+      <span id="partyGroupText">Select group</span>
+      <i class="fa fa-chevron-down float-end mt-1"></i>
+    </button>
+
+    <input type="hidden" name="party_group" id="partyGroupInput">
+
+      <div id="partyGroupMenu" class="border bg-white position-absolute w-100 mt-1 d-none" style="z-index:999;">
+      <button type="button" class="dropdown-item text-primary" id="addNewGroupBtn">+ New Group</button>
+      <div id="partyGroupList">
+        @foreach($partyGroups as $partyGroup)
+          <button type="button" class="dropdown-item" data-group="{{ $partyGroup->name }}">{{ $partyGroup->name }}</button>
+        @endforeach
+      </div>
+      </div>
+    </div>
+  </div>
+          </div>
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab" aria-controls="partyAddressPane" aria-selected="true">
+                <i class="fa-solid fa-location-dot me-1"></i> Address
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab" aria-controls="partyCreditPane" aria-selected="false">
+                <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab" aria-controls="partyAdditionalPane" aria-selected="false">
+                <i class="fa-solid fa-sliders me-1"></i> Additional Fields
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-3" id="partyModalTabContent">
+            <!-- Address Tab -->
+            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel" aria-labelledby="party-address-tab">
+              <div class="row g-3">
+                <div class="col-md-6" data-party-setting="email">
+                  <label class="form-label">Email ID</label>
+                  <input type="email" name="email" class="form-control" placeholder="example@email.com">
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-6">
+                  <label class="form-label">Address</label>
+                  <textarea id="partyAddressInput" class="form-control" name="address" rows="3" placeholder="Enter address"></textarea>
+                </div>
+                <div class="col-md-6" data-party-setting="billing_address">
+                  <label class="form-label">Billing Address</label>
+                  <textarea id="billingAddress" class="form-control" name="billing_address" rows="3" placeholder="Enter billing address"></textarea>
+                </div>
+                <div class="col-md-6" data-party-setting="shipping_address">
+                  <label class="form-label">Shipping Address</label>
+                  <textarea  id="shippingAddress" class="form-control" name="shipping_address" rows="3" placeholder="Enter shipping address"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Credit & Balance Tab -->
+          <div class="tab-pane fade" id="partyCreditPane" role="tabpanel" aria-labelledby="party-credit-tab">
+            <div class="row g-3">
+              <div class="col-md-4" data-party-setting="opening_balance">
+                <label class="form-label">Opening Balance</label>
+                <div class="input-group">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" name="opening_balance" class="form-control" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-md-4" data-party-setting="as_of_date">
+                <label class="form-label">As Of Date</label>
+                <input type="date" name="as_of_date" class="form-control" value="{{ date('Y-m-d') }}">
+              </div>
+              <div class="col-md-4" data-party-setting="credit_limit">
+                <label class="form-label d-block">Credit Limit</label>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" name="credit_limit_enabled" type="checkbox" id="creditLimitSwitch">
+                  <label class="form-check-label" for="creditLimitSwitch">Enable</label>
+                </div>
+                <div class="input-group mt-2 is-hidden" id="creditLimitAmountWrap">
+                  <span class="input-group-text">Rs</span>
+                  <input type="number" name="credit_limit_amount" class="form-control" placeholder="Enter credit limit" id="creditLimitAmountInput" min="0" step="0.01">
+                </div>
+              </div>
+              <div class="col-md-4" data-party-setting="due_days">
+                <label class="form-label">Due Days</label>
+                <input type="number" name="due_days" class="form-control" placeholder="e.g. 5, 10, 30" min="1" max="100" id="partyDueDaysInput">
+              </div>
+            </div>
+
+            <!-- To Receive / To Pay Options at the bottom -->
+            <div class="mt-4" data-party-setting="transaction_type">
+              <label class="form-label d-block">Transaction Type</label>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="toReceive" value="receive">
+                <label class="form-check-label" for="toReceive">To Receive</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="toPay" value="pay">
+                <label class="form-check-label" for="toPay">To Pay</label>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-3" data-party-setting="party_type">
+              <div class="col-md-6">
+                <label class="form-label fw-600">Party Type</label>
+
+                <div class="form-check">
+                  <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="customerParty" value="customer">
+                  <label class="form-check-label" for="customerParty">Customer</label>
+                </div>
+
+                <div class="form-check">
+                  <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
+                  <label class="form-check-label" for="supplierParty">Supplier</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+            <!-- Additional Fields Tab -->
+            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel" aria-labelledby="party-additional-tab" data-party-setting="additional_fields">
+              <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
+              <div class="row g-3">
+                @for($i=1; $i<=4; $i++)
+                <div class="col-md-6">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="customField{{$i}}Check">
+                    <label class="form-check-label" for="customField{{$i}}Check">Custom Field {{$i}}</label>
+                  </div>
+                  <input type="text" name="custom_fields[]" class="form-control form-control-sm" placeholder="Field name">
+                </div>
+
+                <input type="hidden" id="transactionTypeValue" name="transaction_type">
+                @endfor
+
+              </div>
+            </div>
+          </div>
+
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-primary" id="btnSaveNewParty">
+              <i class="fa-solid fa-plus me-1"></i> Save & New
+            </button>
+            <button type="button" class="btn btn-primary" id="btnSaveParty">
+              <i class="fa-solid fa-check me-1"></i> Save
+            </button>
+ <button type="button" class="btn btn-primary" id="btnUpdateParty" style="display:none;">Update</button>
+    <button type="button" class="btn btn-danger" id="btnDeleteParty" style="display:none;">Delete</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+</div>
+
+</div>
+
+<div class="modal fade" id="partyGroupModal" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">New Party Group</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="newGroupName" class="form-control" placeholder="Enter group name">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="saveGroupBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@php
+    $salesModalUnits = [];
+
+    if (\Illuminate\Support\Facades\Schema::hasTable('item_units')) {
+        $salesModalUnits = \App\Models\ItemUnit::query()
+            ->where('is_active', true)
+            ->orderBy('short_name')
+            ->get(['name', 'short_name']);
+    }
+
+@endphp
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header align-items-start justify-content-between">
+        <div>
+          <h5 class="modal-title">Add Item</h5>
+          <p class="text-muted small mb-0">Create item details, pricing, stock and description.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span id="newItemProductLabel" class="text-primary fw-semibold">Product</span>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="newItemTypeToggle">
+            <label class="form-check-label" for="newItemTypeToggle">Service</label>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addItemForm">
+          <input type="hidden" id="newItemType" name="item_type" value="product">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label for="newItemName" class="form-label" id="newItemNameLabel">Item Name *</label>
+              <input type="text" class="form-control" id="newItemName" required>
+            </div>
+            <div class="col-md-4">
+              <label for="newItemCategory" class="form-label">Category</label>
+              <select class="form-select" id="newItemCategory">
+                <option value="">Select Category</option>
+                @foreach($categories ?? [] as $category)
+                  <option value="{{ $category->id ?? '' }}">{{ $category->name ?? '' }}</option>
+                @endforeach
+                <option value="__add_new__">+ Add Category</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Unit</label>
+              <div class="w-100">
+                <button class="btn btn-outline-primary w-100 text-start" type="button" id="newItemUnitBtn">
+                  Select Unit
+                </button>
+                <input type="hidden" id="newItemUnit" name="unit">
+                <input type="hidden" id="newItemSecondaryUnit" name="secondary_unit">
+                <input type="hidden" id="newItemUnitConversionRate" name="unit_conversion_rate">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="newItemCode" class="form-label">Item Code</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="newItemCode" placeholder="Enter item code">
+                <button type="button" class="btn btn-outline-secondary" id="assignItemCodeBtn">Assign</button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Item Image</label>
+              <div class="border rounded-3 p-3 text-center h-100 d-flex flex-column justify-content-center align-items-center open-item-image-picker" style="cursor:pointer;">
+                <div id="newItemImageThumb" style="width:68px; height:68px; border:1.5px solid #93c5fd; border-radius:12px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); overflow:hidden;">
+                  <i class="fa-regular fa-image fa-2x text-secondary"></i>
+                </div>
+                <div class="text-secondary mt-2" id="newItemImageLabel">Click to choose image</div>
+                <input type="file" class="form-control d-none" id="newItemImage" accept="image/*">
+              </div>
+            </div>
+          </div>
+
+          <ul class="nav nav-tabs mt-4" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="pricing-tab" data-bs-toggle="tab" data-bs-target="#pricing-tab-pane" type="button" role="tab" aria-controls="pricing-tab-pane" aria-selected="true">Pricing</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock-tab-pane" type="button" role="tab" aria-controls="stock-tab-pane" aria-selected="false">Stock</button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-3">
+            <div class="tab-pane fade show active" id="pricing-tab-pane" role="tabpanel" aria-labelledby="pricing-tab">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="newItemSalePrice" class="form-label">Sale Price</label>
+                  <input type="number" class="form-control" id="newItemSalePrice" min="0" step="0.01" placeholder="Sale Price">
+                </div>
+                <div class="col-md-6">
+                  <label for="newItemPurchasePrice" class="form-label">Purchase Price</label>
+                  <input type="number" class="form-control" id="newItemPurchasePrice" min="0" step="0.01" placeholder="Purchase Price">
+                </div>
+                <div class="col-12">
+                  <div class="border rounded-3 p-3 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <div class="fw-semibold">Wholesale Pricing</div>
+                      <button type="button" class="btn btn-link btn-sm p-0" id="toggleWholesalePricing">+ Add Wholesale Price</button>
+                    </div>
+                    <div class="row g-2 wholesale-pricing d-none">
+                      <div class="col-md-6">
+                        <label for="newItemWholesalePrice" class="form-label">Wholesale Price</label>
+                        <input type="number" class="form-control" id="newItemWholesalePrice" min="0" step="0.01" placeholder="Wholesale Price">
+                      </div>
+                      <div class="col-md-6">
+                        <label for="newItemWholesaleMinQty" class="form-label">Minimum Wholesale Qty</label>
+                        <input type="number" class="form-control" id="newItemWholesaleMinQty" min="0" step="1" placeholder="Minimum Qty">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="stock-tab-pane" role="tabpanel" aria-labelledby="stock-tab">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label for="newItemStock" class="form-label">Opening Quantity</label>
+                  <input type="number" class="form-control" id="newItemStock" min="0" step="1" placeholder="Opening Qty">
+                </div>
+                <div class="col-md-4">
+                  <label for="newItemAtPrice" class="form-label">At Price</label>
+                  <input type="number" class="form-control" id="newItemAtPrice" min="0" step="0.01" placeholder="At Price">
+                </div>
+                <div class="col-md-4">
+                  <label for="newItemAsOfDate" class="form-label">As Of Date</label>
+                  <input type="date" class="form-control" id="newItemAsOfDate" value="{{ date('Y-m-d') }}">
+                </div>
+                <div class="col-md-4">
+                  <label for="newItemBagWeight" class="form-label">Bag Weight</label>
+                  <input type="number" class="form-control" id="newItemBagWeight" min="0" step="0.01" placeholder="Enter Bag Weight (KG)">
+                </div>
+                <div class="col-md-6">
+                  <label for="newItemMinStock" class="form-label">Min Stock To Maintain</label>
+                  <input type="number" class="form-control" id="newItemMinStock" min="0" step="1" placeholder="Min Stock">
+                </div>
+                <div class="col-md-6">
+                  <label for="newItemLocation" class="form-label">Location</label>
+                  <input type="text" class="form-control" id="newItemLocation" placeholder="Location">
+                </div>
+                <div class="col-12">
+                  <label class="form-label fw-semibold">Item Images</label>
+                  <div class="item-stock-images-trigger open-item-stock-images-picker">
+                    <span><i class="fa-regular fa-camera me-2"></i>Add Item Images</span>
+                  </div>
+                  <input type="file" class="d-none" id="newItemStockImages" accept="image/*" multiple>
+                  <div id="newItemStockImagesList" class="item-stock-images-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-4">
+            <div class="col-12">
+              <label for="newItemDescription" class="form-label">Description</label>
+              <textarea class="form-control" id="newItemDescription" rows="4" placeholder="Item description"></textarea>
+            </div>
+          </div>
+
+          <input type="hidden" name="_token" value="{{ csrf_token() }}">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveNewItemBtn">Save Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade modal-stack-top" id="selectItemUnitModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Select Unit</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="newItemBaseUnitSelect" class="form-label text-uppercase small fw-bold">Base Unit</label>
+            <select class="form-select" id="newItemBaseUnitSelect">
+              <option value="">Select Base Unit</option>
+              @foreach($salesModalUnits as $unit)
+                @php
+                  $unitShortName = strtoupper($unit['short_name'] ?? $unit->short_name ?? '');
+                  $unitName = strtoupper($unit['name'] ?? $unit->name ?? '');
+                  $unitLabel = $unitName && $unitName !== $unitShortName ? $unitName . ' (' . $unitShortName . ')' : $unitShortName;
+                @endphp
+                <option value="{{ $unitShortName }}">{{ $unitLabel }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="newItemSecondaryUnitSelect" class="form-label text-uppercase small fw-bold">Secondary Unit</label>
+            <select class="form-select" id="newItemSecondaryUnitSelect">
+              <option value="">Select Secondary Unit</option>
+              @foreach($salesModalUnits as $unit)
+                @php
+                  $unitShortName = strtoupper($unit['short_name'] ?? $unit->short_name ?? '');
+                  $unitName = strtoupper($unit['name'] ?? $unit->name ?? '');
+                  $unitLabel = $unitName && $unitName !== $unitShortName ? $unitName . ' (' . $unitShortName . ')' : $unitShortName;
+                @endphp
+                <option value="{{ $unitShortName }}">{{ $unitLabel }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="col-12 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-link text-primary p-0 open-add-unit-from-selector">+ Add Unit</button>
+          </div>
+          <div class="col-12">
+            <label for="newItemUnitConversionInput" class="form-label fw-semibold">Conversion Rate</label>
+            <div class="item-unit-conversion-row">
+              <span class="base-unit-preview">1 Base Unit</span>
+              <span>=</span>
+              <input type="number" class="form-control" id="newItemUnitConversionInput" min="0" step="0.0001" value="0">
+              <span class="secondary-unit-preview">Secondary Unit</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="saveSelectedUnitsBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade modal-stack-top" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="quickCategoryName" class="form-label">Category Name</label>
+          <input type="text" class="form-control" id="quickCategoryName" placeholder="Enter category name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveQuickCategoryBtn">Save Category</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade modal-stack-top" id="addUnitModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Unit</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label for="quickUnitName" class="form-label">Unit Name</label>
+            <input type="text" class="form-control" id="quickUnitName" placeholder="e.g. KILOGRAMS">
+          </div>
+          <div class="col-md-4">
+            <label for="quickUnitShortName" class="form-label">Short Name</label>
+            <input type="text" class="form-control" id="quickUnitShortName" placeholder="e.g. KG">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveQuickUnitBtn">Save Unit</button>
+      </div>
+    </div>
+  </div>
+</div>
+@endsection
+    @yield('modals')
 
     <script>
-    document.addEventListener('DOMContentLoaded', function(){
-        var closeIcon = document.querySelector('.close-app-icon');
-        if(!closeIcon) return;
-        closeIcon.addEventListener('click', function(){
-            if(window.history.length > 1) window.history.back();
-            else window.location.href = '/dashboard/sales';
+document.addEventListener("DOMContentLoaded", function () {
+    const partySelect = document.querySelector(".party-select");
+    const addModalEl = document.getElementById('addPartyModal');
+    const addModal = new bootstrap.Modal(addModalEl);
+
+    if (partySelect) {
+        partySelect.addEventListener("change", function () {
+            if (this.value === "__new") {
+                addModal.show();
+
+                // Optional: Reset modal har bar open hone pe
+                document.getElementById("addPartyForm").reset();
+            }
+        });
+    }
+
+    if (addModalEl) {
+        addModalEl.addEventListener('shown.bs.modal', function () {
+            const addressTabEl = document.getElementById('party-address-tab');
+            const addressPaneEl = document.getElementById('partyAddressPane');
+            const creditTabEl = document.getElementById('party-credit-tab');
+            const creditPaneEl = document.getElementById('partyCreditPane');
+            const additionalTabEl = document.getElementById('party-additional-tab');
+            const additionalPaneEl = document.getElementById('partyAdditionalPane');
+
+            [addressTabEl, creditTabEl, additionalTabEl].forEach(tab => {
+                if (tab) {
+                    tab.classList.remove('active');
+                    tab.setAttribute('aria-selected', 'false');
+                }
+            });
+
+            [addressPaneEl, creditPaneEl, additionalPaneEl].forEach(pane => {
+                if (pane) {
+                    pane.classList.remove('show', 'active');
+                }
+            });
+
+            if (addressTabEl) {
+                addressTabEl.classList.add('active');
+                addressTabEl.setAttribute('aria-selected', 'true');
+            }
+            if (addressPaneEl) {
+                addressPaneEl.classList.add('show', 'active');
+                addressPaneEl.style.display = '';
+            }
+
+            if (addressTabEl && bootstrap.Tab) {
+                const addressTab = bootstrap.Tab.getOrCreateInstance(addressTabEl);
+                addressTab.show();
+            }
+        });
+    }
+
+    // Party search functionality handled by saleform_script.js
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const trigger = document.getElementById("partyGroupTrigger");
+    const menu = document.getElementById("partyGroupMenu");
+    const list = document.getElementById("partyGroupList");
+    const input = document.getElementById("partyGroupInput");
+    const text = document.getElementById("partyGroupText");
+
+    const groupModal = new bootstrap.Modal(document.getElementById('partyGroupModal'));
+    window.salePartyGroups = window.salePartyGroups || Array.from((list?.querySelectorAll('.dropdown-item') || []))
+        .filter((btn) => btn.id !== 'addNewGroupBtn')
+        .map((btn) => btn.textContent.trim())
+        .filter(Boolean);
+
+    if (!trigger || !menu || !list || !input || !text) {
+        return;
+    }
+
+    // Toggle dropdown
+    trigger.addEventListener("click", () => {
+        menu.classList.toggle("d-none");
+    });
+
+    // Close outside
+    document.addEventListener("click", (e) => {
+        if (!trigger.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add("d-none");
+        }
+    });
+
+    // Render groups
+    function renderGroups() {
+        list.innerHTML = "";
+        window.salePartyGroups.forEach(g => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "dropdown-item";
+            btn.dataset.group = g;
+            btn.textContent = g;
+
+            btn.onclick = () => {
+                input.value = g;
+                text.textContent = g;
+                menu.classList.add("d-none");
+            };
+
+            list.appendChild(btn);
+        });
+    }
+
+    renderGroups();
+
+    list.addEventListener("click", function (event) {
+        const btn = event.target.closest("button.dropdown-item");
+        if (!btn || btn.id === "addNewGroupBtn") return;
+
+        input.value = btn.dataset.group || btn.textContent.trim();
+        text.textContent = btn.dataset.group || btn.textContent.trim();
+        menu.classList.add("d-none");
+    });
+
+    // Open modal
+    const addNewGroupBtn = document.getElementById("addNewGroupBtn");
+    if (addNewGroupBtn) {
+        addNewGroupBtn.onclick = () => {
+            groupModal.show();
+        };
+    }
+
+    const partyGroupsStoreUrl = '{{ route("party-groups.store") }}';
+
+    // Save group
+    const saveGroupBtn = document.getElementById("saveGroupBtn");
+    if (saveGroupBtn) {
+      saveGroupBtn.onclick = async () => {
+        const nameEl = document.getElementById("newGroupName");
+        const name = nameEl.value.trim();
+
+        if (!name) return alert("Enter group name");
+
+        try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const response = await fetch(partyGroupsStoreUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token || '',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ name }),
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Unable to save party group');
+            }
+
+            const groupName = result.partyGroup?.name || name;
+            if (!window.salePartyGroups.includes(groupName)) {
+                window.salePartyGroups.push(groupName);
+            }
+            renderGroups();
+
+            input.value = groupName;
+            text.textContent = groupName;
+
+            nameEl.value = "";
+            groupModal.hide();
+        } catch (error) {
+            console.error(error);
+            alert('Could not save party group. Please try again.');
+        }
+      };
+    }
+
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const addModalEl = document.getElementById('addPartyModal');
+    const addModal = new bootstrap.Modal(addModalEl);
+    const saveBtn = document.getElementById("btnSaveParty");
+    const saveNewBtn = document.getElementById("btnSaveNewParty");
+
+    // Handle modal close - clean up backdrops to prevent black screen
+    addModalEl.addEventListener('hidden.bs.modal', function () {
+        // Remove any remaining backdrops
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+        // Remove modal-open class from body
+        document.body.classList.remove('modal-open');
+        // Reset overflow if it was set
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    });
+
+    // Handle modal show - ensure clean state
+    addModalEl.addEventListener('show.bs.modal', function () {
+        // Remove any orphaned backdrops before opening
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    });
+
+
+
+
+    function getPartyData() {
+        const form = document.getElementById("addPartyForm");
+        return new FormData(form);
+    }
+
+   function applyPartyDueDays(partyRecord = {}) {
+    const dealDaysSelect = document.querySelector(".due-days-select");
+    const dealDaysCustomInput = document.querySelector(".due-days-custom");
+    const dueDateInput = document.querySelector(".due-date");
+    const orderDateInput = document.querySelector(".order-date");
+    if (!dealDaysSelect || !dueDateInput || !orderDateInput) {
+        return;
+    }
+
+    const dueDays = Number(partyRecord.due_days || 0);
+    const orderDateValue = orderDateInput.value;
+    const allowedDays = ['0', '5', '10', '15', '30', '45'];
+
+    if (dueDays > 0) {
+        if (allowedDays.includes(String(dueDays))) {
+            dealDaysSelect.value = String(dueDays);
+            dealDaysCustomInput?.classList.add('d-none');
+            if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+        } else {
+            dealDaysSelect.value = 'custom';
+            dealDaysCustomInput?.classList.remove('d-none');
+            if (dealDaysCustomInput) dealDaysCustomInput.value = dueDays;
+        }
+    } else {
+        dealDaysSelect.value = '0';
+        dealDaysCustomInput?.classList.add('d-none');
+        if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+    }
+
+    if (!orderDateValue || dueDays <= 0) {
+        return;
+    }
+
+    const dueDate = new Date(orderDateValue);
+    if (Number.isNaN(dueDate.getTime())) {
+        return;
+    }
+
+    dueDate.setDate(dueDate.getDate() + dueDays);
+    const yyyy = dueDate.getFullYear();
+    const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(dueDate.getDate()).padStart(2, '0');
+    dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+   }
+
+   function saveParty(closeAfterSave = true) {
+    const form = document.getElementById("addPartyForm");
+    const data = new FormData(form);
+
+    // Transaction type fix
+    const toReceive = document.getElementById("toReceive").checked;
+    const toPay = document.getElementById("toPay").checked;
+    if(toReceive) data.set("transaction_type", "receive");
+    else if(toPay) data.set("transaction_type", "pay");
+
+    // Credit limit fix
+    const creditSwitch = document.getElementById("creditLimitSwitch");
+    data.set("credit_limit_enabled", creditSwitch.checked ? 1 : 0);
+
+    fetch("{{ route('parties.store') }}", {
+        method: "POST",
+        headers: {
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            "Accept": "application/json"   // important!
+        },
+        body: data
+    })
+    .then(res => res.json())
+    .then(res => {
+        if(res.success) {
+            const party = res.party || {};
+            const partyRecord = {
+                id: party.id || '',
+                name: party.name || data.get('name') || '',
+                phone: party.phone || data.get('phone') || '',
+                phone_number_2: party.phone_number_2 || data.get('phone_number_2') || '',
+                ptcl_number: party.ptcl_number || data.get('ptcl_number') || '',
+                email: party.email || data.get('email') || '',
+                city: party.city || data.get('city') || '',
+                address: party.address || data.get('address') || '',
+                billing_address: party.billing_address || data.get('billing_address') || '',
+                shipping_address: party.shipping_address || data.get('shipping_address') || '',
+                party_group: party.party_group || data.get('party_group') || '',
+                due_days: party.due_days || data.get('due_days') || '',
+                opening_balance: party.opening_balance || data.get('opening_balance') || 0,
+                credit_limit_enabled: party.credit_limit_enabled || data.get('credit_limit_enabled') || 0,
+                credit_limit_amount: party.credit_limit_amount || data.get('credit_limit_amount') || '',
+                custom_fields: party.custom_fields || data.getAll('custom_fields[]') || [],
+                party_type: party.party_type || data.getAll('party_type[]') || [],
+                transaction_type: party.transaction_type || data.get('transaction_type') || '',
+            };
+
+            if (partyRecord.party_group) {
+                window.salePartyGroups = window.salePartyGroups || [];
+                if (!window.salePartyGroups.includes(partyRecord.party_group)) {
+                    window.salePartyGroups.push(partyRecord.party_group);
+                }
+
+                const partyGroupList = document.getElementById('partyGroupList');
+                if (partyGroupList && !partyGroupList.querySelector(`[data-group="${partyRecord.party_group}"]`)) {
+                    const groupBtn = document.createElement('button');
+                    groupBtn.type = 'button';
+                    groupBtn.className = 'dropdown-item';
+                    groupBtn.dataset.group = partyRecord.party_group;
+                    groupBtn.textContent = partyRecord.party_group;
+                    groupBtn.onclick = () => {
+                        const groupInput = document.getElementById('partyGroupInput');
+                        const groupText = document.getElementById('partyGroupText');
+                        if (groupInput) groupInput.value = partyRecord.party_group;
+                        if (groupText) groupText.textContent = partyRecord.party_group;
+                    };
+                    partyGroupList.appendChild(groupBtn);
+                }
+            }
+
+            if (partyRecord.id) {
+                window.parties = Array.isArray(window.parties) ? window.parties.filter(p => String(p.id) !== String(partyRecord.id)) : [];
+                window.parties.push(partyRecord);
+
+                const dropdownMenu = document.getElementById("partyDropdownMenu");
+                const partyIdInput = document.querySelector(".party-id");
+                const dropdownBtn = document.getElementById("partyDropdownBtn");
+                const balanceDisplay = document.getElementById("partyBalanceDisplay");
+
+                if (dropdownMenu) {
+                    const existing = dropdownMenu.querySelector(`.party-option[data-id="${partyRecord.id}"]`);
+                    if (existing) {
+                        existing.closest('li')?.remove();
+                    }
+
+                    const optionHtml = `
+                      <li>
+                        <a class="dropdown-item d-flex justify-content-between party-option"
+                           href="#"
+                           data-id="${partyRecord.id}"
+                           data-name="${partyRecord.name}"
+                           data-phone="${partyRecord.phone}"
+                           data-phone-number-2="${partyRecord.phone_number_2 || ''}"
+                           data-city="${partyRecord.city}"
+                           data-ptcl="${partyRecord.ptcl_number}"
+                           data-email="${partyRecord.email || ''}"
+                           data-address="${partyRecord.address.replace(/"/g, '&quot;')}"
+                           data-billing="${partyRecord.billing_address.replace(/"/g, '&quot;')}"
+                           data-shipping="${partyRecord.shipping_address.replace(/"/g, '&quot;') }"
+                           data-party-group="${partyRecord.party_group || ''}"
+                           data-due-days="${partyRecord.due_days}"
+                           data-opening="${partyRecord.opening_balance}"
+                           data-type="${partyRecord.transaction_type}"
+                           data-party-type="${Array.isArray(partyRecord.party_type) ? partyRecord.party_type.join(',') : partyRecord.party_type || ''}"
+                           data-credit-limit-enabled="${partyRecord.credit_limit_enabled || 0}"
+                           data-credit-limit-amount="${partyRecord.credit_limit_amount || ''}"
+                           data-custom-fields="${String(JSON.stringify(partyRecord.custom_fields || [])).replace(/"/g, '&quot;')}">
+                            <span>${partyRecord.name}</span>
+                            <span class="text-success">0</span>
+                        </a>
+                      </li>
+                    `;
+
+                    const divider = dropdownMenu.querySelector('li > hr.dropdown-divider');
+                    if (divider) {
+                        divider.closest('li')?.insertAdjacentHTML('beforebegin', optionHtml);
+                    } else {
+                        dropdownMenu.insertAdjacentHTML('beforeend', optionHtml);
+                    }
+                }
+
+                if (partyIdInput) partyIdInput.value = partyRecord.id;
+                if (dropdownBtn) {
+                    if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {
+                        dropdownBtn.value = partyRecord.name || 'Select Party';
+                    } else {
+                        dropdownBtn.textContent = partyRecord.name || 'Select Party';
+                    }
+                }
+                if (balanceDisplay) {
+                    balanceDisplay.textContent = partyRecord.transaction_type === 'pay'
+                        ? `To Pay Rs ${partyRecord.opening_balance || 0}`
+                        : `To Receive Rs ${partyRecord.opening_balance || 0}`;
+                    balanceDisplay.className = partyRecord.transaction_type === 'pay' ? 'text-danger small' : 'text-success small';
+                }
+
+                document.querySelector(".phone-input").value = partyRecord.phone || "";
+                document.querySelector(".city-input").value = partyRecord.city || "";
+                document.querySelector(".ptcl-input").value = partyRecord.ptcl_number || "";
+                document.querySelector(".address-input").value = partyRecord.address || "";
+                document.querySelector(".billing-address").value = partyRecord.billing_address || "";
+                document.querySelector(".shipping-address").value = partyRecord.shipping_address || "";
+                applyPartyDueDays(partyRecord);
+            }
+
+            // Close modal first, then show success message
+            if(closeAfterSave) {
+                bootstrap.Modal.getOrCreateInstance(addModalEl).hide();
+                // Wait for modal to close, then reset
+                setTimeout(() => {
+                    form.reset();
+                    // Clean up any leftover backdrops
+                    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                    document.body.classList.remove('modal-open');
+                }, 300);
+            } else {
+                form.reset();
+            }
+
+            // Show success message without blocking UI
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.innerHTML = `
+                <div style="background: #28a745; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-check me-2"></i> Party saved successfully!
+                </div>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        } else {
+            const errorToast = document.createElement('div');
+            errorToast.innerHTML = `
+                <div style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-exclamation me-2"></i> Error saving party
+                </div>
+            `;
+            document.body.appendChild(errorToast);
+            setTimeout(() => errorToast.remove(), 3000);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        const errorToast = document.createElement('div');
+        errorToast.innerHTML = `
+            <div style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-exclamation me-2"></i> Something went wrong! Check console.
+                </div>
+            `;
+        document.body.appendChild(errorToast);
+        setTimeout(() => errorToast.remove(), 3000);
+    });
+}
+    saveBtn.addEventListener('click', function () {
+        saveParty(true); // close modal after save
+    });
+
+    saveNewBtn.addEventListener('click', function () {
+        saveParty(false); // reset modal for new entry
+    });
+});
+
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dropdownBtn = document.getElementById("partyDropdownBtn");
+    const dropdownMenu = document.getElementById("partyDropdownMenu");
+    const partyIdInput = document.querySelector(".party-id");
+    const balanceDisplay = document.getElementById("partyBalanceDisplay");
+    const brokerDropdownBtn = document.getElementById("brokerDropdownBtn");
+    const brokerDropdownMenu = document.getElementById("brokerDropdownMenu");
+    const brokerSearchInput = document.querySelector('.broker-search-input');
+    const brokerIdInput = document.querySelector(".broker-id");
+    const brokerSelectedName = document.querySelector('.broker-selected-name');
+    const brokerSelectedPhone = document.querySelector('.broker-selected-phone');
+    const brokerForm = document.getElementById("brokerForm");
+    const brokerModalEl = document.getElementById("brokerModal");
+    const brokerPhoneInput = document.querySelector(".broker-phone-input");
+    const brokerageTypeInput = document.querySelector(".brokerage-type");
+    const brokerageRateInput = document.querySelector(".brokerage-rate");
+    const addModalEl = document.getElementById('addPartyModal');
+
+    const addModal = new bootstrap.Modal(addModalEl);
+    const brokerModal = brokerModalEl ? new bootstrap.Modal(brokerModalEl) : null;
+
+    const partySearchInput = dropdownBtn;
+    if (partySearchInput) {
+        partySearchInput.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+
+            const searchTerm = String(this.value || '').trim();
+            if (!searchTerm) {
+                return;
+            }
+
+            const options = Array.from(dropdownMenu.querySelectorAll('.party-option'));
+            const exactOption = options.find(opt => {
+                const name = String(opt.querySelector('span:first-child')?.textContent || '').trim().toLowerCase();
+                return name === searchTerm.toLowerCase();
+            });
+
+            if (exactOption) {
+                exactOption.click();
+                return;
+            }
+
+            addModal.show();
+            const nameInput = document.getElementById('partyNameInput');
+            if (nameInput) {
+                nameInput.value = searchTerm;
+                nameInput.focus();
+            }
+        });
+    }
+
+    if (brokerSearchInput && brokerDropdownMenu) {
+        let brokerNoResultsItem = brokerDropdownMenu.querySelector('.broker-no-results');
+        if (!brokerNoResultsItem) {
+            brokerNoResultsItem = document.createElement('li');
+            brokerNoResultsItem.className = 'broker-no-results d-none';
+            brokerNoResultsItem.innerHTML = '<span class="dropdown-item text-muted">No brokers found</span>';
+            const addNewBrokerItem = brokerDropdownMenu.querySelector('#addNewBrokerBtn')?.closest('li');
+            if (addNewBrokerItem) {
+                addNewBrokerItem.insertAdjacentElement('beforebegin', brokerNoResultsItem);
+            } else {
+                brokerDropdownMenu.appendChild(brokerNoResultsItem);
+            }
+        }
+
+        const filterBrokerOptions = (value) => {
+            const searchText = String(value || '').trim().toLowerCase();
+            const options = Array.from(brokerDropdownMenu.querySelectorAll('li > .broker-option'));
+            let anyVisible = false;
+
+            options.forEach(option => {
+                const brokerName = String(option.dataset.name || option.querySelector('.broker-option-name')?.textContent || '').trim().toLowerCase();
+                const brokerCity = String(option.dataset.city || option.querySelector('.broker-option-city')?.textContent || '').trim().toLowerCase();
+                const brokerPhone = String(option.dataset.phone || option.querySelector('.broker-option-phone')?.textContent || '').trim().toLowerCase();
+                const optionText = [brokerName, brokerCity, brokerPhone].filter(Boolean).join(' ');
+                const shouldShow = !searchText || optionText.includes(searchText);
+                const listItem = option.closest('li');
+                if (listItem) {
+                    listItem.style.display = shouldShow ? '' : 'none';
+                }
+                if (shouldShow) {
+                    anyVisible = true;
+                }
+            });
+
+            brokerNoResultsItem.classList.toggle('d-none', anyVisible);
+        };
+
+        brokerSearchInput.addEventListener('input', function () {
+            filterBrokerOptions(this.value);
+        });
+
+        brokerSearchInput.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') {
+                return;
+            }
+            const searchTerm = String(this.value || '').trim().toLowerCase();
+            if (!searchTerm) {
+                return;
+            }
+            const matchingOption = Array.from(brokerDropdownMenu.querySelectorAll('li > .broker-option')).find(option => {
+                const brokerName = String(option.dataset.name || option.querySelector('.broker-option-name')?.textContent || '').trim().toLowerCase();
+                const brokerCity = String(option.dataset.city || option.querySelector('.broker-option-city')?.textContent || '').trim().toLowerCase();
+                const brokerPhone = String(option.dataset.phone || option.querySelector('.broker-option-phone')?.textContent || '').trim().toLowerCase();
+                const optionText = [brokerName, brokerCity, brokerPhone].filter(Boolean).join(' ');
+                return optionText.includes(searchTerm);
+            });
+            if (matchingOption) {
+                matchingOption.click();
+            }
+        });
+    }
+
+    const setPartyFieldValues = (partyRecord = {}) => {
+        document.querySelector(".phone-input").value = partyRecord.phone || "";
+        document.querySelector(".city-input").value = partyRecord.city || "";
+        document.querySelector(".ptcl-input").value = partyRecord.ptcl_number || partyRecord.ptcl || "";
+        document.querySelector(".address-input").value = partyRecord.address || "";
+        document.querySelector(".billing-address").value = partyRecord.billing_address || partyRecord.billing || "";
+        document.querySelector(".shipping-address").value = partyRecord.shipping_address || partyRecord.shipping || "";
+    };
+
+    const setDueDateFromParty = (partyRecord = {}) => {
+        const dealDaysSelect = document.querySelector(".due-days-select");
+        const dealDaysCustomInput = document.querySelector(".due-days-custom");
+        const dueDateInput = document.querySelector(".due-date");
+        const orderDateInput = document.querySelector(".order-date");
+        if (!dueDateInput || !orderDateInput || !dealDaysSelect) return;
+
+        const dueDays = Number(partyRecord.due_days || partyRecord.dueDays || 0);
+        const orderDateValue = orderDateInput.value;
+
+        if (dueDays > 0) {
+            const allowedDays = ['0', '5', '10', '15', '30', '45'];
+            if (allowedDays.includes(String(dueDays))) {
+                dealDaysSelect.value = String(dueDays);
+                dealDaysCustomInput?.classList.add('d-none');
+                if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+            } else {
+                dealDaysSelect.value = 'custom';
+                dealDaysCustomInput?.classList.remove('d-none');
+                if (dealDaysCustomInput) dealDaysCustomInput.value = dueDays;
+            }
+        } else {
+            dealDaysSelect.value = '0';
+            dealDaysCustomInput?.classList.add('d-none');
+            if (dealDaysCustomInput) dealDaysCustomInput.value = '';
+        }
+
+        if (!orderDateValue) {
+            return;
+        }
+
+        const dueDate = new Date(orderDateValue);
+        if (Number.isNaN(dueDate.getTime())) return;
+
+        dueDate.setDate(dueDate.getDate() + dueDays);
+        const yyyy = dueDate.getFullYear();
+        const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(dueDate.getDate()).padStart(2, '0');
+        dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+    };
+
+
+    dropdownMenu.addEventListener("click", function(e) {
+        if(e.target.closest(".party-option")) {
+            e.preventDefault();
+            const option = e.target.closest(".party-option");
+            const name = option.querySelector("span:first-child").textContent;
+            let opening = parseFloat(option.dataset.opening) || 0;
+            const type = option.dataset.type;
+            const id = option.dataset.id;
+            const selectedParty = (window.parties || []).find((party) => String(party.id) === String(id)) || {};
+            const partyRecord = {
+                phone: selectedParty.phone ?? option.dataset.phone ?? "",
+                city: selectedParty.city ?? option.dataset.city ?? "",
+                ptcl_number: selectedParty.ptcl_number ?? option.dataset.ptcl ?? "",
+                address: selectedParty.address ?? option.dataset.address ?? "",
+                billing_address: selectedParty.billing_address ?? option.dataset.billing ?? "",
+                shipping_address: selectedParty.shipping_address ?? option.dataset.shipping ?? "",
+                due_days: selectedParty.due_days ?? option.dataset.dueDays ?? "",
+            };
+
+            // Button pe sirf party name
+            dropdownBtn.value = name;
+
+            // Show balance below button with color
+          if(type === "pay"){
+    balanceDisplay.innerHTML = `
+        <i class="fa-solid fa-arrow-up text-danger me-1"></i>
+        ₹${opening.toFixed(2)}
+    `;
+}
+else if(type === "receive"){
+    balanceDisplay.innerHTML = `
+        <i class="fa-solid fa-arrow-down text-success me-1"></i>
+        ₹${opening.toFixed(2)}
+    `;
+}
+else {
+    balanceDisplay.innerHTML = `₹${opening.toFixed(2)}`;
+}
+
+            // Save selected party id
+            partyIdInput.value = id;
+
+            // Populate detail fields
+            setPartyFieldValues(partyRecord);
+            setDueDateFromParty(partyRecord);
+        }
+        else if(e.target.id === "addNewPartyBtn") {
+            const partySearchValue = dropdownBtn?.value?.toString().trim() || '';
+            addModal.show();
+            const addPartyForm = document.getElementById("addPartyForm");
+            if (addPartyForm) addPartyForm.reset();
+            const partyNameInput = document.getElementById('partyNameInput');
+            if (partyNameInput && partySearchValue) {
+                partyNameInput.value = partySearchValue;
+            }
+            balanceDisplay.textContent = "";
+            setPartyFieldValues({});
+        }
+    });
+
+    brokerDropdownMenu?.addEventListener("click", function(e) {
+        if (e.target.closest("#addNewBrokerBtn")) {
+            e.preventDefault();
+            brokerForm?.reset();
+            if (brokerModal) {
+                brokerModal.show();
+            }
+            return;
+        }
+
+        if (!e.target.closest(".broker-option")) return;
+
+        e.preventDefault();
+        const option = e.target.closest(".broker-option");
+        const name = option.dataset.name || option.querySelector("span:first-child").textContent;
+        const phone = option.dataset.phone || "";
+        const id = option.dataset.id || "";
+        const commissionRate = parseFloat(option.dataset.commissionRate || 0) || 0;
+
+        if (brokerDropdownBtn) {
+            brokerDropdownBtn.value = name;
+        }
+        if (brokerSelectedName) {
+            brokerSelectedName.textContent = name || '';
+        }
+        if (brokerSelectedPhone) {
+            brokerSelectedPhone.textContent = phone || '';
+            brokerSelectedPhone.closest('.broker-selected-info')?.classList.toggle('visible', !!phone);
+        }
+        brokerIdInput.value = id;
+        if (brokerPhoneInput) {
+            brokerPhoneInput.value = phone;
+        }
+        if (brokerageTypeInput && brokerageRateInput) {
+            brokerageTypeInput.value = 'broker_rate';
+            brokerageRateInput.value = commissionRate ? commissionRate.toFixed(2) : '';
+            brokerageRateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+
+    brokerForm?.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(brokerForm);
+        formData.set('_token', document.querySelector('meta[name="csrf-token"]').content);
+        formData.set('status', document.getElementById('brokerStatus')?.checked ? '1' : '0');
+
+        fetch("{{ route('brokers.store') }}", {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                "Accept": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok || !data.success || !data.broker) {
+                throw new Error(data.message || 'Failed to save broker');
+            }
+            return data.broker;
+        })
+        .then((broker) => {
+            window.brokers = Array.isArray(window.brokers) ? window.brokers : [];
+            window.brokers = window.brokers.filter(entry => String(entry.id) !== String(broker.id));
+            window.brokers.unshift(broker);
+
+            const brokerHtml = `
+                <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
+                       data-id="${broker.id}"
+                       data-phone="${broker.phone || ''}"
+                       data-name="${broker.name || ''}"
+                       data-commission-rate="${broker.commission_rate || 0}">
+                        <div class="broker-option-name">${broker.name || ''}</div>
+                        <div class="broker-option-city text-muted small">${broker.city || '-'}</div>
+                    </a>
+                </li>
+            `;
+
+            const addBrokerItem = brokerDropdownMenu.querySelector('#addNewBrokerBtn')?.closest('li');
+            const divider = addBrokerItem?.previousElementSibling;
+            if (divider) {
+                divider.insertAdjacentHTML('beforebegin', brokerHtml);
+            } else {
+                brokerDropdownMenu.insertAdjacentHTML('beforeend', brokerHtml);
+            }
+
+            if (brokerDropdownBtn) {
+                brokerDropdownBtn.value = broker.name || 'Select Broker';
+            }
+            if (brokerSelectedName) {
+                brokerSelectedName.textContent = broker.name || '';
+            }
+            if (brokerSelectedPhone) {
+                brokerSelectedPhone.textContent = broker.phone || '';
+                brokerSelectedPhone.closest('.broker-selected-info')?.classList.toggle('visible', !!broker.phone);
+            }
+            brokerIdInput.value = broker.id || '';
+            if (brokerPhoneInput) {
+                brokerPhoneInput.value = broker.phone || '';
+            }
+            if (brokerageTypeInput && brokerageRateInput) {
+                brokerageTypeInput.value = 'broker_rate';
+                brokerageRateInput.value = broker.commission_rate ? Number(broker.commission_rate).toFixed(2) : '';
+                brokerageRateInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            brokerModal?.hide();
+            brokerForm.reset();
+        })
+        .catch((error) => {
+            alert(error.message || 'Unable to save broker.');
         });
     });
-    </script>
+
+});
+
+// Credit Limit Toggle
+document.addEventListener("DOMContentLoaded", function() {
+    const creditLimitSwitch = document.getElementById("creditLimitSwitch");
+    const creditLimitAmountWrap = document.getElementById("creditLimitAmountWrap");
+
+    if (creditLimitSwitch) {
+        creditLimitSwitch.addEventListener("change", function() {
+            if (this.checked) {
+                creditLimitAmountWrap.classList.remove("is-hidden");
+            } else {
+                creditLimitAmountWrap.classList.add("is-hidden");
+            }
+        });
+    }
+});
+
+// Payment type switch: show/hide deal days and due date for Cash/Credit
+document.addEventListener("DOMContentLoaded", function() {
+    const saleToggleSwitch = document.getElementById("saleToggleSwitch");
+    const dealDaysGroup = document.querySelector('.deal-days-group');
+    const dueDateGroup = document.querySelector('.final-due-date-group');
+
+    function updatePaymentMode() {
+        const isCash = saleToggleSwitch?.checked;
+        if (dealDaysGroup) {
+            dealDaysGroup.style.display = isCash ? 'none' : '';
+        }
+        if (dueDateGroup) {
+            dueDateGroup.style.display = isCash ? 'none' : '';
+        }
+    }
+
+    if (saleToggleSwitch) {
+        saleToggleSwitch.addEventListener('change', updatePaymentMode);
+        updatePaymentMode();
+    }
+});
+
+// Add New Party button in dropdown
+document.addEventListener("DOMContentLoaded", function() {
+    const addNewPartyBtn = document.getElementById("addNewPartyBtn");
+    const addPartyModal = document.getElementById("addPartyModal");
+
+    if (addNewPartyBtn && addPartyModal) {
+        addNewPartyBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const modal = new bootstrap.Modal(addPartyModal);
+
+            const partySearchInput = document.getElementById('partyDropdownBtn');
+            const partyNameInput = document.getElementById('partyNameInput');
+            if (partyNameInput) {
+                partyNameInput.value = (partySearchInput?.value || '').trim();
+            }
+
+            modal.show();
+        });
+    }
+});
+
+document.addEventListener('click', function (e) {
+    const partyOption = e.target.closest('.party-option');
+    if (!partyOption) return;
+
+    const dropdownBtn = document.querySelector('#partyDropdownBtn.party-search-input');
+    if (!dropdownBtn) return;
+
+    const partyName = partyOption.dataset.name || partyOption.querySelector('span:first-child')?.textContent?.trim() || '';
+    if (!partyName) return;
+
+    if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {
+        dropdownBtn.value = partyName;
+    } else {
+        dropdownBtn.textContent = partyName;
+    }
+})
+
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Warehouse selection
+    document.addEventListener('click', function (e) {
+        const opt = e.target.closest('.warehouse-option');
+        if (!opt) return;
+        e.preventDefault();
+        document.getElementById('warehouseLabel').textContent = opt.dataset.name || 'Select Warehouse';
+        document.querySelectorAll('.warehouse-id').forEach(function(el) {
+            el.value = opt.dataset.id || '';
+        });
+    });
+
+    
+</script>
+<!-- Add Warehouse Popup -->
+<div class="modal fade" id="addWarehouseModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Warehouse</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-600">Warehouse Name <span class="text-danger">*</span></label>
+          <input type="text" id="whName" class="form-control" placeholder="Enter warehouse name">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Phone</label>
+          <input type="text" id="whPhone" class="form-control" placeholder="Phone number">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Handler Name</label>
+          <input type="text" id="whHandlerName" class="form-control" placeholder="Handler name">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Handler Phone</label>
+          <input type="text" id="whHandlerPhone" class="form-control" placeholder="Handler phone">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveWarehouseBtn">Save Warehouse</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const whModal = new bootstrap.Modal(document.getElementById('addWarehouseModal'));
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    document.getElementById('addWarehouseBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        whModal.show();
+    });
+
+    document.getElementById('saveWarehouseBtn').addEventListener('click', async function () {
+        const name = document.getElementById('whName').value.trim();
+        if (!name) {
+            alert('Warehouse name is required.');
+            return;
+        }
+
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        try {
+            const fd = new FormData();
+            fd.append('name', name);
+            fd.append('phone', document.getElementById('whPhone').value.trim());
+            fd.append('handler_name', document.getElementById('whHandlerName').value.trim());
+            fd.append('handler_phone', document.getElementById('whHandlerPhone').value.trim());
+
+            const res = await fetch("{{ route('warehouses.store') }}", {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                body: fd
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Failed');
+
+            const wh = data.warehouse || data;
+
+            // Add to dropdown
+            const menu = document.getElementById('warehouseDropdownMenu');
+            const addLi = document.getElementById('addWarehouseBtn').closest('li');
+            const li = document.createElement('li');
+            li.innerHTML = `<a class="dropdown-item warehouse-option" href="#"
+                data-id="${wh.id}" data-name="${wh.name}">${wh.name}</a>`;
+            menu.insertBefore(li, addLi.previousElementSibling);
+
+            // Add to window.warehouses
+            window.warehouses = window.warehouses || [];
+            window.warehouses.push(wh);
+
+            // Select this warehouse
+            document.getElementById('warehouseLabel').textContent = wh.name;
+            document.querySelectorAll('.warehouse-id').forEach(el => el.value = wh.id);
+
+            // Reset and close
+            ['whName','whPhone','whHandlerName','whHandlerPhone'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            whModal.hide();
+
+        } catch (err) {
+            alert(err.message || 'Error saving warehouse.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save Warehouse';
+        }
+    });
+});
+</script>
 </body>
+
 </html>
