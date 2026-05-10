@@ -95,21 +95,32 @@ function initializeForm(context) {
     }
 
     function selectParty(party) {
-        $partyInput.val(party.name || '');
-        $partyHidden.val(party.id || '');
-        $ctx.find('.phone-input').val(party.phone || '');
-        $ctx.find('.billing-address').val(party.billing_address || party.billing || '');
-        setPartyBalance(party.opening_balance || 0, party.transaction_type || party.type || '');
-        $partyAutoList.hide();
+    $partyInput.val(party.name || '');
+    $partyHidden.val(party.id || '');
+    $ctx.find('.phone-visible-input').val(party.phone || '');
+    $ctx.find('.billing-address-visible').val(party.billing_address || party.billing || '');
+    setPartyBalance(party.opening_balance || 0, party.transaction_type || party.type || '');
+    $partyAutoList.hide();
+
+    // Show accordion with phone + address
+    const $acc = $ctx.find('.party-accordion');
+    $acc.addClass('open');
+
+    // Also update balance display
+    const $balDisplay = $ctx.find('.party-bal-display');
+    if ($balDisplay.length) {
+        const amt = Number(party.opening_balance || 0).toFixed(2);
+        $balDisplay.html(`<span style="color:#2563eb;font-weight:600;font-size:12px;">BAL: Rs ${amt}</span>`);
     }
+}
 
-    $partyInput.on('focus', function () {
-        renderPartyList($(this).val());
-    });
+   $partyInput.on('focus click', function () {
+    renderPartyList($(this).val());
+});
 
-    $partyInput.on('input', function () {
-        renderPartyList($(this).val());
-    });
+$partyInput.on('input', function () {
+    renderPartyList($(this).val());
+});
 
     $partyInput.on('blur', function () {
         setTimeout(() => $partyAutoList.hide(), 150);
@@ -164,8 +175,8 @@ function initializeForm(context) {
         if (!party) return;
         $partyHidden.val(party.id || '');
         $partyInput.val(party.name || '');
-        $ctx.find('.phone-input').val(party.phone || '');
-        $ctx.find('.billing-address').val(party.billing_address || party.billing || '');
+        $ctx.find('.phone-visible-input').val(party.phone || '');
+        $ctx.find('.billing-address-visible').val(party.billing_address || party.billing || '');
         setPartyBalance(party.opening_balance || party.opening || 0, party.transaction_type || party.type || '');
     }
 
@@ -219,7 +230,10 @@ function initializeForm(context) {
 
     function populateFormFromSale(sale) {
         const party = (window.parties || []).find(p => String(p.id) === String(sale.party_id || ''));
-        if (party) setPartyDetails(party);
+        if (party) {
+    setPartyDetails(party);
+    $ctx.find('.party-accordion').addClass('open');
+}
         $ctx.find('.bill-number').val(sale.bill_number || '');
         $ctx.find('.invoice-date').val(sale.invoice_date ? sale.invoice_date.split(' ')[0] : todayValue);
         $ctx.find('.due-date').val(sale.due_date ? sale.due_date.split(' ')[0] : todayValue);
@@ -317,8 +331,8 @@ function initializeForm(context) {
         }).filter(item => item.item_name || item.quantity || item.amount);
         return {
             party_id: $partyHidden.val() || '',
-            phone: $ctx.find('.phone-input').val() || '',
-            billing_address: $ctx.find('.billing-address').val() || '',
+            phone: $ctx.find('.phone-visible-input').val() || '',
+            billing_address: $ctx.find('.billing-address-visible').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
             invoice_date: $ctx.find('.invoice-date').val() || todayValue,
             due_date: $ctx.find('.due-date').val() || todayValue,
