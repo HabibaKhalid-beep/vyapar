@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-   <title>Estimate</title>
+    <title>Sales</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="{{ asset('css/saleform_style.css') }}">
 
 </head>
+
 <style>
     /* Dropdown with two columns and scrollbar */
     #partyDropdownMenu {
@@ -133,6 +134,21 @@ ul#partyDropdownMenu {
     background: #fff;
 }
 
+.compact-header-field {
+    width: 100%;
+    max-width: 240px;
+}
+
+.compact-header-field .meta-control,
+.compact-header-field .party-search-input {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.header-aux-fields .header-mini-fields-grid {
+    max-width: 240px;
+}
+
 .floating-input-wrapper .meta-control:focus {
     outline: none;
     border-color: #2563eb;
@@ -170,6 +186,83 @@ ul#partyDropdownMenu {
 
 }
 
+.cash-party-link-wrap {
+    margin-top: 4px;
+}
+
+.cash-party-link-btn {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.cash-party-link-btn:hover {
+    color: #1d4ed8;
+}
+
+.browser-toolbar {
+    gap: 10px;
+}
+
+.toolbar-spacer {
+    flex: 1 1 auto;
+}
+
+.toolbar-warehouse-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.toolbar-warehouse-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    margin: 0;
+}
+
+.toolbar-warehouse-select {
+    min-width: 120px;
+    height: 32px;
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 12px;
+}
+
+.toolbar-user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 6px;
+}
+
+.toolbar-user-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #0f172a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.toolbar-user-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    white-space: nowrap;
+}
+
 .party-meta-field.address-field {
     width: 100%;
     max-width: 100%;
@@ -186,6 +279,276 @@ ul#partyDropdownMenu {
     left: 16px;
     top: 8px;
     padding: 0 6px;
+}
+
+.description-content-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+}
+
+.description-pane {
+    flex: 1 1 100%;
+    width: auto !important;
+    margin-top: -2px;
+}
+
+.description-pane .floating-input-wrapper .meta-control,
+.description-side-fields .floating-input-wrapper .meta-control,
+.billing-name-field .floating-input-wrapper .meta-control,
+.party-details .floating-input-wrapper .meta-control {
+    width: 100%;
+    max-width:280px;
+}
+
+.description-side-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 150px));
+    gap: 8px 10px;
+    align-content: start;
+}
+
+.description-side-fields .party-meta-field {
+    min-width: 0;
+}
+
+.action-fields-layout {
+    display: grid;
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+    gap: 16px;
+    width: 100%;
+    align-items: start;
+}
+
+.action-buttons-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.compact-side-fields {
+    justify-content: start;
+    padding-top: 2px;
+}
+
+.cash-party-selector-group {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.billing-name-group {
+    grid-column: 1 / span 1;
+    justify-self: start;
+}
+
+.party-details {
+    display: contents;
+}
+
+.party-details .phone-field {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.party-details .billing-address-field {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.party-details .shipping-address-field {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.header-aux-fields {
+    grid-column: 3;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    align-content: start;
+    justify-items: stretch;
+    margin-top: -2px;
+}
+
+.header-mini-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    width: 100%;
+    max-width: none;
+}
+
+.header-mini-field .meta-control {
+    width: 100%;
+    min-height: 32px;
+    height: 32px;
+    padding: 6px 8px;
+    border: 1px solid #d7e0ea;
+    border-radius: 6px;
+    background: #fbfdff;
+    font-size: 12px;
+}
+
+.header-mini-field input[type="date"].meta-control {
+    padding-right: 8px;
+}
+
+.po-fields-group.is-hidden {
+    display: none;
+}
+
+.party-details .address-field {
+    width: 100%;
+}
+
+.party-details .address-field .floating-input-wrapper label {
+    top: 10px;
+}
+
+/* =========================
+   HEADER LAYOUT COMPACT
+========================= */
+
+.header-section{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:6px;
+}
+
+.header-left{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:6px;
+    align-items:start;
+}
+
+/* =========================
+   COMMON FIELD SIZE
+========================= */
+
+.party-meta-field,
+.input-group,
+.floating-input-wrapper{
+    margin:0 !important;
+}
+
+.floating-input-wrapper .meta-control,
+.party-dropdown-wrapper .party-search-input,
+.party-dropdown-wrapper .btn.dropdown-toggle{
+    width:100%;
+    min-height:34px !important;
+    height:34px !important;
+    padding:10px 8px !important;
+    font-size:12px !important;
+    border-radius:6px !important;
+    border:1px solid #d7e0ea !important;
+    background:#fff !important;
+    box-shadow:none !important;
+}
+
+/* =========================
+   TEXTAREA COMPACT
+========================= */
+
+textarea.meta-control,
+.party-details .address-field textarea.meta-control{
+    min-height:86px !important;
+    height:86px !important;
+    resize:none;
+    padding:16px 10px 14px 10px !important;
+}
+
+/* =========================
+   LABELS SMALL
+========================= */
+
+.floating-input-wrapper label{
+    font-size:10px !important;
+    top:8px !important;
+    left:8px !important;
+    color:#64748b;
+    font-weight:600;
+}
+
+.floating-input-wrapper .meta-control:focus + label,
+.floating-input-wrapper .meta-control:not(:placeholder-shown) + label{
+    top:0 !important;
+    font-size:9px !important;
+}
+
+/* =========================
+   BALANCE TEXT
+========================= */
+
+#partyBalanceDisplay{
+    margin-top:2px !important;
+    font-size:11px !important;
+    line-height:1;
+}
+
+/* =========================
+   RIGHT SIDE SMALL FIELDS
+========================= */
+
+.header-aux-fields{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-top:0 !important;
+    align-items: stretch;
+}
+
+.header-mini-fields-grid{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    width:100%;
+    max-width:none;
+}
+
+/* =========================
+   REMOVE EXTRA WIDTHS
+========================= */
+
+.description-pane .floating-input-wrapper .meta-control,
+.description-side-fields .floating-input-wrapper .meta-control,
+.billing-name-field .floating-input-wrapper .meta-control,
+.party-details .floating-input-wrapper .meta-control{
+    max-width:100% !important;
+}
+
+/* =========================
+   ADDRESS WIDTH FIX
+========================= */
+
+.billing-address-field,
+.shipping-address-field{
+    width:100%;
+}
+
+.cash-mode .party-details .phone-field {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .description-side-fields .party-meta-field,
+    .description-pane,
+    .description-side-fields,
+    .action-fields-layout,
+    .header-mini-fields-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-left {
+        grid-template-columns: 1fr;
+    }
+
+    .header-aux-fields {
+        justify-items: stretch;
+    }
 }
 
 
@@ -505,6 +868,17 @@ ul#partyDropdownMenu {
     width: 100%;
 }
 
+.broker-dropdown-wrapper .dropdown-menu {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.party-dropdown-wrapper {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+
 /* Hide element utility */
 .is-hidden {
     display: none !important;
@@ -667,20 +1041,27 @@ ul#partyDropdownMenu {
 .header-section {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 420px;
-    gap: 18px;
+    gap: 8px;
     align-items: start;
 }
 
 .header-left {
     display: grid;
-    grid-template-columns: minmax(220px, 1.2fr) repeat(3, minmax(120px, 1fr));
-    gap: 8px;
+    grid-template-columns: minmax(0, 280px) minmax(0, 220px) minmax(170px, 0.7fr);
+    gap: 6px 8px;
     min-width: 0;
     align-items: start;
+    justify-items: start;
+}
+
+.billing-name-group {
+    justify-self: start;
+    width: 100%;
 }
 
 .party-selector-group {
     margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
 .party-selector-panel {
@@ -689,6 +1070,19 @@ ul#partyDropdownMenu {
     border-radius: 0;
     padding: 0;
     box-shadow: none;
+    width: 100%;
+    margin-right: 0 !important;
+}
+
+.party-dropdown-wrapper {
+    width: 100%;
+    display: block;
+    min-width: 0;
+}
+
+.party-dropdown-wrapper .party-search-input {
+    width: 100%;
+    min-width: 0;
 }
 
 .party-dropdown-wrapper .btn.dropdown-toggle,
@@ -767,9 +1161,9 @@ ul#partyDropdownMenu {
 
 .party-meta-field .meta-control {
     width: 100%;
-    min-height: 34px;
-    height: 34px;
-    padding: 6px 8px;
+    min-height: 32px;
+    height: 32px;
+    padding: 5px 8px;
     border: 1px solid #d7e0ea;
     border-radius: 6px;
     background: #fbfdff;
@@ -778,17 +1172,44 @@ ul#partyDropdownMenu {
     font-size: 12px;
 }
 
-.party-meta-field textarea.meta-control {
-    min-height: 44px;
-    height: 44px;
-}
-
 .party-meta-grid {
     display: contents;
 }
 
 .party-meta-field.address-field {
     order: 4;
+}
+
+.billing-name-field,
+.phone-field,
+.billing-address-field,
+.shipping-address-field {
+    margin-top: 0 !important;
+}
+
+.billing-name-field {
+    width: 100% !important;
+    margin-right: 0 !important;
+}
+
+.billing-address-field,
+.shipping-address-field {
+    margin-top: -3px !important;
+}
+
+.description-pane .description-input {
+    min-height: 140px !important;
+    padding: 14px 10px !important;
+    font-size: 14px !important;
+}
+
+.description-content-row {
+    width: 100%;
+    max-width: 100%;
+}
+
+.description-side-fields {
+    margin-left: 0 !important;
 }
 
 .item-inline-input {
@@ -872,6 +1293,83 @@ ul#partyDropdownMenu {
 
 .bottom-right .summary-expense-grid .calc-row {
     margin-bottom: 0;
+}
+
+.bottom-right .editable-expense-label {
+    display: inline-block;
+    min-width: 72px;
+    padding: 3px 6px;
+    border: 1px dashed transparent;
+    border-radius: 6px;
+    cursor: text;
+    line-height: 1.2;
+}
+
+.bottom-right .editable-expense-label:focus {
+    outline: none;
+    border-color: #93c5fd;
+    background: #f8fbff;
+}
+
+.bottom-right .custom-expense-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.bottom-right .custom-expense-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bottom-right .custom-expense-row {
+    padding: 8px 10px;
+    border: 1px solid #dbe4f0;
+    border-radius: 10px;
+    background: #fbfdff;
+}
+
+.bottom-right .custom-expense-inputs {
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.bottom-right .custom-expense-operator,
+.bottom-right .custom-expense-unit,
+.bottom-right .custom-expense-value {
+    min-height: 30px;
+    height: 30px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #d7e0ea;
+    background: #fff;
+    font-size: 11px;
+}
+
+.bottom-right .custom-expense-operator,
+.bottom-right .custom-expense-unit {
+    width: 54px;
+}
+
+.bottom-right .custom-expense-value {
+    width: 80px;
+    text-align: right;
+}
+
+.bottom-right .remove-custom-expense-row {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    background: #fff5f5;
+    color: #dc2626;
+}
+
+.bottom-right .add-custom-expense-row {
+    min-width: 120px;
+    max-width: 140px;
 }
 
 @media (max-width: 1200px) {
@@ -1077,130 +1575,11 @@ ul#partyDropdownMenu {
     .header-right.w-25 .final-due-date-group {
         grid-column: auto;
     }
-    /* =============================================
-   EDITABLE TABLE CELLS - Spreadsheet Style
-   ============================================= */
-
-/* Remove Bootstrap overrides from table inputs */
-.item-table td input,
-.item-table td select {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    outline: none !important;
-    width: 100% !important;
-    height: 36px !important;
-    padding: 0 6px !important;
-    font-size: 13px !important;
-    color: #1e293b !important;
-    transition: background 0.12s, box-shadow 0.12s;
 }
 
-/* Hover state - shows the cell is clickable */
-.item-table td input:hover,
-.item-table td select:hover {
-    background: #eef2ff !important;
-    cursor: text;
-}
-
-/* Focus state - blue inset ring like a spreadsheet */
-.item-table td input:focus,
-.item-table td select:focus {
-    background: #ffffff !important;
-    box-shadow: inset 0 0 0 2px #3b82f6 !important;
-    border-radius: 4px !important;
-    z-index: 2;
-    position: relative;
-}
-
-/* Number inputs align right */
-.item-table td input[type="number"] {
-    text-align: right !important;
-}
-
-/* Readonly/calculated fields stay muted */
-.item-table td input[readonly],
-.item-table td input[readonly]:hover,
-.item-table td input[readonly]:focus {
-    background: transparent !important;
-    box-shadow: none !important;
-    color: #94a3b8 !important;
-    cursor: default !important;
-}
-
-/* Row hover highlight */
-.item-table tbody tr:hover td {
-    background: #f8fbff;
-}
-
-/* Active row (any cell focused) */
-.item-table tbody tr:focus-within td {
-    background: #eff6ff;
-}
-
-/* Table cell padding reset */
-.item-table td {
-    padding: 0 !important;
-    vertical-align: middle !important;
-}
-
-/* Row number cell special treatment */
-.item-table td:first-child {
-    padding: 0 4px !important;
-    text-align: center;
-}
-
-/* Clean table borders */
-.item-table {
-    border-collapse: collapse !important;
-}
-
-.item-table tbody tr {
-    border-bottom: 1px solid #f1f5f9 !important;
-}
-
-.item-table tbody tr:last-child {
-    border-bottom: none !important;
-}
-
-/* Item picker input inherits cell style */
-.item-table td .item-picker-input {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    height: 36px !important;
-    padding: 0 6px !important;
-    font-size: 13px !important;
-    transition: background 0.12s, box-shadow 0.12s;
-}
-
-.item-table td .item-picker-input:hover {
-    background: #eef2ff !important;
-}
-
-.item-table td .item-picker-input:focus {
-    background: #ffffff !important;
-    box-shadow: inset 0 0 0 2px #3b82f6 !important;
-    border-radius: 4px !important;
-    outline: none !important;
-}
-
-/* Select dropdowns in table */
-.item-table td select {
-    cursor: pointer !important;
-    appearance: auto !important;
-}
-
-.item-table td select:hover {
-    cursor: pointer !important;
-}
-
-/* Discount field pair */
-.item-discount-fields input {
-    height: 36px !important;
-}
+/* Warehouse Modal Gradient */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
     </style>
 
@@ -1257,9 +1636,30 @@ ul#partyDropdownMenu {
                 </div>
             </div>
             <!-- Browser Toolbar / Heading Area -->
-          <div class="browser-toolbar d-flex align-items-center px-3">
-    <p class="mt-3 ms-3 mb-0 me-3 mb-2">Estimate</p>
-</div>
+            <div class="browser-toolbar d-flex align-items-center px-3">
+              <p class="mt-3 ms-3 mb-0 me-3 mb-2">Estimate | </p>
+                
+                <div class="toolbar-spacer"></div>
+                <div class="toolbar-warehouse-block">
+                    <p class="toolbar-warehouse-label">Warehouse</p>
+                    <select class="toolbar-warehouse-select warehouse-select" name="warehouse_id">
+                        @forelse(($warehouses ?? []) as $warehouse)
+                            <option value="{{ $warehouse->id }}"
+                                data-handler-name="{{ $warehouse->handler_name }}"
+                                data-handler-phone="{{ $warehouse->handler_phone }}">
+                                {{ $warehouse->name }}
+                            </option>
+                        @empty
+                            <option value="">Main Store</option>
+                        @endforelse
+                        <option value="add_new_warehouse">+ Add New Warehouse</option>
+                    </select>
+                </div>
+                <div class="toolbar-user-chip">
+                    <span class="toolbar-user-avatar">{{ strtoupper(substr(trim((string) (auth()->user()->name ?? 'U')), 0, 1)) }}</span>
+                    <span class="toolbar-user-name">{{ auth()->user()->name ?? 'User' }}</span>
+                </div>
+            </div>
         </header>
 
         <!-- Content Area -->
@@ -1276,11 +1676,11 @@ ul#partyDropdownMenu {
                         <!-- Header Section -->
                         <div class="header-section">
                             <div class="header-left">
-                                <div class="input-group party-selector-group">
+                                <div class="input-group party-selector-group cash-party-selector-group">
                                 <div class="party-selector-panel">
                                 <!-- Party dropdown button -->
-<div class="dropdown party-dropdown-wrapper" data-bs-auto-close="outside" style="position: relative; display: inline-block;">
-    <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; min-height: 34px;">
+<div class="dropdown party-dropdown-wrapper compact-header-field" data-bs-auto-close="outside" style="position: relative;">
+    <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 8px; min-height: 32px;">
 
     <!-- Balance display -->
     <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
@@ -1340,32 +1740,59 @@ ul#partyDropdownMenu {
 <input type="hidden" class="party-id" name="party_id">
                                 </div>
                                 </div>
-                                <div class="party-meta-grid">
-                                    <div class="party-meta-field billing-name-field">
-                                        <div class="floating-input-wrapper">
-                                            <input type="text" id="billingNameInput" name="billing_name" class="meta-control billing-name-input" placeholder=" ">
-                                            <label>Billing Name (Optional)</label>
-                                        </div>
-                                    </div>
-                                </div>
+                               <div class="party-meta-grid billing-name-group">
+<div class="party-meta-field billing-name-field compact-header-field">
+    <div class="floating-input-wrapper">
+            <input type="text" id="billingNameInput" name="billing_name" class="meta-control billing-name-input" placeholder=" ">
+            <label>Billing Name (Optional)</label>
+        </div>
+        <div class="cash-party-link-wrap d-none">
+            <button type="button" class="cash-party-link-btn show-party-selector-btn">Show Party</button>
+        </div>
+    </div>
+</div>
                                 <div class="party-meta-grid party-details d-none">
-                                    <div class="party-meta-field">
-                                        <div class="floating-input-wrapper">
+                                    <div class="party-meta-field phone-field compact-header-field">
+                                        <div class="floating-input-wrapper" >
                                             <input type="text" name="phone" class="meta-control phone-input" placeholder=" ">
                                             <label>Phone No.</label>
                                         </div>
                                     </div>
-                                    <br>
-                                    <div class="party-meta-field address-field">
+                                    <div class="party-meta-field address-field billing-address-field">
                                         <div class="floating-input-wrapper">
                                             <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "></textarea>
                                             <label>Billing Address</label>
                                         </div>
                                     </div>
-                                    <div class="party-meta-field address-field">
+                                    <div class="party-meta-field address-field shipping-address-field">
                                         <div class="floating-input-wrapper">
                                             <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
                                             <label>Shipping Address</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="header-aux-fields">
+                                    <div class="header-mini-fields-grid">
+                                        <div class="party-meta-field header-mini-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="delivery_person" class="meta-control delivery-person-input" placeholder=" ">
+                                                <label>Delivery Person</label>
+                                            </div>
+                                        </div>
+                                     
+                                    </div>
+                                    <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
+                                        <div class="party-meta-field header-mini-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="po_no" class="meta-control po-no-input" placeholder=" ">
+                                                <label>PO No.</label>
+                                            </div>
+                                        </div>
+                                        <div class="party-meta-field header-mini-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="date" name="po_date" class="meta-control po-date-input" placeholder=" ">
+                                                <label>PO Date</label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1377,7 +1804,7 @@ ul#partyDropdownMenu {
                                 </div>
                                 <div class="input-group invoice-number-group">
                                     <span>Invoice No.</span>
-                                    <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
+                                   <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}">
                                 </div>
                                 <div class="input-group date-wrapper invoice-date-group">
                                     <span>Invoice Date</span>
@@ -1614,35 +2041,74 @@ ul#partyDropdownMenu {
 
 <div class="d-flex flex-column align-items-start w-100">
 
-                                <div class="description-action-group mb-2 w-100">
-                                    <button type="button" class="btn-action-light action-btn add-description">
-                                        <i class="fa-solid fa-align-left"></i>
-                                        ADD DESCRIPTION
-                                    </button>
-                                    <div class="description-pane d-none w-50" style="margin-top: -2px;">
-                                        <div class="floating-input-wrapper">
-                                            <textarea class="form-control description-input meta-control" rows="3" placeholder=" "></textarea>
-                                            <label>Description</label>
+                                <div class="action-fields-layout w-100">
+                                    <div class="action-buttons-column">
+                                        <div class="description-action-group mb-2 w-100">
+                                            <button type="button" class="btn-action-light action-btn add-description">
+                                                <i class="fa-solid fa-align-left"></i>
+                                                ADD DESCRIPTION
+                                            </button>
+                                            <div class="description-content-row">
+                                                <div class="description-pane d-none">
+                                                    <div class="floating-input-wrapper">
+                                                        <textarea class="form-control description-input meta-control" rows="3" placeholder=" "></textarea>
+                                                        <label>Description</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="action-buttons d-flex flex-wrap gap-2 mb-2 w-100">
+                                            <button type="button" class="btn-action-light action-btn add-image">
+                                                <i class="fa-solid fa-camera"></i>
+                                                ADD IMAGE
+                                            </button>
+
+                                            <button type="button" class="btn-action-light action-btn add-document">
+                                                <i class="fa-solid fa-align-left"></i>
+                                                ADD DOCUMENT
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="description-side-fields compact-side-fields" style="margin-left:110px; margin-top:10px;">
+                                        <div class="party-meta-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="party_no" class="meta-control party-no-input" placeholder=" ">
+                                                <label>Party/Broker</label>
+                                            </div>
+                                        </div>
+                                        <div class="party-meta-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="city" class="meta-control city-input" placeholder=" ">
+                                                <label>City</label>
+                                            </div>
+                                        </div>
+                                        <div class="party-meta-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="goods_name" class="meta-control goods-name-input" placeholder=" ">
+                                                <label>Goodz / Name</label>
+                                            </div>
+                                        </div>
+                                        <div class="party-meta-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="details_extra" class="meta-control details-extra-input" placeholder=" ">
+                                                <label>Details Extra</label>
+                                            </div>
+                                        </div>
+                                        <div class="party-meta-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="bilti_gari_no" class="meta-control bilti-gari-input" placeholder=" ">
+                                                <label>Bilti No / Gari No</label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="action-buttons d-flex flex-wrap gap-2 mb-2 w-100">
-                                    <button type="button" class="btn-action-light action-btn add-image">
-                                        <i class="fa-solid fa-camera"></i>
-                                        ADD IMAGE
-                                    </button>
-
-                                    <button type="button" class="btn-action-light action-btn add-document">
-                                        <i class="fa-solid fa-align-left"></i>
-                                        ADD DOCUMENT
-                                    </button>
-
-                                </div>
-
-                                <div class="image-upload-section mt-2 w-100">
+                               <div class="image-upload-section mt-2">
                                     <div class="image-placeholder text-center p-3 border border-dashed rounded" style="cursor:pointer;">
-                                        <div class="text-muted">select image</div>
+                                        <div class="text-muted">Click to select image(s)</div>
+                                        <div class="small text-muted">(PNG/JPG, up to 5MB each)</div>
                                     </div>
                                     <div class="image-files-list d-flex flex-wrap gap-2 mt-2"></div>
                                     <div class="document-files-list list-group mt-2"></div>
@@ -1727,50 +2193,11 @@ ul#partyDropdownMenu {
                                 </div>
 
                                 <!-- Summary Expense Grid -->
-                                <div class="summary-expense-grid">
-                                    <div class="calc-row">
-                                        <div class="calc-label">Parachi</div>
-                                        <div class="calc-inputs">
-                                            <input type="number" class="mini-input parachi-input" value="0" min="0" step="0.01" placeholder="Amount">
-                                        </div>
-                                    </div>
-                                    <div class="calc-row">
-                                        <div class="calc-label">Rate</div>
-                                        <div class="calc-inputs">
-                                            <input type="number" class="mini-input rate-input" value="0" min="0" step="0.01" placeholder="Amount">
-                                        </div>
-                                    </div>
+                     
 
-                                    <div class="calc-row">
-                                        <div class="calc-label">Bardana</div>
-                                        <div class="calc-inputs">
-                                            <input type="number" class="mini-input bardana-input" value="0" min="0" step="0.01" placeholder="Amount">
-                                        </div>
-                                    </div>
-                                    <div class="calc-row">
-                                        <div class="calc-label">Mazdoori</div>
-                                        <div class="calc-inputs">
-                                            <input type="number" class="mini-input labour-input" value="0" min="0" step="0.01" placeholder="Amount">
-                                        </div>
-                                    </div>
-                                    <div class="calc-row">
-                                        <div class="calc-label">Rehra Mazdoori</div>
-                                        <div class="calc-inputs">
-                                            <input type="number" class="mini-input rehra-mazdori-input" value="0" min="0" step="0.01" placeholder="Amount">
-                                        </div>
-                                    </div>
-                                    <div class="calc-row">
-                                        <div class="calc-label">Dak Karaya</div>
-                                        <div class="calc-inputs">
-                                            <input type="number" class="mini-input post-expense-input" value="0" min="0" step="0.01" placeholder="Amount">
-                                        </div>
-                                    </div>
-                                    <div class="calc-row">
-                                        <div class="calc-label">Local</div>
-                                        <div class="calc-inputs">
-                                            <input type="number" class="mini-input extra-expense-input" value="0" min="0" step="0.01" placeholder="Amount">
-                                        </div>
-                                    </div>
+                                <div class="custom-expense-section">
+                                    <div class="custom-expense-rows"></div>
+                                    <button type="button" class="btn-action-light action-btn add-custom-expense-row">ADD ROW</button>
                                 </div>
 
                                 <!-- Round Off -->
@@ -1806,6 +2233,28 @@ ul#partyDropdownMenu {
                                     </div>
                                 </div>
                             </div>
+
+                            <template id="custom-expense-row-template">
+                                <div class="calc-row custom-expense-row">
+                                    <div class="calc-label">
+                                        <span class="editable-expense-label custom-expense-heading" contenteditable="true" spellcheck="false">New Row</span>
+                                    </div>
+                                    <div class="calc-inputs custom-expense-inputs">
+                                        <select class="mini-input custom-expense-operator">
+                                            <option value="+">+</option>
+                                            <option value="-">-</option>
+                                        </select>
+                                        <select class="mini-input custom-expense-unit">
+                                            <option value="rs">Rs</option>
+                                            <option value="pct">%</option>
+                                        </select>
+                                        <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="0">
+                                        <button type="button" class="remove-custom-expense-row" title="Remove">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
@@ -2065,6 +2514,7 @@ ul#partyDropdownMenu {
     };
     window.transactionSettings = {
         countEnabled: @json(\App\Models\AppSetting::getValue('transaction_items_count_enabled', '0') === '1'),
+        poDetailsEnabled: @json(!empty($customerPoDetailsEnabled)),
         countLabel: 'Count'
     };
     window.itemRoutes = {
@@ -2077,6 +2527,7 @@ ul#partyDropdownMenu {
 
     window.saleStoreUrl = "{{ route('sale.store') }}";
     window.saleMethod = 'POST';
+    window.nextInvoiceNumber = "{{ $nextInvoiceNumber ?? '' }}";
 
     // Default values
     window.editSaleData = null;
@@ -2086,8 +2537,7 @@ ul#partyDropdownMenu {
     window.sourceProformaId = null;
 
     // Optional doc type (avoid JS error)
-   window.docType = "estimate";
-    window.nextInvoiceNumber = "{{ $nextInvoiceNumber ?? 'Auto' }}"; 
+ window.docType = "estimate";
 
     @if(isset($sale))
         // Edit mode
@@ -2184,6 +2634,148 @@ ul#partyDropdownMenu {
             <div class="modal-footer broker-modal-footer">
               <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
               <button type="submit" class="btn brokers-submit-btn">Save Broker</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="warehouseModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content broker-modal-card shadow-lg">
+          <form id="warehouseForm" action="{{ route('warehouses.store') }}">
+            @csrf
+            <div class="modal-header broker-modal-header bg-gradient-primary text-white">
+              <div class="d-flex align-items-center">
+                <i class="fa-solid fa-warehouse me-3 fs-4"></i>
+                <div>
+                  <h5 class="modal-title mb-0">Add New Warehouse</h5>
+                  <p class="broker-modal-subtitle mb-0 opacity-75">Configure warehouse details and management information</p>
+                </div>
+              </div>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+              <div class="row g-4">
+                <!-- Basic Information -->
+                <div class="col-12">
+                  <h6 class="text-primary mb-3">
+                    <i class="fa-solid fa-info-circle me-2"></i>Basic Information
+                  </h6>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-building me-1"></i>Warehouse Name <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control form-control-lg" name="name" id="warehouseName" required placeholder="Enter warehouse name">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-phone me-1"></i>Phone
+                  </label>
+                  <input type="text" class="form-control form-control-lg" name="phone" id="warehousePhone" placeholder="Contact number">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-envelope me-1"></i>Email
+                  </label>
+                  <input type="email" class="form-control form-control-lg" name="email" id="warehouseEmail" placeholder="warehouse@example.com">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-city me-1"></i>City
+                  </label>
+                  <input type="text" class="form-control form-control-lg" name="city" id="warehouseCity" placeholder="City location">
+                </div>
+
+                <!-- Type and Capacity -->
+                <div class="col-12">
+                  <h6 class="text-primary mb-3">
+                    <i class="fa-solid fa-cogs me-2"></i>Type & Capacity
+                  </h6>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-tags me-1"></i>Warehouse Type
+                  </label>
+                  <select class="form-select form-select-lg" name="type" id="warehouseType">
+                    <option value="storage">Storage</option>
+                    <option value="main">Main Warehouse</option>
+                    <option value="branch">Branch</option>
+                    <option value="distribution">Distribution Center</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-weight-hanging me-1"></i>Capacity (Tons)
+                  </label>
+                  <input type="number" step="0.01" min="0" class="form-control form-control-lg" name="capacity" id="warehouseCapacity" placeholder="Storage capacity">
+                </div>
+
+                <!-- Handler Information -->
+                <div class="col-12">
+                  <h6 class="text-primary mb-3">
+                    <i class="fa-solid fa-user-tie me-2"></i>Handler Information
+                  </h6>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-user me-1"></i>Handler Name
+                  </label>
+                  <input type="text" class="form-control form-control-lg" name="handler_name" id="warehouseHandlerName" placeholder="Person in charge">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-phone-alt me-1"></i>Handler Phone
+                  </label>
+                  <input type="text" class="form-control form-control-lg" name="handler_phone" id="warehouseHandlerPhone" placeholder="Handler contact">
+                </div>
+
+                <!-- Address -->
+                <div class="col-12">
+                  <h6 class="text-primary mb-3">
+                    <i class="fa-solid fa-map-marker-alt me-2"></i>Location & Notes
+                  </h6>
+                </div>
+                <div class="col-12">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-address-card me-1"></i>Address
+                  </label>
+                  <textarea class="form-control form-control-lg" name="address" id="warehouseAddress" rows="3" placeholder="Full address"></textarea>
+                </div>
+                <div class="col-12">
+                  <label class="form-label fw-semibold">
+                    <i class="fa-solid fa-sticky-note me-1"></i>Notes
+                  </label>
+                  <textarea class="form-control form-control-lg" name="notes" id="warehouseNotes" rows="2" placeholder="Additional notes"></textarea>
+                </div>
+
+                <!-- Status -->
+                <div class="col-12">
+                  <h6 class="text-primary mb-3">
+                    <i class="fa-solid fa-toggle-on me-2"></i>Status
+                  </h6>
+                </div>
+                <div class="col-12">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="is_active" id="warehouseIsActive" checked>
+                    <label class="form-check-label fw-semibold" for="warehouseIsActive">
+                      <i class="fa-solid fa-check-circle text-success me-2"></i>Active Warehouse
+                    </label>
+                  </div>
+                  <small class="text-muted">Inactive warehouses won't be available for selection</small>
+                </div>
+
+                <input type="hidden" name="responsible_user_id" value="{{ auth()->id() ?? 0 }}">
+              </div>
+            </div>
+            <div class="modal-footer broker-modal-footer bg-light">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <i class="fa-solid fa-times me-2"></i>Cancel
+              </button>
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fa-solid fa-save me-2"></i>Save Warehouse
+              </button>
             </div>
           </form>
         </div>
@@ -2389,30 +2981,34 @@ ul#partyDropdownMenu {
           @csrf
           <div class="row g-3 mb-4">
             <div class="col-md-4" data-party-setting="name">
-              <label class="form-label fw-600">Party Name <span class="text-danger">*</span></label>
-              <input type="text" name="name" class="form-control" placeholder="Enter party name" id="partyNameInput" required>
+              <div class="floating-input-wrapper">
+                <input type="text" name="name" class="meta-control" placeholder=" " id="partyNameInput" required>
+                <label>Party Name <span class="text-danger">*</span></label>
+              </div>
             </div>
             <div class="col-md-4" data-party-setting="phone">
-              <label class="form-label fw-600">Phone Number</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-                <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="partyPhoneInput">
+              <div class="floating-input-wrapper">
+                <input type="tel" name="phone" class="meta-control" placeholder=" " id="partyPhoneInput">
+                <label>Phone Number</label>
               </div>
             </div>
             <div class="col-md-4" data-party-setting="phone_2">
-              <label class="form-label fw-600">Phone Number 2</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="fa-solid fa-phone-volume"></i></span>
-                <input type="tel" name="phone_number_2" class="form-control" placeholder="Enter second phone number" id="partyPhone2Input">
+              <div class="floating-input-wrapper">
+                <input type="tel" name="phone_number_2" class="meta-control" placeholder=" " id="partyPhone2Input">
+                <label>Phone Number 2</label>
               </div>
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-600">PTCL Number</label>
-              <input type="text" name="ptcl_number" class="form-control" placeholder="Enter PTCL number" id="partyPtclInput">
+              <div class="floating-input-wrapper">
+                <input type="text" name="ptcl_number" class="meta-control" placeholder=" " id="partyPtclInput">
+                <label>PTCL Number</label>
+              </div>
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-600">City</label>
-              <input type="text" name="city" class="form-control" placeholder="Enter city" id="partyCityInput">
+              <div class="floating-input-wrapper">
+                <input type="text" name="city" class="meta-control" placeholder=" " id="partyCityInput">
+                <label>City</label>
+              </div>
             </div>
 
 
@@ -2463,21 +3059,29 @@ ul#partyDropdownMenu {
             <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel" aria-labelledby="party-address-tab">
               <div class="row g-3">
                 <div class="col-md-6" data-party-setting="email">
-                  <label class="form-label">Email ID</label>
-                  <input type="email" name="email" class="form-control" placeholder="example@email.com">
+                  <div class="floating-input-wrapper">
+                    <input type="email" name="email" class="meta-control" placeholder=" " value="">
+                    <label>Email ID</label>
+                  </div>
                 </div>
                 <div class="col-md-6"></div>
                 <div class="col-md-6">
-                  <label class="form-label">Address</label>
-                  <textarea id="partyAddressInput" class="form-control" name="address" rows="3" placeholder="Enter address"></textarea>
+                  <div class="floating-input-wrapper">
+                    <textarea id="partyAddressInput" class="meta-control" name="address" rows="3" placeholder=" "></textarea>
+                    <label>Address</label>
+                  </div>
                 </div>
                 <div class="col-md-6" data-party-setting="billing_address">
-                  <label class="form-label">Billing Address</label>
-                  <textarea id="billingAddress" class="form-control" name="billing_address" rows="3" placeholder="Enter billing address"></textarea>
+                  <div class="floating-input-wrapper">
+                    <textarea id="billingAddress" class="meta-control" name="billing_address" rows="3" placeholder=" "></textarea>
+                    <label>Billing Address</label>
+                  </div>
                 </div>
                 <div class="col-md-6" data-party-setting="shipping_address">
-                  <label class="form-label">Shipping Address</label>
-                  <textarea  id="shippingAddress" class="form-control" name="shipping_address" rows="3" placeholder="Enter shipping address"></textarea>
+                  <div class="floating-input-wrapper">
+                    <textarea id="shippingAddress" class="meta-control" name="shipping_address" rows="3" placeholder=" "></textarea>
+                    <label>Shipping Address</label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3340,6 +3944,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const dropdownMenu = document.getElementById("partyDropdownMenu");
     const partyIdInput = document.querySelector(".party-id");
     const balanceDisplay = document.getElementById("partyBalanceDisplay");
+    const billingNameInput = document.getElementById("billingNameInput");
+    const partySelectorGroup = document.querySelector(".cash-party-selector-group");
+    const partyDetails = document.querySelector(".party-details");
+    const showPartyWrap = document.querySelector(".cash-party-link-wrap");
+    const showPartyButton = document.querySelector(".show-party-selector-btn");
     const brokerDropdownBtn = document.getElementById("brokerDropdownBtn");
     const brokerDropdownMenu = document.getElementById("brokerDropdownMenu");
     const brokerSearchInput = document.querySelector('.broker-search-input');
@@ -3452,13 +4061,151 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    const setFieldValue = (selector, value = "") => {
+        const field = document.querySelector(selector);
+        if (field) {
+            field.value = value;
+        }
+    };
+
+    const warehouseSelect = document.querySelector('.warehouse-select');
+    const deliveryPersonInput = document.querySelector('.delivery-person-input');
+    const deliveryPhoneInput = document.querySelector('.delivery-person-phone-input');
+
+    const fillWarehouseHandler = () => {
+        if (!warehouseSelect) return;
+        const selectedOption = warehouseSelect.selectedOptions[0];
+        if (!selectedOption) return;
+
+        const handlerName = selectedOption.dataset.handlerName || '';
+        const handlerPhone = selectedOption.dataset.handlerPhone || '';
+
+        if (deliveryPersonInput && handlerName) {
+            deliveryPersonInput.value = handlerName;
+        }
+        if (deliveryPhoneInput) {
+            deliveryPhoneInput.value = handlerPhone;
+        }
+    };
+
+    const warehouseModalEl = document.getElementById('warehouseModal');
+    const warehouseForm = document.getElementById('warehouseForm');
+    const warehouseModal = warehouseModalEl ? new bootstrap.Modal(warehouseModalEl) : null;
+    let lastWarehouseValue = warehouseSelect?.value || '';
+
+    const openWarehouseModal = () => {
+        if (!warehouseModal) return;
+        warehouseForm?.reset();
+        // Reset the switch to checked (active) by default
+        const isActiveSwitch = document.getElementById('warehouseIsActive');
+        if (isActiveSwitch) {
+            isActiveSwitch.checked = true;
+        }
+        warehouseModal.show();
+    };
+
+    if (warehouseSelect) {
+        warehouseSelect.addEventListener('focus', function () {
+            lastWarehouseValue = this.value;
+        });
+
+        warehouseSelect.addEventListener('change', function () {
+            if (this.value === 'add_new_warehouse') {
+                this.value = lastWarehouseValue || '';
+                openWarehouseModal();
+                return;
+            }
+            fillWarehouseHandler();
+            lastWarehouseValue = this.value;
+        });
+        fillWarehouseHandler();
+    }
+
+    warehouseForm?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!warehouseForm) return;
+
+        const formData = new FormData(warehouseForm);
+        formData.set('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+        formData.set('is_active', document.getElementById('warehouseIsActive')?.checked ? '1' : '0');
+
+        fetch("{{ route('warehouses.store') }}", {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || '',
+                "Accept": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok || !data.success || !data.warehouse) {
+                throw new Error(data.message || 'Failed to save warehouse');
+            }
+            return data.warehouse;
+        })
+        .then((warehouse) => {
+            if (!warehouse || !warehouse.id) {
+                throw new Error('Invalid warehouse data returned');
+            }
+
+            const select = document.querySelector('.warehouse-select');
+            if (select) {
+                const option = document.createElement('option');
+                option.value = warehouse.id;
+                option.dataset.handlerName = warehouse.handler_name || '';
+                option.dataset.handlerPhone = warehouse.handler_phone || '';
+                option.textContent = warehouse.name || 'New Warehouse';
+
+                const addNewOption = select.querySelector('option[value="add_new_warehouse"]');
+                if (addNewOption) {
+                    addNewOption.insertAdjacentElement('beforebegin', option);
+                } else {
+                    select.appendChild(option);
+                }
+                select.value = warehouse.id;
+                fillWarehouseHandler();
+            }
+
+            warehouseModal?.hide();
+            warehouseForm.reset();
+        })
+        .catch((error) => {
+            alert(error.message || 'Unable to save warehouse.');
+        });
+    });
+
+    partySelectorGroup?.setAttribute('data-cash-party-visible', 'false');
+    showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+
+    const syncCashPartyLayout = () => {
+        const isCash = document.getElementById("saleToggleSwitch")?.checked;
+        const hasParty = Boolean((partyIdInput?.value || '').trim());
+        const cashPartySelectorVisible = partySelectorGroup?.getAttribute('data-cash-party-visible') === 'true';
+        const cashLinkArmed = showPartyWrap?.getAttribute('data-cash-link-armed') === 'true';
+
+        if (partyDetails) {
+            partyDetails.classList.toggle('d-none', !(isCash || hasParty));
+        }
+
+        if (partySelectorGroup) {
+            partySelectorGroup.classList.toggle('d-none', Boolean(isCash && !cashPartySelectorVisible));
+        }
+
+        if (showPartyWrap) {
+            const shouldShowLink = Boolean(isCash && !cashPartySelectorVisible && cashLinkArmed);
+            showPartyWrap.classList.toggle('d-none', !shouldShowLink);
+        }
+    };
+
     const setPartyFieldValues = (partyRecord = {}) => {
-        document.querySelector(".phone-input").value = partyRecord.phone || "";
-        document.querySelector(".city-input").value = partyRecord.city || "";
-        document.querySelector(".ptcl-input").value = partyRecord.ptcl_number || partyRecord.ptcl || "";
-        document.querySelector(".address-input").value = partyRecord.address || "";
-        document.querySelector(".billing-address").value = partyRecord.billing_address || partyRecord.billing || "";
-        document.querySelector(".shipping-address").value = partyRecord.shipping_address || partyRecord.shipping || "";
+        setFieldValue(".phone-input", partyRecord.phone || "");
+        setFieldValue(".city-input", partyRecord.city || "");
+        setFieldValue(".ptcl-input", partyRecord.ptcl_number || partyRecord.ptcl || "");
+        setFieldValue(".address-input", partyRecord.address || "");
+        setFieldValue(".billing-address", partyRecord.billing_address || partyRecord.billing || "");
+        setFieldValue(".shipping-address", partyRecord.shipping_address || partyRecord.shipping || "");
     };
 
     const setDueDateFromParty = (partyRecord = {}) => {
@@ -3548,6 +4295,9 @@ else {
             // Populate detail fields
             setPartyFieldValues(partyRecord);
             setDueDateFromParty(partyRecord);
+            partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
+            showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+            syncCashPartyLayout();
         }
         else if(e.target.id === "addNewPartyBtn") {
             const partySearchValue = dropdownBtn?.value?.toString().trim() || '';
@@ -3560,7 +4310,29 @@ else {
             }
             balanceDisplay.textContent = "";
             setPartyFieldValues({});
+            syncCashPartyLayout();
         }
+    });
+
+    billingNameInput?.addEventListener('click', function () {
+        if (document.getElementById("saleToggleSwitch")?.checked) {
+            showPartyWrap?.setAttribute('data-cash-link-armed', 'true');
+            syncCashPartyLayout();
+        }
+    });
+
+    billingNameInput?.addEventListener('focus', function () {
+        if (document.getElementById("saleToggleSwitch")?.checked) {
+            showPartyWrap?.setAttribute('data-cash-link-armed', 'true');
+            syncCashPartyLayout();
+        }
+    });
+
+    showPartyButton?.addEventListener('click', function () {
+        partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
+        showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+        syncCashPartyLayout();
+        dropdownBtn?.focus();
     });
 
     brokerDropdownMenu?.addEventListener("click", function(e) {
@@ -3698,7 +4470,67 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+// Payment type switch: show/hide deal days and due date for Cash/Credit
+document.addEventListener("DOMContentLoaded", function() {
+    const saleToggleSwitch = document.getElementById("saleToggleSwitch");
+    const dealDaysGroup = document.querySelector('.deal-days-group');
+    const dueDateGroup = document.querySelector('.final-due-date-group');
+    const partySelectorGroup = document.querySelector('.cash-party-selector-group');
+    const partyDetails = document.querySelector('.party-details');
+    const invoiceContainer = document.querySelector('.invoice-container');
+    const showPartyWrap = document.querySelector('.cash-party-link-wrap');
+    const partyIdInput = document.querySelector('.party-id');
 
+    function updatePaymentMode() {
+        const isCash = saleToggleSwitch?.checked;
+        let cashPartySelectorVisible = partySelectorGroup?.getAttribute('data-cash-party-visible') === 'true';
+        let cashLinkArmed = showPartyWrap?.getAttribute('data-cash-link-armed') === 'true';
+        if (dealDaysGroup) {
+            dealDaysGroup.style.display = isCash ? 'none' : '';
+        }
+        if (dueDateGroup) {
+            dueDateGroup.style.display = isCash ? 'none' : '';
+        }
+        invoiceContainer?.classList.toggle('cash-mode', Boolean(isCash));
+        if (!isCash) {
+            cashPartySelectorVisible = true;
+            cashLinkArmed = false;
+            partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
+            showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+        } else if (!cashPartySelectorVisible) {
+            partySelectorGroup?.setAttribute('data-cash-party-visible', 'false');
+        }
+        if (partySelectorGroup) {
+            partySelectorGroup.classList.toggle('d-none', Boolean(isCash && !cashPartySelectorVisible));
+        }
+        if (showPartyWrap) {
+            showPartyWrap.classList.toggle('d-none', !isCash || cashPartySelectorVisible || !cashLinkArmed);
+        }
+        if (partyDetails) {
+            const hasParty = Boolean((partyIdInput?.value || '').trim());
+            partyDetails.classList.toggle('d-none', !(isCash || hasParty));
+        }
+    }
+
+    if (saleToggleSwitch) {
+        saleToggleSwitch.addEventListener('change', function () {
+            if (this.checked) {
+                partySelectorGroup?.setAttribute('data-cash-party-visible', 'false');
+                showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+            }
+            updatePaymentMode();
+        });
+        updatePaymentMode();
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const poFieldsGroup = document.querySelector('.po-fields-group');
+    const poDetailsEnabled = Boolean(window.transactionSettings?.poDetailsEnabled);
+    if (poFieldsGroup) {
+        poFieldsGroup.classList.toggle('is-hidden', !poDetailsEnabled);
+    }
+});
 
 // Add New Party button in dropdown
 document.addEventListener("DOMContentLoaded", function() {

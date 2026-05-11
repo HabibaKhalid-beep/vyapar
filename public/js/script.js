@@ -153,7 +153,7 @@ class TabManager {
         await this.createNewTab(`${this.getTabPrefix()} #1`);
     }
 
-    async createNewTab(title = null, content = "") {
+   async createNewTab(title = null, content = "") {
         if (this.tabs.length >= this.MAX_TABS) {
             this.limitModal.show();
             return;
@@ -164,7 +164,8 @@ class TabManager {
         const id = `tab-${Date.now()}-${this.tabCounter}`;
 
         // Use form template if no content provided
-        if (!content && this.formTemplate) {
+        const isFormTab = !content && !!this.formTemplate;
+        if (isFormTab) {
             content = this.formTemplate;
         }
 
@@ -176,19 +177,23 @@ class TabManager {
         this.activateTab(id);
 
         // Initialize form logic for this specific tab
-     if (typeof initializeForm === 'function' && content === this.formTemplate) {
-    initializeForm(paneEl);
-    const billInput = paneEl.querySelector('.bill-number');
-    if (billInput && window.nextInvoiceNumber) {
-        // Extract prefix and number separately
-        const base = window.nextInvoiceNumber;
-        const prefix = base.replace(/[0-9]+$/, '');
-        const num = parseInt(base.replace(/[^0-9]/g, ''), 10) || 1;
-        // Each new tab gets base + (tabCount - 1)
-        const tabOffset = this.tabs.length - 1;
-        billInput.value = prefix + (num + tabOffset);
-    }
-}
+        if (isFormTab && typeof initializeForm === 'function') {
+            initializeForm(paneEl);
+
+            const billInput = paneEl.querySelector('.bill-number');
+            if (billInput && window.nextInvoiceNumber) {
+                const base = String(window.nextInvoiceNumber).trim();
+                const match = base.match(/^(.*?)(\d+)$/);
+                if (match) {
+                    const prefix = match[1];            // e.g. "SO-"
+                    const num = parseInt(match[2], 10); // e.g. 226
+                    const tabOffset = this.tabs.length - 1; // tab 1 = +0, tab 2 = +1
+                    billInput.value = prefix + (num + tabOffset);
+                } else {
+                    billInput.value = base + '-' + this.tabs.length;
+                }
+            }
+        }
 
         // Scroll tab strip to end
         this.tabStrip.scrollTo({ left: this.tabStrip.scrollWidth, behavior: 'smooth' });
