@@ -27,7 +27,9 @@ class PartyController extends Controller
         });
 
         $parties = Party::with('sales')->latest()->get();
-        return view('parties.index', compact('parties'));
+        $partyGroups = PartyGroup::orderBy('name')->get();
+
+        return view('parties.index', compact('parties', 'partyGroups'));
     }
 
     // Show create party form
@@ -666,6 +668,30 @@ public function update(Request $request, $id)
         'total_balance' => number_format((float) $party->current_balance, 2),
     ]);
 }
+
+    public function moveGroups(Request $request)
+    {
+        $data = $request->validate([
+            'party_ids' => 'required|array|min:1',
+            'party_ids.*' => 'required|exists:parties,id',
+            'party_group' => 'nullable|string|max:100',
+        ]);
+
+        $groupName = trim((string) ($data['party_group'] ?? ''));
+
+        Party::whereIn('id', $data['party_ids'])->update([
+            'party_group' => $groupName !== '' ? $groupName : null,
+        ]);
+
+        if ($groupName !== '') {
+            PartyGroup::firstOrCreate(['name' => $groupName]);
+        }
+
+        return response()->json([
+            'success' => true,
+        ]);
+    }
+
     // Delete party
     public function destroy($id)
     {

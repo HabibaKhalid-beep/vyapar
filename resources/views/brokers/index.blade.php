@@ -1,334 +1,677 @@
 @extends('layouts.app')
 
-@section('title', 'Vyapar - Brokers')
-@section('description', 'Manage brokers, commission rates, and brokerage balances.')
+@section('title', 'Vyapar — Brokers')
+@section('description', 'Manage your brokers, commission rates, and brokerage balances in Vyapar accounting software.')
 @section('page', 'brokers')
-
-@push('styles')
 <link rel="stylesheet" href="{{ asset('css/brokers.css') }}">
-@endpush
 
 @section('content')
-<div class="brokers-page">
-  <div class="brokers-header">
-    <div>
-      <p class="brokers-eyebrow">Broker Management</p>
-      <h1 class="brokers-title">Brokers</h1>
-      <p class="brokers-subtitle">Track commission setup, brokerage balances, and broker contact details in one place.</p>
-    </div>
-    <button type="button" class="brokers-add-btn" data-bs-toggle="modal" data-bs-target="#brokerModal">
-      <i class="fa-solid fa-plus"></i>
-      Add Broker
-    </button>
-  </div>
 
-  @if (session('success'))
-    <div class="alert alert-success brokers-alert" role="alert">
-      {{ session('success') }}
-    </div>
-  @endif
+<!-- Upper Panel -->
+<div class="uper-panel">
+  <div class="panel-main">
 
-  @if ($errors->any())
-    <div class="alert alert-danger brokers-alert" role="alert">
-      <strong>Please fix the highlighted broker form fields.</strong>
-    </div>
-  @endif
+    <!-- Left: Header + Arrow -->
+    <div class="text">
+      <div class="header-dropdown">
+        <h1>Brokers</h1>
+        <i class="fa fa-chevron-down arrow-icon" onclick="toggleHeaderDropdown(this)"></i>
 
-  <div class="brokers-metrics">
-    <div class="brokers-metric-card">
-      <span class="brokers-metric-label">Total Brokers</span>
-      <strong>{{ $metrics['total_brokers'] }}</strong>
-    </div>
-    <div class="brokers-metric-card">
-      <span class="brokers-metric-label">Active Brokers</span>
-      <strong>{{ $metrics['active_brokers'] }}</strong>
-    </div>
-    <div class="brokers-metric-card">
-      <span class="brokers-metric-label">Total Brokerage</span>
-      <strong>Rs {{ number_format($metrics['total_brokerage'], 2) }}</strong>
-    </div>
-    <div class="brokers-metric-card">
-      <span class="brokers-metric-label">Remaining Brokerage</span>
-      <strong>Rs {{ number_format($metrics['remaining_brokerage'], 2) }}</strong>
-    </div>
-  </div>
-
-  <div class="brokers-panel">
-    <div class="brokers-panel-toolbar">
-      <div class="brokers-search">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="brokerSearchInput" placeholder="Search broker name, phone, or city">
+        <div class="header-dropdown-menu">
+          <label class="dropdown-item">
+            Brokers
+            <i class="fa fa-check tick-icon"></i>
+          </label>
+        </div>
       </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="table brokers-table align-middle mb-0">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>City</th>
-            <th>Commission</th>
-            <th>Total</th>
-            <th>Paid</th>
-            <th>Remaining</th>
-            <th>Status</th>
-            <th class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="brokerTableBody">
-          @forelse ($brokers as $broker)
-            @php
-              $remaining = (float) ($broker->remaining_brokerage ?? $broker->remaining_amount);
-            @endphp
-            <tr
-              data-broker-row
-              data-search="{{ strtolower(trim($broker->name . ' ' . ($broker->phone ?? '') . ' ' . ($broker->city ?? ''))) }}"
-            >
-              <td>
-                <div class="brokers-name-cell">
-                  <strong>{{ $broker->name }}</strong>
-                  <span>{{ $broker->address ?: 'No address added' }}</span>
-                </div>
-              </td>
-              <td>{{ $broker->phone ?: '-' }}</td>
-              <td>{{ $broker->city ?: '-' }}</td>
-              <td>{{ $broker->commission_type === 'percent' ? 'Percent' : 'Fixed' }} ({{ $broker->commission_label }})</td>
-              <td>Rs {{ number_format((float) $broker->total_brokerage, 2) }}</td>
-              <td>Rs {{ number_format((float) $broker->paid_brokerage, 2) }}</td>
-              <td>Rs {{ number_format($remaining, 2) }}</td>
-              <td>
-                <span class="brokers-status {{ $broker->status ? 'active' : 'inactive' }}">
-                  {{ $broker->status ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-              <td class="text-end">
-                <div class="brokers-actions">
-                  <button
-                    type="button"
-                    class="btn btn-sm brokers-edit-btn"
-                    data-bs-toggle="modal"
-                    data-bs-target="#brokerModal"
-                    data-broker-id="{{ $broker->id }}"
-                    data-broker-name="{{ $broker->name }}"
-                    data-broker-phone="{{ $broker->phone }}"
-                    data-broker-city="{{ $broker->city }}"
-                    data-broker-address="{{ $broker->address }}"
-                    data-broker-commission-type="{{ $broker->commission_type }}"
-                    data-broker-commission-rate="{{ number_format((float) $broker->commission_rate, 2, '.', '') }}"
-                    data-broker-total="{{ number_format((float) $broker->total_brokerage, 2, '.', '') }}"
-                    data-broker-paid="{{ number_format((float) $broker->paid_brokerage, 2, '.', '') }}"
-                    data-broker-notes="{{ $broker->notes }}"
-                    data-broker-status="{{ $broker->status ? 1 : 0 }}"
-                  >
-                    Edit
-                  </button>
+    <!-- Right: Buttons -->
+    <div class="action-buttons">
+      <button class="btn-add-entity" data-bs-toggle="modal" data-bs-target="#addBrokerModal">
+        <i class="fa-solid fa-plus me-1"></i> Add Broker
+      </button>
 
-                  <form action="{{ route('brokers.destroy', $broker) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this broker?');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-sm brokers-delete-btn">Delete</button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-          @empty
-            <tr id="brokerEmptyState">
-              <td colspan="9" class="text-center py-5 text-muted">
-                No brokers found. Add your first broker to start tracking brokerage.
-              </td>
-            </tr>
-          @endforelse
-        </tbody>
-      </table>
+      <button class="btn-settings" id="brokerSettingsTrigger" title="Settings">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+
+      <button class="btn-ellipsis" id="brokerMoreOptionsTrigger" title="More Options">
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      </button>
     </div>
+
   </div>
 </div>
+
+<!-- Split Pane Layout -->
+<div class="split-pane">
+
+  <!-- Left: Broker List -->
+  <div class="split-left">
+    <div class="list-panel-header">
+      <div class="search-box">
+        <i class="fa fa-search"></i>
+        <input type="text" class="form-control search-input" placeholder="Search Broker Name" id="brokerSearchInput">
+      </div>
+    </div>
+
+    <ul class="entity-list" id="brokerList">
+      <li class="active" data-broker="header">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+        <div class="filter-wrapper">
+          <div class="parent-arrows" onclick="this.classList.toggle('active')">
+            <span class="entity-balance positive" style="color: gray !important;">Broker Name</span>
+            <div class="counter-arrows">
+              <i class="fa fa-chevron-up increment"></i>
+              <i class="fa fa-chevron-down decrement"></i>
+            </div>
+          </div>
+
+          <i class="fa fa-filter filter-icon" onclick="toggleFilter()"></i>
+
+          <div class="filter-dropdown" id="filterDropdown">
+            <label><input type="checkbox" data-broker-filter="all" checked> All</label>
+            <label><input type="checkbox" data-broker-filter="active"> Active</label>
+            <label><input type="checkbox" data-broker-filter="inactive"> Inactive</label>
+
+            <div class="filter-actions">
+              <button class="clear-btn" type="button" id="brokerFilterClear">Clear</button>
+              <button class="apply-btn" type="button" id="brokerFilterApply">Apply</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Vertical separator -->
+        <div class="separator"></div>
+
+        <div class="parent-arrows" onclick="this.classList.toggle('active')">
+          <span class="entity-balance positive" style="color: gray !important;">Balance</span>
+          <div class="counter-arrows">
+            <i class="fa fa-chevron-up increment"></i>
+            <i class="fa fa-chevron-down decrement"></i>
+          </div>
+        </div>
+
+      </li>
+
+      <ul id="brokersList">
+        @foreach($brokers as $broker)
+          @php
+            $remaining = (float) ($broker->remaining_brokerage ?? ($broker->total_brokerage - $broker->paid_brokerage));
+          @endphp
+          <li class="broker-item"
+              data-id="{{ $broker->id }}"
+              data-name="{{ $broker->name }}"
+              data-phone="{{ $broker->phone }}"
+              data-city="{{ $broker->city }}"
+              data-address="{{ $broker->address }}"
+              data-commission-type="{{ $broker->commission_type }}"
+              data-commission-rate="{{ number_format((float) $broker->commission_rate, 2, '.', '') }}"
+              data-total-brokerage="{{ number_format((float) $broker->total_brokerage, 2, '.', '') }}"
+              data-paid-brokerage="{{ number_format((float) $broker->paid_brokerage, 2, '.', '') }}"
+              data-remaining-brokerage="{{ number_format($remaining, 2, '.', '') }}"
+              data-notes="{{ $broker->notes }}"
+              data-status="{{ $broker->status ? 1 : 0 }}"
+              data-search="{{ strtolower(trim($broker->name . ' ' . ($broker->phone ?? '') . ' ' . ($broker->city ?? ''))) }}">
+            <span class="entity-name">{{ $broker->name }}</span>
+            <span class="entity-balance {{ $remaining < 0 ? 'negative' : 'positive' }}">
+              Rs {{ number_format($remaining, 2) }}
+            </span>
+          </li>
+        @endforeach
+      </ul>
+
+    </ul>
+  </div>
+
+  <!-- Right: Broker Details -->
+  <div class="split-right">
+    <div class="detail-panel-header">
+      <div>
+        <div style="display: flex;">
+          <div class="entity-detail-name" id="brokerDetailName" style="font-weight: 400;">
+            Select a broker
+          </div>
+          <button class="btn-icon" id="editBrokerBtn" title="Edit" style="display: none;">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+        </div>
+
+        <div class="entity-detail-meta-row">
+          <div class="entity-detail-meta">
+            <div class="meta-heading">Phone Number</div>
+            <div class="meta-value" id="brokerPhone">-</div>
+          </div>
+
+          <div class="entity-detail-meta">
+            <div class="meta-heading">City</div>
+            <div class="meta-value" id="brokerCity">-</div>
+          </div>
+
+          <div class="entity-detail-meta">
+            <div class="meta-heading">Commission Rate</div>
+            <div class="meta-value" id="brokerCommissionRate">-</div>
+          </div>
+
+          <div class="entity-detail-meta">
+            <div class="meta-heading">Address</div>
+            <div class="meta-value" id="brokerAddress">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-panel-body">
+      <div class="table-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <h6 class="fw-600 mb-3" style="font-size: 14px !important; margin-bottom:0 !important;">Brokerage Summary</h6>
+        </div>
+      </div>
+
+      <div class="broker-summary-cards">
+        <div class="summary-card">
+          <div class="summary-label">Total Brokerage</div>
+          <div class="summary-value" id="brokerTotalSummary">Rs 0.00</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Paid Brokerage</div>
+          <div class="summary-value" id="brokerPaidSummary">Rs 0.00</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Remaining Brokerage</div>
+          <div class="summary-value" id="brokerRemainingSummary">Rs 0.00</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Status</div>
+          <div class="summary-value" id="brokerStatusSummary">-</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <label class="form-label" style="font-size: 13px; color: #6b7280;">Notes</label>
+        <div id="brokerNotesSummary" style="padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb; color: #6b7280; font-size: 13px;">
+          No notes
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 @endsection
 
 @section('modals')
-<div class="modal fade" id="brokerModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content broker-modal-card">
-      <form method="POST" id="brokerForm" action="{{ route('brokers.store') }}">
-        @csrf
-        <input type="hidden" name="_method" id="brokerFormMethod" value="POST">
 
-        <div class="modal-header broker-modal-header">
-          <div>
-            <h5 class="modal-title" id="brokerModalTitle">Add Broker</h5>
-            <p class="broker-modal-subtitle mb-0">Save broker details, commission setup, and balance tracking.</p>
-          </div>
+<!-- MODAL: ADD BROKER -->
+<div class="modal fade" id="addBrokerModal" tabindex="-1" aria-labelledby="addBrokerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addBrokerModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Broker</h5>
+        <div class="d-flex align-items-center gap-2" style="margin-left:auto;">
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="brokerModalSettingsTrigger" title="Settings"><i class="fa-solid fa-gear"></i></button>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
+      </div>
 
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Broker Name</label>
-              <input type="text" class="form-control" name="name" id="brokerName" value="{{ old('name') }}" required>
+      <div class="modal-body">
+        <form id="addBrokerForm">
+          @csrf
+          <input type="hidden" id="brokerId" name="broker_id" value="">
+          <input type="hidden" id="brokerFormMethod" name="_method" value="POST">
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6" data-broker-setting="name">
+              <label class="form-label fw-600">Broker Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="Enter broker name" id="brokerNameInput" required>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Phone</label>
-              <input type="text" class="form-control" name="phone" id="brokerPhone" value="{{ old('phone') }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">City</label>
-              <input type="text" class="form-control" name="city" id="brokerCity" value="{{ old('city') }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Status</label>
-              <div class="form-check form-switch broker-switch">
-                <input class="form-check-input" type="checkbox" role="switch" id="brokerStatus" name="status" value="1" {{ old('status', 1) ? 'checked' : '' }}>
-                <label class="form-check-label" for="brokerStatus">Keep broker active</label>
+            <div class="col-md-6" data-broker-setting="phone">
+              <label class="form-label fw-600">Phone Number</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                <input type="tel" name="phone" class="form-control" placeholder="Enter phone number" id="brokerPhoneInput">
               </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Commission Type</label>
-              <select class="form-select" name="commission_type" id="brokerCommissionType" required>
-                <option value="fixed" {{ old('commission_type') === 'fixed' ? 'selected' : '' }}>Fixed</option>
-                <option value="percent" {{ old('commission_type') === 'percent' ? 'selected' : '' }}>Percent</option>
+            <div class="col-md-6" data-broker-setting="city">
+              <label class="form-label fw-600">City</label>
+              <input type="text" name="city" class="form-control" placeholder="Enter city" id="brokerCityInput">
+            </div>
+            <div class="col-md-6" data-broker-setting="address">
+              <label class="form-label fw-600">Address</label>
+              <textarea name="address" class="form-control" placeholder="Enter address" id="brokerAddressInput" rows="2"></textarea>
+            </div>
+            <div class="col-md-6" data-broker-setting="commission_type">
+              <label class="form-label fw-600">Commission Type</label>
+              <select name="commission_type" class="form-select" id="brokerCommissionTypeInput" required>
+                <option value="">Select type</option>
+                <option value="fixed">Fixed</option>
+                <option value="percent">Percent (%)</option>
               </select>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Commission Rate</label>
-              <input type="number" step="0.01" min="0" class="form-control" name="commission_rate" id="brokerCommissionRate" value="{{ old('commission_rate', 0) }}">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Total Brokerage</label>
-              <input type="number" step="0.01" min="0" class="form-control" name="total_brokerage" id="brokerTotalBrokerage" value="{{ old('total_brokerage', 0) }}">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Paid Brokerage</label>
-              <input type="number" step="0.01" min="0" class="form-control" name="paid_brokerage" id="brokerPaidBrokerage" value="{{ old('paid_brokerage', 0) }}">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Remaining</label>
-              <input type="text" class="form-control" id="brokerRemainingPreview" value="Rs 0.00" readonly>
-            </div>
-            <div class="col-12">
-              <label class="form-label">Address</label>
-              <textarea class="form-control" name="address" id="brokerAddress" rows="2">{{ old('address') }}</textarea>
-            </div>
-            <div class="col-12">
-              <label class="form-label">Notes</label>
-              <textarea class="form-control" name="notes" id="brokerNotes" rows="3">{{ old('notes') }}</textarea>
+            <div class="col-md-6" data-broker-setting="commission_rate">
+              <label class="form-label fw-600">Commission Rate</label>
+              <div class="input-group">
+                <input type="number" name="commission_rate" class="form-control" placeholder="0.00" id="brokerCommissionRateInput" step="0.01" min="0">
+                <span class="input-group-text" id="commissionRateUnit">Rs</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="modal-footer broker-modal-footer">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn brokers-submit-btn">Save Broker</button>
-        </div>
-      </form>
+          <!-- Tabs -->
+          <ul class="nav nav-tabs" id="brokerModalTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="broker-balance-tab" data-bs-toggle="tab" data-bs-target="#brokerBalancePane" type="button" role="tab">
+                <i class="fa-solid fa-wallet me-1"></i> Brokerage & Balance
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="broker-additional-tab" data-bs-toggle="tab" data-bs-target="#brokerAdditionalPane" type="button" role="tab">
+                <i class="fa-solid fa-sliders me-1"></i> Additional Info
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-3" id="brokerModalTabContent">
+            <!-- Brokerage & Balance Tab -->
+            <div class="tab-pane fade show active" id="brokerBalancePane" role="tabpanel">
+              <div class="row g-3">
+                <div class="col-md-4" data-broker-setting="total_brokerage">
+                  <label class="form-label">Total Brokerage</label>
+                  <div class="input-group">
+                    <span class="input-group-text">Rs</span>
+                    <input type="number" name="total_brokerage" class="form-control" placeholder="0.00" id="brokerTotalBrokerageInput" step="0.01" min="0">
+                  </div>
+                </div>
+                <div class="col-md-4" data-broker-setting="paid_brokerage">
+                  <label class="form-label">Paid Brokerage</label>
+                  <div class="input-group">
+                    <span class="input-group-text">Rs</span>
+                    <input type="number" name="paid_brokerage" class="form-control" placeholder="0.00" id="brokerPaidBrokerageInput" step="0.01" min="0">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Remaining</label>
+                  <input type="text" class="form-control" id="brokerRemainingPreview" value="Rs 0.00" readonly>
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Info Tab -->
+            <div class="tab-pane fade" id="brokerAdditionalPane" role="tabpanel" data-broker-setting="additional_info">
+              <div class="row g-3">
+                <div class="col-md-6" data-broker-setting="status">
+                  <label class="form-label d-block">Status</label>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="brokerStatusInput" name="status" value="1">
+                    <label class="form-check-label" for="brokerStatusInput">Keep broker active</label>
+                  </div>
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-12" data-broker-setting="notes">
+                  <label class="form-label">Notes / Description</label>
+                  <textarea name="notes" class="form-control" placeholder="Add any additional notes about this broker" id="brokerNotesInput" rows="3"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-primary" id="btnSaveNewBroker">
+              <i class="fa-solid fa-plus me-1"></i> Save & New
+            </button>
+            <button type="button" class="btn btn-primary" id="btnSaveBroker">
+              <i class="fa-solid fa-check me-1"></i> Save
+            </button>
+            <button type="button" class="btn btn-primary" id="btnUpdateBroker" style="display:none;">Update</button>
+            <button type="button" class="btn btn-danger" id="btnDeleteBroker" style="display:none;">Delete</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Broker Settings Drawer -->
+<div class="broker-settings-drawer" id="brokerSettingsDrawer">
+  <div class="broker-settings-backdrop" data-close-broker-settings="true"></div>
+  <div class="broker-settings-panel">
+    <div class="broker-settings-header">
+      <h4>Broker Settings</h4>
+      <button type="button" class="broker-settings-close" id="brokerSettingsClose">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="broker-settings-group">
+      <div class="broker-settings-group-title">General</div>
+      <label class="broker-settings-item">
+        <span>Show Phone Number <i class="fa-regular fa-circle-info broker-settings-info"></i></span>
+        <input type="checkbox" class="broker-setting-toggle" data-setting-target="phone" checked>
+      </label>
+      <label class="broker-settings-item">
+        <span>Show Address <i class="fa-regular fa-circle-info broker-settings-info"></i></span>
+        <input type="checkbox" class="broker-setting-toggle" data-setting-target="address" checked>
+      </label>
+      <label class="broker-settings-item">
+        <span>Show Commission Details <i class="fa-regular fa-circle-info broker-settings-info"></i></span>
+        <input type="checkbox" class="broker-setting-toggle" data-setting-target="commission" checked>
+      </label>
+      <label class="broker-settings-item">
+        <span>Show Brokerage Balance <i class="fa-regular fa-circle-info broker-settings-info"></i></span>
+        <input type="checkbox" class="broker-setting-toggle" data-setting-target="balance" checked>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Broker More Menu -->
+<div class="broker-more-menu" id="brokerMoreMenu">
+  <button type="button" class="broker-more-menu-item" id="importExcelOption">Import from Excel</button>
+  <button type="button" class="broker-more-menu-item" id="exportExcelOption">Export to Excel</button>
+</div>
+
+<input type="file" id="brokerExcelImportInput" accept=".csv,.xls,.xlsx" hidden>
+
 @endsection
 
 @push('scripts')
 <script>
   (function () {
-    const brokerModal = document.getElementById('brokerModal');
-    const brokerForm = document.getElementById('brokerForm');
-    const brokerModalTitle = document.getElementById('brokerModalTitle');
+    const brokerModal = document.getElementById('addBrokerModal');
+    const brokerForm = document.getElementById('addBrokerForm');
+    const brokersList = document.getElementById('brokersList');
+    const brokerSearchInput = document.getElementById('brokerSearchInput');
+    const brokerDetailName = document.getElementById('brokerDetailName');
+    const editBrokerBtn = document.getElementById('editBrokerBtn');
+    const brokerSettingsDrawer = document.getElementById('brokerSettingsDrawer');
+    const brokerMoreMenu = document.getElementById('brokerMoreMenu');
+    const brokerSettingsTrigger = document.getElementById('brokerSettingsTrigger');
+    const brokerMoreOptionsTrigger = document.getElementById('brokerMoreOptionsTrigger');
+    const brokerModalLabel = document.getElementById('addBrokerModalLabel');
+    const brokerId = document.getElementById('brokerId');
     const brokerFormMethod = document.getElementById('brokerFormMethod');
-    const searchInput = document.getElementById('brokerSearchInput');
-    const brokerRows = Array.from(document.querySelectorAll('[data-broker-row]'));
-    const emptyStateRow = document.getElementById('brokerEmptyState');
 
     const fields = {
-      name: document.getElementById('brokerName'),
-      phone: document.getElementById('brokerPhone'),
-      city: document.getElementById('brokerCity'),
-      address: document.getElementById('brokerAddress'),
-      commissionType: document.getElementById('brokerCommissionType'),
-      commissionRate: document.getElementById('brokerCommissionRate'),
-      total: document.getElementById('brokerTotalBrokerage'),
-      paid: document.getElementById('brokerPaidBrokerage'),
-      notes: document.getElementById('brokerNotes'),
-      status: document.getElementById('brokerStatus'),
+      name: document.getElementById('brokerNameInput'),
+      phone: document.getElementById('brokerPhoneInput'),
+      city: document.getElementById('brokerCityInput'),
+      address: document.getElementById('brokerAddressInput'),
+      commissionType: document.getElementById('brokerCommissionTypeInput'),
+      commissionRate: document.getElementById('brokerCommissionRateInput'),
+      totalBrokerage: document.getElementById('brokerTotalBrokerageInput'),
+      paidBrokerage: document.getElementById('brokerPaidBrokerageInput'),
       remaining: document.getElementById('brokerRemainingPreview'),
+      status: document.getElementById('brokerStatusInput'),
+      notes: document.getElementById('brokerNotesInput'),
     };
 
+    let selectedBrokerElement = null;
+
+    // Format currency
     const formatCurrency = (value) => `Rs ${Number(value || 0).toFixed(2)}`;
 
+    // Update remaining preview
     const updateRemainingPreview = () => {
-      const total = Number(fields.total.value || 0);
-      const paid = Number(fields.paid.value || 0);
+      const total = Number(fields.totalBrokerage.value || 0);
+      const paid = Number(fields.paidBrokerage.value || 0);
       const remaining = Math.max(0, total - paid);
       fields.remaining.value = formatCurrency(remaining);
     };
 
+    // Update commission rate unit
+    const updateCommissionRateUnit = () => {
+      const unit = fields.commissionType.value === 'percent' ? '%' : 'Rs';
+      document.getElementById('commissionRateUnit').textContent = unit;
+    };
+
+    // Display broker details
+    const displayBrokerDetails = (brokerItem) => {
+      const totalRemaining = Number(brokerItem.dataset.remainingBrokerage);
+      brokerDetailName.textContent = brokerItem.dataset.name;
+      document.getElementById('brokerPhone').textContent = brokerItem.dataset.phone || '-';
+      document.getElementById('brokerCity').textContent = brokerItem.dataset.city || '-';
+      document.getElementById('brokerAddress').textContent = brokerItem.dataset.address || '-';
+
+      const commissionType = brokerItem.dataset.commissionType;
+      const commissionRate = brokerItem.dataset.commissionRate;
+      const commissionLabel = commissionType === 'percent'
+        ? `${commissionRate}%`
+        : `Rs ${commissionRate}`;
+      document.getElementById('brokerCommissionRate').textContent = commissionLabel;
+
+      document.getElementById('brokerTotalSummary').textContent = formatCurrency(brokerItem.dataset.totalBrokerage);
+      document.getElementById('brokerPaidSummary').textContent = formatCurrency(brokerItem.dataset.paidBrokerage);
+      document.getElementById('brokerRemainingSummary').textContent = formatCurrency(totalRemaining);
+
+      const status = brokerItem.dataset.status === '1' ? 'Active' : 'Inactive';
+      document.getElementById('brokerStatusSummary').textContent = status;
+
+      document.getElementById('brokerNotesSummary').textContent = brokerItem.dataset.notes || 'No notes';
+
+      editBrokerBtn.style.display = 'block';
+    };
+
+    // Reset form for create
     const resetFormForCreate = () => {
       brokerForm.action = "{{ route('brokers.store') }}";
       brokerFormMethod.value = 'POST';
-      brokerModalTitle.textContent = 'Add Broker';
+      brokerModalLabel.textContent = 'Add Broker';
       brokerForm.reset();
+      brokerId.value = '';
       fields.status.checked = true;
-      fields.commissionType.value = 'fixed';
-      fields.commissionRate.value = '0';
-      fields.total.value = '0';
-      fields.paid.value = '0';
+      fields.commissionType.value = '';
+      updateCommissionRateUnit();
+      document.getElementById('btnSaveBroker').style.display = 'block';
+      document.getElementById('btnSaveNewBroker').style.display = 'block';
+      document.getElementById('btnUpdateBroker').style.display = 'none';
+      document.getElementById('btnDeleteBroker').style.display = 'none';
       updateRemainingPreview();
     };
 
-    document.querySelectorAll('.brokers-edit-btn').forEach((button) => {
-      button.addEventListener('click', () => {
-        const brokerId = button.dataset.brokerId;
-        brokerForm.action = `/dashboard/brokers/${brokerId}`;
-        brokerFormMethod.value = 'PUT';
-        brokerModalTitle.textContent = 'Edit Broker';
-        fields.name.value = button.dataset.brokerName || '';
-        fields.phone.value = button.dataset.brokerPhone || '';
-        fields.city.value = button.dataset.brokerCity || '';
-        fields.address.value = button.dataset.brokerAddress || '';
-        fields.commissionType.value = button.dataset.brokerCommissionType || 'fixed';
-        fields.commissionRate.value = button.dataset.brokerCommissionRate || '0';
-        fields.total.value = button.dataset.brokerTotal || '0';
-        fields.paid.value = button.dataset.brokerPaid || '0';
-        fields.notes.value = button.dataset.brokerNotes || '';
-        fields.status.checked = button.dataset.brokerStatus === '1';
-        updateRemainingPreview();
-      });
-    });
-
-    if (brokerModal) {
-      brokerModal.addEventListener('show.bs.modal', (event) => {
-        const trigger = event.relatedTarget;
-        if (!trigger || !trigger.classList.contains('brokers-edit-btn')) {
-          resetFormForCreate();
-        }
-      });
-    }
-
-    [fields.total, fields.paid].forEach((input) => {
-      input?.addEventListener('input', updateRemainingPreview);
-    });
-
-    searchInput?.addEventListener('input', () => {
-      const query = searchInput.value.trim().toLowerCase();
-      let visibleRows = 0;
-
-      brokerRows.forEach((row) => {
-        const haystack = row.dataset.search || '';
-        const matches = !query || haystack.includes(query);
-        row.style.display = matches ? '' : 'none';
-        if (matches) visibleRows += 1;
-      });
-
-      if (emptyStateRow) {
-        emptyStateRow.style.display = visibleRows === 0 ? '' : 'none';
+    // Handle broker item click - display details
+    brokersList.addEventListener('click', (e) => {
+      const brokerItem = e.target.closest('.broker-item');
+      if (brokerItem) {
+        // Remove active class from previous
+        document.querySelectorAll('.broker-item.active').forEach(el => el.classList.remove('active'));
+        brokerItem.classList.add('active');
+        selectedBrokerElement = brokerItem;
+        displayBrokerDetails(brokerItem);
       }
     });
 
-    updateRemainingPreview();
+    // Handle edit button
+    editBrokerBtn.addEventListener('click', () => {
+      if (!selectedBrokerElement) return;
 
-    @if ($errors->any())
       const modal = bootstrap.Modal.getOrCreateInstance(brokerModal);
+      brokerFormMethod.value = 'PUT';
+      brokerModalLabel.textContent = 'Edit Broker';
+
+      brokerId.value = selectedBrokerElement.dataset.id;
+      fields.name.value = selectedBrokerElement.dataset.name || '';
+      fields.phone.value = selectedBrokerElement.dataset.phone || '';
+      fields.city.value = selectedBrokerElement.dataset.city || '';
+      fields.address.value = selectedBrokerElement.dataset.address || '';
+      fields.commissionType.value = selectedBrokerElement.dataset.commissionType || '';
+      fields.commissionRate.value = selectedBrokerElement.dataset.commissionRate || '0';
+      fields.totalBrokerage.value = selectedBrokerElement.dataset.totalBrokerage || '0';
+      fields.paidBrokerage.value = selectedBrokerElement.dataset.paidBrokerage || '0';
+      fields.status.checked = selectedBrokerElement.dataset.status === '1';
+      fields.notes.value = selectedBrokerElement.dataset.notes || '';
+
+      document.getElementById('btnSaveBroker').style.display = 'none';
+      document.getElementById('btnSaveNewBroker').style.display = 'none';
+      document.getElementById('btnUpdateBroker').style.display = 'block';
+      document.getElementById('btnDeleteBroker').style.display = 'block';
+
+      updateCommissionRateUnit();
+      updateRemainingPreview();
+
+      brokerForm.action = `/dashboard/brokers/${brokerId.value}`;
       modal.show();
-    @endif
+    });
+
+    // Handle form submission
+    document.getElementById('btnSaveBroker').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await submitBrokerForm(false);
+    });
+
+    document.getElementById('btnSaveNewBroker').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await submitBrokerForm(true);
+    });
+
+    document.getElementById('btnUpdateBroker').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await submitBrokerForm(false, true);
+    });
+
+    async function submitBrokerForm(saveNew = false, isUpdate = false) {
+      const formData = new FormData(brokerForm);
+      const method = brokerFormMethod.value;
+      const url = brokerForm.action;
+
+      try {
+        const response = await fetch(url, {
+          method: method === 'PUT' ? 'POST' : 'POST',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+          },
+          body: formData
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Refresh broker list
+          location.reload();
+
+          if (!saveNew) {
+            const modal = bootstrap.Modal.getInstance(brokerModal);
+            modal.hide();
+          } else {
+            resetFormForCreate();
+          }
+
+          // Show success toast
+          showSuccessToast(isUpdate ? 'Broker updated successfully' : 'Broker added successfully');
+        } else {
+          showErrorToast('Failed to save broker');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showErrorToast('An error occurred while saving broker');
+      }
+    }
+
+    // Handle delete button
+    document.getElementById('btnDeleteBroker').addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to delete this broker?')) return;
+
+      try {
+        const response = await fetch(`/dashboard/brokers/${brokerId.value}`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+          }
+        });
+
+        if (response.ok) {
+          const modal = bootstrap.Modal.getInstance(brokerModal);
+          modal.hide();
+          location.reload();
+          showSuccessToast('Broker deleted successfully');
+        } else {
+          showErrorToast('Failed to delete broker');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showErrorToast('An error occurred while deleting broker');
+      }
+    });
+
+    // Modal open event
+    brokerModal.addEventListener('show.bs.modal', (event) => {
+      const trigger = event.relatedTarget;
+      if (!trigger || !trigger.id || trigger.id !== 'editBrokerBtn') {
+        resetFormForCreate();
+      }
+    });
+
+    // Update remaining when values change
+    [fields.totalBrokerage, fields.paidBrokerage].forEach((input) => {
+      input?.addEventListener('input', updateRemainingPreview);
+    });
+
+    // Update commission rate unit when type changes
+    fields.commissionType?.addEventListener('change', updateCommissionRateUnit);
+
+    // Search functionality
+    brokerSearchInput?.addEventListener('input', () => {
+      const query = brokerSearchInput.value.trim().toLowerCase();
+      const brokerItems = document.querySelectorAll('.broker-item');
+
+      brokerItems.forEach((item) => {
+        const searchData = item.dataset.search || '';
+        const matches = !query || searchData.includes(query);
+        item.style.display = matches ? '' : 'none';
+      });
+    });
+
+    // Settings drawer toggle
+    brokerSettingsTrigger?.addEventListener('click', () => {
+      brokerSettingsDrawer.classList.toggle('active');
+    });
+
+    document.getElementById('brokerSettingsClose')?.addEventListener('click', () => {
+      brokerSettingsDrawer.classList.remove('active');
+    });
+
+    document.querySelector('[data-close-broker-settings]')?.addEventListener('click', () => {
+      brokerSettingsDrawer.classList.remove('active');
+    });
+
+    // More menu toggle
+    brokerMoreOptionsTrigger?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      brokerMoreMenu.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => {
+      brokerMoreMenu.classList.remove('active');
+    });
+
+    // Helper functions
+    function showSuccessToast(message) {
+      // Implement your toast notification here
+      console.log('Success:', message);
+    }
+
+    function showErrorToast(message) {
+      // Implement your toast notification here
+      console.log('Error:', message);
+    }
+
+    // Initialize
+    updateRemainingPreview();
   })();
+
+  // Header dropdown toggle
+  function toggleHeaderDropdown(icon) {
+    const menu = icon.nextElementSibling;
+    menu?.classList.toggle('active');
+  }
+
+  // Filter toggle
+  function toggleFilter() {
+    const dropdown = document.getElementById('filterDropdown');
+    dropdown?.classList.toggle('active');
+  }
 </script>
 @endpush

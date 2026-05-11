@@ -17,13 +17,18 @@
     <div class="text">
       <div class="header-dropdown">
         <h1>Parties</h1>
-        <i class="fa fa-chevron-down arrow-icon" onclick="toggleHeaderDropdown(this)"></i>
+        <i class="fa fa-chevron-down arrow-icon" id="partyViewDropdownTrigger"></i>
 
       <div class="header-dropdown-menu">
-  <label class="dropdown-item">
+  <button type="button" class="dropdown-item active" data-party-view-option="parties">
     Parties
     <i class="fa fa-check tick-icon"></i>
-  </label>
+  </button>
+  <button type="button" class="dropdown-item is-hidden" data-party-view-option="groups" id="partyGroupsViewOption">
+    Party Groups
+    <i class="fa fa-check tick-icon"></i>
+  </button>
+
 </div>
       </div>
     </div>
@@ -125,6 +130,7 @@
         data-transaction-type="{{ $party->transaction_type }}"
         data-party-type="{{ $party->party_type }}"
         data-party-group="{{ $party->party_group }}"
+        data-sales-total="{{ (float) $party->sales->sum('grand_total') }}"
         data-due-days="{{ $party->due_days }}"
         data-credit-limit-enabled="{{ $party->credit_limit_enabled }}"
         data-credit-limit-amount="{{ $party->credit_limit_amount }}"
@@ -455,6 +461,62 @@
     </div>
   </div>
 
+  <div class="party-groups-view is-hidden" id="partyGroupsView">
+    <div class="party-groups-layout">
+      <div class="party-groups-sidebar">
+        <div class="party-groups-sidebar-header">
+          <div class="party-groups-sidebar-title-row">
+            <h3>Groups</h3>
+           
+          </div>
+          <div class="party-groups-search">
+            <i class="fa fa-search"></i>
+            <input type="text" id="partyGroupSearchInput" placeholder="Search groups">
+          </div>
+        </div>
+        <div class="party-groups-sidebar-list" id="partyGroupsSidebarList"></div>
+      </div>
+
+      <div class="party-groups-content">
+        <div class="party-groups-summary-card">
+          <div class="party-groups-summary-top">
+            <div>
+              <div class="party-groups-summary-label">Selected Group</div>
+              <h3 id="selectedPartyGroupName">General</h3>
+              <div class="party-groups-summary-stats">
+                <span id="selectedPartyGroupCount">Parties(0)</span>
+                <span id="selectedPartyGroupAmount">Rs 0.00</span>
+              </div>
+            </div>
+            <button type="button" class="party-groups-move-btn" id="movePartiesToGroupBtn">Move To This Group</button>
+          </div>
+        </div>
+
+        <div class="party-groups-table-card">
+          <div class="party-groups-table-header">
+            <h4>Parties</h4>
+            <div class="party-groups-search party-groups-search-right">
+              <i class="fa fa-search"></i>
+              <input type="text" id="partyGroupPartySearchInput" placeholder="Search party">
+            </div>
+          </div>
+          <div class="party-groups-table-wrap">
+            <table class="party-groups-table">
+              <thead>
+                <tr>
+                  <th>Party</th>
+                  <th>Amount</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="partyGroupPartiesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 @endsection
 @section('modals')
 <!-- MODAL: ADD PARTY -->
@@ -755,6 +817,31 @@
     </div>
     <div class="txn-option-actions">
       <button type="button" class="txn-option-btn ok" id="partyQrClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="txn-option-modal" id="partyGroupMoveModal">
+  <div class="txn-option-backdrop" data-close-party-group-move="true"></div>
+  <div class="txn-option-dialog" style="max-width:620px;">
+    <h3 class="txn-option-title">Move Parties To Group</h3>
+    <p id="partyGroupMoveTitle" style="margin:0 0 12px;color:#64748b;font-size:14px;">Select parties to move.</p>
+    <div class="party-group-move-target">
+      <label for="partyGroupMoveTargetSelect" class="form-label fw-600">Move selected parties to</label>
+      <select id="partyGroupMoveTargetSelect" class="form-control"></select>
+    </div>
+    <div class="party-group-move-search">
+      <i class="fa fa-search"></i>
+      <input type="text" id="partyGroupMoveSearchInput" class="form-control" placeholder="Search parties">
+    </div>
+    <label class="party-group-move-select-all">
+      <input type="checkbox" id="partyGroupMoveSelectAll">
+      <span>Select all visible parties</span>
+    </label>
+    <div class="party-group-move-list" id="partyGroupMoveList"></div>
+    <div class="txn-option-actions">
+      <button type="button" class="txn-option-btn cancel" id="partyGroupMoveCancel">Cancel</button>
+      <button type="button" class="txn-option-btn ok" id="partyGroupMoveSave">Move Selected Parties</button>
     </div>
   </div>
 </div>
@@ -1649,6 +1736,360 @@
     background: #f8fafc;
   }
 
+  .is-hidden {
+    display: none !important;
+  }
+
+  .header-dropdown-menu .dropdown-item .tick-icon {
+    visibility: hidden;
+  }
+
+  .header-dropdown-menu .dropdown-item.active .tick-icon {
+    visibility: visible;
+  }
+
+  .header-dropdown-menu .dropdown-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+  }
+
+  .party-groups-view {
+    margin-top: 14px;
+  }
+
+  .party-groups-layout {
+    display: grid;
+    grid-template-columns: 290px minmax(0, 1fr);
+    gap: 0;
+    min-height: 640px;
+    border: 1px solid #d7e3ef;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #f8fbff;
+  }
+
+  .party-groups-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #dbe5ef;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .party-groups-sidebar-header {
+    padding: 18px;
+    border-bottom: 1px solid #e7eef6;
+  }
+
+  .party-groups-sidebar-title-row,
+  .party-groups-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .party-groups-sidebar-title-row h3,
+  .party-groups-table-header h4,
+  .party-groups-summary-card h3 {
+    margin: 0;
+    color: #1e293b;
+  }
+
+  .party-groups-add-btn {
+    border: none;
+    border-radius: 999px;
+    background: #ff4d6d;
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .party-groups-search {
+    margin-top: 14px;
+    position: relative;
+  }
+
+  .party-groups-search i {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    color: #94a3b8;
+  }
+
+  .party-groups-search input {
+    width: 100%;
+    border: 1px solid #d9e2ec;
+    border-radius: 12px;
+    padding: 11px 14px 11px 40px;
+    outline: none;
+    background: #fff;
+  }
+
+  .party-groups-sidebar-list {
+    padding: 10px;
+    overflow-y: auto;
+  }
+
+  .party-group-sidebar-item,
+  .party-group-party-row {
+    display: grid;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .party-group-sidebar-item {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: 14px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    color: #334155;
+    margin-bottom: 8px;
+  }
+
+  .party-group-sidebar-item.active {
+    background: #d9edff;
+  }
+
+  .party-group-sidebar-name {
+    font-weight: 600;
+  }
+
+  .party-group-sidebar-meta,
+  .party-groups-summary-label,
+  .party-group-empty {
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  .party-group-sidebar-amount,
+  .party-group-party-amount,
+  .party-groups-summary-stats span:last-child {
+    color: #16a34a;
+    font-weight: 700;
+  }
+
+  .party-group-sidebar-actions,
+  .party-group-party-actions {
+    position: relative;
+  }
+
+  .party-group-action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #64748b;
+  }
+
+  .party-group-action-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 145px;
+    background: #fff;
+    border: 1px solid #dbe3ea;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+    padding: 8px 0;
+    display: none;
+    z-index: 30;
+  }
+
+  .party-group-action-menu.active {
+    display: block;
+  }
+
+  .party-group-action-menu button {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    padding: 9px 14px;
+    color: #334155;
+  }
+
+  .party-group-action-menu button:hover {
+    background: #f8fafc;
+  }
+
+  .party-groups-content {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .party-groups-summary-card,
+  .party-groups-table-card {
+    background: #fff;
+    border: 1px solid #dbe5ef;
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .party-groups-summary-card {
+    padding: 18px 22px;
+  }
+
+  .party-groups-summary-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .party-groups-summary-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    font-weight: 600;
+  }
+
+  .party-groups-move-btn {
+    border: none;
+    border-radius: 10px;
+    background: #2f8df6;
+    color: #fff;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 8px 18px rgba(47, 141, 246, 0.24);
+  }
+
+  .party-groups-table-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid #edf2f7;
+  }
+
+  .party-groups-search-right {
+    margin-top: 0;
+    width: 260px;
+  }
+
+  .party-groups-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .party-groups-table th,
+  .party-groups-table td {
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf2f7;
+    text-align: left;
+  }
+
+  .party-groups-table th {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .party-group-party-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .party-group-party-name {
+    color: #0f172a;
+    font-weight: 600;
+  }
+
+  .party-group-empty {
+    text-align: center;
+    padding: 44px 16px;
+  }
+
+  .party-group-move-search {
+    position: relative;
+    margin-bottom: 14px;
+  }
+
+  .party-group-move-target {
+    margin-bottom: 12px;
+  }
+
+  .party-group-move-search i {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    color: #94a3b8;
+  }
+
+  .party-group-move-search input {
+    padding-left: 40px;
+  }
+
+  .party-group-move-list {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px;
+    background: #f8fafc;
+  }
+
+  .party-group-move-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 10px;
+    border-radius: 10px;
+  }
+
+  .party-group-move-item:hover {
+    background: #eef6ff;
+  }
+
+  .party-group-move-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .party-group-move-meta strong {
+    display: block;
+    color: #0f172a;
+    font-size: 14px;
+  }
+
+  .party-group-move-meta span {
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  @media (max-width: 991px) {
+    .party-groups-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .party-groups-sidebar {
+      border-right: none;
+      border-bottom: 1px solid #dbe5ef;
+    }
+
+    .party-groups-search-right {
+      width: 100%;
+    }
+
+    .party-groups-summary-top,
+    .party-groups-table-header,
+    .party-groups-sidebar-title-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
   .party-more-menu {
     position: absolute;
     top: 70px;
@@ -1710,10 +2151,37 @@ function toggleFilter(){
 }
 
 function toggleHeaderDropdown(element) {
-    const dropdownMenu = element.nextElementSibling;
-    const isVisible = dropdownMenu.style.display === 'block';
-    dropdownMenu.style.display = isVisible ? 'none' : 'block';
-    element.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+    const headerDropdown = element.closest('.header-dropdown');
+    if (!headerDropdown) return;
+
+    const dropdownMenu = headerDropdown.querySelector('.header-dropdown-menu');
+    const isVisible = headerDropdown.classList.contains('is-open');
+
+    document.querySelectorAll('.header-dropdown.is-open').forEach((dropdown) => {
+        dropdown.classList.remove('is-open');
+        const menu = dropdown.querySelector('.header-dropdown-menu');
+        const arrow = dropdown.querySelector('.arrow-icon');
+        if (menu) menu.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    });
+
+    if (isVisible) {
+        return;
+    }
+
+    headerDropdown.classList.add('is-open');
+    if (dropdownMenu) dropdownMenu.style.display = 'block';
+    element.style.transform = 'rotate(180deg)';
+}
+
+function closeHeaderDropdown() {
+    document.querySelectorAll('.header-dropdown.is-open').forEach((dropdown) => {
+        dropdown.classList.remove('is-open');
+        const menu = dropdown.querySelector('.header-dropdown-menu');
+        const arrow = dropdown.querySelector('.arrow-icon');
+        if (menu) menu.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    });
 }
 
 function toggleSort(el){
@@ -1735,6 +2203,10 @@ document.addEventListener('click', function(e){
             dd.style.display = 'none';
         }
     });
+
+    if (!e.target.closest('.header-dropdown')) {
+        closeHeaderDropdown();
+    }
 });
 
 // ============ MAIN PARTY CRUD ============
@@ -1779,6 +2251,28 @@ document.addEventListener("DOMContentLoaded", function () {
     const partyQrImage = document.getElementById("partyQrImage");
     const partyQrText = document.getElementById("partyQrText");
     const partyQrClose = document.getElementById("partyQrClose");
+    const partyViewDropdownTrigger = document.getElementById("partyViewDropdownTrigger");
+    const partyViewDropdownMenu = document.querySelector(".header-dropdown-menu");
+    const splitPane = document.querySelector(".split-pane");
+    const partyGroupsView = document.getElementById("partyGroupsView");
+    const partyGroupsViewOption = document.getElementById("partyGroupsViewOption");
+    const partyGroupsSidebarList = document.getElementById("partyGroupsSidebarList");
+    const selectedPartyGroupName = document.getElementById("selectedPartyGroupName");
+    const selectedPartyGroupCount = document.getElementById("selectedPartyGroupCount");
+    const selectedPartyGroupAmount = document.getElementById("selectedPartyGroupAmount");
+    const partyGroupPartiesTableBody = document.getElementById("partyGroupPartiesTableBody");
+    const partyGroupSearchInput = document.getElementById("partyGroupSearchInput");
+    const partyGroupPartySearchInput = document.getElementById("partyGroupPartySearchInput");
+    const partyGroupsAddBtn = document.getElementById("partyGroupsAddBtn");
+    const movePartiesToGroupBtn = document.getElementById("movePartiesToGroupBtn");
+    const partyGroupMoveModal = document.getElementById("partyGroupMoveModal");
+    const partyGroupMoveTitle = document.getElementById("partyGroupMoveTitle");
+    const partyGroupMoveList = document.getElementById("partyGroupMoveList");
+    const partyGroupMoveSearchInput = document.getElementById("partyGroupMoveSearchInput");
+    const partyGroupMoveTargetSelect = document.getElementById("partyGroupMoveTargetSelect");
+    const partyGroupMoveSelectAll = document.getElementById("partyGroupMoveSelectAll");
+    const partyGroupMoveCancel = document.getElementById("partyGroupMoveCancel");
+    const partyGroupMoveSave = document.getElementById("partyGroupMoveSave");
     const partyGroupInput = document.getElementById("partyGroupInput");
     const partyGroupTrigger = document.getElementById("partyGroupTrigger");
     const partyGroupTriggerText = document.getElementById("partyGroupTriggerText");
@@ -1821,6 +2315,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const partyTransferHistoryModalTitle = document.getElementById("partyTransferHistoryModalTitle");
 
     let currentPartyId = null;
+    let currentPartyView = 'parties';
+    let selectedPartyGroupNameValue = 'General';
+    let selectedMovePartyIds = [];
     let transactionsState = [];
     let filteredTransactionsState = [];
     let pendingTxnAction = null;
@@ -1828,7 +2325,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const existingPartyGroups = Array.from(document.querySelectorAll('.party-item'))
         .map((item) => (item.dataset.partyGroup || '').trim())
         .filter(Boolean);
-    let partyGroups = Array.from(new Set(['General', ...existingPartyGroups]));
+    const serverPartyGroups = @json($partyGroups->map(fn ($group) => ['id' => $group->id, 'name' => $group->name])->values());
+    let partyGroups = Array.from(new Set(['General', ...serverPartyGroups.map(group => group.name), ...existingPartyGroups]))
+        .map((name) => {
+            const matchedGroup = serverPartyGroups.find(group => group.name === name);
+            return {
+                id: matchedGroup?.id || null,
+                name
+            };
+        });
     let partySettingsState = {
         party_grouping: true,
         shipping_address: true,
@@ -2819,10 +3324,10 @@ document.addEventListener("DOMContentLoaded", function () {
             const option = document.createElement('button');
             option.type = 'button';
             option.className = 'party-group-option';
-            option.textContent = group;
+            option.textContent = group.name;
             option.addEventListener('click', function () {
-                partyGroupInput.value = group;
-                partyGroupTriggerText.textContent = group;
+                partyGroupInput.value = group.name;
+                partyGroupTriggerText.textContent = group.name;
                 partyGroupMenu.classList.remove('active');
             });
             partyGroupOptions.appendChild(option);
@@ -2837,7 +3342,16 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const savedGroups = JSON.parse(localStorage.getItem(PARTY_GROUPS_STORAGE_KEY) || '[]');
             if (Array.isArray(savedGroups) && savedGroups.length) {
-                partyGroups = Array.from(new Set(['General', ...partyGroups, ...savedGroups.map((group) => String(group).trim()).filter(Boolean)]));
+                savedGroups.forEach((group) => {
+                    const normalizedGroup = typeof group === 'string'
+                        ? { id: null, name: group.trim() }
+                        : { id: group?.id || null, name: String(group?.name || '').trim() };
+
+                    if (!normalizedGroup.name) return;
+                    if (!partyGroups.some((item) => item.name === normalizedGroup.name)) {
+                        partyGroups.push(normalizedGroup);
+                    }
+                });
             }
         } catch (error) {
             console.warn('Unable to load saved party groups.', error);
@@ -2865,14 +3379,499 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        if (!partyGroups.includes(groupName)) {
-            partyGroups.push(groupName);
+        fetch("{{ route('party-groups.store') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({ name: groupName })
+        })
+        .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Unable to create party group.');
+            }
+            return data;
+        })
+        .then((data) => {
+            const createdGroup = {
+                id: data.partyGroup?.id || null,
+                name: data.partyGroup?.name || groupName
+            };
+
+            if (!partyGroups.some((group) => group.name === createdGroup.name)) {
+                partyGroups.push(createdGroup);
+            }
+
+            persistPartyGroups();
+            renderPartyGroupOptions(createdGroup.name);
+            renderPartyGroupsView();
+            switchPartyView('groups');
+            selectPartyGroup(createdGroup.name);
+            closePartyGroupCreateModal();
+            partyGroupMenu.classList.remove('active');
+        })
+        .catch((error) => {
+            alert(error.message || 'Unable to create party group.');
+        });
+    }
+
+    function formatCurrency(value) {
+        const amount = Number(value || 0);
+        return `Rs ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function closeAllGroupActionMenus() {
+        document.querySelectorAll('.party-group-action-menu.active').forEach((menu) => {
+            menu.classList.remove('active');
+        });
+    }
+
+    function createGroupActionMenu(type, payload) {
+        const wrapper = document.createElement('div');
+        wrapper.className = type === 'group' ? 'party-group-sidebar-actions' : 'party-group-party-actions';
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'party-group-action-btn';
+        button.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+
+        const menu = document.createElement('div');
+        menu.className = 'party-group-action-menu';
+
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.textContent = type === 'group' ? 'Edit Group' : 'Edit Party';
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.textContent = type === 'group' ? 'Delete Group' : 'Delete Party';
+
+        editButton.addEventListener('click', function (event) {
+            event.stopPropagation();
+            closeAllGroupActionMenus();
+            if (type === 'group') {
+                editPartyGroup(payload);
+                return;
+            }
+            openPartyEditorById(payload.id);
+        });
+
+        deleteButton.addEventListener('click', function (event) {
+            event.stopPropagation();
+            closeAllGroupActionMenus();
+            if (type === 'group') {
+                deletePartyGroup(payload);
+                return;
+            }
+            deletePartyById(payload.id);
+        });
+
+        button.addEventListener('click', function (event) {
+            event.stopPropagation();
+            const shouldOpen = !menu.classList.contains('active');
+            closeAllGroupActionMenus();
+            menu.classList.toggle('active', shouldOpen);
+        });
+
+        menu.append(editButton, deleteButton);
+        wrapper.append(button, menu);
+
+        return wrapper;
+    }
+
+    function getNormalizedGroupName(value) {
+        const groupName = String(value || '').trim();
+        return groupName || 'General';
+    }
+
+    function getPartyItemsByGroup(groupName) {
+        const normalizedGroupName = getNormalizedGroupName(groupName);
+        return Array.from(document.querySelectorAll('.party-item')).filter((item) => {
+            return getNormalizedGroupName(item.dataset.partyGroup) === normalizedGroupName;
+        });
+    }
+
+    function buildPartyGroupSummary() {
+        return partyGroups.map((group) => {
+            const parties = getPartyItemsByGroup(group.name);
+            const totalAmount = parties.reduce((sum, item) => sum + Number(item.dataset.salesTotal || 0), 0);
+            return {
+                id: group.id,
+                name: group.name,
+                parties,
+                totalAmount
+            };
+        });
+    }
+
+    function renderPartyGroupsView() {
+        if (!partyGroupsSidebarList) return;
+
+        const groupQuery = (partyGroupSearchInput?.value || '').trim().toLowerCase();
+        const summaries = buildPartyGroupSummary().filter((group) => group.name.toLowerCase().includes(groupQuery));
+
+        partyGroupsSidebarList.innerHTML = '';
+
+        if (!summaries.length) {
+            partyGroupsSidebarList.innerHTML = '<div class="party-group-empty">No party groups found.</div>';
+        } else {
+            summaries.forEach((group) => {
+                const item = document.createElement('div');
+                item.className = `party-group-sidebar-item${selectedPartyGroupNameValue === group.name ? ' active' : ''}`;
+                item.dataset.groupName = group.name;
+
+                const meta = document.createElement('div');
+                meta.innerHTML = `
+                    <div class="party-group-sidebar-name">${group.name}</div>
+                    <div class="party-group-sidebar-meta">${group.parties.length} parties</div>
+                `;
+
+                const amount = document.createElement('div');
+                amount.className = 'party-group-sidebar-amount';
+                amount.textContent = formatCurrency(group.totalAmount);
+
+                item.append(meta, amount, createGroupActionMenu('group', group));
+                item.addEventListener('click', function () {
+                    selectPartyGroup(group.name);
+                });
+                partyGroupsSidebarList.appendChild(item);
+            });
         }
 
-        persistPartyGroups();
-        renderPartyGroupOptions(groupName);
-        closePartyGroupCreateModal();
-        partyGroupMenu.classList.remove('active');
+        const hasSelectedGroup = summaries.some((group) => group.name === selectedPartyGroupNameValue);
+        if (!hasSelectedGroup) {
+            selectPartyGroup(summaries[0]?.name || 'General');
+            return;
+        }
+
+        renderSelectedPartyGroupDetails();
+    }
+
+    function renderSelectedPartyGroupDetails() {
+        const groupName = selectedPartyGroupNameValue || 'General';
+        const parties = getPartyItemsByGroup(groupName);
+        const query = (partyGroupPartySearchInput?.value || '').trim().toLowerCase();
+        const filteredParties = parties.filter((item) => (item.dataset.name || '').toLowerCase().includes(query));
+        const totalAmount = parties.reduce((sum, item) => sum + Number(item.dataset.salesTotal || 0), 0);
+
+        selectedPartyGroupName.textContent = groupName;
+        selectedPartyGroupCount.textContent = `Parties(${parties.length})`;
+        selectedPartyGroupAmount.textContent = formatCurrency(totalAmount);
+
+        partyGroupPartiesTableBody.innerHTML = '';
+
+        if (!filteredParties.length) {
+            partyGroupPartiesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="party-group-empty">No parties found for this group.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        filteredParties.forEach((item) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="party-group-party-name">${item.dataset.name || ''}</td>
+                <td class="party-group-party-amount">${formatCurrency(item.dataset.salesTotal || 0)}</td>
+                <td></td>
+            `;
+            row.children[2].appendChild(createGroupActionMenu('party', { id: item.dataset.id }));
+            partyGroupPartiesTableBody.appendChild(row);
+        });
+    }
+
+    function selectPartyGroup(groupName) {
+        selectedPartyGroupNameValue = getNormalizedGroupName(groupName);
+        renderPartyGroupsView();
+    }
+
+    function openPartyGroupMoveModal() {
+        if (!selectedPartyGroupNameValue) return;
+        selectedMovePartyIds = [];
+        if (partyGroupMoveSearchInput) {
+            partyGroupMoveSearchInput.value = '';
+        }
+        if (partyGroupMoveSelectAll) {
+            partyGroupMoveSelectAll.checked = false;
+        }
+        if (partyGroupMoveTitle) {
+            partyGroupMoveTitle.textContent = 'Select parties and choose the party group where you want to move them.';
+        }
+        renderPartyGroupMoveTargetOptions();
+        renderPartyGroupMoveList();
+        partyGroupMoveModal?.classList.add('active');
+    }
+
+    function closePartyGroupMoveModal() {
+        partyGroupMoveModal?.classList.remove('active');
+    }
+
+    function renderPartyGroupMoveList() {
+        if (!partyGroupMoveList) return;
+
+        const query = (partyGroupMoveSearchInput?.value || '').trim().toLowerCase();
+        const targetGroupName = getNormalizedGroupName(partyGroupMoveTargetSelect?.value || selectedPartyGroupNameValue);
+        const candidates = Array.from(document.querySelectorAll('.party-item')).filter((item) => {
+            const nameMatches = (item.dataset.name || '').toLowerCase().includes(query);
+            return nameMatches;
+        });
+
+        partyGroupMoveList.innerHTML = '';
+
+        if (!candidates.length) {
+            partyGroupMoveList.innerHTML = '<div class="party-group-empty">No parties found.</div>';
+            return;
+        }
+
+        candidates.forEach((item) => {
+            const currentGroupName = getNormalizedGroupName(item.dataset.partyGroup);
+            const wrapper = document.createElement('label');
+            wrapper.className = 'party-group-move-item';
+            wrapper.innerHTML = `
+                <div class="party-group-move-meta">
+                    <strong>${item.dataset.name || ''}</strong>
+                    <span>${currentGroupName} -> ${targetGroupName}</span>
+                </div>
+            `;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = item.dataset.id || '';
+            checkbox.checked = selectedMovePartyIds.includes(item.dataset.id || '');
+            checkbox.disabled = currentGroupName === targetGroupName;
+            checkbox.addEventListener('change', function () {
+                if (this.checked) {
+                    selectedMovePartyIds = Array.from(new Set([...selectedMovePartyIds, this.value]));
+                } else {
+                    selectedMovePartyIds = selectedMovePartyIds.filter((id) => id !== this.value);
+                }
+                syncPartyGroupMoveSelectAllState();
+            });
+
+            wrapper.appendChild(checkbox);
+            partyGroupMoveList.appendChild(wrapper);
+        });
+
+        syncPartyGroupMoveSelectAllState();
+    }
+
+    function renderPartyGroupMoveTargetOptions() {
+        if (!partyGroupMoveTargetSelect) return;
+
+        partyGroupMoveTargetSelect.innerHTML = '';
+
+        partyGroups.forEach((group) => {
+            const option = document.createElement('option');
+            option.value = group.name;
+            option.textContent = group.name;
+            option.selected = group.name === selectedPartyGroupNameValue;
+            partyGroupMoveTargetSelect.appendChild(option);
+        });
+    }
+
+    function syncPartyGroupMoveSelectAllState() {
+        if (!partyGroupMoveSelectAll || !partyGroupMoveList) return;
+
+        const enabledCheckboxes = Array.from(partyGroupMoveList.querySelectorAll('input[type="checkbox"]:not(:disabled)'));
+        if (!enabledCheckboxes.length) {
+            partyGroupMoveSelectAll.checked = false;
+            return;
+        }
+
+        partyGroupMoveSelectAll.checked = enabledCheckboxes.every((checkbox) => checkbox.checked);
+    }
+
+    function savePartyGroupMove() {
+        if (!selectedMovePartyIds.length) {
+            alert('Select at least one party.');
+            return;
+        }
+
+        const targetGroupName = getNormalizedGroupName(partyGroupMoveTargetSelect?.value || selectedPartyGroupNameValue);
+
+        fetch("{{ route('parties.groups.move') }}", {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({
+                party_ids: selectedMovePartyIds,
+                party_group: targetGroupName === 'General' ? '' : targetGroupName
+            })
+        })
+        .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Unable to move parties.');
+            }
+            return data;
+        })
+        .then(() => {
+            document.querySelectorAll('.party-item').forEach((item) => {
+                if (selectedMovePartyIds.includes(item.dataset.id || '')) {
+                    item.dataset.partyGroup = targetGroupName === 'General' ? '' : targetGroupName;
+                }
+            });
+
+            selectedPartyGroupNameValue = targetGroupName;
+            renderPartyGroupOptions(partyGroupInput?.value || '');
+            renderPartyGroupsView();
+            closePartyGroupMoveModal();
+            alert('Parties moved successfully.');
+        })
+        .catch((error) => {
+            alert(error.message || 'Unable to move parties.');
+        });
+    }
+
+    function switchPartyView(view) {
+        const normalizedView = view === 'groups' && partySettingsState.party_grouping ? 'groups' : 'parties';
+        currentPartyView = normalizedView;
+        const isGroupsView = normalizedView === 'groups';
+        splitPane?.classList.toggle('is-hidden', isGroupsView);
+        partyGroupsView?.classList.toggle('is-hidden', !isGroupsView);
+
+        document.querySelectorAll('[data-party-view-option]').forEach((option) => {
+            const isActive = option.dataset.partyViewOption === normalizedView;
+            option.classList.toggle('active', isActive);
+            const tick = option.querySelector('.tick-icon');
+            if (tick) tick.style.visibility = isActive ? 'visible' : 'hidden';
+        });
+
+        if (isGroupsView) {
+            renderPartyGroupsView();
+        }
+
+        closeHeaderDropdown();
+    }
+
+    function openPartyEditorById(partyId) {
+        const li = document.querySelector(`.party-item[data-id="${partyId}"]`);
+        if (!li) return;
+
+        li.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        document.getElementById("editPartyBtn")?.click();
+    }
+
+    function deletePartyById(partyId) {
+        currentPartyId = partyId;
+        deleteBtn?.click();
+    }
+
+    function editPartyGroup(group) {
+        if (!group?.id) {
+            alert('This group is not ready to edit yet.');
+            return;
+        }
+
+        const nextName = prompt('Enter new party group name', group.name);
+        if (!nextName || !nextName.trim() || nextName.trim() === group.name) {
+            return;
+        }
+
+        fetch(`/dashboard/party-groups/${group.id}`, {
+            method: 'PUT',
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({ name: nextName.trim() })
+        })
+        .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Unable to update party group.');
+            return data;
+        })
+        .then((data) => {
+            const updatedName = data.partyGroup?.name || nextName.trim();
+            partyGroups = partyGroups.map((item) => {
+                if (item.name === group.name) {
+                    return { id: data.partyGroup?.id || item.id, name: updatedName };
+                }
+                return item;
+            });
+
+            document.querySelectorAll('.party-item').forEach((item) => {
+                if (getNormalizedGroupName(item.dataset.partyGroup) === group.name) {
+                    item.dataset.partyGroup = updatedName;
+                }
+            });
+
+            if (partyGroupInput?.value === group.name) {
+                renderPartyGroupOptions(updatedName);
+            } else {
+                renderPartyGroupOptions(partyGroupInput?.value || '');
+            }
+
+            if (selectedPartyGroupNameValue === group.name) {
+                selectedPartyGroupNameValue = updatedName;
+            }
+
+            persistPartyGroups();
+            renderPartyGroupsView();
+        })
+        .catch((error) => {
+            alert(error.message || 'Unable to update party group.');
+        });
+    }
+
+    function deletePartyGroup(group) {
+        if (!group?.id) {
+            alert('This group is not ready to delete yet.');
+            return;
+        }
+
+        if (!confirm(`Delete "${group.name}" group? Parties will move to General.`)) {
+            return;
+        }
+
+        fetch(`/dashboard/party-groups/${group.id}`, {
+            method: 'DELETE',
+            headers: {
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Unable to delete party group.');
+            return data;
+        })
+        .then(() => {
+            partyGroups = partyGroups.filter((item) => item.name !== group.name);
+            document.querySelectorAll('.party-item').forEach((item) => {
+                if (getNormalizedGroupName(item.dataset.partyGroup) === group.name) {
+                    item.dataset.partyGroup = '';
+                }
+            });
+
+            if (partyGroupInput?.value === group.name) {
+                renderPartyGroupOptions('');
+            } else {
+                renderPartyGroupOptions(partyGroupInput?.value || '');
+            }
+
+            if (selectedPartyGroupNameValue === group.name) {
+                selectedPartyGroupNameValue = 'General';
+            }
+
+            persistPartyGroups();
+            renderPartyGroupsView();
+        })
+        .catch((error) => {
+            alert(error.message || 'Unable to delete party group.');
+        });
     }
 
     function syncCreditLimitVisibility() {
@@ -2905,12 +3904,29 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function applyPartySettings() {
+        partyGroupsViewOption?.classList.toggle('is-hidden', !partySettingsState.party_grouping);
+        if (partyViewDropdownMenu) {
+            partyViewDropdownMenu.style.display = 'none';
+        }
+        if (partyViewDropdownTrigger) {
+            partyViewDropdownTrigger.style.transform = 'rotate(0deg)';
+        }
+
         document.querySelectorAll('[data-party-setting="party_grouping"]').forEach(section => {
             section.classList.toggle('is-hidden', !partySettingsState.party_grouping);
             section.querySelectorAll('input, textarea, select, button').forEach(field => {
                 if (field.type !== 'hidden') field.disabled = !partySettingsState.party_grouping;
             });
         });
+
+        if (!partySettingsState.party_grouping) {
+            if (partyGroupInput) {
+                partyGroupInput.value = '';
+            }
+            if (partyGroupTriggerText) {
+                partyGroupTriggerText.textContent = 'Select party group';
+            }
+        }
 
         document.querySelectorAll('[data-party-setting="shipping_address"]').forEach(section => {
             section.classList.toggle('is-hidden', !partySettingsState.shipping_address);
@@ -2947,6 +3963,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (partyReminderDays) {
             partyReminderDays.disabled = !partySettingsState.payment_reminder;
+        }
+
+        if (!partySettingsState.party_grouping && currentPartyView === 'groups') {
+            switchPartyView('parties');
+        }
+
+        if (partySettingsState.party_grouping && currentPartyView !== 'groups') {
+            switchPartyView('parties');
         }
     }
 
@@ -3082,6 +4106,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 li.dataset.asOfDate = party.as_of_date || "";
                 li.dataset.transactionType = party.transaction_type || "";
                 li.dataset.partyType = Array.isArray(partyData.party_type) ? partyData.party_type.join(',') : (party.party_type || "");
+                li.dataset.salesTotal = Number(party.sales_total || 0).toFixed(2);
                 li.dataset.creditLimitEnabled = party.credit_limit_enabled || 0;
                 li.dataset.creditLimitAmount = partyData.credit_limit_amount || "";
                 li.dataset.customFields = JSON.stringify(party.custom_fields || []);
@@ -3100,6 +4125,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     document.getElementById("addPartyForm").reset();
                 }
 
+                renderPartyGroupsView();
                 alert("Party created successfully!");
             }
         })
@@ -3124,16 +4150,57 @@ document.addEventListener("DOMContentLoaded", function () {
             closeTxnOptionModal();
         }
     });
+    partyViewDropdownTrigger?.addEventListener("click", function (e) {
+        e.stopPropagation();
+        toggleHeaderDropdown(this);
+    });
+    document.querySelectorAll('[data-party-view-option]').forEach((option) => {
+        option.addEventListener('click', function () {
+            const view = option.dataset.partyViewOption;
+            if (view === 'groups' && !partySettingsState.party_grouping) {
+                return;
+            }
+            switchPartyView(view);
+        });
+    });
     partyGroupTrigger?.addEventListener("click", function (e) {
         e.stopPropagation();
         partyGroupMenu.classList.toggle('active');
     });
+    partyGroupsAddBtn?.addEventListener("click", openPartyGroupCreateModal);
+    movePartiesToGroupBtn?.addEventListener("click", openPartyGroupMoveModal);
+    partyGroupSearchInput?.addEventListener("input", renderPartyGroupsView);
+    partyGroupPartySearchInput?.addEventListener("input", renderSelectedPartyGroupDetails);
+    partyGroupMoveSearchInput?.addEventListener("input", renderPartyGroupMoveList);
+    partyGroupMoveTargetSelect?.addEventListener("change", function () {
+        selectedMovePartyIds = [];
+        if (partyGroupMoveSelectAll) {
+            partyGroupMoveSelectAll.checked = false;
+        }
+        renderPartyGroupMoveList();
+    });
+    partyGroupMoveSelectAll?.addEventListener("change", function () {
+        const enabledCheckboxes = Array.from(document.querySelectorAll('#partyGroupMoveList input[type="checkbox"]:not(:disabled)'));
+        enabledCheckboxes.forEach((checkbox) => {
+            checkbox.checked = this.checked;
+        });
+        selectedMovePartyIds = this.checked
+            ? enabledCheckboxes.map((checkbox) => checkbox.value)
+            : [];
+    });
+    partyGroupMoveCancel?.addEventListener("click", closePartyGroupMoveModal);
+    partyGroupMoveSave?.addEventListener("click", savePartyGroupMove);
     openPartyGroupModal?.addEventListener("click", openPartyGroupCreateModal);
     partyGroupCancel?.addEventListener("click", closePartyGroupCreateModal);
     partyGroupSave?.addEventListener("click", savePartyGroupLocally);
     partyGroupModal?.addEventListener("click", function (e) {
         if (e.target.dataset.closePartyGroup === 'true') {
             closePartyGroupCreateModal();
+        }
+    });
+    partyGroupMoveModal?.addEventListener("click", function (e) {
+        if (e.target.dataset.closePartyGroupMove === 'true') {
+            closePartyGroupMoveModal();
         }
     });
     partySettingsTrigger.addEventListener("click", openPartySettingsDrawer);
@@ -3194,6 +4261,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (!partyMoreMenu.contains(e.target) && !partyMoreOptionsTrigger.contains(e.target)) {
             closePartyMoreMenu();
+        }
+        if (!e.target.closest('.party-group-action-menu') && !e.target.closest('.party-group-action-btn')) {
+            closeAllGroupActionMenus();
         }
     });
     document.addEventListener('click', async function (e) {
@@ -3295,6 +4365,8 @@ document.addEventListener("DOMContentLoaded", function () {
     hydratePartyGroups();
     renderPartyGroupOptions();
     applyPartySettings();
+    renderPartyGroupsView();
+    switchPartyView('parties');
 
     // PARTY CLICK → RIGHT PANEL + SELECT
     partyList.addEventListener("click", function (e) {
@@ -3502,6 +4574,7 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
                 li.dataset.currentBalance = getDisplayBalanceValue(partyData, data.party.current_balance || partyData.opening_balance || 0);
                 li.dataset.asOfDate = partyData.as_of_date;
                 li.dataset.partyType = Array.isArray(partyData.party_type) ? partyData.party_type.join(',') : '';
+                li.dataset.salesTotal = Number(data.party?.sales_total || li.dataset.salesTotal || 0).toFixed(2);
                 li.dataset.creditLimitEnabled = partyData.credit_limit_enabled;
                 li.dataset.creditLimitAmount = partyData.credit_limit_amount;
                 li.dataset.transactionType = partyData.transaction_type;
@@ -3518,6 +4591,7 @@ fetch(`/dashboard/parties/${currentPartyId}`, {
                 alert("✅ Party updated successfully!");
                 addModal.hide();
                 resetModal();
+                renderPartyGroupsView();
             } else {
                 alert("❌ Update failed: " + JSON.stringify(data));
             }
@@ -3737,6 +4811,7 @@ function loadPartyTransactions(partyId) {
                 currentPartyId = null;
                 addModal.hide();
                 resetModal();
+                renderPartyGroupsView();
             }
         })
         .catch(err => console.error("Delete Error:", err));

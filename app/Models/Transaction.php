@@ -71,6 +71,11 @@ class Transaction extends Model
         return $this->hasMany(TransactionItem::class);
     }
 
+    public function adjustments()
+    {
+        return $this->hasMany(TransactionAdjustment::class);
+    }
+
     protected static function booted(): void
     {
         static::saved(function (Transaction $transaction) {

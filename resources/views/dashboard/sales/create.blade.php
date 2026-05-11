@@ -1154,6 +1154,20 @@ textarea.meta-control,
     margin-top: 2px;
 }
 
+.broker-inline-add-btn {
+    border: 0;
+    background: transparent;
+    color: #2563eb;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    padding: 0 4px;
+}
+
+.broker-inline-add-btn:hover {
+    color: #1d4ed8;
+}
+
 #partyBalanceDisplay {
     margin-top: 2px !important;
     font-size: 11px;
@@ -1354,18 +1368,41 @@ textarea.meta-control,
     flex-wrap: wrap;
 }
 
-.bottom-right .custom-expense-broker-wrap {
-    display: flex;
+.bottom-right .custom-expense-mode-group {
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
+    gap: 4px;
+    padding: 3px;
+    border: 1px solid #d7e0ea;
+    border-radius: 999px;
+    background: #fff;
 }
 
-.bottom-right .custom-expense-operator,
+.bottom-right .custom-mode-btn {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.bottom-right .custom-mode-btn.is-active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.bottom-right .custom-expense-account-wrap {
+    min-width: 190px;
+    flex: 1 1 210px;
+}
+
+.bottom-right .custom-expense-account-input,
+.bottom-right .custom-expense-details,
 .bottom-right .custom-expense-pct,
-.bottom-right .custom-expense-value,
-.bottom-right .custom-brokerage-type,
-.bottom-right .custom-brokerage-rate {
+.bottom-right .custom-expense-value {
     min-height: 30px;
     height: 30px;
     padding: 4px 8px;
@@ -1373,11 +1410,12 @@ textarea.meta-control,
     border: 1px solid #d7e0ea;
     background: #fff;
     font-size: 11px;
-}
-
-.bottom-right .custom-expense-operator,
 .bottom-right .custom-expense-pct {
     width: 62px;
+}
+
+.bottom-right .custom-expense-details {
+    width: 130px;
 }
 
 .bottom-right .custom-expense-value {
@@ -1385,26 +1423,27 @@ textarea.meta-control,
     text-align: right;
 }
 
-.bottom-right .custom-brokerage-type {
-    width: 120px;
+.bottom-right .ledger-account-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
 
-.bottom-right .custom-brokerage-rate {
-    width: 74px;
-    text-align: right;
-}
-
-.bottom-right .add-broker-ledger-row {
-    border: 0;
-    background: transparent;
-    color: #2563eb;
+.bottom-right .ledger-account-option small {
+    color: #64748b;
     font-size: 11px;
-    font-weight: 600;
-    padding: 0 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-.bottom-right .custom-expense-row.is-broker-row .custom-expense-heading {
-    font-weight: 600;
+.bottom-right .ledger-account-group-label {
+    padding: 6px 14px 4px;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 .bottom-right .remove-custom-expense-row {
@@ -1836,7 +1875,7 @@ textarea.meta-control,
                                                 <label>Delivery Person</label>
                                             </div>
                                         </div>
-                                     
+
                                     </div>
                                     <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
                                         <div class="party-meta-field header-mini-field">
@@ -2181,11 +2220,12 @@ textarea.meta-control,
                                     <div class="calc-label">Broker</div>
                                     <div class="calc-inputs broker-calc-inputs">
                                         <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 260px; max-width: 100%;">
-                                            <input type="text" class="form-control broker-search-input w-100" placeholder="Search or select broker..." id="brokerDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
+                                            <input type="text" class="form-control broker-search-input w-100" placeholder="Broker" id="brokerDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
                                             <div class="broker-selected-info">
                                                 <div class="broker-selected-name"></div>
                                                 <div class="broker-selected-phone"></div>
                                             </div>
+                                            
                                             <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
                                                 @foreach($brokers as $broker)
                                                 <li>
@@ -2199,10 +2239,9 @@ textarea.meta-control,
                                                     </a>
                                                 </li>
                                                 @endforeach
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item text-primary" href="#" id="addNewBrokerBtn">+ Add New Broker</a></li>
-                                            </ul>
+                                               </ul>
                                         </div>
+                                        <button type="button" class="broker-inline-add-btn open-broker-modal-btn">+ Broker</button>
                                         <div class="brokerage-inputs">
                                         <select class="brokerage-type">
                                             <option value="">Condition</option>
@@ -2210,6 +2249,7 @@ textarea.meta-control,
                                             <option value="full">Poori Brokerage (0.45%)</option>
                                             <option value="half">Aadhi Brokerage (0.225%)</option>
                                             <option value="custom_pct">Custom %</option>
+                                            <option value="fixed_rs">Rs</option>
                                             <option value="per_kg">Per KG (Safi Wazan)</option>
                                         </select>
                                         <input type="number" class="brokerage-rate" min="0" step="0.01" placeholder="Value">
@@ -2248,7 +2288,7 @@ textarea.meta-control,
                                 </div>
 
                                 <!-- Summary Expense Grid -->
-                     
+
 
                                 <div class="custom-expense-section">
                                     <div class="custom-expense-rows"></div>
@@ -2295,49 +2335,23 @@ textarea.meta-control,
                                         <span class="editable-expense-label custom-expense-heading" contenteditable="true" spellcheck="false">New Row</span>
                                     </div>
                                     <div class="calc-inputs custom-expense-inputs">
-                                        <div class="custom-expense-broker-wrap d-none">
-                                            <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 190px; max-width: 100%;">
-                                                <input type="text" class="form-control broker-search-input custom-broker-search-input w-100" placeholder="Broker..." data-bs-toggle="dropdown" autocomplete="off">
-                                                <div class="broker-selected-info">
-                                                    <div class="broker-selected-name"></div>
-                                                    <div class="broker-selected-phone"></div>
-                                                </div>
-                                                <ul class="dropdown-menu w-100 broker-dropdown-menu">
-                                                    @foreach($brokers as $broker)
-                                                    <li>
-                                                        <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
-                                                           data-id="{{ $broker->id }}"
-                                                           data-phone="{{ $broker->phone }}"
-                                                           data-name="{{ $broker->name }}"
-                                                           data-commission-rate="{{ $broker->commission_rate ?? 0 }}">
-                                                            <div class="broker-option-name">{{ $broker->name }}</div>
-                                                            <div class="broker-option-city text-muted small">{{ $broker->city ?: '-' }}</div>
-                                                        </a>
-                                                    </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                            <select class="mini-input custom-brokerage-type">
-                                                <option value="">Condition</option>
-                                                <option value="broker_rate">Broker Rate</option>
-                                                <option value="full">Poori Brokerage (0.45%)</option>
-                                                <option value="half">Aadhi Brokerage (0.225%)</option>
-                                                <option value="custom_pct">Custom %</option>
-                                                <option value="per_kg">Per KG</option>
-                                            </select>
-                                            <input type="number" class="mini-input custom-brokerage-rate" min="0" step="0.01" placeholder="Rate">
-                                            <button type="button" class="add-broker-ledger-row">+ Broker</button>
+                                        <div class="custom-expense-mode-group" role="group" aria-label="Adjustment mode">
+                                            <button type="button" class="custom-mode-btn" data-mode="-">-</button>
+                                            <button type="button" class="custom-mode-btn is-active" data-mode="+">+</button>
+                                            <button type="button" class="custom-mode-btn" data-mode="S">S</button>
                                         </div>
-                                        <select class="mini-input custom-expense-operator">
-                                            <option value="+">+</option>
-                                            <option value="-">-</option>
-                                            <option value="same">Same</option>
-                                        </select>
+                                        <div class="broker-dropdown-wrapper dropdown custom-expense-account-wrap" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 190px; max-width: 100%;">
+                                            <input type="text" class="form-control custom-expense-account-input w-100" placeholder="Party / Broker / Item" data-bs-toggle="dropdown" autocomplete="off">
+                                            <ul class="dropdown-menu w-100 ledger-account-menu"></ul>
+                                        </div>
+                                        <input type="text" class="mini-input custom-expense-details" value="" placeholder="Tafseel">
                                         <input type="number" class="mini-input custom-expense-pct" value="" min="0" step="0.01" placeholder="%">
+                                        <span class="text-muted small">-</span>
                                         <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="Amt">
-                                        <input type="hidden" class="custom-expense-broker-id" value="">
-                                        <input type="hidden" class="custom-expense-broker-phone" value="">
-                                        <input type="hidden" class="custom-expense-broker-commission" value="">
+                                        <input type="hidden" class="custom-expense-mode" value="+">
+                                        <input type="hidden" class="custom-expense-account-type" value="">
+                                        <input type="hidden" class="custom-expense-account-id" value="">
+                                        <input type="hidden" class="custom-expense-account-phone" value="">
                                         <button type="button" class="remove-custom-expense-row" title="Remove">
                                             <i class="fa-solid fa-xmark"></i>
                                         </button>
@@ -4058,6 +4072,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const partySearchInput = dropdownBtn;
     if (partySearchInput) {
+        refreshPartyDropdownMenu();
         partySearchInput.addEventListener('keydown', function (e) {
             if (e.key !== 'Enter') {
                 return;
@@ -4091,6 +4106,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     if (brokerSearchInput && brokerDropdownMenu) {
+        refreshBrokerDropdownMenus();
         let brokerNoResultsItem = brokerDropdownMenu.querySelector('.broker-no-results');
         if (!brokerNoResultsItem) {
             brokerNoResultsItem = document.createElement('li');
@@ -4158,6 +4174,99 @@ document.addEventListener("DOMContentLoaded", function() {
             field.value = value;
         }
     };
+
+    function buildBrokerOptionMarkup(broker) {
+        return `
+        <li>
+            <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
+               data-id="${broker.id || ''}"
+               data-phone="${broker.phone || ''}"
+               data-name="${broker.name || ''}"
+               data-commission-rate="${broker.commission_rate || 0}">
+                <div class="broker-option-name">${broker.name || ''}</div>
+                <div class="broker-option-city text-muted small">${broker.city || '-'}</div>
+            </a>
+        </li>
+    `;
+    }
+
+    function refreshBrokerDropdownMenus() {
+        const brokers = Array.isArray(window.brokers) ? window.brokers : [];
+        const parties = Array.isArray(window.parties) ? window.parties : [];
+        document.querySelectorAll('#brokerDropdownMenu, .broker-dropdown-menu').forEach((menu) => {
+            const brokersMarkup = brokers.map(buildBrokerOptionMarkup).join('');
+            const partiesMarkup = parties.map((party) => `
+                <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center broker-option broker-party-option" href="#"
+                       data-id=""
+                       data-phone="${party.phone || ''}"
+                       data-name="${party.name || ''}"
+                       data-commission-rate="0">
+                        <div class="broker-option-name">${party.name || ''}</div>
+                        <div class="broker-option-city text-muted small">Party</div>
+                    </a>
+                </li>
+            `).join('');
+            const addNewMarkup = `
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-primary add-new-broker-option" href="#">+ Add New Broker</a></li>
+            `;
+            const partySection = partiesMarkup ? `<li><hr class="dropdown-divider"></li>${partiesMarkup}` : '';
+            menu.innerHTML = `${brokersMarkup}${partySection}${addNewMarkup}`;
+        });
+    }
+
+    function refreshPartyDropdownMenu() {
+        const menu = document.getElementById('partyDropdownMenu');
+        if (!menu) return;
+
+        const parties = Array.isArray(window.parties) ? window.parties : [];
+        const partyOptions = parties.map((party) => `
+            <li>
+                <a class="dropdown-item d-flex justify-content-between align-items-start party-option"
+                   href="#"
+                   data-id="${party.id || ''}"
+                   data-name="${party.name || ''}"
+                   data-phone="${party.phone || ''}"
+                   data-phone-number-2="${party.phone_number_2 || ''}"
+                   data-city="${party.city || ''}"
+                   data-ptcl="${party.ptcl_number || ''}"
+                   data-email="${party.email || ''}"
+                   data-address="${String(party.address || '').replace(/"/g, '&quot;')}"
+                   data-billing="${String(party.billing_address || '').replace(/"/g, '&quot;')}"
+                   data-shipping="${String(party.shipping_address || '').replace(/"/g, '&quot;')}"
+                   data-party-group="${party.party_group || ''}"
+                   data-due-days="${party.due_days || ''}"
+                   data-opening="${party.opening_balance || 0}"
+                   data-type="${party.transaction_type || ''}">
+                    <span class="party-option-main">
+                        <span class="party-option-name">${party.name || ''}</span>
+                        <span class="party-option-phone">${party.phone || ''}</span>
+                    </span>
+                    <span class="${party.transaction_type === 'pay' ? 'text-danger' : 'text-success'}">
+                        ${party.transaction_type === 'pay' ? '<i class="fa-solid fa-arrow-up me-1"></i>' : '<i class="fa-solid fa-arrow-down me-1"></i>'}
+                        Rs ${Number(party.opening_balance || 0).toFixed(2)}
+                    </span>
+                </a>
+            </li>
+        `).join('');
+
+        const footer = `
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
+        `;
+
+        menu.innerHTML = `${partyOptions}${footer}`;
+    }
+
+    function openBrokerModalForm() {
+        brokerForm?.reset();
+        const brokerStatusField = document.getElementById('brokerStatus');
+        if (brokerStatusField) brokerStatusField.checked = true;
+        const remainingField = document.getElementById('brokerRemainingBrokerage');
+        if (remainingField) remainingField.value = '0.00';
+        if (brokerModal) brokerModal.show();
+    }
 
     const warehouseSelect = document.querySelector('.warehouse-select');
     const deliveryPersonInput = document.querySelector('.delivery-person-input');
@@ -4426,16 +4535,14 @@ else {
         dropdownBtn?.focus();
     });
 
-    brokerDropdownMenu?.addEventListener("click", function(e) {
-        if (e.target.closest("#addNewBrokerBtn")) {
-            e.preventDefault();
-            brokerForm?.reset();
-            if (brokerModal) {
-                brokerModal.show();
-            }
-            return;
+    document.addEventListener('click', function (event) {
+        if (event.target.closest('.add-new-broker-option')) {
+            event.preventDefault();
+            openBrokerModalForm();
         }
+    });
 
+    brokerDropdownMenu?.addEventListener("click", function(e) {
         if (!e.target.closest(".broker-option")) return;
 
         e.preventDefault();
@@ -4493,30 +4600,11 @@ else {
             window.brokers = Array.isArray(window.brokers) ? window.brokers : [];
             window.brokers = window.brokers.filter(entry => String(entry.id) !== String(broker.id));
             window.brokers.unshift(broker);
-
-            const brokerHtml = `
-                <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
-                       data-id="${broker.id}"
-                       data-phone="${broker.phone || ''}"
-                       data-name="${broker.name || ''}"
-                       data-commission-rate="${broker.commission_rate || 0}">
-                        <div class="broker-option-name">${broker.name || ''}</div>
-                        <div class="broker-option-city text-muted small">${broker.city || '-'}</div>
-                    </a>
-                </li>
-            `;
-
-            const addBrokerItem = brokerDropdownMenu.querySelector('#addNewBrokerBtn')?.closest('li');
-            const divider = addBrokerItem?.previousElementSibling;
-            if (divider) {
-                divider.insertAdjacentHTML('beforebegin', brokerHtml);
-            } else {
-                brokerDropdownMenu.insertAdjacentHTML('beforeend', brokerHtml);
-            }
+            refreshBrokerDropdownMenus();
+            refreshPartyDropdownMenu();
 
             if (brokerDropdownBtn) {
-                brokerDropdownBtn.value = broker.name || 'Select Broker';
+                brokerDropdownBtn.value = broker.name || 'Broker';
             }
             if (brokerSelectedName) {
                 brokerSelectedName.textContent = broker.name || '';

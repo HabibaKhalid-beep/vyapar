@@ -14,6 +14,7 @@ use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\SaleItem;
 use App\Models\Transaction;
+use App\Models\TransactionAdjustment;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -524,7 +525,7 @@ private function posData(): array
             'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'broker_id' => 'nullable|exists:brokers,id',
-            'brokerage_type' => 'nullable|in:broker_rate,full,half,custom_pct,per_kg',
+            'brokerage_type' => 'nullable|in:broker_rate,full,half,custom_pct,fixed_rs,per_kg',
             'brokerage_rate' => 'nullable|numeric|min:0',
             'broker_amount' => 'nullable|numeric|min:0',
             'phone' => 'nullable|string|max:50',
@@ -540,6 +541,17 @@ private function posData(): array
             'details_extra' => 'nullable|string|max:255',
             'bilti_gari_no' => 'nullable|string|max:255',
             'custom_expenses' => 'nullable|array',
+            'custom_expenses.*.mode' => 'nullable|in:+,-,same,S',
+            'custom_expenses.*.percentage' => 'nullable|numeric|min:0',
+            'custom_expenses.*.pct' => 'nullable|numeric|min:0',
+            'custom_expenses.*.amount' => 'nullable|numeric|min:0',
+            'custom_expenses.*.value' => 'nullable|numeric|min:0',
+            'custom_expenses.*.details' => 'nullable|string',
+            'custom_expenses.*.heading' => 'nullable|string|max:255',
+            'custom_expenses.*.title' => 'nullable|string|max:255',
+            'custom_expenses.*.account_type' => 'nullable|in:party,broker,item',
+            'custom_expenses.*.account_id' => 'nullable|integer|min:1',
+            'custom_expenses.*.account_name' => 'nullable|string|max:255',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'nullable|string|max:100',
@@ -798,7 +810,7 @@ private function posData(): array
             'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'broker_id' => 'nullable|exists:brokers,id',
-            'brokerage_type' => 'nullable|in:broker_rate,full,half,custom_pct,per_kg',
+            'brokerage_type' => 'nullable|in:broker_rate,full,half,custom_pct,fixed_rs,per_kg',
             'brokerage_rate' => 'nullable|numeric|min:0',
             'broker_amount' => 'nullable|numeric|min:0',
             'phone' => 'nullable|string|max:50',
@@ -814,6 +826,17 @@ private function posData(): array
             'details_extra' => 'nullable|string|max:255',
             'bilti_gari_no' => 'nullable|string|max:255',
             'custom_expenses' => 'nullable|array',
+            'custom_expenses.*.mode' => 'nullable|in:+,-,same,S',
+            'custom_expenses.*.percentage' => 'nullable|numeric|min:0',
+            'custom_expenses.*.pct' => 'nullable|numeric|min:0',
+            'custom_expenses.*.amount' => 'nullable|numeric|min:0',
+            'custom_expenses.*.value' => 'nullable|numeric|min:0',
+            'custom_expenses.*.details' => 'nullable|string',
+            'custom_expenses.*.heading' => 'nullable|string|max:255',
+            'custom_expenses.*.title' => 'nullable|string|max:255',
+            'custom_expenses.*.account_type' => 'nullable|in:party,broker,item',
+            'custom_expenses.*.account_id' => 'nullable|integer|min:1',
+            'custom_expenses.*.account_name' => 'nullable|string|max:255',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'nullable|string|max:100',
@@ -1758,32 +1781,219 @@ private function posData(): array
 
     private function calculateLedgerExpenseTotal(array $data): float
     {
+        $adjustmentTotal = collect($this->normalizeAdjustmentRows($data['custom_expenses'] ?? []))
+            ->filter(fn (array $row) => $row['affects_invoice'])
+            ->sum(function (array $row) {
+                return $row['mode'] === '-' ? -1 * $row['amount'] : $row['amount'];
+            });
+
         return floatval($data['broker_amount'] ?? 0)
             + floatval($data['labour'] ?? 0)
             + floatval($data['bardana'] ?? 0)
             + floatval($data['rehra_mazdori'] ?? 0)
             + floatval($data['parcel_expense'] ?? 0)
             + floatval($data['post_expense'] ?? 0)
-            + floatval($data['extra_expense'] ?? 0);
+            + floatval($data['extra_expense'] ?? 0)
+            + floatval($adjustmentTotal);
+    }
+
+    private function saleLedgerTransferGroup(Sale $sale): string
+    {
+        return 'sale-ledger-' . ($sale->id ?: 'draft');
+    }
+
+    private function normalizeAdjustmentRows($rows): array
+    {
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach (array_values($rows) as $index => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $title = trim((string) ($row['heading'] ?? $row['title'] ?? ''));
+            $details = trim((string) ($row['details'] ?? ''));
+            $mode = strtoupper((string) ($row['mode'] ?? $row['operator'] ?? '+'));
+            $mode = in_array($mode, ['+', '-', 'S'], true) ? $mode : '+';
+
+            $percentage = isset($row['percentage'])
+                ? (float) $row['percentage']
+                : (isset($row['pct']) ? (float) $row['pct'] : null);
+            $amount = isset($row['amount'])
+                ? (float) $row['amount']
+                : (isset($row['value']) ? (float) $row['value'] : 0);
+
+            $accountType = strtolower(trim((string) ($row['account_type'] ?? '')));
+            $accountId = !empty($row['account_id']) ? (int) $row['account_id'] : null;
+            $accountName = trim((string) ($row['account_name'] ?? $row['brokerName'] ?? ''));
+            $brokerId = !empty($row['brokerId']) ? (int) $row['brokerId'] : null;
+
+            if ($accountType === 'broker' && !$accountId && $brokerId) {
+                $accountId = $brokerId;
+            }
+
+            if ($accountType === '') {
+                if ($accountId && $brokerId) {
+                    $accountType = 'broker';
+                } elseif (!empty($row['item_id'])) {
+                    $accountType = 'item';
+                    $accountId = (int) $row['item_id'];
+                } elseif ($accountId) {
+                    $accountType = 'party';
+                }
+            }
+
+            if ($amount <= 0 && !$title && !$details && !$accountId && !$percentage) {
+                continue;
+            }
+
+            $normalized[] = [
+                'title' => $title !== '' ? $title : 'Adjustment',
+                'details' => $details !== '' ? $details : null,
+                'mode' => $mode,
+                'percentage' => $percentage !== null ? round(max(0, $percentage), 4) : null,
+                'rate' => $percentage !== null ? round(max(0, $percentage), 2) : null,
+                'amount' => round(max(0, $amount), 2),
+                'account_type' => in_array($accountType, ['party', 'broker', 'item'], true) ? $accountType : null,
+                'account_id' => $accountId,
+                'account_name' => $accountName !== '' ? $accountName : null,
+                'affects_invoice' => $mode !== 'S',
+                'sort_order' => $index,
+            ];
+        }
+
+        return $normalized;
     }
 
     private function deleteSaleLedgerTransactions(Sale $sale): void
     {
-        if (empty($sale->party_id) || empty($sale->bill_number)) {
-            return;
+        Transaction::query()
+            ->where('transfer_group', $this->saleLedgerTransferGroup($sale))
+            ->delete();
+
+        if (!empty($sale->party_id) && !empty($sale->bill_number)) {
+            Transaction::query()
+                ->where('party_id', $sale->party_id)
+                ->where(function ($query) use ($sale) {
+                    $query->where(function ($subQuery) use ($sale) {
+                        $subQuery->where('number', $sale->bill_number)
+                            ->whereIn('type', ['sale', 'sale_return']);
+                    })->orWhere(function ($subQuery) use ($sale) {
+                        $subQuery->where('number', 'like', 'PAY-' . ($sale->bill_number ?: $sale->id) . '-%');
+                    });
+                })
+                ->delete();
+        }
+    }
+
+    private function syncTransactionItems(Transaction $transaction, Sale $sale): void
+    {
+        $transaction->items()->delete();
+
+        foreach ($sale->items()->get() as $saleItem) {
+            $resolvedItemId = $saleItem->item_id;
+
+            if (empty($resolvedItemId) && !empty($saleItem->item_name)) {
+                $resolvedItemId = Item::query()
+                    ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim((string) $saleItem->item_name))])
+                    ->value('id');
+            }
+
+            $transaction->items()->create([
+                'item_id' => $resolvedItemId,
+                'quantity' => floatval($saleItem->quantity ?? 0),
+                'rate' => floatval($saleItem->unit_price ?? 0),
+                'amount' => floatval($saleItem->amount ?? 0),
+            ]);
+        }
+    }
+
+    private function syncTransactionAdjustments(Transaction $transaction, Sale $sale, array $data): array
+    {
+        $normalizedRows = $this->normalizeAdjustmentRows($data['custom_expenses'] ?? []);
+        $transaction->adjustments()->delete();
+
+        $affectedPartyIds = [$sale->party_id];
+
+        foreach ($normalizedRows as $row) {
+            $payload = [
+                'mode' => $row['mode'],
+                'title' => $row['title'],
+                'details' => $row['details'],
+                'percentage' => $row['percentage'],
+                'rate' => $row['rate'],
+                'amount' => $row['amount'],
+                'affects_invoice' => $row['affects_invoice'],
+                'sort_order' => $row['sort_order'],
+            ];
+
+            if ($row['account_type'] === 'party') {
+                $payload['account_party_id'] = $row['account_id'];
+            } elseif ($row['account_type'] === 'broker') {
+                $payload['broker_id'] = $row['account_id'];
+            } elseif ($row['account_type'] === 'item') {
+                $payload['item_id'] = $row['account_id'];
+            }
+
+            $transaction->adjustments()->create($payload);
+
+            if ($row['mode'] !== 'S' || $row['amount'] <= 0 || $row['account_type'] !== 'party' || empty($row['account_id'])) {
+                continue;
+            }
+
+            $targetParty = Party::query()->find($row['account_id']);
+            if (!$targetParty) {
+                continue;
+            }
+
+            $baseNumber = 'ADJ-' . ($sale->bill_number ?: $sale->id) . '-' . str_pad((string) ($row['sort_order'] + 1), 2, '0', STR_PAD_LEFT);
+            $detailsSuffix = $row['details'] ? ' - ' . $row['details'] : '';
+            $targetLabel = $targetParty->name ?: ($row['account_name'] ?? 'Selected Account');
+
+            Transaction::create([
+                'party_id' => $sale->party_id,
+                'counter_party_id' => $targetParty->id,
+                'type' => 'party to party[received]',
+                'number' => $baseNumber . '-DR',
+                'transfer_group' => $this->saleLedgerTransferGroup($sale),
+                'date' => $sale->invoice_date ?? now(),
+                'total' => $row['amount'],
+                'debit' => $row['amount'],
+                'credit' => 0,
+                'paid_amount' => 0,
+                'balance' => floatval($sale->balance ?? 0),
+                'running_balance' => 0,
+                'due_date' => $sale->due_date,
+                'status' => 'posted',
+                'description' => $row['title'] . ' against Invoice #' . ($sale->bill_number ?: $sale->id) . ' for ' . $targetLabel . $detailsSuffix,
+            ]);
+
+            Transaction::create([
+                'party_id' => $targetParty->id,
+                'counter_party_id' => $sale->party_id,
+                'type' => 'party to party[paid]',
+                'number' => $baseNumber . '-CR',
+                'transfer_group' => $this->saleLedgerTransferGroup($sale),
+                'date' => $sale->invoice_date ?? now(),
+                'total' => $row['amount'],
+                'debit' => 0,
+                'credit' => $row['amount'],
+                'paid_amount' => 0,
+                'balance' => 0,
+                'running_balance' => 0,
+                'due_date' => $sale->due_date,
+                'status' => 'posted',
+                'description' => $row['title'] . ' linked from Invoice #' . ($sale->bill_number ?: $sale->id) . ' for ' . ($sale->party?->name ?: 'Sale Party') . $detailsSuffix,
+            ]);
+
+            $affectedPartyIds[] = $targetParty->id;
         }
 
-        Transaction::query()
-            ->where('party_id', $sale->party_id)
-            ->where(function ($query) use ($sale) {
-                $query->where(function ($subQuery) use ($sale) {
-                    $subQuery->where('number', $sale->bill_number)
-                        ->whereIn('type', ['sale', 'sale_return']);
-                })->orWhere(function ($subQuery) use ($sale) {
-                    $subQuery->where('number', 'like', 'PAY-' . ($sale->bill_number ?: $sale->id) . '-%');
-                });
-            })
-            ->delete();
+        return array_values(array_unique(array_filter($affectedPartyIds)));
     }
 
     private function syncSaleLedgerEntries(Sale $sale, array $data): void
@@ -1801,6 +2011,7 @@ private function posData(): array
             'party_id' => $sale->party_id,
             'type' => $ledgerType,
             'number' => $sale->bill_number ?: (string) $sale->id,
+            'transfer_group' => $this->saleLedgerTransferGroup($sale),
             'date' => $sale->invoice_date ?? now(),
             'total' => $saleAmount,
             'debit' => $ledgerType === 'sale_return' ? 0 : $saleAmount,
@@ -1824,7 +2035,9 @@ private function posData(): array
             $transactionPayload['rehra_mazdori'] = floatval($data['rehra_mazdori'] ?? 0);
         }
 
-        Transaction::create($transactionPayload);
+        $masterTransaction = Transaction::create($transactionPayload);
+        $this->syncTransactionItems($masterTransaction, $sale);
+        $affectedPartyIds = $this->syncTransactionAdjustments($masterTransaction, $sale, $data);
 
         foreach ($sale->payments()->orderBy('id')->get() as $paymentRecord) {
             $paymentAmount = floatval($paymentRecord->amount ?? 0);
@@ -1834,6 +2047,7 @@ private function posData(): array
                 'party_id' => $sale->party_id,
                 'type' => $paymentDirection,
                 'number' => 'PAY-' . ($sale->bill_number ?: $sale->id) . '-' . $paymentRecord->id,
+                'transfer_group' => $this->saleLedgerTransferGroup($sale),
                 'date' => $sale->invoice_date ?? now(),
                 'total' => $paymentAmount,
                 'debit' => 0,
@@ -1846,6 +2060,10 @@ private function posData(): array
                     ? 'Payment paid to party for Invoice #' . ($sale->bill_number ?: $sale->id)
                     : 'Payment received for Invoice #' . ($sale->bill_number ?: $sale->id),
             ]);
+        }
+
+        foreach ($affectedPartyIds as $partyId) {
+            $this->recalculatePartyLedgerBalances((int) $partyId);
         }
     }
 

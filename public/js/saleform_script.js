@@ -760,14 +760,133 @@ function initializeForm(context) {
 
     function getDefaultCustomExpenseRows() {
         return [
-            { heading: 'Broker 1', operator: 'same', pct: '', value: 0, isBroker: true, brokerageType: '', brokerageRate: '', brokerId: '', brokerPhone: '', brokerName: '', brokerCommissionRate: '' },
-            { heading: 'Mazdoori', operator: '+', pct: '', value: 0 },
-            { heading: 'Commision', operator: '+', pct: '', value: 0 },
-            { heading: 'Dak', operator: 'same', pct: '', value: 0 },
-            { heading: 'Karaya Naam', operator: '+', pct: '', value: 0 },
-            { heading: 'Local', operator: '+', pct: '', value: 0 },
-            { heading: 'Bardana', operator: '+', pct: '', value: 0 },
+            { heading: 'Broker 1', mode: '+', percentage: '', amount: 0, details: '', account_type: 'broker', account_id: '', account_name: '' },
+            { heading: 'Mazdoori', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
+            { heading: 'Commission', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
+            { heading: 'Dak', mode: 'S', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
+            { heading: 'Karaya Naam', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
+            { heading: 'Local', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
+            { heading: 'Bardana', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
         ];
+    }
+
+    function getLedgerAccountOptions() {
+        const parties = Array.isArray(window.parties) ? window.parties : [];
+        const brokers = Array.isArray(window.brokers) ? window.brokers : [];
+        const items = Array.isArray(window.items) ? window.items : [];
+
+        return {
+            parties: parties.map((party) => ({
+                type: 'party',
+                id: party.id,
+                name: party.name || '',
+                meta: party.phone || party.phone_number || party.city || '',
+                phone: party.phone || '',
+            })),
+            brokers: brokers.map((broker) => ({
+                type: 'broker',
+                id: broker.id,
+                name: broker.name || '',
+                meta: broker.city || broker.phone || '',
+                phone: broker.phone || '',
+            })),
+            items: items.map((item) => ({
+                type: 'item',
+                id: item.id,
+                name: item.name || item.item_name || '',
+                meta: item.category || item.item_category || item.unit || '',
+                phone: '',
+            })),
+        };
+    }
+
+    function buildLedgerAccountOptionMarkup(account) {
+        return `
+            <li>
+                <a class="dropdown-item ledger-account-option" href="#"
+                   data-account-type="${account.type}"
+                   data-account-id="${account.id}"
+                   data-account-name="${account.name || ''}"
+                   data-account-meta="${account.meta || ''}"
+                   data-account-phone="${account.phone || ''}">
+                    <span>${account.name || '-'}</span>
+                    <small>${account.type}</small>
+                </a>
+            </li>
+        `;
+    }
+
+    function renderLedgerAccountMenu($menu, query = '') {
+        if (!$menu || !$menu.length) {
+            return;
+        }
+
+        const term = String(query || '').trim().toLowerCase();
+        const { parties, brokers, items } = getLedgerAccountOptions();
+        const groups = [
+            { label: 'Parties', rows: parties },
+            { label: 'Brokers', rows: brokers },
+            { label: 'Items', rows: items },
+        ];
+
+        const html = groups.map((group) => {
+            const rows = group.rows.filter((entry) => {
+                if (!term) return true;
+                return [entry.name, entry.meta, entry.phone].some((value) =>
+                    String(value || '').toLowerCase().includes(term)
+                );
+            });
+
+            if (!rows.length) {
+                return '';
+            }
+
+            return `
+                <li class="ledger-account-group-label">${group.label}</li>
+                ${rows.map(buildLedgerAccountOptionMarkup).join('')}
+            `;
+        }).filter(Boolean).join('');
+
+        $menu.html(html || '<li class="px-3 py-2 text-muted small">No account found</li>');
+    }
+
+    function refreshLedgerAccountMenus() {
+        $ctx.find('.ledger-account-menu').each(function () {
+            const $menu = $(this);
+            const query = $menu.closest('.custom-expense-account-wrap').find('.custom-expense-account-input').val() || '';
+            renderLedgerAccountMenu($menu, query);
+        });
+    }
+
+    function normalizeCustomExpenseRow(row = {}) {
+        const legacyMode = String(row.mode || row.operator || '+').toUpperCase();
+        const mode = legacyMode === 'SAME' ? 'S' : (['+', '-', 'S'].includes(legacyMode) ? legacyMode : '+');
+
+        let accountType = row.account_type || '';
+        let accountId = row.account_id || '';
+        let accountName = row.account_name || row.brokerName || '';
+
+        if (!accountType && row.isBroker) {
+            accountType = 'broker';
+            accountId = row.brokerId || '';
+            accountName = row.brokerName || row.heading || '';
+        }
+
+        if (!accountType && /^broker/i.test(String(row.heading || row.title || '').trim())) {
+            accountType = 'broker';
+        }
+
+        return {
+            heading: row.heading || row.title || 'New Row',
+            mode,
+            percentage: row.percentage ?? row.pct ?? '',
+            amount: row.amount ?? row.value ?? 0,
+            details: row.details || '',
+            account_type: accountType,
+            account_id: accountId,
+            account_name: accountName,
+            account_phone: row.account_phone || row.brokerPhone || '',
+        };
     }
 
     function saveExpenseLabels() {
@@ -794,16 +913,14 @@ function initializeForm(context) {
             const $row = $(this);
             return {
                 heading: ($row.find('.custom-expense-heading').text() || '').trim() || 'New Row',
-                operator: $row.find('.custom-expense-operator').val() || '+',
-                value: parseFloat($row.find('.custom-expense-value').val() || 0) || 0,
-                pct: $row.find('.custom-expense-pct').val() || '',
-                isBroker: $row.hasClass('is-broker-row'),
-                brokerageType: $row.find('.custom-brokerage-type').val() || '',
-                brokerageRate: $row.find('.custom-brokerage-rate').val() || '',
-                brokerId: $row.find('.custom-expense-broker-id').val() || '',
-                brokerPhone: $row.find('.custom-expense-broker-phone').val() || '',
-                brokerName: $row.find('.custom-broker-search-input').val() || '',
-                brokerCommissionRate: $row.find('.custom-expense-broker-commission').val() || '',
+                mode: $row.find('.custom-expense-mode').val() || '+',
+                percentage: $row.find('.custom-expense-pct').val() || '',
+                amount: parseFloat($row.find('.custom-expense-value').val() || 0) || 0,
+                details: $row.find('.custom-expense-details').val() || '',
+                account_type: $row.find('.custom-expense-account-type').val() || '',
+                account_id: $row.find('.custom-expense-account-id').val() || '',
+                account_name: $row.find('.custom-expense-account-input').val() || '',
+                account_phone: $row.find('.custom-expense-account-phone').val() || '',
             };
         }).get();
     }
@@ -817,55 +934,45 @@ function initializeForm(context) {
         const container = $ctx.find('.custom-expense-rows').get(0);
         if (!template || !container) return null;
 
+        const normalizedRow = normalizeCustomExpenseRow(row);
         const fragment = template.content.cloneNode(true);
         const rowEl = fragment.querySelector('.custom-expense-row');
         if (!rowEl) return null;
 
-        rowEl.querySelector('.custom-expense-heading').textContent = row.heading || 'New Row';
-        rowEl.querySelector('.custom-expense-operator').value = row.operator || '+';
-        rowEl.querySelector('.custom-expense-value').value = Number(row.value || 0);
-        rowEl.querySelector('.custom-expense-pct').value = row.pct ?? '';
-        rowEl.querySelector('.custom-expense-broker-id').value = row.brokerId || '';
-        rowEl.querySelector('.custom-expense-broker-phone').value = row.brokerPhone || '';
-        rowEl.querySelector('.custom-expense-broker-commission').value = row.brokerCommissionRate || '';
-        rowEl.querySelector('.custom-broker-search-input').value = row.brokerName || '';
-        rowEl.querySelector('.custom-brokerage-type').value = row.brokerageType || '';
-        rowEl.querySelector('.custom-brokerage-rate').value = row.brokerageRate || '';
-        if (row.brokerName || row.brokerPhone) {
-            const brokerInfo = rowEl.querySelector('.broker-selected-info');
-            if (brokerInfo) {
-                brokerInfo.classList.add('visible');
-                const brokerNameEl = brokerInfo.querySelector('.broker-selected-name');
-                const brokerPhoneEl = brokerInfo.querySelector('.broker-selected-phone');
-                if (brokerNameEl) brokerNameEl.textContent = row.brokerName || '';
-                if (brokerPhoneEl) brokerPhoneEl.textContent = row.brokerPhone || '';
-            }
-        }
+        rowEl.querySelector('.custom-expense-heading').textContent = normalizedRow.heading;
+        rowEl.querySelector('.custom-expense-value').value = Number(normalizedRow.amount || 0);
+        rowEl.querySelector('.custom-expense-pct').value = normalizedRow.percentage || '';
+        rowEl.querySelector('.custom-expense-details').value = normalizedRow.details || '';
+        rowEl.querySelector('.custom-expense-mode').value = normalizedRow.mode || '+';
+        rowEl.querySelector('.custom-expense-account-type').value = normalizedRow.account_type || '';
+        rowEl.querySelector('.custom-expense-account-id').value = normalizedRow.account_id || '';
+        rowEl.querySelector('.custom-expense-account-phone').value = normalizedRow.account_phone || '';
+        rowEl.querySelector('.custom-expense-account-input').value = normalizedRow.account_name || '';
 
-        if (row.isBroker) {
-            rowEl.classList.add('is-broker-row');
-            rowEl.querySelector('.custom-expense-broker-wrap')?.classList.remove('d-none');
-        }
+        Array.from(rowEl.querySelectorAll('.custom-mode-btn')).forEach((button) => {
+            button.classList.toggle('is-active', button.dataset.mode === normalizedRow.mode);
+        });
 
         container.appendChild(fragment);
-        return $(container).find('.custom-expense-row').last();
+        const $newRow = $(container).find('.custom-expense-row').last();
+        renderLedgerAccountMenu($newRow.find('.ledger-account-menu'), normalizedRow.account_name || '');
+        return $newRow;
     }
 
     function createBrokerCustomExpenseRow(index = null) {
-        const currentBrokerCount = $ctx.find('.custom-expense-row.is-broker-row').length;
+        const currentBrokerCount = $ctx.find('.custom-expense-row').filter(function () {
+            return ($(this).find('.custom-expense-account-type').val() || '') === 'broker';
+        }).length;
         const brokerIndex = index || (currentBrokerCount + 1);
         return createCustomExpenseRow({
             heading: `Broker ${brokerIndex}`,
-            operator: 'same',
-            pct: '',
-            value: 0,
-            isBroker: true,
-            brokerageType: '',
-            brokerageRate: '',
-            brokerId: '',
-            brokerPhone: '',
-            brokerName: '',
-            brokerCommissionRate: '',
+            mode: '+',
+            percentage: '',
+            amount: 0,
+            details: '',
+            account_type: 'broker',
+            account_id: '',
+            account_name: '',
         });
     }
 
@@ -875,14 +982,17 @@ function initializeForm(context) {
             ? savedRows
             : getDefaultCustomExpenseRows();
 
-        const hasBrokerRows = Array.isArray(rowsToRender) && rowsToRender.some((row) => row && row.isBroker);
+        const hasBrokerRows = Array.isArray(rowsToRender) && rowsToRender.some((row) => {
+            const normalized = normalizeCustomExpenseRow(row || {});
+            return normalized.account_type === 'broker';
+        });
         if (!hasBrokerRows) {
-            rowsToRender = [...getDefaultCustomExpenseRows().filter((row) => row.isBroker), ...rowsToRender];
+            rowsToRender = [...getDefaultCustomExpenseRows().filter((row) => row.account_type === 'broker'), ...rowsToRender];
         }
 
         const $container = $ctx.find('.custom-expense-rows');
         $container.empty();
-        rowsToRender.forEach((row) => createCustomExpenseRow(row));
+        rowsToRender.map((row) => normalizeCustomExpenseRow(row)).forEach((row) => createCustomExpenseRow(row));
 
         if (!Array.isArray(savedRows) || !savedRows.length || !hasBrokerRows) {
             persistCustomExpenseRows();
@@ -890,78 +1000,46 @@ function initializeForm(context) {
     }
 
     function syncLegacyBrokerFieldsFromCustomRows() {
-        const $primaryBrokerRow = $ctx.find('.custom-expense-row.is-broker-row').first();
+        const $primaryBrokerRow = $ctx.find('.custom-expense-row').filter(function () {
+            return ($(this).find('.custom-expense-account-type').val() || '') === 'broker';
+        }).first();
         if (!$primaryBrokerRow.length) {
             return;
         }
 
-        $ctx.find('.broker-id').val($primaryBrokerRow.find('.custom-expense-broker-id').val() || '');
-        $ctx.find('.broker-phone-input').val($primaryBrokerRow.find('.custom-expense-broker-phone').val() || '');
-        $ctx.find('.brokerage-type').val($primaryBrokerRow.find('.custom-brokerage-type').val() || '');
-        $ctx.find('.brokerage-rate').val($primaryBrokerRow.find('.custom-brokerage-rate').val() || '');
-        $ctx.find('.brokerage-base-amount').val($primaryBrokerRow.find('.custom-brokerage-rate').val() || '');
+        const pctValue = parseFloat($primaryBrokerRow.find('.custom-expense-pct').val() || 0) || 0;
+        const amountValue = parseFloat($primaryBrokerRow.find('.custom-expense-value').val() || 0) || 0;
+        const brokerageType = pctValue > 0 ? 'custom_pct' : (amountValue > 0 ? 'fixed_rs' : '');
+        const brokerageRate = pctValue > 0 ? pctValue : amountValue;
+
+        $ctx.find('.broker-id').val($primaryBrokerRow.find('.custom-expense-account-id').val() || '');
+        $ctx.find('.broker-phone-input').val($primaryBrokerRow.find('.custom-expense-account-phone').val() || '');
+        $ctx.find('.brokerage-type').val(brokerageType);
+        $ctx.find('.brokerage-rate').val(brokerageRate || '');
+        $ctx.find('.brokerage-base-amount').val(brokerageRate || '');
         $ctx.find('.brokerage-amount').val((parseFloat($primaryBrokerRow.find('.custom-expense-value').val() || 0) || 0).toFixed(2));
-    }
-
-    function calculateBrokerRowAmount($row, baseAmount = 0, totalSafiWazan = 0) {
-        const brokerageType = ($row.find('.custom-brokerage-type').val() || '').toString();
-        const $brokerageRate = $row.find('.custom-brokerage-rate');
-        let rawRate = parseFloat($brokerageRate.val() || 0) || 0;
-        const storedCommissionRate = parseFloat($row.find('.custom-expense-broker-commission').val() || 0) || 0;
-        let amount = 0;
-
-        if (brokerageType === 'broker_rate' && storedCommissionRate > 0) {
-            rawRate = storedCommissionRate;
-        }
-
-        if (brokerageType === 'per_kg') {
-            amount = totalSafiWazan * rawRate;
-        } else if (brokerageType === 'broker_rate') {
-            amount = baseAmount * rawRate;
-        } else if (brokerageType === 'full') {
-            rawRate = 0.45;
-            amount = baseAmount * rawRate / 100;
-        } else if (brokerageType === 'half') {
-            rawRate = 0.225;
-            amount = baseAmount * rawRate / 100;
-        } else if (brokerageType === 'custom_pct') {
-            amount = baseAmount * rawRate / 100;
-        }
-
-        $brokerageRate.val(rawRate ? rawRate : '');
-        $row.find('.custom-expense-value').val(amount.toFixed(2));
-        return amount;
     }
 
     function getCustomExpenseTotal(baseAmount = 0) {
         let total = 0;
-        const totalSafiWazan = Array.from($ctx.find('.item-row')).reduce((sum, row) => {
-            const netW = parseFloat($(row).find('.net-w-input').val() || 0) || 0;
-            return sum + netW;
-        }, 0);
 
         $ctx.find('.custom-expense-row').each(function () {
             const $row = $(this);
-            const operator = $row.find('.custom-expense-operator').val() || '+';
+            const mode = ($row.find('.custom-expense-mode').val() || '+').toUpperCase();
             const pct = parseFloat($row.find('.custom-expense-pct').val() || 0) || 0;
-            const isBrokerRow = $row.hasClass('is-broker-row');
-            let amount = 0;
+            const rawValue = parseFloat($row.find('.custom-expense-value').val() || 0) || 0;
+            let amount = rawValue;
 
-            if (isBrokerRow) {
-                amount = calculateBrokerRowAmount($row, baseAmount, totalSafiWazan);
-            } else {
-                const rawValue = parseFloat($row.find('.custom-expense-value').val() || 0) || 0;
-                amount = pct > 0 ? ((baseAmount * pct) / 100) : rawValue;
-                if (pct > 0) {
-                    $row.find('.custom-expense-value').val(amount.toFixed(2));
-                }
+            if (pct > 0) {
+                amount = (baseAmount * pct) / 100;
+                $row.find('.custom-expense-value').val(amount.toFixed(2));
             }
 
-            if (operator === 'same') {
+            if (mode === 'S') {
                 return;
             }
 
-            total += operator === '-' ? -amount : amount;
+            total += mode === '-' ? -amount : amount;
         });
         syncLegacyBrokerFieldsFromCustomRows();
         return total;
@@ -1008,6 +1086,7 @@ function initializeForm(context) {
         let placeholder = 'Enter value';
         let readOnly = false;
         let step = '0.01';
+        let amountReadOnly = true;
 
         if (brokerageType === 'per_kg') {
             amount = totalSafiWazan * rawRate;
@@ -1031,6 +1110,9 @@ function initializeForm(context) {
             amount = itemAmountBase * rawRate / 100;
             placeholder = 'Custom %';
             step = '0.001';
+        } else if (brokerageType === 'fixed_rs') {
+            amount = rawRate;
+            placeholder = 'Rs';
         }
 
         const rateValue = (brokerageType === 'full' || brokerageType === 'half' || brokerageType === 'custom_pct')
@@ -1038,12 +1120,15 @@ function initializeForm(context) {
             : (rawRate > 0 ? rawRate.toFixed(2) : '');
 
         $brokerageRate.attr('placeholder', placeholder).prop('readonly', readOnly).attr('step', step);
+        $brokerageAmount.prop('readonly', amountReadOnly);
         if (brokerageType === 'full' || brokerageType === 'half') {
             $brokerageRate.val(rateValue);
         } else if (brokerageType === 'broker_rate' || brokerageType === 'per_kg' || brokerageType === 'custom_pct') {
             if ($brokerageRate.val().trim() !== '' || rawRate > 0) {
                 $brokerageRate.val(rateValue);
             }
+        } else if (brokerageType === 'fixed_rs') {
+            $brokerageRate.val(rateValue);
         }
         $brokerageBaseAmount.val(rateValue);
         $brokerageAmount.val(amount.toFixed(2));
@@ -1316,10 +1401,10 @@ function initializeForm(context) {
         const broker = (window.brokers || []).find(b => String(b.id) === String(sale.broker_id || ''));
         $ctx.find('.broker-id').val(sale.broker_id || '');
         if (broker) {
-            $ctx.find('#brokerDropdownBtn').val(broker.name || '').attr('placeholder', broker.name || 'Search or select broker...');
+            $ctx.find('#brokerDropdownBtn').val(broker.name || '').attr('placeholder', broker.name || 'Broker');
             $ctx.find('.broker-phone-input').val(broker.phone || '');
         } else {
-            $ctx.find('#brokerDropdownBtn').val('').attr('placeholder', 'Search or select broker...');
+            $ctx.find('#brokerDropdownBtn').val('').attr('placeholder', 'Broker');
             $ctx.find('.broker-phone-input').val('');
         }
 
@@ -1328,14 +1413,15 @@ function initializeForm(context) {
         $ctx.find('.brokerage-rate').val(saleBrokerageRate ? saleBrokerageRate.toFixed(2) : '');
         $ctx.find('.brokerage-base-amount').val(saleBrokerageRate.toFixed(2));
         $ctx.find('.brokerage-amount').val((parseFloat(sale.broker_amount || 0) || 0).toFixed(2));
-        const $primaryBrokerRow = $ctx.find('.custom-expense-row.is-broker-row').first();
+        const $primaryBrokerRow = $ctx.find('.custom-expense-row').filter(function () {
+            return ($(this).find('.custom-expense-account-type').val() || '') === 'broker';
+        }).first();
         if ($primaryBrokerRow.length) {
-            $primaryBrokerRow.find('.custom-expense-broker-id').val(sale.broker_id || '');
-            $primaryBrokerRow.find('.custom-expense-broker-phone').val(broker?.phone || '');
-            $primaryBrokerRow.find('.custom-broker-search-input').val(broker?.name || '');
-            $primaryBrokerRow.find('.custom-brokerage-type').val(sale.brokerage_type || '');
-            $primaryBrokerRow.find('.custom-brokerage-rate').val(saleBrokerageRate ? saleBrokerageRate.toFixed(2) : '');
-            $primaryBrokerRow.find('.custom-expense-broker-commission').val(saleBrokerageRate ? saleBrokerageRate.toFixed(2) : '');
+            $primaryBrokerRow.find('.custom-expense-account-type').val('broker');
+            $primaryBrokerRow.find('.custom-expense-account-id').val(sale.broker_id || '');
+            $primaryBrokerRow.find('.custom-expense-account-phone').val(broker?.phone || '');
+            $primaryBrokerRow.find('.custom-expense-account-input').val(broker?.name || '');
+            $primaryBrokerRow.find('.custom-expense-pct').val(sale.brokerage_type === 'custom_pct' ? (saleBrokerageRate ? saleBrokerageRate.toFixed(2) : '') : '');
             $primaryBrokerRow.find('.custom-expense-value').val((parseFloat(sale.broker_amount || 0) || 0).toFixed(2));
         }
 
@@ -1356,6 +1442,7 @@ function initializeForm(context) {
                 $container.empty();
                 details.custom_expenses.forEach((row) => createCustomExpenseRow(row));
                 persistCustomExpenseRows();
+                syncLegacyBrokerFieldsFromCustomRows();
             }
         }
 
@@ -2699,7 +2786,7 @@ function initializeForm(context) {
         calculateTotals();
     });
     $ctx.on('input change', '.round-off-val', calculateTotals);
-    $ctx.on('input change', '.custom-expense-operator, .custom-expense-pct, .custom-expense-value, .custom-brokerage-type, .custom-brokerage-rate', function() {
+    $ctx.on('input change', '.custom-expense-pct, .custom-expense-value, .custom-expense-details', function() {
         persistCustomExpenseRows();
         calculateTotals();
     });
@@ -2707,11 +2794,6 @@ function initializeForm(context) {
     $ctx.on('input blur', '.editable-expense-label[data-expense-key]', saveExpenseLabels);
     $ctx.on('click', '.add-custom-expense-row', function() {
         createCustomExpenseRow();
-        persistCustomExpenseRows();
-    });
-    $ctx.on('click', '.add-broker-ledger-row', function(e) {
-        e.preventDefault();
-        createBrokerCustomExpenseRow();
         persistCustomExpenseRows();
     });
     $ctx.on('click', '.remove-custom-expense-row', function() {
@@ -2732,6 +2814,57 @@ function initializeForm(context) {
     setupBrokerDropdownSearch();
     loadExpenseLabels();
     loadCustomExpenseRows();
+    refreshLedgerAccountMenus();
+    window.refreshLedgerAdjustmentAccountMenus = refreshLedgerAccountMenus;
+
+    $ctx.on('click', '.custom-mode-btn', function() {
+        const $button = $(this);
+        const mode = $button.data('mode') || '+';
+        const $row = $button.closest('.custom-expense-row');
+        $row.find('.custom-mode-btn').removeClass('is-active');
+        $button.addClass('is-active');
+        $row.find('.custom-expense-mode').val(mode);
+        persistCustomExpenseRows();
+        calculateTotals();
+    });
+
+    $ctx.on('input focus', '.custom-expense-account-input', function() {
+        const $input = $(this);
+        const $menu = $input.closest('.custom-expense-account-wrap').find('.ledger-account-menu');
+        renderLedgerAccountMenu($menu, $input.val() || '');
+    });
+
+    $ctx.on('click', '.ledger-account-option', function(e) {
+        e.preventDefault();
+        const $option = $(this);
+        const $row = $option.closest('.custom-expense-row');
+        const $input = $row.find('.custom-expense-account-input');
+        const accountType = $option.data('accountType') || '';
+        const accountId = $option.data('accountId') || '';
+        const accountName = String($option.data('accountName') || '').trim();
+        const accountPhone = String($option.data('accountPhone') || '').trim();
+
+        $row.find('.custom-expense-account-type').val(accountType);
+        $row.find('.custom-expense-account-id').val(accountId);
+        $row.find('.custom-expense-account-phone').val(accountPhone);
+        $input.val(accountName);
+
+        if (accountType === 'broker') {
+            const brokerCount = $ctx.find('.custom-expense-row').filter(function () {
+                return ($(this).find('.custom-expense-account-type').val() || '') === 'broker';
+            }).index($row) + 1;
+            $row.find('.custom-expense-heading').text(`Broker ${brokerCount > 0 ? brokerCount : 1}`);
+        }
+
+        persistCustomExpenseRows();
+        calculateTotals();
+
+        const dropdownToggle = $input.get(0);
+        if (dropdownToggle) {
+            const dropdown = bootstrap.Dropdown.getInstance(dropdownToggle) || bootstrap.Dropdown.getOrCreateInstance(dropdownToggle);
+            dropdown.hide();
+        }
+    });
 
     $ctx.on('click', '.broker-option', function(e) {
         e.preventDefault();
@@ -2740,29 +2873,11 @@ function initializeForm(context) {
         const brokerName = String($option.data('name') || $option.find('.broker-option-name').text() || '').trim();
         const brokerPhone = String($option.data('phone') || $option.find('.broker-option-phone').text() || '').trim();
 
-        const commissionRate = parseFloat($option.data('commissionRate') || 0) || 0;
-        const $customRow = $option.closest('.custom-expense-row');
-
-        if ($customRow.length) {
-            $customRow.find('.custom-expense-broker-id').val(brokerId || '');
-            $customRow.find('.custom-expense-broker-phone').val(brokerPhone || '');
-            $customRow.find('.custom-expense-broker-commission').val(commissionRate ? commissionRate.toFixed(2) : '');
-            $customRow.find('.custom-broker-search-input').val(brokerName || '').attr('placeholder', brokerName || 'Broker...');
-            $customRow.find('.broker-selected-name').text(brokerName || '');
-            $customRow.find('.broker-selected-phone').text(brokerPhone || '');
-            $customRow.find('.broker-selected-info').toggleClass('visible', !!brokerPhone);
-            if (!$customRow.find('.custom-brokerage-rate').val() || ($customRow.find('.custom-brokerage-type').val() || '') === 'broker_rate') {
-                $customRow.find('.custom-brokerage-rate').val(commissionRate ? commissionRate.toFixed(2) : '');
-            }
-            persistCustomExpenseRows();
-            calculateTotals();
-        } else {
-            $ctx.find('.broker-id').val(brokerId);
-            $ctx.find('#brokerDropdownBtn').val(brokerName || '').attr('placeholder', brokerName || 'Search or select broker...');
-            $ctx.find('.broker-selected-name').text(brokerName || '');
-            $ctx.find('.broker-selected-phone').text(brokerPhone || '').closest('.broker-selected-info').toggleClass('visible', !!brokerPhone);
-            $ctx.find('.broker-phone-input').val(brokerPhone);
-        }
+        $ctx.find('.broker-id').val(brokerId);
+        $ctx.find('#brokerDropdownBtn').val(brokerName || '').attr('placeholder', brokerName || 'Broker');
+        $ctx.find('.broker-selected-name').text(brokerName || '');
+        $ctx.find('.broker-selected-phone').text(brokerPhone || '').closest('.broker-selected-info').toggleClass('visible', !!brokerPhone);
+        $ctx.find('.broker-phone-input').val(brokerPhone);
 
         const dropdownToggle = $option.closest('.broker-dropdown-wrapper').find('.broker-search-input').get(0);
         if (dropdownToggle) {
@@ -2805,10 +2920,11 @@ function initializeForm(context) {
             $dropdownMenu.find('li:last-child').before(optionHtml);
 
             $ctx.find('.broker-id').val(broker.id);
-            $ctx.find('#brokerDropdownBtn').val(broker.name || '').attr('placeholder', broker.name || 'Search or select broker...');
+            $ctx.find('#brokerDropdownBtn').val(broker.name || '').attr('placeholder', broker.name || 'Broker');
             $ctx.find('.broker-selected-name').text(broker.name || '');
             $ctx.find('.broker-selected-phone').text(broker.phone || '').closest('.broker-selected-info').toggleClass('visible', !!broker.phone);
             $ctx.find('.broker-phone-input').val(broker.phone || '');
+            window.refreshLedgerAdjustmentAccountMenus?.();
 
             const brokerModalEl = document.getElementById('brokerModal');
             bootstrap.Modal.getOrCreateInstance(brokerModalEl).hide();
