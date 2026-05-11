@@ -2541,7 +2541,7 @@ textarea.meta-control,
     window.sourceProformaId = null;
 
     // Optional doc type (avoid JS error)
-    window.docType = "{{ $docType ?? 'sale' }}";
+   window.docType = "invoice";
 
     @if(isset($sale))
         // Edit mode

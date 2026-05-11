@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\BankAccount;
+use App\Models\Broker;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\PartyGroup;
@@ -49,8 +50,12 @@ class EstimateController extends Controller
         $parties = Party::orderBy('name')->get();
         $partyGroups = PartyGroup::orderBy('name')->get();
         $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
-        $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = TransactionNumberPrefix::format('estimate', $nextSaleId);
+        $brokers = Broker::orderBy('name')->get();
+    $lastEstimate = Sale::where('type', 'estimate')->orderByDesc('id')->first();
+$nextEstimateNumber = $lastEstimate
+    ? ((int) preg_replace('/[^0-9]/', '', $lastEstimate->bill_number)) + 1
+    : 1;
+$nextInvoiceNumber = TransactionNumberPrefix::format('estimate', $nextEstimateNumber);
 
         $estimate = null;
         $prefilledEstimateData = null;
@@ -70,6 +75,10 @@ class EstimateController extends Controller
             $prefilledEstimateData['payments'] = [];
         }
 
-        return view('dashboard.sales.estimate-create', compact('items', 'categories', 'parties', 'partyGroups', 'bankAccounts', 'nextInvoiceNumber', 'estimate', 'prefilledEstimateData'));
+        return view('dashboard.sales.estimate-create', compact(
+            'items', 'categories', 'parties', 'partyGroups', 'bankAccounts',
+            'brokers',
+            'nextInvoiceNumber', 'estimate', 'prefilledEstimateData'
+        ));
     }
 }

@@ -176,9 +176,19 @@ class TabManager {
         this.activateTab(id);
 
         // Initialize form logic for this specific tab
-        if (typeof initializeForm === 'function' && content === this.formTemplate) {
-            initializeForm(paneEl);
-        }
+     if (typeof initializeForm === 'function' && content === this.formTemplate) {
+    initializeForm(paneEl);
+    const billInput = paneEl.querySelector('.bill-number');
+    if (billInput && window.nextInvoiceNumber) {
+        // Extract prefix and number separately
+        const base = window.nextInvoiceNumber;
+        const prefix = base.replace(/[0-9]+$/, '');
+        const num = parseInt(base.replace(/[^0-9]/g, ''), 10) || 1;
+        // Each new tab gets base + (tabCount - 1)
+        const tabOffset = this.tabs.length - 1;
+        billInput.value = prefix + (num + tabOffset);
+    }
+}
 
         // Scroll tab strip to end
         this.tabStrip.scrollTo({ left: this.tabStrip.scrollWidth, behavior: 'smooth' });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
+use App\Models\Broker;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
@@ -49,6 +50,8 @@ class SaleOrderController extends Controller
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('sale_order', $nextSaleId);
+        $brokers = Broker::orderBy('name')->get(); // ADDED
+        $partyGroups = \App\Models\PartyGroup::orderBy('name')->get(); // ADDED
 
         $saleOrder = null;
         $convertedSaleOrderData = null;
@@ -68,7 +71,7 @@ class SaleOrderController extends Controller
             $convertedSaleOrderData['payments'] = [];
         }
 
-        return view('dashboard.saleorder.create-sale-order', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber', 'convertedSaleOrderData', 'saleOrder'));
+        return view('dashboard.saleorder.create-sale-order', compact('bankAccounts', 'items', 'parties', 'nextInvoiceNumber', 'convertedSaleOrderData', 'saleOrder', 'brokers', 'partyGroups'));
     }
 
     public function createFromEstimate(Sale $sale)
@@ -88,6 +91,8 @@ class SaleOrderController extends Controller
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('sale_order', $nextSaleId);
+        $brokers = Broker::orderBy('name')->get(); // ADDED
+        $partyGroups = \App\Models\PartyGroup::orderBy('name')->get(); // ADDED
 
         $sale->load(['items']);
 
@@ -132,7 +137,9 @@ class SaleOrderController extends Controller
             'items',
             'parties',
             'nextInvoiceNumber',
-            'convertedSaleOrderData'
+            'convertedSaleOrderData',
+            'brokers', // ADDED
+            'partyGroups' // ADDED
         ));
     }
 
@@ -153,6 +160,7 @@ class SaleOrderController extends Controller
         $parties = Party::orderBy('name')->get();
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('sale_order', $nextSaleId);
+        $brokers = Broker::orderBy('name')->get(); // ADDED
 
         $sale->load(['items']);
 
@@ -197,7 +205,8 @@ class SaleOrderController extends Controller
             'items',
             'parties',
             'nextInvoiceNumber',
-            'convertedSaleOrderData'
+            'convertedSaleOrderData',
+            'brokers' // ADDED
         ));
     }
 }
