@@ -764,6 +764,17 @@ function initializeForm(context) {
         return `saleCustomExpenseRows:${type}`;
     }
 
+    function getDefaultCustomExpenseRows() {
+        return [
+            { heading: 'Mazdoori', operator: '+', unit: 'rs', value: 0 },
+            { heading: 'Commision', operator: '+', unit: 'rs', value: 0 },
+            { heading: 'Dak', operator: '+', unit: 'rs', value: 0 },
+            { heading: 'Karaya Naam', operator: '+', unit: 'rs', value: 0 },
+            { heading: 'Local', operator: '+', unit: 'rs', value: 0 },
+            { heading: 'Bardana', operator: '+', unit: 'rs', value: 0 },
+        ];
+    }
+
     function saveExpenseLabels() {
         const labels = {};
         $ctx.find('.editable-expense-label[data-expense-key]').each(function () {
@@ -819,9 +830,16 @@ function initializeForm(context) {
 
     function loadCustomExpenseRows() {
         const savedRows = JSON.parse(localStorage.getItem(getCustomExpenseStorageKey()) || '[]');
+        const rowsToRender = Array.isArray(savedRows) && savedRows.length
+            ? savedRows
+            : getDefaultCustomExpenseRows();
         const $container = $ctx.find('.custom-expense-rows');
         $container.empty();
-        savedRows.forEach((row) => createCustomExpenseRow(row));
+        rowsToRender.forEach((row) => createCustomExpenseRow(row));
+
+        if (!Array.isArray(savedRows) || !savedRows.length) {
+            persistCustomExpenseRows();
+        }
     }
 
     function getCustomExpenseTotal(baseAmount = 0) {
