@@ -20,7 +20,12 @@
   <div class="settings-layout">
     <aside class="sidebar">
       <div class="sidebar__header">
-        <div class="sidebar__title">Settings</div>
+        <div class="sidebar__header-left">
+          <a href="{{ route('dashboard') }}" class="sidebar__back" title="Back to bank">
+            <i class="fa fa-arrow-left" aria-hidden="true"></i>
+          </a>
+          <div class="sidebar__title">Settings</div>
+        </div>
         <i class="fa fa-search sidebar__search" aria-hidden="true"></i>
       </div>
 
@@ -78,7 +83,7 @@
           </label>
 
           <label class="check-row">
-            <input type="checkbox" class="check-row__input" />
+            <input type="checkbox" class="check-row__input" id="customerPoDetailsCheckbox" {{ !empty($customerPoDetailsEnabled) ? 'checked' : '' }} />
             <span class="check-row__label">Customer P.O. Details for transactions</span>
             <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
           </label>
@@ -571,6 +576,7 @@
 
       // Count Change Text Logic
       const countCheckbox = document.getElementById('countCheckbox');
+      const customerPoDetailsCheckbox = document.getElementById('customerPoDetailsCheckbox');
       const changeTextBtn = document.getElementById('changeTextBtn');
       const changeTextModalEl = document.getElementById('changeTextModal');
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -633,6 +639,30 @@
 
           const changeTextModal = new bootstrap.Modal(changeTextModalEl);
           changeTextModal.show();
+        });
+      }
+
+      if (customerPoDetailsCheckbox) {
+        customerPoDetailsCheckbox.addEventListener('change', async function () {
+          try {
+            const response = await fetch(transactionSettingsUpdateUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+              },
+              body: JSON.stringify({
+                customer_po_enabled: customerPoDetailsCheckbox.checked ? 1 : 0
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to save setting');
+            }
+          } catch (error) {
+            customerPoDetailsCheckbox.checked = !customerPoDetailsCheckbox.checked;
+          }
         });
       }
 

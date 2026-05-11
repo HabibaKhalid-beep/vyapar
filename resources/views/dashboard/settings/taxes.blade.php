@@ -21,7 +21,12 @@
   <div class="settings-layout">
     <aside class="sidebar">
       <div class="sidebar__header">
-        <div class="sidebar__title">Settings</div>
+        <div class="sidebar__header-left">
+          <a href="{{ route('dashboard') }}" class="sidebar__back" title="Back to bank">
+            <i class="fa fa-arrow-left" aria-hidden="true"></i>
+          </a>
+          <div class="sidebar__title">Settings</div>
+        </div>
         <i class="fa fa-search sidebar__search" aria-hidden="true"></i>
       </div>
 

@@ -36,6 +36,7 @@ class SettingController extends Controller
     {
         return view('dashboard.settings.transactions', [
             'countEnabled' => (bool) AppSetting::getValue('transaction_items_count_enabled', false),
+            'customerPoDetailsEnabled' => (bool) AppSetting::getValue('transaction_customer_po_enabled', false),
         ]);
     }
 
@@ -43,15 +44,22 @@ class SettingController extends Controller
     {
         $data = $request->validate([
             'count_enabled' => ['nullable', 'boolean'],
+            'customer_po_enabled' => ['nullable', 'boolean'],
         ]);
 
-        AppSetting::setValue('transaction_items_count_enabled', !empty($data['count_enabled']) ? '1' : '0');
+        if ($request->has('count_enabled')) {
+            AppSetting::setValue('transaction_items_count_enabled', !empty($data['count_enabled']) ? '1' : '0');
+        }
+        if ($request->has('customer_po_enabled')) {
+            AppSetting::setValue('transaction_customer_po_enabled', !empty($data['customer_po_enabled']) ? '1' : '0');
+        }
 
         if ($request->expectsJson() || $request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Transaction settings updated successfully.',
                 'count_enabled' => !empty($data['count_enabled']),
+                'customer_po_enabled' => !empty($data['customer_po_enabled']),
             ]);
         }
 

@@ -12,10 +12,15 @@ class WarehouseController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'city' => 'nullable|string|max:255',
+            'type' => 'nullable|in:main,branch,storage,distribution',
+            'capacity' => 'nullable|numeric|min:0',
             'handler_name' => 'nullable|string|max:255',
             'handler_phone' => 'nullable|string|max:50',
             'responsible_user_id' => 'nullable|exists:users,id',
             'address' => 'nullable|string|max:1000',
+            'notes' => 'nullable|string|max:2000',
             'is_active' => 'nullable|boolean',
         ]);
 

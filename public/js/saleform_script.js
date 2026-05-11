@@ -754,6 +754,89 @@ function initializeForm(context) {
         }
     }
 
+    function getExpenseLabelStorageKey() {
+        const type = String(window.docType || $ctx.find('.doc-type').val() || 'invoice');
+        return `saleExpenseLabels:${type}`;
+    }
+
+    function getCustomExpenseStorageKey() {
+        const type = String(window.docType || $ctx.find('.doc-type').val() || 'invoice');
+        return `saleCustomExpenseRows:${type}`;
+    }
+
+    function saveExpenseLabels() {
+        const labels = {};
+        $ctx.find('.editable-expense-label[data-expense-key]').each(function () {
+            const key = $(this).data('expenseKey');
+            labels[key] = ($(this).text() || '').trim() || key;
+        });
+        localStorage.setItem(getExpenseLabelStorageKey(), JSON.stringify(labels));
+    }
+
+    function loadExpenseLabels() {
+        const labels = JSON.parse(localStorage.getItem(getExpenseLabelStorageKey()) || '{}');
+        $ctx.find('.editable-expense-label[data-expense-key]').each(function () {
+            const key = $(this).data('expenseKey');
+            if (labels[key]) {
+                $(this).text(labels[key]);
+            }
+        });
+    }
+
+    function serializeCustomExpenseRows() {
+        return $ctx.find('.custom-expense-row').map(function () {
+            const $row = $(this);
+            return {
+                heading: ($row.find('.custom-expense-heading').text() || '').trim() || 'New Row',
+                operator: $row.find('.custom-expense-operator').val() || '+',
+                unit: $row.find('.custom-expense-unit').val() || 'rs',
+                value: parseFloat($row.find('.custom-expense-value').val() || 0) || 0,
+            };
+        }).get();
+    }
+
+    function persistCustomExpenseRows() {
+        localStorage.setItem(getCustomExpenseStorageKey(), JSON.stringify(serializeCustomExpenseRows()));
+    }
+
+    function createCustomExpenseRow(row = {}) {
+        const template = document.getElementById('custom-expense-row-template');
+        const container = $ctx.find('.custom-expense-rows').get(0);
+        if (!template || !container) return null;
+
+        const fragment = template.content.cloneNode(true);
+        const rowEl = fragment.querySelector('.custom-expense-row');
+        if (!rowEl) return null;
+
+        rowEl.querySelector('.custom-expense-heading').textContent = row.heading || 'New Row';
+        rowEl.querySelector('.custom-expense-operator').value = row.operator || '+';
+        rowEl.querySelector('.custom-expense-unit').value = row.unit || 'rs';
+        rowEl.querySelector('.custom-expense-value').value = Number(row.value || 0);
+
+        container.appendChild(fragment);
+        return $(container).find('.custom-expense-row').last();
+    }
+
+    function loadCustomExpenseRows() {
+        const savedRows = JSON.parse(localStorage.getItem(getCustomExpenseStorageKey()) || '[]');
+        const $container = $ctx.find('.custom-expense-rows');
+        $container.empty();
+        savedRows.forEach((row) => createCustomExpenseRow(row));
+    }
+
+    function getCustomExpenseTotal(baseAmount = 0) {
+        let total = 0;
+        $ctx.find('.custom-expense-row').each(function () {
+            const $row = $(this);
+            const operator = $row.find('.custom-expense-operator').val() || '+';
+            const unit = $row.find('.custom-expense-unit').val() || 'rs';
+            const rawValue = parseFloat($row.find('.custom-expense-value').val() || 0) || 0;
+            const amount = unit === 'pct' ? ((baseAmount * rawValue) / 100) : rawValue;
+            total += operator === '-' ? -amount : amount;
+        });
+        return total;
+    }
+
     function syncDefaultPaymentFields() {
         const hasDefaultPaymentType = Boolean($ctx.find('.default-payment-type').val());
         const $defaultAmount = $ctx.find('.default-payment-amount');
@@ -877,7 +960,8 @@ function initializeForm(context) {
             + (parseFloat($ctx.find('.labour-input').val() || 0) || 0)
             + (parseFloat($ctx.find('.rehra-mazdori-input').val() || 0) || 0)
             + (parseFloat($ctx.find('.post-expense-input').val() || 0) || 0)
-            + (parseFloat($ctx.find('.extra-expense-input').val() || 0) || 0);
+            + (parseFloat($ctx.find('.extra-expense-input').val() || 0) || 0)
+            + getCustomExpenseTotal(parseFloat($ctx.find('.total-base-amount').text() || 0) || 0);
     }
 
     function updateMarketRowAmount($row) {
@@ -886,9 +970,14 @@ function initializeForm(context) {
         }
 
         const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
-        const rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
+        let rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
+        const priceUnit = parseFloat($row.find('.item-price-unit').val() || 0) || 0;
         const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
         const netW = parseFloat($row.find('.net-w-input').val() || 0) || 0;
+
+        if (rate <= 0 && priceUnit > 0) {
+            rate = priceUnit;
+        }
 
         let amount = (qty * rate) - itemDiscount;
 
@@ -1057,6 +1146,7 @@ function initializeForm(context) {
         $ctx.find('.description-input').val(desc);
         if (desc) {
             $ctx.find('.description-pane').removeClass('d-none');
+            $ctx.find('.description-side-fields').removeClass('d-none');
         }
 
         // Image (show preview if there is an existing image)
@@ -1396,7 +1486,7 @@ function initializeForm(context) {
         $row.find('.item-tafseel').val('');
         $row.find('.gross-w-input').val('0');
         $row.find('.net-w-input').val('0');
-        $row.find('.item-rate').val('0');
+        $row.find('.item-rate').val(price.toFixed(2));
 
         syncRowCategoryOptions($row, category);
         $row.find('.item-code').val(itemCode);
@@ -2013,6 +2103,17 @@ function initializeForm(context) {
             broker_amount: parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0,
             party_name: getPartyDropdownDisplay() || $ctx.find('.party-select option:selected').text() || '',
             phone: $ctx.find('.phone-input').val() || '',
+            warehouse_id: $ctx.find('.warehouse-select').val() || null,
+            delivery_person: $ctx.find('.delivery-person-input').val() || '',
+            bilti_no: $ctx.find('.bilti-no-input').val() || '',
+            gate_no: $ctx.find('.gate-no-input').val() || '',
+            po_no: $ctx.find('.po-no-input').val() || '',
+            po_date: $ctx.find('.po-date-input').val() || '',
+            city: $ctx.find('.city-input').val() || '',
+            party_no: $ctx.find('.party-no-input').val() || '',
+            goods_name: $ctx.find('.goods-name-input').val() || '',
+            details_extra: $ctx.find('.details-extra-input').val() || '',
+            bilti_gari_no: $ctx.find('.bilti-gari-input').val() || '',
             billing_address: $ctx.find('.billing-address').val() || '',
             shipping_address: $ctx.find('.shipping-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
@@ -2038,6 +2139,7 @@ function initializeForm(context) {
             rehra_mazdori: parseFloat($ctx.find('.rehra-mazdori-input').val() || 0) || 0,
             post_expense: parseFloat($ctx.find('.post-expense-input').val() || 0) || 0,
             extra_expense: parseFloat($ctx.find('.extra-expense-input').val() || 0) || 0,
+            custom_expenses: serializeCustomExpenseRows(),
             discount_pct: parseFloat($ctx.find('.discount-pct').val() || 0) || 0,
             discount_rs: parseFloat($ctx.find('.discount-rs').val() || 0) || 0,
             tax_pct: parseFloat($ctx.find('.tax-select').val() || 0) || 0,
@@ -2192,7 +2294,8 @@ function initializeForm(context) {
         e.preventDefault();
         e.stopPropagation();
         const $button = $(this);
-        const $pane = $button.closest('.bottom-left, .invoice-container, body').find('.description-pane').first();
+        const $container = $button.closest('.bottom-left, .invoice-container, body');
+        const $pane = $container.find('.description-pane').first();
         if (!$pane.length) {
             return;
         }
@@ -2308,9 +2411,14 @@ function initializeForm(context) {
         $ctx.find('.item-row').each(function() {
             const $row = $(this);
             const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
-            const rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
+            let rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
+            const priceUnit = parseFloat($row.find('.item-price-unit').val() || 0) || 0;
             const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
             const netW = parseFloat($row.find('.net-w-input').val() || 0) || 0;
+
+            if (rate <= 0 && priceUnit > 0) {
+                rate = priceUnit;
+            }
 
             totalQty += qty;
 
@@ -2367,8 +2475,9 @@ function initializeForm(context) {
         const rehraMazdori = parseFloat($ctx.find('.rehra-mazdori-input').val() || 0) || 0;
         const postExpense = parseFloat($ctx.find('.post-expense-input').val() || 0) || 0;
         const extraExpense = parseFloat($ctx.find('.extra-expense-input').val() || 0) || 0;
+        const customExpenseTotal = getCustomExpenseTotal(finalBase);
 
-        const totalExpenses = parachi + rateExpense + deo + bardana + labour + rehraMazdori + postExpense + extraExpense;
+        const totalExpenses = parachi + rateExpense + deo + bardana + labour + rehraMazdori + postExpense + extraExpense + customExpenseTotal;
         finalBase += totalExpenses;
 
         const roundOffEnabled = $ctx.find('.round-off-check').is(':checked');
@@ -2431,6 +2540,21 @@ function initializeForm(context) {
         calculateTotals();
     });
     $ctx.on('input change', '.round-off-val', calculateTotals);
+    $ctx.on('input change', '.custom-expense-operator, .custom-expense-unit, .custom-expense-value', function() {
+        persistCustomExpenseRows();
+        calculateTotals();
+    });
+    $ctx.on('input blur', '.custom-expense-heading', persistCustomExpenseRows);
+    $ctx.on('input blur', '.editable-expense-label[data-expense-key]', saveExpenseLabels);
+    $ctx.on('click', '.add-custom-expense-row', function() {
+        createCustomExpenseRow();
+        persistCustomExpenseRows();
+    });
+    $ctx.on('click', '.remove-custom-expense-row', function() {
+        $(this).closest('.custom-expense-row').remove();
+        persistCustomExpenseRows();
+        calculateTotals();
+    });
 
     // Update when payment rows are removed
     $ctx.off('click', '.remove-payment-entry').on('click', '.remove-payment-entry', function() {
@@ -2442,6 +2566,8 @@ function initializeForm(context) {
     syncDefaultPaymentFields();
     setupPartyDropdownSearch();
     setupBrokerDropdownSearch();
+    loadExpenseLabels();
+    loadCustomExpenseRows();
 
     $ctx.on('click', '.broker-option', function(e) {
         e.preventDefault();

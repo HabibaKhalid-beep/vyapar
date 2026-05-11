@@ -14,7 +14,12 @@
   <div class="print-page">
     <aside class="print-sidebar">
       <div class="print-sidebar__header">
-        <span>Settings</span>
+        <div class="sidebar__header-left">
+          <a href="{{ route('dashboard') }}" class="sidebar__back" title="Back to bank">
+            <i class="fa fa-arrow-left" aria-hidden="true"></i>
+          </a>
+          <span>Settings</span>
+        </div>
         <i class="fa fa-search"></i>
       </div>
       <nav class="print-sidebar__nav">

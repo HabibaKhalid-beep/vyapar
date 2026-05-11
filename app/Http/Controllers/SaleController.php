@@ -13,6 +13,7 @@ use App\Models\PartyGroup;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Transaction;
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -94,6 +95,8 @@ class SaleController extends Controller
         $parties = Party::orderBy('name')->get();
         $partyGroups = PartyGroup::orderBy('name')->get();
         $categories = \App\Models\Category::orderBy('name')->get();
+        $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
+        $customerPoDetailsEnabled = \App\Models\AppSetting::getValue('transaction_customer_po_enabled', '0') === '1';
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $prefixTypeMap = [
@@ -122,7 +125,7 @@ class SaleController extends Controller
             $convertedSaleData['payments'] = [];
         }
 
-        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'partyGroups', 'categories', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
+        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'partyGroups', 'categories', 'warehouses', 'customerPoDetailsEnabled', 'nextInvoiceNumber', 'type', 'convertedSaleData'));
     }
 
     public function createFromEstimate(Sale $sale)
