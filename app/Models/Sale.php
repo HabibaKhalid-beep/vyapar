@@ -100,6 +100,11 @@ class Sale extends Model
         return $this->hasOne(ChallanDetail::class);
     }
 
+    public function details()
+    {
+        return $this->hasOne(SaleDetail::class);
+    }
+
     public function getDisplayPartyNameAttribute(): string
     {
         if ($this->relationLoaded('party') && $this->party) {

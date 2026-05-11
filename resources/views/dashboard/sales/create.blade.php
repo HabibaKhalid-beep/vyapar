@@ -90,10 +90,26 @@ ul#partyDropdownMenu {
     display: inline-block;
     width: 100%;
 }
-.party-option span:first-child {
+.party-option .party-option-main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 60%;
+}
+.party-option .party-option-name {
+    width: 100%;
+}
+.party-option .party-option-phone {
+    width: 100%;
+    font-size: 11px;
+    color: #475569;
+    line-height: 1.2;
+    margin-top: 2px;
+}
+.party-option > span:first-child {
     width: 60%; /* Party name */
 }
-.party-option span:last-child {
+.party-option > span:last-child {
     width: 40%; /* Opening balance */
     text-align: right;
 }
@@ -1332,13 +1348,24 @@ textarea.meta-control,
 }
 
 .bottom-right .custom-expense-inputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.bottom-right .custom-expense-broker-wrap {
+    display: flex;
+    align-items: center;
     gap: 6px;
     flex-wrap: wrap;
 }
 
 .bottom-right .custom-expense-operator,
-.bottom-right .custom-expense-unit,
-.bottom-right .custom-expense-value {
+.bottom-right .custom-expense-pct,
+.bottom-right .custom-expense-value,
+.bottom-right .custom-brokerage-type,
+.bottom-right .custom-brokerage-rate {
     min-height: 30px;
     height: 30px;
     padding: 4px 8px;
@@ -1349,13 +1376,35 @@ textarea.meta-control,
 }
 
 .bottom-right .custom-expense-operator,
-.bottom-right .custom-expense-unit {
-    width: 54px;
+.bottom-right .custom-expense-pct {
+    width: 62px;
 }
 
 .bottom-right .custom-expense-value {
     width: 80px;
     text-align: right;
+}
+
+.bottom-right .custom-brokerage-type {
+    width: 120px;
+}
+
+.bottom-right .custom-brokerage-rate {
+    width: 74px;
+    text-align: right;
+}
+
+.bottom-right .add-broker-ledger-row {
+    border: 0;
+    background: transparent;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 4px;
+}
+
+.bottom-right .custom-expense-row.is-broker-row .custom-expense-heading {
+    font-weight: 600;
 }
 
 .bottom-right .remove-custom-expense-row {
@@ -1702,7 +1751,7 @@ textarea.meta-control,
         </li>
           @foreach($parties as $party)
           <li>
-            <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+            <a class="dropdown-item d-flex justify-content-between align-items-start party-option" href="#"
                data-id="{{ $party->id }}"
                data-name="{{ $party->name }}"
                data-phone="{{ $party->phone }}"
@@ -1721,7 +1770,10 @@ textarea.meta-control,
                data-credit-limit-enabled="{{ $party->credit_limit_enabled ?? 0 }}"
                data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
                data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
-                <span>{{ $party->name }}</span>
+                <span class="party-option-main">
+                  <span class="party-option-name">{{ $party->name }}</span>
+                  <span class="party-option-phone">{{ $party->phone ?: '-' }}</span>
+                </span>
                 <span
                   @if($party->transaction_type == 'pay')
                       class="text-danger"
@@ -1850,9 +1902,8 @@ textarea.meta-control,
                                         <th>TADAAT</th>
                                         <th>GROSS W</th>
                                         <th>NET W</th>
-                                        <th>WEIGHT</th>
-                                        <th>RATE</th>
                                         <th class="custom-size-th">UNIT</th>
+                                        <th>RATE</th>
                                         <th>PRICE UNIT</th>
                                         <th class="col-category d-none">CATEGORY</th>
                                         <th class="col-item-code d-none">ITEM CODE</th>
@@ -1930,8 +1981,6 @@ textarea.meta-control,
                                         <td><input type="number" class="item-qty tadaat-input" value="1"></td>
                                         <td><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
                                         <td><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
-                                        <td><input type="number" class="item-bag_weight" readonly></td>
-                                        <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
                                         <td class="custom-size-td">
                                             <select class="item-unit">
                                                 <option value="">Select Unit</option>
@@ -1951,6 +2000,7 @@ textarea.meta-control,
                                                 <option value="ML">Milliliter</option>
                                             </select>
                                         </td>
+                                        <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
                                         <td><input type="number" class="item-price-unit" value="0" min="0" step="0.01"></td>
                                         <td class="col-category d-none">
                                             <select class="item-category">
@@ -2127,7 +2177,7 @@ textarea.meta-control,
 
                             <!-- Right Column -->
                             <div class="bottom-right">
-                                <div class="calc-row broker-calc-row">
+                                <div class="calc-row broker-calc-row d-none legacy-broker-calc-row">
                                     <div class="calc-label">Broker</div>
                                     <div class="calc-inputs broker-calc-inputs">
                                         <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 260px; max-width: 100%;">
@@ -2245,15 +2295,49 @@ textarea.meta-control,
                                         <span class="editable-expense-label custom-expense-heading" contenteditable="true" spellcheck="false">New Row</span>
                                     </div>
                                     <div class="calc-inputs custom-expense-inputs">
+                                        <div class="custom-expense-broker-wrap d-none">
+                                            <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 190px; max-width: 100%;">
+                                                <input type="text" class="form-control broker-search-input custom-broker-search-input w-100" placeholder="Broker..." data-bs-toggle="dropdown" autocomplete="off">
+                                                <div class="broker-selected-info">
+                                                    <div class="broker-selected-name"></div>
+                                                    <div class="broker-selected-phone"></div>
+                                                </div>
+                                                <ul class="dropdown-menu w-100 broker-dropdown-menu">
+                                                    @foreach($brokers as $broker)
+                                                    <li>
+                                                        <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
+                                                           data-id="{{ $broker->id }}"
+                                                           data-phone="{{ $broker->phone }}"
+                                                           data-name="{{ $broker->name }}"
+                                                           data-commission-rate="{{ $broker->commission_rate ?? 0 }}">
+                                                            <div class="broker-option-name">{{ $broker->name }}</div>
+                                                            <div class="broker-option-city text-muted small">{{ $broker->city ?: '-' }}</div>
+                                                        </a>
+                                                    </li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                            <select class="mini-input custom-brokerage-type">
+                                                <option value="">Condition</option>
+                                                <option value="broker_rate">Broker Rate</option>
+                                                <option value="full">Poori Brokerage (0.45%)</option>
+                                                <option value="half">Aadhi Brokerage (0.225%)</option>
+                                                <option value="custom_pct">Custom %</option>
+                                                <option value="per_kg">Per KG</option>
+                                            </select>
+                                            <input type="number" class="mini-input custom-brokerage-rate" min="0" step="0.01" placeholder="Rate">
+                                            <button type="button" class="add-broker-ledger-row">+ Broker</button>
+                                        </div>
                                         <select class="mini-input custom-expense-operator">
                                             <option value="+">+</option>
                                             <option value="-">-</option>
+                                            <option value="same">Same</option>
                                         </select>
-                                        <select class="mini-input custom-expense-unit">
-                                            <option value="rs">Rs</option>
-                                            <option value="pct">%</option>
-                                        </select>
-                                        <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="0">
+                                        <input type="number" class="mini-input custom-expense-pct" value="" min="0" step="0.01" placeholder="%">
+                                        <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="Amt">
+                                        <input type="hidden" class="custom-expense-broker-id" value="">
+                                        <input type="hidden" class="custom-expense-broker-phone" value="">
+                                        <input type="hidden" class="custom-expense-broker-commission" value="">
                                         <button type="button" class="remove-custom-expense-row" title="Remove">
                                             <i class="fa-solid fa-xmark"></i>
                                         </button>
@@ -3826,7 +3910,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     const optionHtml = `
                       <li>
-                        <a class="dropdown-item d-flex justify-content-between party-option"
+                        <a class="dropdown-item d-flex justify-content-between align-items-start party-option"
                            href="#"
                            data-id="${partyRecord.id}"
                            data-name="${partyRecord.name}"
@@ -3846,7 +3930,10 @@ document.addEventListener("DOMContentLoaded", function () {
                            data-credit-limit-enabled="${partyRecord.credit_limit_enabled || 0}"
                            data-credit-limit-amount="${partyRecord.credit_limit_amount || ''}"
                            data-custom-fields="${String(JSON.stringify(partyRecord.custom_fields || [])).replace(/"/g, '&quot;')}">
-                            <span>${partyRecord.name}</span>
+                            <span class="party-option-main">
+                                <span class="party-option-name">${partyRecord.name}</span>
+                                <span class="party-option-phone">${partyRecord.phone || '-'}</span>
+                            </span>
                             <span class="text-success">0</span>
                         </a>
                       </li>
@@ -3985,7 +4072,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             const options = Array.from(dropdownMenu.querySelectorAll('.party-option'));
             const exactOption = options.find(opt => {
-                const name = String(opt.querySelector('span:first-child')?.textContent || '').trim().toLowerCase();
+                const name = String(opt.dataset.name || opt.querySelector('.party-option-name')?.textContent || '').trim().toLowerCase();
                 return name === searchTerm.toLowerCase();
             });
 
@@ -4258,7 +4345,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if(e.target.closest(".party-option")) {
             e.preventDefault();
             const option = e.target.closest(".party-option");
-            const name = option.querySelector("span:first-child").textContent;
+            const name = option.dataset.name || option.querySelector(".party-option-name")?.textContent || '';
             let opening = parseFloat(option.dataset.opening) || 0;
             const type = option.dataset.type;
             const id = option.dataset.id;
@@ -4353,7 +4440,7 @@ else {
 
         e.preventDefault();
         const option = e.target.closest(".broker-option");
-        const name = option.dataset.name || option.querySelector("span:first-child").textContent;
+        const name = option.dataset.name || option.querySelector(".party-option-name")?.textContent || '';
         const phone = option.dataset.phone || "";
         const id = option.dataset.id || "";
         const commissionRate = parseFloat(option.dataset.commissionRate || 0) || 0;
@@ -4564,7 +4651,7 @@ document.addEventListener('click', function (e) {
     const dropdownBtn = document.querySelector('#partyDropdownBtn.party-search-input');
     if (!dropdownBtn) return;
 
-    const partyName = partyOption.dataset.name || partyOption.querySelector('span:first-child')?.textContent?.trim() || '';
+    const partyName = partyOption.dataset.name || partyOption.querySelector('.party-option-name')?.textContent?.trim() || '';
     if (!partyName) return;
 
     if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {

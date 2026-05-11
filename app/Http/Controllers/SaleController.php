@@ -11,6 +11,7 @@ use App\Models\Item;
 use App\Models\Party;
 use App\Models\PartyGroup;
 use App\Models\Sale;
+use App\Models\SaleDetail;
 use App\Models\SaleItem;
 use App\Models\Transaction;
 use App\Models\Warehouse;
@@ -112,7 +113,7 @@ class SaleController extends Controller
 
         $convertedSaleData = null;
         if ($request->filled('duplicate_sale_id')) {
-            $sourceSale = Sale::with(['items', 'payments', 'party'])->findOrFail($request->integer('duplicate_sale_id'));
+            $sourceSale = Sale::with(['items', 'payments', 'party', 'details'])->findOrFail($request->integer('duplicate_sale_id'));
             $convertedSaleData = $sourceSale->toArray();
             $convertedSaleData['bill_number'] = $nextInvoiceNumber;
             $convertedSaleData['invoice_date'] = now()->toDateString();
@@ -477,9 +478,13 @@ private function posData(): array
         $brokers = Broker::orderBy('name')->get();
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
+        $partyGroups = PartyGroup::orderBy('name')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
+        $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
+        $customerPoDetailsEnabled = \App\Models\AppSetting::getValue('transaction_customer_po_enabled', '0') === '1';
         $type = $sale->type ?? 'invoice';
 
-        $sale->load(['items', 'payments', 'party']);
+        $sale->load(['items', 'payments', 'party', 'details']);
 
         $ledgerTransaction = Transaction::query()
             ->where('party_id', $sale->party_id)
@@ -503,7 +508,7 @@ private function posData(): array
             $sale->document_url = Storage::disk('public')->url($sale->document_path);
         }
 
-        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'sale', 'type'));
+        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'items', 'parties', 'partyGroups', 'categories', 'warehouses', 'customerPoDetailsEnabled', 'sale', 'type'));
     }
 
     public function update(Request $request, Sale $sale)
@@ -519,10 +524,22 @@ private function posData(): array
             'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'broker_id' => 'nullable|exists:brokers,id',
-            'brokerage_type' => 'nullable|in:full,half,per_kg',
+            'brokerage_type' => 'nullable|in:broker_rate,full,half,custom_pct,per_kg',
             'brokerage_rate' => 'nullable|numeric|min:0',
             'broker_amount' => 'nullable|numeric|min:0',
             'phone' => 'nullable|string|max:50',
+            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'delivery_person' => 'nullable|string|max:255',
+            'bilti_no' => 'nullable|string|max:255',
+            'gate_no' => 'nullable|string|max:255',
+            'po_no' => 'nullable|string|max:255',
+            'po_date' => 'nullable|date',
+            'city' => 'nullable|string|max:255',
+            'party_no' => 'nullable|string|max:255',
+            'goods_name' => 'nullable|string|max:255',
+            'details_extra' => 'nullable|string|max:255',
+            'bilti_gari_no' => 'nullable|string|max:255',
+            'custom_expenses' => 'nullable|array',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'nullable|string|max:100',
@@ -648,6 +665,8 @@ private function posData(): array
             'image_paths' => $existingImagePaths ?: null,
             'document_paths' => $existingDocumentPaths ?: null,
         ]);
+
+        $this->upsertSaleDetails($sale, $data);
 
         // Replace items (keep payment history intact for edit mode)
         $sale->items()->delete();
@@ -779,10 +798,22 @@ private function posData(): array
             'source_proforma_id' => 'nullable|exists:sales,id',
             'party_id' => 'nullable|exists:parties,id',
             'broker_id' => 'nullable|exists:brokers,id',
-            'brokerage_type' => 'nullable|in:full,half,per_kg',
+            'brokerage_type' => 'nullable|in:broker_rate,full,half,custom_pct,per_kg',
             'brokerage_rate' => 'nullable|numeric|min:0',
             'broker_amount' => 'nullable|numeric|min:0',
             'phone' => 'nullable|string|max:50',
+            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'delivery_person' => 'nullable|string|max:255',
+            'bilti_no' => 'nullable|string|max:255',
+            'gate_no' => 'nullable|string|max:255',
+            'po_no' => 'nullable|string|max:255',
+            'po_date' => 'nullable|date',
+            'city' => 'nullable|string|max:255',
+            'party_no' => 'nullable|string|max:255',
+            'goods_name' => 'nullable|string|max:255',
+            'details_extra' => 'nullable|string|max:255',
+            'bilti_gari_no' => 'nullable|string|max:255',
+            'custom_expenses' => 'nullable|array',
             'billing_address' => 'nullable|string|max:1000',
             'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'nullable|string|max:100',
@@ -901,6 +932,8 @@ private function posData(): array
             'image_paths' => null,
             'document_paths' => null,
         ]);
+
+        $this->upsertSaleDetails($sale, $data);
 
         $uploadedImagePaths = $this->storeSaleAttachmentFiles($request->file('images', []), 'sales/images');
         $uploadedDocumentPaths = $this->storeSaleAttachmentFiles($request->file('documents', []), 'sales/documents');
@@ -1823,7 +1856,7 @@ private function posData(): array
 
     private function normalizeSaleRequestPayload(Request $request): void
     {
-        foreach (['items', 'payments', 'image_paths', 'document_paths'] as $field) {
+        foreach (['items', 'payments', 'image_paths', 'document_paths', 'custom_expenses'] as $field) {
             $value = $request->input($field);
             if (is_string($value)) {
                 $decoded = json_decode($value, true);
@@ -1832,6 +1865,27 @@ private function posData(): array
                 }
             }
         }
+    }
+
+    private function upsertSaleDetails(Sale $sale, array $data): void
+    {
+        $sale->details()->updateOrCreate(
+            ['sale_id' => $sale->id],
+            [
+                'warehouse_id' => $data['warehouse_id'] ?? null,
+                'delivery_person' => $data['delivery_person'] ?? null,
+                'bilti_no' => $data['bilti_no'] ?? null,
+                'gate_no' => $data['gate_no'] ?? null,
+                'po_no' => $data['po_no'] ?? null,
+                'po_date' => $data['po_date'] ?? null,
+                'city' => $data['city'] ?? null,
+                'party_no' => $data['party_no'] ?? null,
+                'goods_name' => $data['goods_name'] ?? null,
+                'details_extra' => $data['details_extra'] ?? null,
+                'bilti_gari_no' => $data['bilti_gari_no'] ?? null,
+                'custom_expenses' => $data['custom_expenses'] ?? null,
+            ]
+        );
     }
 
     private function storeSaleAttachmentFiles(array $files = [], string $directory = ''): array
