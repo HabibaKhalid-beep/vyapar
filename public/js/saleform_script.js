@@ -861,6 +861,8 @@ function initializeForm(context) {
     function normalizeCustomExpenseRow(row = {}) {
         const legacyMode = String(row.mode || row.operator || '+').toUpperCase();
         const mode = legacyMode === 'SAME' ? 'S' : (['+', '-', 'S'].includes(legacyMode) ? legacyMode : '+');
+        const rawHeading = String(row.heading || row.title || '').trim();
+        const heading = rawHeading.toLowerCase() === 'new row' ? '' : rawHeading;
 
         let accountType = row.account_type || '';
         let accountId = row.account_id || '';
@@ -877,7 +879,7 @@ function initializeForm(context) {
         }
 
         return {
-            heading: row.heading || row.title || 'New Row',
+            heading,
             mode,
             percentage: row.percentage ?? row.pct ?? '',
             amount: row.amount ?? row.value ?? 0,
@@ -912,7 +914,7 @@ function initializeForm(context) {
         return $ctx.find('.custom-expense-row').map(function () {
             const $row = $(this);
             return {
-                heading: ($row.find('.custom-expense-heading').text() || '').trim() || 'New Row',
+                heading: ($row.find('.custom-expense-heading').text() || '').trim(),
                 mode: $row.find('.custom-expense-mode').val() || '+',
                 percentage: $row.find('.custom-expense-pct').val() || '',
                 amount: parseFloat($row.find('.custom-expense-value').val() || 0) || 0,
@@ -939,7 +941,7 @@ function initializeForm(context) {
         const rowEl = fragment.querySelector('.custom-expense-row');
         if (!rowEl) return null;
 
-        rowEl.querySelector('.custom-expense-heading').textContent = normalizedRow.heading;
+        rowEl.querySelector('.custom-expense-heading').textContent = normalizedRow.heading || '';
         rowEl.querySelector('.custom-expense-value').value = Number(normalizedRow.amount || 0);
         rowEl.querySelector('.custom-expense-pct').value = normalizedRow.percentage || '';
         rowEl.querySelector('.custom-expense-details').value = normalizedRow.details || '';
@@ -948,6 +950,7 @@ function initializeForm(context) {
         rowEl.querySelector('.custom-expense-account-id').value = normalizedRow.account_id || '';
         rowEl.querySelector('.custom-expense-account-phone').value = normalizedRow.account_phone || '';
         rowEl.querySelector('.custom-expense-account-input').value = normalizedRow.account_name || '';
+        rowEl.classList.toggle('no-heading', !normalizedRow.heading);
 
         Array.from(rowEl.querySelectorAll('.custom-mode-btn')).forEach((button) => {
             button.classList.toggle('is-active', button.dataset.mode === normalizedRow.mode);
@@ -965,7 +968,7 @@ function initializeForm(context) {
         }).length;
         const brokerIndex = index || (currentBrokerCount + 1);
         return createCustomExpenseRow({
-            heading: `Broker ${brokerIndex}`,
+            heading: '',
             mode: '+',
             percentage: '',
             amount: 0,
@@ -1184,22 +1187,10 @@ function initializeForm(context) {
             return;
         }
 
-        const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
-        let rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
-        const priceUnit = parseFloat($row.find('.item-price-unit').val() || 0) || 0;
+        const rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
         const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
         const netW = parseFloat($row.find('.net-w-input').val() || 0) || 0;
-
-        if (rate <= 0 && priceUnit > 0) {
-            rate = priceUnit;
-        }
-
-        let amount = (qty * rate) - itemDiscount;
-
-        // If Net W is specified and Rate is specified, use Net W * Rate
-        if (netW > 0 && rate > 0) {
-            amount = (netW * rate) - itemDiscount;
-        }
+        const amount = (netW * rate) - itemDiscount;
 
         $row.find('.item-amount').val(Math.max(amount, 0).toFixed(2));
     }
@@ -1542,7 +1533,7 @@ function initializeForm(context) {
                     <select class="item-unit">${unitOptionsHtml}</select>
                 </td>
                 <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
-                <td><input type="number" class="item-price-unit" value="0" min="0" step="0.01"></td>
+                <td><input type="number" class="item-amount" value="0" min="0" step="0.01" readonly></td>
                 <td class="col-category d-none">
                     <select class="item-category">${buildCategoryOptionsHtml()}</select>
                 </td>
@@ -1554,7 +1545,6 @@ function initializeForm(context) {
                         <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
                     </div>
                 </td>
-                <td class="d-none"><input type="number" class="item-amount" value="0"></td>
                 <td class="add-col"></td>
             </tr>
         `;
@@ -1728,7 +1718,6 @@ function initializeForm(context) {
 
         // Populate the new fields
         $row.find('.item-bag_weight').val(bagWeight.toFixed(2));
-        $row.find('.item-price-unit').val(price.toFixed(2));
         $row.find('.item-tafseel').val('');
         $row.find('.gross-w-input').val('0');
         $row.find('.net-w-input').val('0');
@@ -2172,7 +2161,7 @@ function initializeForm(context) {
     });
 
     // Line item calculation
-    $ctx.on('keyup change', '.item-qty, .item-rate, .item-price-unit, .gross-w-input, .net-w-input, .item-discount, .item-discount-pct', function() {
+    $ctx.on('keyup change', '.item-qty, .item-rate, .gross-w-input, .net-w-input, .item-discount, .item-discount-pct', function() {
         const $row = $(this).closest('tr');
         const isPercentField = $(this).hasClass('item-discount-pct');
         const isAmountField = $(this).hasClass('item-discount');
@@ -2652,34 +2641,31 @@ function initializeForm(context) {
 
     function calculateTotals() {
         let totalQty = 0;
+        let totalGrossW = 0;
+        let totalNetW = 0;
         let totalBaseAmount = 0;
 
         $ctx.find('.item-row').each(function() {
             const $row = $(this);
             const qty = parseFloat($row.find('.item-qty').val() || 0) || 0;
-            let rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
-            const priceUnit = parseFloat($row.find('.item-price-unit').val() || 0) || 0;
+            const rate = parseFloat($row.find('.item-rate').val() || 0) || 0;
             const itemDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
+            const grossW = parseFloat($row.find('.gross-w-input').val() || 0) || 0;
             const netW = parseFloat($row.find('.net-w-input').val() || 0) || 0;
 
-            if (rate <= 0 && priceUnit > 0) {
-                rate = priceUnit;
-            }
-
             totalQty += qty;
+            totalGrossW += grossW;
+            totalNetW += netW;
 
-            let rowAmount = (qty * rate) - itemDiscount;
-
-            // If Net W is specified, use it for amount calculation
-            if (netW > 0 && rate > 0) {
-                rowAmount = (netW * rate) - itemDiscount;
-            }
+            const rowAmount = Math.max((netW * rate) - itemDiscount, 0);
 
             $row.find('.item-amount').val(rowAmount.toFixed(2));
             totalBaseAmount += rowAmount;
         });
 
         $ctx.find('.total-qty').text(totalQty);
+        $ctx.find('.total-gross-w').text(totalGrossW.toFixed(2));
+        $ctx.find('.total-net-w').text(totalNetW.toFixed(2));
         $ctx.find('.total-base-amount').text(totalBaseAmount.toFixed(2));
 
         updateBrokerageFields();
@@ -2850,10 +2836,7 @@ function initializeForm(context) {
         $input.val(accountName);
 
         if (accountType === 'broker') {
-            const brokerCount = $ctx.find('.custom-expense-row').filter(function () {
-                return ($(this).find('.custom-expense-account-type').val() || '') === 'broker';
-            }).index($row) + 1;
-            $row.find('.custom-expense-heading').text(`Broker ${brokerCount > 0 ? brokerCount : 1}`);
+            $row.find('.custom-expense-heading').text('');
         }
 
         persistCustomExpenseRows();

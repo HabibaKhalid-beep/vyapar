@@ -1361,6 +1361,10 @@ textarea.meta-control,
     background: #fbfdff;
 }
 
+.bottom-right .custom-expense-row.no-heading .calc-label {
+    display: none !important;
+}
+
 .bottom-right .custom-expense-inputs {
     display: flex;
     align-items: center;
@@ -1410,17 +1414,29 @@ textarea.meta-control,
     border: 1px solid #d7e0ea;
     background: #fff;
     font-size: 11px;
+}
+
 .bottom-right .custom-expense-pct {
-    width: 62px;
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    text-align: right;
+    flex: 0 0 56px !important;
 }
 
 .bottom-right .custom-expense-details {
-    width: 130px;
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    flex: 0 0 180px !important;
 }
 
 .bottom-right .custom-expense-value {
-    width: 80px;
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
     text-align: right;
+    flex: 0 0 80px !important;
 }
 
 .bottom-right .ledger-account-option {
@@ -1458,6 +1474,7 @@ textarea.meta-control,
 .bottom-right .add-custom-expense-row {
     min-width: 120px;
     max-width: 140px;
+    margin-left: 242px;
 }
 
 @media (max-width: 1200px) {
@@ -1668,6 +1685,32 @@ textarea.meta-control,
 /* Warehouse Modal Gradient */
 .bg-gradient-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.item-table tfoot td {
+    background: #fbfdff;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 0;
+    padding: 12px 10px;
+}
+
+.item-table .column-total-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.item-table .column-total-value {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.item-table .tfoot-add-row-cell {
+    text-align: left;
 }
     </style>
 
@@ -1943,7 +1986,7 @@ textarea.meta-control,
                                         <th>NET W</th>
                                         <th class="custom-size-th">UNIT</th>
                                         <th>RATE</th>
-                                        <th>PRICE UNIT</th>
+                                        <th>AMOUNT</th>
                                         <th class="col-category d-none">CATEGORY</th>
                                         <th class="col-item-code d-none">ITEM CODE</th>
                                         <th class="col-description d-none">DESCRIPTION</th>
@@ -2040,7 +2083,7 @@ textarea.meta-control,
                                             </select>
                                         </td>
                                         <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
-                                        <td><input type="number" class="item-price-unit" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="item-amount" value="0" min="0" step="0.01" readonly></td>
                                         <td class="col-category d-none">
                                             <select class="item-category">
                                                 <option value="">Select Category</option>
@@ -2057,24 +2100,41 @@ textarea.meta-control,
                                                 <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
                                             </div>
                                         </td>
-                                        <td class="d-none"><input type="number" class="item-amount" value="0"></td>
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
+                                <tfoot>
+                                    <tr class="item-totals-row">
+                                        <td colspan="2" class="tfoot-add-row-cell">
+                                            <button type="button" class="btn-add-row add-row-btn">ADD ROW</button>
+                                        </td>
+                                        <td></td>
+                                        <td>
+                                            <span class="column-total-label">Total Tadaat</span>
+                                            <span class="column-total-value total-qty">0</span>
+                                        </td>
+                                        <td>
+                                            <span class="column-total-label">Total Gross W</span>
+                                            <span class="column-total-value total-gross-w">0.00</span>
+                                        </td>
+                                        <td>
+                                            <span class="column-total-label">Total Net W</span>
+                                            <span class="column-total-value total-net-w">0.00</span>
+                                        </td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>
+                                            <span class="column-total-label">Total Amount</span>
+                                            <span class="column-total-value total-base-amount">0.00</span>
+                                        </td>
+                                        <td class="col-category d-none"></td>
+                                        <td class="col-item-code d-none"></td>
+                                        <td class="col-description d-none"></td>
+                                        <td class="col-discount d-none"></td>
+                                        <td class="add-col"></td>
+                                    </tr>
+                                </tfoot>
                             </table>
-                            <div class="table-footer">
-                                <button type="button" class="btn-add-row add-row-btn">ADD ROW</button>
-                                <div class="footer-totals">
-                                    <div>
-                                        <span class="total-label">TOTAL QTY</span>
-                                        <span class="total-qty">0</span>
-                                    </div>
-                                    <div>
-                                        <span class="total-label">TOTAL AMOUNT</span>
-                                        <span class="total-base-amount">0</span>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Bottom Split Section -->
@@ -2095,8 +2155,9 @@ textarea.meta-control,
                                             @endforeach
                                             <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
+                                                                                <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
+
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
-                                        <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
                                     </div>
 
                                     <div class="payment-entries">
@@ -2125,8 +2186,9 @@ textarea.meta-control,
                                               @endforeach
                                               <option value="add_new_bank">+ Add Bank Account</option>
                                           </select>
+                                                                                  <input type="text" class="input-control payment-reference" placeholder="Reference">
+
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
-                                        <input type="text" class="input-control payment-reference" placeholder="Reference">
                                         <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
@@ -2225,7 +2287,7 @@ textarea.meta-control,
                                                 <div class="broker-selected-name"></div>
                                                 <div class="broker-selected-phone"></div>
                                             </div>
-                                            
+
                                             <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
                                                 @foreach($brokers as $broker)
                                                 <li>
