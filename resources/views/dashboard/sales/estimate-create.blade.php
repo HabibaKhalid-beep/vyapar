@@ -1697,7 +1697,7 @@ textarea.meta-control,
         </li>
           @foreach($parties as $party)
           <li>
-            <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+           <a class="dropdown-item d-flex justify-content-between align-items-start party-option" href="#"
                data-id="{{ $party->id }}"
                data-name="{{ $party->name }}"
                data-phone="{{ $party->phone }}"
@@ -1716,7 +1716,10 @@ textarea.meta-control,
                data-credit-limit-enabled="{{ $party->credit_limit_enabled ?? 0 }}"
                data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
                data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
-                <span>{{ $party->name }}</span>
+                <span class="party-option-main">
+  <span class="party-option-name">{{ $party->name }}</span>
+  <span class="party-option-phone">{{ $party->phone ?: '-' }}</span>
+</span>
                 <span
                   @if($party->transaction_type == 'pay')
                       class="text-danger"
@@ -2897,7 +2900,7 @@ textarea.meta-control,
 
         function initializeEditableHeaders() {
             const tableHeaders = document.querySelectorAll('.item-table th');
-            const storageKey = 'itemTableHeaders';
+            const storageKey = 'itemTableHeaders_' + (window.docType || 'invoice');
             const defaultHeaders = {};
 
             // Build default headers and add editable class
@@ -2932,14 +2935,14 @@ textarea.meta-control,
         }
 
         function saveHeaderToStorage(index, text) {
-            const storageKey = 'itemTableHeaders';
+            const storageKey = 'itemTableHeaders_' + (window.docType || 'invoice');
             let savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
             savedHeaders[index] = text;
             localStorage.setItem(storageKey, JSON.stringify(savedHeaders));
         }
 
         function loadSavedHeaders() {
-            const storageKey = 'itemTableHeaders';
+            const storageKey = 'itemTableHeaders_' + (window.docType || 'invoice');
             const savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
 
             const tableHeaders = document.querySelectorAll('.item-table th.editable-header');
@@ -3965,6 +3968,47 @@ document.addEventListener("DOMContentLoaded", function() {
     const addModal = new bootstrap.Modal(addModalEl);
     const brokerModal = brokerModalEl ? new bootstrap.Modal(brokerModalEl) : null;
 
+   // Live filter party dropdown by name OR phone number
+if (dropdownBtn && dropdownMenu) {
+    let partyNoResultsItem = dropdownMenu.querySelector('.party-no-results');
+    if (!partyNoResultsItem) {
+        partyNoResultsItem = document.createElement('li');
+        partyNoResultsItem.className = 'party-no-results d-none';
+        partyNoResultsItem.innerHTML = '<span class="dropdown-item text-muted">No parties found</span>';
+        dropdownMenu.appendChild(partyNoResultsItem);
+    }
+
+    dropdownBtn.addEventListener('input', function () {
+        const searchText = String(this.value || '').trim().toLowerCase();
+
+        // Auto-open dropdown when user types
+        if (searchText && !dropdownMenu.classList.contains('show')) {
+            const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(dropdownBtn);
+            bsDropdown.show();
+        }
+
+        const options = Array.from(dropdownMenu.querySelectorAll('li > .party-option'));
+        let anyVisible = false;
+
+        options.forEach(option => {
+            const partyName = String(option.dataset.name || '').trim().toLowerCase();
+            const partyPhone = String(option.dataset.phone || '').trim().toLowerCase();
+            const partyPhone2 = String(option.dataset.phoneNumber2 || '').trim().toLowerCase();
+            const shouldShow = !searchText ||
+                partyName.includes(searchText) ||
+                partyPhone.includes(searchText) ||
+                partyPhone2.includes(searchText);
+            const listItem = option.closest('li');
+            if (listItem) listItem.style.display = shouldShow ? '' : 'none';
+            if (shouldShow) anyVisible = true;
+        });
+
+        const header = dropdownMenu.querySelector('.dropdown-header');
+        if (header) header.closest('li').style.display = (anyVisible || !searchText) ? '' : 'none';
+        partyNoResultsItem.classList.toggle('d-none', anyVisible || !searchText);
+    });
+}
+
     const partySearchInput = dropdownBtn;
     if (partySearchInput) {
         partySearchInput.addEventListener('keydown', function (e) {
@@ -4254,7 +4298,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if(e.target.closest(".party-option")) {
             e.preventDefault();
             const option = e.target.closest(".party-option");
-            const name = option.querySelector("span:first-child").textContent;
+           const name = option.dataset.name || option.querySelector(".party-option-name")?.textContent || '';
             let opening = parseFloat(option.dataset.opening) || 0;
             const type = option.dataset.type;
             const id = option.dataset.id;
@@ -4560,7 +4604,7 @@ document.addEventListener('click', function (e) {
     const dropdownBtn = document.querySelector('#partyDropdownBtn.party-search-input');
     if (!dropdownBtn) return;
 
-    const partyName = partyOption.dataset.name || partyOption.querySelector('span:first-child')?.textContent?.trim() || '';
+   const partyName = partyOption.dataset.name || partyOption.querySelector('.party-option-name')?.textContent?.trim() || '';
     if (!partyName) return;
 
     if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {

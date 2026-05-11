@@ -1697,7 +1697,7 @@ textarea.meta-control,
         </li>
           @foreach($parties as $party)
           <li>
-            <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+            <a class="dropdown-item d-flex justify-content-between align-items-start party-option"href="#"
                data-id="{{ $party->id }}"
                data-name="{{ $party->name }}"
                data-phone="{{ $party->phone }}"
@@ -1716,7 +1716,10 @@ textarea.meta-control,
                data-credit-limit-enabled="{{ $party->credit_limit_enabled ?? 0 }}"
                data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
                data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
-                <span>{{ $party->name }}</span>
+               <span class="party-option-main">
+    <span class="party-option-name">{{ $party->name }}</span>
+    <span class="party-option-phone">{{ $party->phone ?: '-' }}</span>
+</span>
                 <span
                   @if($party->transaction_type == 'pay')
                       class="text-danger"
@@ -3965,39 +3968,77 @@ document.addEventListener("DOMContentLoaded", function() {
     const addModal = new bootstrap.Modal(addModalEl);
     const brokerModal = brokerModalEl ? new bootstrap.Modal(brokerModalEl) : null;
 
-    const partySearchInput = dropdownBtn;
-    if (partySearchInput) {
-        partySearchInput.addEventListener('keydown', function (e) {
-            if (e.key !== 'Enter') {
-                return;
-            }
-            e.preventDefault();
-            e.stopPropagation();
-
-            const searchTerm = String(this.value || '').trim();
-            if (!searchTerm) {
-                return;
-            }
-
-            const options = Array.from(dropdownMenu.querySelectorAll('.party-option'));
-            const exactOption = options.find(opt => {
-                const name = String(opt.querySelector('span:first-child')?.textContent || '').trim().toLowerCase();
-                return name === searchTerm.toLowerCase();
-            });
-
-            if (exactOption) {
-                exactOption.click();
-                return;
-            }
-
-            addModal.show();
-            const nameInput = document.getElementById('partyNameInput');
-            if (nameInput) {
-                nameInput.value = searchTerm;
-                nameInput.focus();
-            }
-        });
+   // Live filter by name OR phone
+if (dropdownBtn && dropdownMenu) {
+    let partyNoResultsItem = dropdownMenu.querySelector('.party-no-results');
+    if (!partyNoResultsItem) {
+        partyNoResultsItem = document.createElement('li');
+        partyNoResultsItem.className = 'party-no-results d-none';
+        partyNoResultsItem.innerHTML = '<span class="dropdown-item text-muted">No parties found</span>';
+        dropdownMenu.appendChild(partyNoResultsItem);
     }
+
+    dropdownBtn.addEventListener('input', function () {
+        const searchText = String(this.value || '').trim().toLowerCase();
+
+        if (searchText && !dropdownMenu.classList.contains('show')) {
+            bootstrap.Dropdown.getOrCreateInstance(dropdownBtn).show();
+        }
+
+        const options = Array.from(dropdownMenu.querySelectorAll('li > .party-option'));
+        let anyVisible = false;
+
+        options.forEach(option => {
+            const partyName = String(option.dataset.name || '').trim().toLowerCase();
+            const partyPhone = String(option.dataset.phone || '').trim().toLowerCase();
+            const partyPhone2 = String(option.dataset.phoneNumber2 || '').trim().toLowerCase();
+            const shouldShow = !searchText ||
+                partyName.includes(searchText) ||
+                partyPhone.includes(searchText) ||
+                partyPhone2.includes(searchText);
+            const listItem = option.closest('li');
+            if (listItem) listItem.style.display = shouldShow ? '' : 'none';
+            if (shouldShow) anyVisible = true;
+        });
+
+        const header = dropdownMenu.querySelector('.dropdown-header');
+        if (header) header.closest('li').style.display = (anyVisible || !searchText) ? '' : 'none';
+        partyNoResultsItem.classList.toggle('d-none', anyVisible || !searchText);
+    });
+}
+
+const partySearchInput = dropdownBtn;
+if (partySearchInput) {
+    partySearchInput.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const searchTerm = String(this.value || '').trim();
+        if (!searchTerm) return;
+
+        const options = Array.from(dropdownMenu.querySelectorAll('.party-option'));
+        const exactOption = options.find(opt => {
+            const name = String(opt.dataset.name || opt.querySelector('.party-option-name')?.textContent || '').trim().toLowerCase();
+            const phone = String(opt.dataset.phone || '').trim().toLowerCase();
+            return name === searchTerm.toLowerCase() || phone.includes(searchTerm.toLowerCase());
+        });
+
+        if (exactOption) {
+            exactOption.click();
+            return;
+        }
+
+        addModal.show();
+        const nameInput = document.getElementById('partyNameInput');
+        if (nameInput) {
+            nameInput.value = searchTerm;
+            nameInput.focus();
+        }
+    });
+}
+
+          
 
     if (brokerSearchInput && brokerDropdownMenu) {
         let brokerNoResultsItem = brokerDropdownMenu.querySelector('.broker-no-results');
@@ -4254,7 +4295,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if(e.target.closest(".party-option")) {
             e.preventDefault();
             const option = e.target.closest(".party-option");
-            const name = option.querySelector("span:first-child").textContent;
+          const partyName = partyOption.dataset.name || partyOption.querySelector('.party-option-name')?.textContent?.trim() || '';
             let opening = parseFloat(option.dataset.opening) || 0;
             const type = option.dataset.type;
             const id = option.dataset.id;
