@@ -207,7 +207,7 @@ function initializeForm(context) {
         e.preventDefault();
         const $option = $(this);
         const partyId = $option.data('id') || '';
-        const partyName = $.trim($option.find('span').first().text());
+        const partyName = $.trim($option.data('name') || $option.find('.party-option-name').text() || '');
         const phone = $option.data('phone') || '';
         const billing = $option.data('billing') || '';
 
@@ -231,7 +231,7 @@ function initializeForm(context) {
 
         $partyOptions.each(function() {
             const $this = $(this);
-            const partyName = $.trim($this.find('span').first().text()).toLowerCase();
+            const partyName = $.trim($this.data('name') || $this.find('.party-option-name').text() || '').toLowerCase();
             const partyPhone = $this.data('phone') ? String($this.data('phone')).toLowerCase() : '';
 
             if (searchValue === '' || partyName.includes(searchValue) || partyPhone.includes(searchValue)) {
@@ -257,13 +257,17 @@ function initializeForm(context) {
         // Rebuild party list
         const partiesHtml = (window.parties || []).map(party => `
             <li>
-                <a class="dropdown-item d-flex justify-content-between party-option" href="#"
+                <a class="dropdown-item d-flex justify-content-between align-items-start party-option" href="#"
                    data-id="${party.id}"
+                   data-name="${party.name || ''}"
                    data-phone="${party.phone || ''}"
                    data-billing="${(party.billing_address || '').replace(/"/g, '&quot;')}"
                    data-opening="${party.opening_balance || 0}"
                    data-type="${party.transaction_type || ''}">
-                    <span>${party.name || ''}</span>
+                    <span class="party-option-main">
+                        <span class="party-option-name">${party.name || ''}</span>
+                        <span class="party-option-phone">${party.phone || '-'}</span>
+                    </span>
                     <span class="${party.transaction_type === 'pay' ? 'text-danger' : 'text-success'}">
                         ${party.transaction_type === 'pay' ? '<i class="fa-solid fa-arrow-up me-1"></i>' : '<i class="fa-solid fa-arrow-down me-1"></i>'}
                         ₹${parseFloat(party.opening_balance || 0).toFixed(2)}

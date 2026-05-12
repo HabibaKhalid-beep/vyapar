@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use App\Models\BankAccount;
+use App\Models\Broker;
 use App\Models\Party;
+use App\Models\PartyGroup;
 use App\Models\Sale;
+use App\Models\Warehouse;
+use App\Models\AppSetting;
 use App\Support\TransactionNumberPrefix;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -114,7 +118,7 @@ class PerfomaController extends Controller
     {
         abort_unless($sale->type === 'proforma', 404);
 
-        $sale->load(['items', 'party']);
+        $sale->load(['items', 'party', 'details']);
 
         return $this->renderProformaForm($sale);
     }
@@ -123,7 +127,7 @@ class PerfomaController extends Controller
     {
         abort_unless($sale->type === 'proforma', 404);
 
-        $sale->load(['items', 'party']);
+        $sale->load(['items', 'party', 'details']);
 
         return $this->renderProformaForm(null, $sale);
     }
@@ -136,6 +140,7 @@ class PerfomaController extends Controller
         $uploadedDocumentPaths = $this->storeAttachmentFiles($request->file('documents', []), 'proforma/documents');
 
         $sale = Sale::create($this->buildSalePayload($data, $uploadedImagePaths, $uploadedDocumentPaths));
+        $this->syncDetails($sale, $data);
         $this->syncItems($sale, $data['items']);
 
         return response()->json([
@@ -163,6 +168,7 @@ class PerfomaController extends Controller
             array_values(array_filter(array_merge($existingImagePaths, $uploadedImagePaths))),
             array_values(array_filter(array_merge($existingDocumentPaths, $uploadedDocumentPaths)))
         ));
+        $this->syncDetails($sale, $data);
         $sale->items()->delete();
         $this->syncItems($sale, $data['items']);
 
@@ -215,16 +221,23 @@ class PerfomaController extends Controller
 
     private function renderProformaForm(?Sale $proforma = null, ?Sale $duplicateProforma = null)
     {
-        $items = Item::active()->orderBy('name')->get();
+        $items = Item::active()->with('category')->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
+        $brokers = Broker::orderBy('name')->get();
+        $partyGroups = PartyGroup::orderBy('name')->get();
         $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+        $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
+        $customerPoDetailsEnabled = AppSetting::getValue('customer_po_details_enabled', '0') === '1';
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('proforma_invoice', $nextSaleId);
-
         return view('dashboard.perfoma.create_proforma_invoice', compact(
             'items',
             'parties',
+            'brokers',
+            'partyGroups',
             'bankAccounts',
+            'warehouses',
+            'customerPoDetailsEnabled',
             'nextInvoiceNumber',
             'proforma',
             'duplicateProforma'
@@ -234,11 +247,22 @@ class PerfomaController extends Controller
     private function validateProformaRequest(Request $request): array
     {
         return $request->validate([
+            'type' => 'nullable|in:proforma',
             'party_id' => 'nullable|exists:parties,id',
             'phone' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:1000',
+            'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'required|string|max:100',
             'invoice_date' => 'nullable|date',
+            'order_date' => 'nullable|date',
+            'due_date' => 'nullable|date',
+            'deal_days' => 'nullable|integer|min:0',
+            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'city' => 'nullable|string|max:255',
+            'party_no' => 'nullable|string|max:255',
+            'goods_name' => 'nullable|string|max:255',
+            'details_extra' => 'nullable|string|max:255',
+            'bilti_gari_no' => 'nullable|string|max:255',
             'total_qty' => 'nullable|integer|min:0',
             'total_amount' => 'nullable|numeric|min:0',
             'discount_pct' => 'nullable|numeric|min:0',
@@ -254,6 +278,18 @@ class PerfomaController extends Controller
             'image_paths.*' => 'nullable|string|max:255',
             'document_paths' => 'nullable|array',
             'document_paths.*' => 'nullable|string|max:255',
+            'custom_expenses' => 'nullable|array',
+            'custom_expenses.*.mode' => 'nullable|in:+,-,same,S',
+            'custom_expenses.*.percentage' => 'nullable|numeric|min:0',
+            'custom_expenses.*.pct' => 'nullable|numeric|min:0',
+            'custom_expenses.*.amount' => 'nullable|numeric|min:0',
+            'custom_expenses.*.value' => 'nullable|numeric|min:0',
+            'custom_expenses.*.details' => 'nullable|string',
+            'custom_expenses.*.heading' => 'nullable|string|max:255',
+            'custom_expenses.*.title' => 'nullable|string|max:255',
+            'custom_expenses.*.account_type' => 'nullable|in:party,broker,item',
+            'custom_expenses.*.account_id' => 'nullable|integer|min:1',
+            'custom_expenses.*.account_name' => 'nullable|string|max:255',
             'images' => 'nullable|array',
             'images.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
             'documents' => 'nullable|array',
@@ -263,7 +299,10 @@ class PerfomaController extends Controller
             'items.*.item_category' => 'nullable|string|max:255',
             'items.*.item_code' => 'nullable|string|max:255',
             'items.*.item_description' => 'nullable|string',
+            'items.*.tafseel' => 'nullable|string|max:255',
             'items.*.quantity' => 'nullable|integer|min:0',
+            'items.*.gross_w' => 'nullable|numeric|min:0',
+            'items.*.net_w' => 'nullable|numeric|min:0',
             'items.*.unit' => 'nullable|string|max:50',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.discount' => 'nullable|numeric|min:0',
@@ -278,8 +317,12 @@ class PerfomaController extends Controller
             'party_id' => $data['party_id'] ?? null,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
+            'shipping_address' => $data['shipping_address'] ?? null,
             'bill_number' => $data['bill_number'],
             'invoice_date' => $data['invoice_date'] ?? now()->toDateString(),
+            'order_date' => $data['order_date'] ?? null,
+            'due_date' => $data['due_date'] ?? null,
+            'deal_days' => $data['deal_days'] ?? 0,
             'total_qty' => $data['total_qty'] ?? 0,
             'total_amount' => $data['total_amount'] ?? 0,
             'discount_pct' => $data['discount_pct'] ?? 0,
@@ -299,9 +342,25 @@ class PerfomaController extends Controller
         ];
     }
 
+    private function syncDetails(Sale $sale, array $data): void
+    {
+        $sale->details()->updateOrCreate(
+            ['sale_id' => $sale->id],
+            [
+                'warehouse_id' => $data['warehouse_id'] ?? null,
+                'city' => $data['city'] ?? null,
+                'party_no' => $data['party_no'] ?? null,
+                'goods_name' => $data['goods_name'] ?? null,
+                'details_extra' => $data['details_extra'] ?? null,
+                'bilti_gari_no' => $data['bilti_gari_no'] ?? null,
+                'custom_expenses' => $data['custom_expenses'] ?? null,
+            ]
+        );
+    }
+
     private function normalizeJsonInputs(Request $request): void
     {
-        foreach (['items', 'image_paths', 'document_paths'] as $field) {
+        foreach (['items', 'image_paths', 'document_paths', 'custom_expenses'] as $field) {
             $value = $request->input($field);
             if (! is_string($value)) {
                 continue;
@@ -341,7 +400,10 @@ class PerfomaController extends Controller
                 'item_category' => $item['item_category'] ?? null,
                 'item_code' => $item['item_code'] ?? null,
                 'item_description' => $item['item_description'] ?? null,
+                'tafseel' => $item['tafseel'] ?? null,
                 'quantity' => $item['quantity'] ?? 0,
+                'gross_w' => $item['gross_w'] ?? 0,
+                'net_w' => $item['net_w'] ?? 0,
                 'unit' => $item['unit'] ?? null,
                 'unit_price' => $item['unit_price'] ?? 0,
                 'discount' => $item['discount'] ?? 0,

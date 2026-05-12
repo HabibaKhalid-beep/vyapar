@@ -90,10 +90,24 @@ ul#partyDropdownMenu {
     display: inline-block;
     width: 100%;
 }
-.party-option span:first-child {
-    width: 60%; /* Party name */
+.party-option .party-option-main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 60%;
 }
-.party-option span:last-child {
+.party-option .party-option-name {
+    font-weight: 500;
+}
+.party-option .party-option-phone {
+    font-size: 12px;
+    color: #64748b;
+}
+.party-option > span:first-child {
+    width: 60%;
+}
+.party-option > span:last-child {
     width: 40%; /* Opening balance */
     text-align: right;
 }
@@ -331,6 +345,33 @@ ul#partyDropdownMenu {
 .compact-side-fields {
     justify-content: start;
     padding-top: 2px;
+}
+
+.action-fields-layout.meta-stack-layout {
+    grid-template-columns: minmax(220px, 250px) minmax(0, 360px);
+    gap: 18px;
+}
+
+.action-fields-layout.meta-stack-layout .description-side-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+    margin-left: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0;
+}
+
+.action-fields-layout.meta-stack-layout .party-meta-field {
+    width: 100%;
+}
+
+.action-fields-layout.meta-stack-layout .floating-input-wrapper .meta-control {
+    width: 100%;
+    max-width: none;
+    min-height: 50px;
+    padding: 14px 16px 8px;
 }
 
 .cash-party-selector-group {
@@ -1331,31 +1372,75 @@ textarea.meta-control,
     background: #fbfdff;
 }
 
+.bottom-right .custom-expense-row.no-heading .calc-label {
+    display: none;
+}
+
 .bottom-right .custom-expense-inputs {
     gap: 6px;
     flex-wrap: wrap;
 }
 
-.bottom-right .custom-expense-operator,
-.bottom-right .custom-expense-unit,
+.bottom-right .custom-expense-mode-group {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #d7e0ea;
+    border-radius: 999px;
+    background: #fff;
+    padding: 2px;
+    gap: 2px;
+}
+
+.bottom-right .custom-mode-btn {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #334155;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.bottom-right .custom-mode-btn.is-active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.bottom-right .custom-expense-account-wrap {
+    min-width: 190px;
+}
+
+.bottom-right .custom-expense-account-input,
+.bottom-right .custom-expense-details,
+.bottom-right .custom-expense-pct,
 .bottom-right .custom-expense-value {
-    min-height: 30px;
-    height: 30px;
-    padding: 4px 8px;
+    min-height: 34px;
+    height: 34px;
+    padding: 6px 10px;
     border-radius: 6px;
     border: 1px solid #d7e0ea;
     background: #fff;
-    font-size: 11px;
+    font-size: 12px;
 }
 
-.bottom-right .custom-expense-operator,
-.bottom-right .custom-expense-unit {
-    width: 54px;
+.bottom-right .custom-expense-pct {
+    width: 70px;
+    text-align: right;
+}
+
+.bottom-right .custom-expense-details {
+    width: 140px;
 }
 
 .bottom-right .custom-expense-value {
-    width: 80px;
+    width: 100px;
     text-align: right;
+}
+
+.bottom-right .custom-expense-unit-dash {
+    color: #64748b;
+    font-weight: 700;
 }
 
 .bottom-right .remove-custom-expense-row {
@@ -1638,7 +1723,7 @@ textarea.meta-control,
             <!-- Browser Toolbar / Heading Area -->
             <div class="browser-toolbar d-flex align-items-center px-3">
                <p class="mt-3 ms-3 mb-0 me-3 mb-2">Sale Order | </p>
-                
+
                 <div class="toolbar-spacer"></div>
                 <div class="toolbar-warehouse-block">
                     <p class="toolbar-warehouse-label">Warehouse</p>
@@ -1782,7 +1867,7 @@ textarea.meta-control,
                                                 <label>Delivery Person</label>
                                             </div>
                                         </div>
-                                     
+
                                     </div>
                                     <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
                                         <div class="party-meta-field header-mini-field">
@@ -1848,10 +1933,9 @@ textarea.meta-control,
                                         <th>TADAAT</th>
                                         <th>GROSS W</th>
                                         <th>NET W</th>
-                                        <th>WEIGHT</th>
-                                        <th>RATE</th>
                                         <th class="custom-size-th">UNIT</th>
-                                        <th>PRICE UNIT</th>
+                                        <th>RATE</th>
+                                        <th>AMOUNT</th>
                                         <th class="col-category d-none">CATEGORY</th>
                                         <th class="col-item-code d-none">ITEM CODE</th>
                                         <th class="col-description d-none">DESCRIPTION</th>
@@ -1928,8 +2012,6 @@ textarea.meta-control,
                                         <td><input type="number" class="item-qty tadaat-input" value="1"></td>
                                         <td><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
                                         <td><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
-                                        <td><input type="number" class="item-bag_weight" readonly></td>
-                                        <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
                                         <td class="custom-size-td">
                                             <select class="item-unit">
                                                 <option value="">Select Unit</option>
@@ -1949,7 +2031,8 @@ textarea.meta-control,
                                                 <option value="ML">Milliliter</option>
                                             </select>
                                         </td>
-                                        <td><input type="number" class="item-price-unit" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="item-amount" value="0" min="0" step="0.01" readonly></td>
                                         <td class="col-category d-none">
                                             <select class="item-category">
                                                 <option value="">Select Category</option>
@@ -1966,24 +2049,41 @@ textarea.meta-control,
                                                 <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
                                             </div>
                                         </td>
-                                        <td class="d-none"><input type="number" class="item-amount" value="0"></td>
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
+                                <tfoot>
+                                    <tr class="item-totals-row">
+                                        <td colspan="2" class="tfoot-add-row-cell">
+                                            <button type="button" class="btn-add-row add-row-btn" style="margin-left:40px;">ADD ROW</button>
+                                        </td>
+                                        <td></td>
+                                        <td>
+                                            <span class="column-total-label">Total Tadaat</span>
+                                            <span class="column-total-value total-qty">0</span>
+                                        </td>
+                                        <td>
+                                            <span class="column-total-label">Total Gross W</span>
+                                            <span class="column-total-value total-gross-w">0.00</span>
+                                        </td>
+                                        <td>
+                                            <span class="column-total-label">Total Net W</span>
+                                            <span class="column-total-value total-net-w">0.00</span>
+                                        </td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>
+                                            <span class="column-total-label">Total</span>
+                                            <span class="column-total-value total-base-amount">0.00</span>
+                                        </td>
+                                        <td class="col-category d-none"></td>
+                                        <td class="col-item-code d-none"></td>
+                                        <td class="col-description d-none"></td>
+                                        <td class="col-discount d-none"></td>
+                                        <td class="add-col"></td>
+                                    </tr>
+                                </tfoot>
                             </table>
-                            <div class="table-footer">
-                                <button type="button" class="btn-add-row add-row-btn">ADD ROW</button>
-                                <div class="footer-totals">
-                                    <div>
-                                        <span class="total-label">TOTAL QTY</span>
-                                        <span class="total-qty">0</span>
-                                    </div>
-                                    <div>
-                                        <span class="total-label">TOTAL AMOUNT</span>
-                                        <span class="total-base-amount">0</span>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Bottom Split Section -->
@@ -1999,13 +2099,14 @@ textarea.meta-control,
                                         <select class="input-control default-payment-type">
                                             <option value="">Select Payment Type</option>
                                             <option value="cash" selected>Cash</option>
+                                            <option value="cheques">Cheques</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
                                             <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
-                                        <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
+                                        <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
                                     </div>
 
                                     <div class="payment-entries">
@@ -2029,13 +2130,14 @@ textarea.meta-control,
                                          <select class="input-control payment-type-entry">
                                               <option value="">Select Bank Account</option>
                                               <option value="cash" selected>Cash</option>
+                                              <option value="cheques">Cheques</option>
                                               @foreach($bankAccounts as $bank)
                                                   <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                               @endforeach
                                               <option value="add_new_bank">+ Add Bank Account</option>
                                           </select>
-                                        <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control payment-reference" placeholder="Reference">
+                                        <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
                                         <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
@@ -2044,7 +2146,7 @@ textarea.meta-control,
 
 <div class="d-flex flex-column align-items-start w-100">
 
-                                <div class="action-fields-layout w-100">
+                                <div class="action-fields-layout meta-stack-layout w-100">
                                     <div class="action-buttons-column">
                                         <div class="description-action-group mb-2 w-100">
                                             <button type="button" class="btn-action-light action-btn add-description">
@@ -2074,19 +2176,7 @@ textarea.meta-control,
                                         </div>
                                     </div>
 
-                                    <div class="description-side-fields compact-side-fields" style="margin-left:110px; margin-top:10px;">
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="party_no" class="meta-control party-no-input" placeholder=" ">
-                                                <label>Party/Broker</label>
-                                            </div>
-                                        </div>
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="city" class="meta-control city-input" placeholder=" ">
-                                                <label>City</label>
-                                            </div>
-                                        </div>
+                                    <div class="description-side-fields compact-side-fields">
                                         <div class="party-meta-field">
                                             <div class="floating-input-wrapper">
                                                 <input type="text" name="goods_name" class="meta-control goods-name-input" placeholder=" ">
@@ -2125,7 +2215,7 @@ textarea.meta-control,
 
                             <!-- Right Column -->
                             <div class="bottom-right">
-                                <div class="calc-row broker-calc-row">
+                                <div class="calc-row broker-calc-row d-none legacy-broker-calc-row">
                                     <div class="calc-label">Broker</div>
                                     <div class="calc-inputs broker-calc-inputs">
                                         <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 260px; max-width: 100%;">
@@ -2196,7 +2286,7 @@ textarea.meta-control,
                                 </div>
 
                                 <!-- Summary Expense Grid -->
-                     
+
 
                                 <div class="custom-expense-section">
                                     <div class="custom-expense-rows"></div>
@@ -2243,15 +2333,23 @@ textarea.meta-control,
                                         <span class="editable-expense-label custom-expense-heading" contenteditable="true" spellcheck="false">New Row</span>
                                     </div>
                                     <div class="calc-inputs custom-expense-inputs">
-                                        <select class="mini-input custom-expense-operator">
-                                            <option value="+">+</option>
-                                            <option value="-">-</option>
-                                        </select>
-                                        <select class="mini-input custom-expense-unit">
-                                            <option value="rs">Rs</option>
-                                            <option value="pct">%</option>
-                                        </select>
-                                        <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="0">
+                                        <div class="custom-expense-mode-group" role="group" aria-label="Adjustment mode">
+                                            <button type="button" class="custom-mode-btn" data-mode="-">-</button>
+                                            <button type="button" class="custom-mode-btn is-active" data-mode="+">+</button>
+                                            <button type="button" class="custom-mode-btn" data-mode="S">S</button>
+                                        </div>
+                                        <div class="broker-dropdown-wrapper dropdown custom-expense-account-wrap" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 190px; max-width: 100%;">
+                                            <input type="text" class="form-control custom-expense-account-input w-100" placeholder="Party / Broker / Item" data-bs-toggle="dropdown" autocomplete="off">
+                                            <ul class="dropdown-menu w-100 ledger-account-menu"></ul>
+                                        </div>
+                                        <input type="text" class="mini-input custom-expense-details" value="" placeholder="Tafseel">
+                                        <input type="number" class="mini-input custom-expense-pct" value="" min="0" step="0.01" placeholder="%">
+                                        <span class="custom-expense-unit-dash">-</span>
+                                        <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="Amt">
+                                        <input type="hidden" class="custom-expense-mode" value="+">
+                                        <input type="hidden" class="custom-expense-account-type" value="">
+                                        <input type="hidden" class="custom-expense-account-id" value="">
+                                        <input type="hidden" class="custom-expense-account-phone" value="">
                                         <button type="button" class="remove-custom-expense-row" title="Remove">
                                             <i class="fa-solid fa-xmark"></i>
                                         </button>
@@ -3825,7 +3923,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     const optionHtml = `
                       <li>
-                        <a class="dropdown-item d-flex justify-content-between party-option"
+                        <a class="dropdown-item d-flex justify-content-between align-items-start party-option"
                            href="#"
                            data-id="${partyRecord.id}"
                            data-name="${partyRecord.name}"
@@ -3845,7 +3943,10 @@ document.addEventListener("DOMContentLoaded", function () {
                            data-credit-limit-enabled="${partyRecord.credit_limit_enabled || 0}"
                            data-credit-limit-amount="${partyRecord.credit_limit_amount || ''}"
                            data-custom-fields="${String(JSON.stringify(partyRecord.custom_fields || [])).replace(/"/g, '&quot;')}">
-                            <span>${partyRecord.name}</span>
+                            <span class="party-option-main">
+                                <span class="party-option-name">${partyRecord.name}</span>
+                                <span class="party-option-phone">${partyRecord.phone || '-'}</span>
+                            </span>
                             <span class="text-success">0</span>
                         </a>
                       </li>
@@ -3874,12 +3975,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     balanceDisplay.className = partyRecord.transaction_type === 'pay' ? 'text-danger small' : 'text-success small';
                 }
 
-                document.querySelector(".phone-input").value = partyRecord.phone || "";
-                document.querySelector(".city-input").value = partyRecord.city || "";
-                document.querySelector(".ptcl-input").value = partyRecord.ptcl_number || "";
-                document.querySelector(".address-input").value = partyRecord.address || "";
-                document.querySelector(".billing-address").value = partyRecord.billing_address || "";
-                document.querySelector(".shipping-address").value = partyRecord.shipping_address || "";
+                const phoneInput = document.querySelector(".phone-input");
+                const cityInput = document.querySelector(".city-input");
+                const ptclInput = document.querySelector(".ptcl-input");
+                const addressInput = document.querySelector(".address-input");
+                const billingAddressInput = document.querySelector(".billing-address");
+                const shippingAddressInput = document.querySelector(".shipping-address");
+
+                if (phoneInput) phoneInput.value = partyRecord.phone || "";
+                if (cityInput) cityInput.value = partyRecord.city || "";
+                if (ptclInput) ptclInput.value = partyRecord.ptcl_number || "";
+                if (addressInput) addressInput.value = partyRecord.address || "";
+                if (billingAddressInput) billingAddressInput.value = partyRecord.billing_address || "";
+                if (shippingAddressInput) shippingAddressInput.value = partyRecord.shipping_address || "";
                 applyPartyDueDays(partyRecord);
             }
 
@@ -4038,7 +4146,7 @@ if (partySearchInput) {
     });
 }
 
-          
+
 
     if (brokerSearchInput && brokerDropdownMenu) {
         let brokerNoResultsItem = brokerDropdownMenu.querySelector('.broker-no-results');
@@ -4295,7 +4403,7 @@ if (partySearchInput) {
         if(e.target.closest(".party-option")) {
             e.preventDefault();
             const option = e.target.closest(".party-option");
-          const partyName = partyOption.dataset.name || partyOption.querySelector('.party-option-name')?.textContent?.trim() || '';
+            const partyName = option.dataset.name || option.querySelector('.party-option-name')?.textContent?.trim() || '';
             let opening = parseFloat(option.dataset.opening) || 0;
             const type = option.dataset.type;
             const id = option.dataset.id;
@@ -4311,7 +4419,7 @@ if (partySearchInput) {
             };
 
             // Button pe sirf party name
-            dropdownBtn.value = name;
+            dropdownBtn.value = partyName;
 
             // Show balance below button with color
           if(type === "pay"){
@@ -4376,13 +4484,21 @@ else {
         dropdownBtn?.focus();
     });
 
+    window.openBrokerModalForm = function () {
+        brokerForm?.reset();
+        const brokerStatusField = document.getElementById('brokerStatus');
+        if (brokerStatusField) brokerStatusField.checked = true;
+        const remainingField = document.getElementById('brokerRemainingBrokerage');
+        if (remainingField) remainingField.value = '0.00';
+        if (brokerModal) {
+            brokerModal.show();
+        }
+    };
+
     brokerDropdownMenu?.addEventListener("click", function(e) {
         if (e.target.closest("#addNewBrokerBtn")) {
             e.preventDefault();
-            brokerForm?.reset();
-            if (brokerModal) {
-                brokerModal.show();
-            }
+            window.openBrokerModalForm();
             return;
         }
 
