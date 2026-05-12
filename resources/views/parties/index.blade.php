@@ -676,6 +676,10 @@
     <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
     <label class="form-check-label" for="supplierParty">Supplier</label>
   </div>
+  <div class="form-check">
+    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="brokerParty" value="broker">
+    <label class="form-check-label" for="brokerParty">Broker</label>
+  </div>
 </div>
 
             <!-- Additional Fields Tab -->
