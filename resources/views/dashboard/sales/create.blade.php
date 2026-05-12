@@ -349,6 +349,33 @@ ul#partyDropdownMenu {
     padding-top: 2px;
 }
 
+.action-fields-layout.meta-stack-layout {
+    grid-template-columns: minmax(220px, 250px) minmax(0, 360px);
+    gap: 18px;
+}
+
+.action-fields-layout.meta-stack-layout .description-side-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+    margin-left: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0;
+}
+
+.action-fields-layout.meta-stack-layout .party-meta-field {
+    width: 100%;
+}
+
+.action-fields-layout.meta-stack-layout .floating-input-wrapper .meta-control {
+    width: 100%;
+    max-width: none;
+    min-height: 50px;
+    padding: 14px 16px 8px;
+}
+
 .cash-party-selector-group {
     grid-column: 1;
     grid-row: 1;
@@ -2199,7 +2226,7 @@ textarea.meta-control,
 
 <div class="d-flex flex-column align-items-start w-100">
 
-                                <div class="action-fields-layout w-100">
+                                <div class="action-fields-layout meta-stack-layout w-100">
                                     <div class="action-buttons-column">
                                         <div class="description-action-group mb-2 w-100">
                                             <button type="button" class="btn-action-light action-btn add-description">
@@ -2229,19 +2256,7 @@ textarea.meta-control,
                                         </div>
                                     </div>
 
-                                    <div class="description-side-fields compact-side-fields" style="margin-left:110px; margin-top:10px;">
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="party_no" class="meta-control party-no-input" placeholder=" ">
-                                                <label>Party/Broker</label>
-                                            </div>
-                                        </div>
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="city" class="meta-control city-input" placeholder=" ">
-                                                <label>City</label>
-                                            </div>
-                                        </div>
+                                    <div class="description-side-fields compact-side-fields">
                                         <div class="party-meta-field">
                                             <div class="floating-input-wrapper">
                                                 <input type="text" name="goods_name" class="meta-control goods-name-input" placeholder=" ">
@@ -2692,8 +2707,8 @@ textarea.meta-control,
         unitsStore: "{{ url('dashboard/items/units') }}"
     };
 
-    window.saleStoreUrl = "{{ route('sale.store') }}";
-    window.saleMethod = 'POST';
+    window.saleStoreUrl = @json($formStoreUrl ?? route('sale.store'));
+    window.saleMethod = @json($formStoreMethod ?? 'POST');
 
     // Default values
     window.editSaleData = null;
@@ -2703,9 +2718,11 @@ textarea.meta-control,
     window.sourceProformaId = null;
 
     // Optional doc type (avoid JS error)
-   window.docType = "invoice";
+   window.docType = @json($initialDocType ?? 'invoice');
 
-    @if(isset($sale))
+    @if(isset($editSaleData))
+        window.editSaleData = @json($editSaleData);
+    @elseif(isset($sale))
         // Edit mode
         window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
         window.saleMethod = 'PUT';
@@ -3305,12 +3322,16 @@ textarea.meta-control,
                   <label class="form-check-label" for="customerParty">Customer</label>
                 </div>
 
-                <div class="form-check">
-                  <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
-                  <label class="form-check-label" for="supplierParty">Supplier</label>
+                  <div class="form-check">
+                    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="supplierParty" value="supplier">
+                    <label class="form-check-label" for="supplierParty">Supplier</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input party-type-checkbox" type="checkbox" name="party_type[]" id="brokerParty" value="broker">
+                    <label class="form-check-label" for="brokerParty">Broker</label>
+                  </div>
                 </div>
               </div>
-            </div>
           </div>
 
             <!-- Additional Fields Tab -->

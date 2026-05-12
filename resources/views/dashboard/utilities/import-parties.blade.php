@@ -693,7 +693,7 @@
             errors.push('Opening date format is invalid.');
           }
 
-          if (partyType && !['customer', 'supplier', 'both'].includes(partyType)) {
+          if (partyType && !['customer', 'supplier', 'broker', 'both'].includes(partyType)) {
             errors.push('Party type must be customer, supplier, or both.');
           }
 
@@ -786,6 +786,7 @@
                 { value: '', label: 'Select' },
                 { value: 'customer', label: 'customer' },
                 { value: 'supplier', label: 'supplier' },
+                { value: 'broker', label: 'broker' },
                 { value: 'both', label: 'both' }
               ])}</td>
               <td>${toSelect(row.data.transaction_type, rowIndex, 'transaction_type', [
@@ -813,6 +814,7 @@
                 { value: '', label: 'Select' },
                 { value: 'customer', label: 'customer' },
                 { value: 'supplier', label: 'supplier' },
+                { value: 'broker', label: 'broker' },
                 { value: 'both', label: 'both' }
               ])}</td>
               <td>${toSelect(row.data.transaction_type, rowIndex, 'transaction_type', [

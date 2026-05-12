@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Broker;
+use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +15,13 @@ class BrokerController extends Controller
     {
         $brokers = Broker::latest()->get();
 
+        $salesTypes = Sale::query()
+            ->whereNotNull('type')
+            ->distinct()
+            ->pluck('type')
+            ->filter()
+            ->values();
+
         $metrics = [
             'total_brokers' => $brokers->count(),
             'active_brokers' => $brokers->where('status', true)->count(),
@@ -23,7 +31,7 @@ class BrokerController extends Controller
             }),
         ];
 
-        return view('brokers.index', compact('brokers', 'metrics'));
+        return view('brokers.index', compact('brokers', 'metrics', 'salesTypes'));
     }
 
     public function store(Request $request): RedirectResponse|JsonResponse
@@ -62,6 +70,49 @@ class BrokerController extends Controller
         return redirect()
             ->route('brokers.index')
             ->with('success', 'Broker deleted successfully.');
+    }
+
+    public function history(Request $request, Broker $broker): JsonResponse
+    {
+        $query = $broker->sales()->with('party');
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        if ($request->filled('from')) {
+            $query->whereDate('invoice_date', '>=', $request->input('from'));
+        }
+
+        if ($request->filled('to')) {
+            $query->whereDate('invoice_date', '<=', $request->input('to'));
+        }
+
+        if ($request->filled('brokerage')) {
+            if ($request->input('brokerage') === 'yes') {
+                $query->where('broker_amount', '>', 0);
+            } elseif ($request->input('brokerage') === 'no') {
+                $query->where('broker_amount', '=', 0);
+            }
+        }
+
+        $sales = $query->latest('invoice_date')->limit(100)->get()->map(function (Sale $sale) {
+            return [
+                'id' => $sale->id,
+                'type' => $sale->type,
+                'bill_number' => $sale->bill_number,
+                'reference_bill_number' => $sale->reference_bill_number,
+                'invoice_date' => optional($sale->invoice_date)->format('Y-m-d'),
+                'party_name' => $sale->party?->name ?? '-',
+                'total_amount' => (float) $sale->total_amount,
+                'brokerage_type' => $sale->brokerage_type,
+                'brokerage_rate' => (float) $sale->brokerage_rate,
+                'broker_amount' => (float) $sale->broker_amount,
+                'status' => $sale->status,
+            ];
+        });
+
+        return response()->json(['sales' => $sales]);
     }
 
     private function validateBroker(Request $request): array

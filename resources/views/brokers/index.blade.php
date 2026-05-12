@@ -190,6 +190,63 @@
         </div>
       </div>
 
+      <div class="broker-history-panel">
+        <div class="broker-history-toolbar">
+          <div class="broker-history-filter">
+            <label class="form-label">Sale Type</label>
+            <select id="brokerSaleTypeFilter" class="form-select">
+              <option value="">All</option>
+              @foreach($salesTypes as $type)
+                <option value="{{ $type }}">{{ ucwords(str_replace(['_', '-'], [' ', ' '], $type)) }}</option>
+              @endforeach
+            </select>
+          </div>
+
+          <div class="broker-history-filter">
+            <label class="form-label">From</label>
+            <input type="date" id="brokerFromFilter" class="form-control">
+          </div>
+
+          <div class="broker-history-filter">
+            <label class="form-label">To</label>
+            <input type="date" id="brokerToFilter" class="form-control">
+          </div>
+
+          <div class="broker-history-filter">
+            <label class="form-label">Brokerage</label>
+            <select id="brokerBrokerageFilter" class="form-select">
+              <option value="">All</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="broker-history-meta" id="brokerHistoryInfo">Select a broker to view transaction history.</div>
+
+        <div class="broker-history-table-container">
+          <table class="broker-history-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Bill #</th>
+                <th>Party</th>
+                <th>Total</th>
+                <th>Broker Amount</th>
+                <th>Brokerage Type</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="brokerHistoryBody">
+              <tr class="empty-row">
+                <td colspan="8">Select a broker to view transaction history.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div style="margin-top: 20px;">
         <label class="form-label" style="font-size: 13px; color: #6b7280;">Notes</label>
         <div id="brokerNotesSummary" style="padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb; color: #6b7280; font-size: 13px;">
@@ -392,6 +449,12 @@
     const brokerModalLabel = document.getElementById('addBrokerModalLabel');
     const brokerId = document.getElementById('brokerId');
     const brokerFormMethod = document.getElementById('brokerFormMethod');
+    const brokerSaleTypeFilter = document.getElementById('brokerSaleTypeFilter');
+    const brokerFromFilter = document.getElementById('brokerFromFilter');
+    const brokerToFilter = document.getElementById('brokerToFilter');
+    const brokerBrokerageFilter = document.getElementById('brokerBrokerageFilter');
+    const brokerHistoryBody = document.getElementById('brokerHistoryBody');
+    const brokerHistoryInfo = document.getElementById('brokerHistoryInfo');
 
     const fields = {
       name: document.getElementById('brokerNameInput'),
@@ -453,6 +516,100 @@
       editBrokerBtn.style.display = 'block';
     };
 
+    const getBrokerHistoryFilters = () => {
+      return {
+        type: brokerSaleTypeFilter?.value || '',
+        from: brokerFromFilter?.value || '',
+        to: brokerToFilter?.value || '',
+        brokerage: brokerBrokerageFilter?.value || '',
+      };
+    };
+
+    const renderBrokerHistory = (sales) => {
+      brokerHistoryBody.innerHTML = '';
+
+      if (!sales || sales.length === 0) {
+        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="8">No matching transactions found.</td></tr>';
+        brokerHistoryInfo.textContent = 'No transactions match the selected filters.';
+        return;
+      }
+
+      sales.forEach((sale) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${sale.invoice_date || '-'}</td>
+          <td>${sale.type || '-'}</td>
+          <td>${sale.bill_number || '-'}</td>
+          <td>${sale.party_name || '-'}</td>
+          <td>Rs ${Number(sale.total_amount || 0).toFixed(2)}</td>
+          <td>Rs ${Number(sale.broker_amount || 0).toFixed(2)}</td>
+          <td>${sale.brokerage_type || '-'}</td>
+          <td>${sale.status || '-'}</td>
+        `;
+        brokerHistoryBody.appendChild(row);
+      });
+
+      brokerHistoryInfo.textContent = `${sales.length} transaction${sales.length === 1 ? '' : 's'} shown.`;
+    };
+
+    const loadBrokerHistory = async (brokerId) => {
+      if (!brokerId) {
+        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="8">Select a broker to view transaction history.</td></tr>';
+        brokerHistoryInfo.textContent = 'Select a broker to view transaction history.';
+        return;
+      }
+
+      brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="8">Loading transaction history...</td></tr>';
+      brokerHistoryInfo.textContent = 'Loading transaction history...';
+
+      const params = new URLSearchParams(getBrokerHistoryFilters());
+      const url = `/dashboard/brokers/${brokerId}/history?${params.toString()}`;
+
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Unable to load broker history.');
+        }
+
+        const data = await response.json();
+        renderBrokerHistory(data.sales || []);
+      } catch (error) {
+        console.error(error);
+        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="8">Unable to load history.</td></tr>';
+        brokerHistoryInfo.textContent = 'Unable to load history.';
+      }
+    };
+
+    const updateBrokerHistory = () => {
+      if (!selectedBrokerElement) return;
+      loadBrokerHistory(selectedBrokerElement.dataset.id);
+    };
+
+    [brokerSaleTypeFilter, brokerFromFilter, brokerToFilter, brokerBrokerageFilter].forEach((filter) => {
+      filter?.addEventListener('change', updateBrokerHistory);
+    });
+
+    // Handle broker item click - display details
+    brokersList.addEventListener('click', (e) => {
+      const brokerItem = e.target.closest('.broker-item');
+      if (brokerItem) {
+        // Remove active class from previous
+        document.querySelectorAll('.broker-item.active').forEach(el => el.classList.remove('active'));
+        brokerItem.classList.add('active');
+        selectedBrokerElement = brokerItem;
+        displayBrokerDetails(brokerItem);
+        loadBrokerHistory(brokerItem.dataset.id);
+      }
+    });
+
+    // Initialize history state
+    loadBrokerHistory(null);
+
     // Reset form for create
     const resetFormForCreate = () => {
       brokerForm.action = "{{ route('brokers.store') }}";
@@ -469,18 +626,6 @@
       document.getElementById('btnDeleteBroker').style.display = 'none';
       updateRemainingPreview();
     };
-
-    // Handle broker item click - display details
-    brokersList.addEventListener('click', (e) => {
-      const brokerItem = e.target.closest('.broker-item');
-      if (brokerItem) {
-        // Remove active class from previous
-        document.querySelectorAll('.broker-item.active').forEach(el => el.classList.remove('active'));
-        brokerItem.classList.add('active');
-        selectedBrokerElement = brokerItem;
-        displayBrokerDetails(brokerItem);
-      }
-    });
 
     // Handle edit button
     editBrokerBtn.addEventListener('click', () => {

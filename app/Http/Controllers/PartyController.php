@@ -60,7 +60,7 @@ class PartyController extends Controller
             'custom_fields' => 'nullable|array',
             'transaction_type' => 'nullable|in:receive,pay',
             'party_type' => 'nullable|array',
-            'party_type.*' => 'in:customer,supplier',
+            'party_type.*' => 'in:customer,supplier,broker',
             'party_group' => 'nullable|string|max:100',
         ]);
         $data['party_type'] = $this->normalizePartyType($data['party_type'] ?? []);
@@ -528,7 +528,7 @@ class PartyController extends Controller
 
         $types = preg_split('/[;,|]+/', strtolower(trim($value)));
         $types = array_filter(array_map('trim', $types));
-        $allowed = ['customer', 'supplier'];
+        $allowed = ['customer', 'supplier', 'broker'];
         $normalized = array_values(array_unique(array_filter($types, fn ($type) => in_array($type, $allowed, true))));
 
         return $normalized ? implode(',', $normalized) : null;
@@ -586,7 +586,7 @@ public function update(Request $request, $id)
         'custom_fields' => 'sometimes|nullable|array',
         'transaction_type' => 'sometimes|nullable|in:receive,pay',
         'party_type' => 'sometimes|nullable|array',
-        'party_type.*' => 'in:customer,supplier',
+        'party_type.*' => 'in:customer,supplier,broker',
         'party_group' => 'sometimes|nullable|string|max:100',
     ]);
     if (array_key_exists('party_type', $data)) {
@@ -703,7 +703,7 @@ public function update(Request $request, $id)
 
     private function normalizePartyType(array $partyTypes): ?string
     {
-        $allowedTypes = ['customer', 'supplier'];
+        $allowedTypes = ['customer', 'supplier', 'broker'];
 
         $normalizedTypes = collect($partyTypes)
             ->filter(fn ($type) => in_array($type, $allowedTypes, true))

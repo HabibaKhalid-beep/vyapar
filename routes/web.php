@@ -420,6 +420,7 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
  Route::get('/parties/create', [PartyController::class, 'create'])->name('parties.create');
     // Brokers
     Route::get('/brokers', [BrokerController::class, 'index'])->name('brokers.index');
+    Route::get('/brokers/{broker}/history', [BrokerController::class, 'history'])->name('brokers.history');
     Route::post('/brokers', [BrokerController::class, 'store'])->name('brokers.store');
     Route::put('/brokers/{broker}', [BrokerController::class, 'update'])->name('brokers.update');
     Route::delete('/brokers/{broker}', [BrokerController::class, 'destroy'])->name('brokers.destroy');

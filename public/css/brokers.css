@@ -524,6 +524,67 @@
   color: #111827;
 }
 
+.broker-history-panel {
+  margin-top: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.broker-history-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.broker-history-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.broker-history-meta {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.broker-history-table-container {
+  overflow-x: auto;
+}
+
+.broker-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.broker-history-table th,
+.broker-history-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  color: #374151;
+  text-align: left;
+}
+
+.broker-history-table th {
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.broker-history-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.broker-history-table .empty-row td {
+  text-align: center;
+  color: #6b7280;
+  padding: 20px 10px;
+}
+
 /* Settings drawer */
 .broker-settings-drawer {
   position: fixed;

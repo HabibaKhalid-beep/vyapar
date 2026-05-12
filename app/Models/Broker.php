@@ -41,6 +41,11 @@ class Broker extends Model
         return max(0, (float) ($this->total_brokerage ?? 0) - (float) ($this->paid_brokerage ?? 0));
     }
 
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
     public function invoices()
     {
         return $this->hasMany(Invoice::class);

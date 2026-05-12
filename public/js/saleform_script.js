@@ -847,10 +847,10 @@ function initializeForm(context) {
 
     function buildLedgerAccountActionMarkup() {
         return `
-            <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item text-primary ledger-account-action" href="#" data-action="party">+ Add New Party</a></li>
             <li><a class="dropdown-item text-primary ledger-account-action" href="#" data-action="broker">+ Add New Broker</a></li>
             <li><a class="dropdown-item text-primary ledger-account-action" href="#" data-action="item">+ Add New Item</a></li>
+            <li><hr class="dropdown-divider"></li>
         `;
     }
 
@@ -886,7 +886,7 @@ function initializeForm(context) {
         }).filter(Boolean).join('');
 
         const body = html || '<li class="px-3 py-2 text-muted small">No account found</li>';
-        $menu.html(body + buildLedgerAccountActionMarkup());
+        $menu.html(buildLedgerAccountActionMarkup() + body);
     }
 
     function refreshLedgerAccountMenus() {
@@ -2395,8 +2395,12 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
         });
 
         return {
+
             type: $ctx.find('.doc-type').val() || 'invoice',
             
+
+            type: window.docType || $ctx.find('.doc-type').val() || 'invoice',
+
             source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
             source_sale_order_id: window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null,
             source_challan_id: window.sourceChallanId || window.editSaleData?.source_challan_id || null,
@@ -2937,7 +2941,14 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
         }
 
         if (action === 'broker') {
-            openBrokerModalForm();
+            if (typeof window.openBrokerModalForm === 'function') {
+                window.openBrokerModalForm();
+            } else {
+                const brokerModalEl = document.getElementById('brokerModal');
+                if (brokerModalEl) {
+                    bootstrap.Modal.getOrCreateInstance(brokerModalEl).show();
+                }
+            }
             return;
         }
 
