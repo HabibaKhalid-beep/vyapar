@@ -180,21 +180,12 @@ class TabManager {
         if (isFormTab && typeof initializeForm === 'function') {
             initializeForm(paneEl);
 
-          const billInput = paneEl.querySelector('.bill-number');
+         const billInput = paneEl.querySelector('.bill-number');
 if (billInput && window.nextInvoiceNumber) {
     const base = String(window.nextInvoiceNumber).trim();
     const match = base.match(/^(.*?)(\d+)$/);
     if (match) {
-        const docPrefixes = {
-            estimate: 'EST-',
-            invoice: 'INV-',
-            sale_order: 'SO-',
-            delivery_challan: 'DC-',
-            proforma: 'PRO-',
-            sale_return: 'SR-',
-        };
-        const docKey = (window.docType || '').toLowerCase();
-        const prefix = docPrefixes[docKey] || match[1];
+        const prefix = match[1]; // keep original prefix e.g. "CN-"
         const num = parseInt(match[2], 10);
         const tabOffset = this.tabs.length - 1;
         billInput.value = prefix + (num + tabOffset);

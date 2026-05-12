@@ -252,30 +252,34 @@ class SaleReturnController extends Controller
         ]);
     }
 
-    private function renderSaleReturnForm(
-        ?Sale $saleReturn = null,
-        ?Sale $duplicateSaleReturn = null,
-        ?Sale $sourceSale = null,
-        ?array $prefilledSaleReturnData = null
-    )
-    {
-        $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
-        $items = Item::active()->orderBy('name')->get();
-        $parties = Party::orderBy('name')->get();
-        $nextSaleId = (Sale::max('id') ?? 0) + 1;
-        $nextInvoiceNumber = TransactionNumberPrefix::format('credit_note', $nextSaleId);
+   private function renderSaleReturnForm(
+    ?Sale $saleReturn = null,
+    ?Sale $duplicateSaleReturn = null,
+    ?Sale $sourceSale = null,
+    ?array $prefilledSaleReturnData = null
+)
+{
+    $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
+    $items = Item::active()->orderBy('name')->get();
+    $parties = Party::orderBy('name')->get();
+    $brokers = Party::where('party_type', 'broker')->orderBy('name')->get();
+    $partyGroups = \App\Models\PartyGroup::orderBy('name')->get();
+    $nextSaleId = (Sale::max('id') ?? 0) + 1;
+    $nextInvoiceNumber = TransactionNumberPrefix::format('credit_note', $nextSaleId);
 
-        return view('dashboard.sales.create-sale-return', compact(
-            'bankAccounts',
-            'items',
-            'parties',
-            'nextInvoiceNumber',
-            'saleReturn',
-            'duplicateSaleReturn',
-            'sourceSale',
-            'prefilledSaleReturnData'
-        ));
-    }
+    return view('dashboard.sales.create-sale-return', compact(
+        'bankAccounts',
+        'items',
+        'parties',
+        'brokers',
+        'partyGroups',
+        'nextInvoiceNumber',
+        'saleReturn',
+        'duplicateSaleReturn',
+        'sourceSale',
+        'prefilledSaleReturnData'
+    ));
+}
 
     private function validateSaleReturnRequest(Request $request): array
     {
@@ -466,4 +470,12 @@ class SaleReturnController extends Controller
             return now()->format('d/m/Y');
         }
     }
+    public function nextInvoiceNumber()
+{
+    $nextSaleId = (Sale::max('id') ?? 0) + 1;
+    return response()->json([
+        'number' => TransactionNumberPrefix::format('credit_note', $nextSaleId)
+    ]);
+}
+
 }

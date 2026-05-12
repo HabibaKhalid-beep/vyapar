@@ -664,15 +664,16 @@ function initializeForm(context) {
 
     // Auto-fetch next invoice number for new tabs
     if (!window.editSaleData) {
-        fetch('/dashboard/delivery-challan/next-number', {
+       fetch('/dashboard/sale-return/next-number', {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => res.json())
         .then(data => {
-            if (data && data.bill_number) {
-                $ctx.find('.bill-number').val(data.bill_number);
+           if (data && (data.number || data.bill_number)) {
+    $ctx.find('.bill-number').val(data.number || data.bill_number);
+}
             }
-        })
+        )
         .catch(() => {});
     }
 

@@ -131,6 +131,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/sale-return/{sale}/pdf', [SaleReturnController::class, 'pdf'])->name('sale-return.pdf');
     Route::get('/sale-return/{sale}/bank-history', [SaleReturnController::class, 'bankHistory'])->name('sale-return.bank-history');
     Route::get('/sale-return/{sale}/duplicate', [SaleReturnController::class, 'duplicate'])->name('sale-return.duplicate');
+    Route::get('/sale-return/next-number', [SaleReturnController::class, 'nextInvoiceNumber'])->name('sale-return.next-number');
 
     // Delivery Challan
     Route::get('delivery-challan', [DeliveryController::class, 'deliveryChallan'])->name('delivery-challan');

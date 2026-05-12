@@ -2687,7 +2687,7 @@ textarea.meta-control,
     window.sourceProformaId = null;
 
     // Optional doc type (avoid JS error)
-   window.docType = "delivery_challan";
+ window.docType = "estimate";
 
     @if(isset($sale))
         // Edit mode
