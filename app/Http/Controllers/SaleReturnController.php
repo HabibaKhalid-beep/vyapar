@@ -40,7 +40,7 @@ class SaleReturnController extends Controller
         $prefilledSaleReturnData = null;
 
         if ($request->filled('sale_id')) {
-            $sourceSale = Sale::with(['items', 'payments', 'party'])
+            $sourceSale = Sale::with(['items', 'payments', 'party', 'details'])
                 ->where('type', 'invoice')
                 ->findOrFail($request->integer('sale_id'));
 
@@ -63,6 +63,8 @@ class SaleReturnController extends Controller
                 'grand_total' => $sourceSale->grand_total,
                 'balance' => $sourceSale->grand_total,
                 'description' => $sourceSale->description,
+                'details' => $sourceSale->details?->toArray(),
+                'custom_expenses' => $sourceSale->details?->custom_expenses,
                 'items' => $sourceSale->items->map(function ($item) {
                     return [
                         'item_id' => $item->item_id,
@@ -70,7 +72,10 @@ class SaleReturnController extends Controller
                         'item_category' => $item->item_category,
                         'item_code' => $item->item_code,
                         'item_description' => $item->item_description,
+                        'tafseel' => $item->tafseel,
                         'quantity' => $item->quantity,
+                        'gross_w' => $item->gross_w,
+                        'net_w' => $item->net_w,
                         'unit' => $item->unit,
                         'unit_price' => $item->unit_price,
                         'discount' => $item->discount,
@@ -301,7 +306,10 @@ class SaleReturnController extends Controller
             'items.*.item_category' => 'nullable|string|max:255',
             'items.*.item_code' => 'nullable|string|max:255',
             'items.*.item_description' => 'nullable|string',
+            'items.*.tafseel' => 'nullable|string|max:255',
             'items.*.quantity' => 'nullable|integer|min:0',
+            'items.*.gross_w' => 'nullable|numeric|min:0',
+            'items.*.net_w' => 'nullable|numeric|min:0',
             'items.*.unit' => 'nullable|string|max:50',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.discount' => 'nullable|numeric|min:0',
@@ -352,7 +360,10 @@ class SaleReturnController extends Controller
                 'item_category' => $item['item_category'] ?? null,
                 'item_code' => $item['item_code'] ?? null,
                 'item_description' => $item['item_description'] ?? null,
+                'tafseel' => $item['tafseel'] ?? null,
                 'quantity' => $item['quantity'] ?? 0,
+                'gross_w' => $item['gross_w'] ?? 0,
+                'net_w' => $item['net_w'] ?? 0,
                 'unit' => $item['unit'] ?? null,
                 'unit_price' => $item['unit_price'] ?? 0,
                 'discount' => $item['discount'] ?? 0,

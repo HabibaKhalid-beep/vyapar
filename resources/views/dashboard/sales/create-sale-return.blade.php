@@ -276,6 +276,7 @@
                                         <select class="input-control default-payment-type">
                                             <option value="">Select Payment Type</option>
                                             <option value="cash" selected>Cash</option>
+                                            <option value="cheques">Cheques</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
@@ -298,11 +299,12 @@
                                 <template id="payment-entry-template">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control payment-type-entry">
-                                            <option value="">Select Bank Account</option>
-                                            <option value="cash" selected>Cash</option>
-                                            @foreach($bankAccounts as $bank)
-                                                <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
-                                            @endforeach
+                                              <option value="">Select Bank Account</option>
+                                              <option value="cash" selected>Cash</option>
+                                              <option value="cheques">Cheques</option>
+                                              @foreach($bankAccounts as $bank)
+                                                  <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
+                                              @endforeach
                                             <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">

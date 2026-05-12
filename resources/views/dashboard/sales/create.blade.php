@@ -1911,7 +1911,7 @@ textarea.meta-control,
                                     </div>
                                 </div>
                                 <div class="header-aux-fields">
-                                    <div class="header-mini-fields-grid">
+                                    {{-- <div class="header-mini-fields-grid">
                                         <div class="party-meta-field header-mini-field">
                                             <div class="floating-input-wrapper">
                                                 <input type="text" name="delivery_person" class="meta-control delivery-person-input" placeholder=" ">
@@ -1919,7 +1919,7 @@ textarea.meta-control,
                                             </div>
                                         </div>
 
-                                    </div>
+                                    </div> --}}
                                     <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
                                         <div class="party-meta-field header-mini-field">
                                             <div class="floating-input-wrapper">
@@ -2124,7 +2124,7 @@ textarea.meta-control,
                                         <td></td>
                                         <td></td>
                                         <td>
-                                            <span class="column-total-label">Total Amount</span>
+                                            <span class="column-total-label">Total</span>
                                             <span class="column-total-value total-base-amount">0.00</span>
                                         </td>
                                         <td class="col-category d-none"></td>
@@ -2150,6 +2150,7 @@ textarea.meta-control,
                                         <select class="input-control default-payment-type">
                                             <option value="">Select Payment Type</option>
                                             <option value="cash" selected>Cash</option>
+                                            <option value="cheques">Cheques</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
@@ -2181,6 +2182,7 @@ textarea.meta-control,
                                          <select class="input-control payment-type-entry">
                                               <option value="">Select Bank Account</option>
                                               <option value="cash" selected>Cash</option>
+                                              <option value="cheques">Cheques</option>
                                               @foreach($bankAccounts as $bank)
                                                   <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                               @endforeach

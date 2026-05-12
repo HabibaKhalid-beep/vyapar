@@ -13,7 +13,10 @@ class SaleItem extends Model
         'item_category',
         'item_code',
         'item_description',
+        'tafseel',
         'quantity',
+        'gross_w',
+        'net_w',
         'unit',
         'unit_price',
         'discount',
@@ -21,6 +24,8 @@ class SaleItem extends Model
     ];
 
     protected $casts = [
+        'gross_w'    => 'decimal:2',
+        'net_w'      => 'decimal:2',
         'unit_price' => 'decimal:2',
         'discount'   => 'decimal:2',
         'amount'     => 'decimal:2',

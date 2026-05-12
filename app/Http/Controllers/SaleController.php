@@ -148,7 +148,7 @@ class SaleController extends Controller
         $parties = Party::orderBy('name')->get();
         $partyGroups = PartyGroup::orderBy('name')->get();
 
-        $sale->load(['items']);
+        $sale->load(['items', 'details']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
@@ -185,7 +185,7 @@ class SaleController extends Controller
         $parties = Party::orderBy('name')->get();
         $partyGroups = PartyGroup::orderBy('name')->get();
 
-        $sale->load(['items']);
+        $sale->load(['items', 'details']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
@@ -334,7 +334,7 @@ class SaleController extends Controller
         $parties = Party::orderBy('name')->get();
         $partyGroups = PartyGroup::orderBy('name')->get();
 
-        $sale->load(['items']);
+        $sale->load(['items', 'details']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
@@ -369,7 +369,7 @@ class SaleController extends Controller
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
-        $sale->load(['items']);
+        $sale->load(['items', 'details']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
@@ -398,7 +398,7 @@ class SaleController extends Controller
         $items = Item::active()->orderBy('name')->get();
         $parties = Party::orderBy('name')->get();
 
-        $sale->load(['items']);
+        $sale->load(['items', 'details']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
@@ -594,7 +594,10 @@ private function posData(): array
             'items.*.item_category' => 'nullable|string|max:255',
             'items.*.item_code' => 'nullable|string|max:255',
             'items.*.item_description' => 'nullable|string',
+            'items.*.tafseel' => 'nullable|string|max:255',
             'items.*.quantity' => 'nullable|integer|min:0',
+            'items.*.gross_w' => 'nullable|numeric|min:0',
+            'items.*.net_w' => 'nullable|numeric|min:0',
             'items.*.unit' => 'nullable|string|max:50',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.discount' => 'nullable|numeric|min:0',
@@ -698,7 +701,10 @@ private function posData(): array
                 'item_category'    => $item['item_category']    ?? null,
                 'item_code'        => $item['item_code']        ?? null,
                 'item_description' => $item['item_description'] ?? null,
+                'tafseel'          => $item['tafseel']          ?? null,
                 'quantity'         => $item['quantity']         ?? 0,
+                'gross_w'          => $item['gross_w']          ?? 0,
+                'net_w'            => $item['net_w']            ?? 0,
                 'unit'             => $item['unit']             ?? null,
                 'unit_price'       => $item['unit_price']       ?? 0,
                 'discount'         => $item['discount']         ?? 0,
@@ -879,7 +885,10 @@ private function posData(): array
             'items.*.item_category' => 'nullable|string|max:255',
             'items.*.item_code' => 'nullable|string|max:255',
             'items.*.item_description' => 'nullable|string',
+            'items.*.tafseel' => 'nullable|string|max:255',
             'items.*.quantity' => 'nullable|integer|min:0',
+            'items.*.gross_w' => 'nullable|numeric|min:0',
+            'items.*.net_w' => 'nullable|numeric|min:0',
             'items.*.unit' => 'nullable|string|max:50',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.discount' => 'nullable|numeric|min:0',
@@ -994,7 +1003,10 @@ private function posData(): array
                 'item_category'    => $item['item_category']    ?? null,
                 'item_code'        => $item['item_code']        ?? null,
                 'item_description' => $item['item_description'] ?? null,
+                'tafseel'          => $item['tafseel']          ?? null,
                 'quantity'         => $item['quantity']         ?? 0,
+                'gross_w'          => $item['gross_w']          ?? 0,
+                'net_w'            => $item['net_w']            ?? 0,
                 'unit'             => $item['unit']             ?? null,
                 'unit_price'       => $item['unit_price']       ?? 0,
                 'discount'         => $item['discount']         ?? 0,
@@ -1521,6 +1533,8 @@ private function posData(): array
 
     private function mapEstimateToSaleDraft(Sale $estimate, string $nextInvoiceNumber): array
     {
+        $details = $estimate->details;
+
         return [
             'source_type' => 'estimate',
             'source_estimate_id' => $estimate->id,
@@ -1551,13 +1565,18 @@ private function posData(): array
             'status' => 'Unpaid',
             'description' => $estimate->description,
             'image_path' => $estimate->image_path,
+            'details' => $details?->toArray(),
+            'custom_expenses' => $details?->custom_expenses,
             'items' => $estimate->items->map(function ($item) {
                 return [
                     'item_name' => $item->item_name,
                     'item_category' => $item->item_category,
                     'item_code' => $item->item_code,
                     'item_description' => $item->item_description,
+                    'tafseel' => $item->tafseel,
                     'quantity' => $item->quantity,
+                    'gross_w' => $item->gross_w,
+                    'net_w' => $item->net_w,
                     'unit' => $item->unit,
                     'unit_price' => $item->unit_price,
                     'discount' => $item->discount,
@@ -1570,6 +1589,8 @@ private function posData(): array
 
     private function mapInvoiceToSaleDraft(Sale $sale, string $nextInvoiceNumber): array
     {
+        $details = $sale->details;
+
         return [
             'source_type' => $sale->type,
             'party_id' => $sale->party_id,
@@ -1600,13 +1621,18 @@ private function posData(): array
             'status' => 'Unpaid',
             'description' => $sale->description,
             'image_path' => $sale->image_path,
+            'details' => $details?->toArray(),
+            'custom_expenses' => $details?->custom_expenses,
             'items' => $sale->items->map(function ($item) {
                 return [
                     'item_name' => $item->item_name,
                     'item_category' => $item->item_category,
                     'item_code' => $item->item_code,
                     'item_description' => $item->item_description,
+                    'tafseel' => $item->tafseel,
                     'quantity' => $item->quantity,
+                    'gross_w' => $item->gross_w,
+                    'net_w' => $item->net_w,
                     'unit' => $item->unit,
                     'unit_price' => $item->unit_price,
                     'discount' => $item->discount,
@@ -1619,6 +1645,8 @@ private function posData(): array
 
     private function mapSaleOrderToSaleDraft(Sale $saleOrder, string $nextInvoiceNumber): array
     {
+        $details = $saleOrder->details;
+
         return [
             'source_type' => 'sale_order',
             'source_sale_order_id' => $saleOrder->id,
@@ -1650,13 +1678,18 @@ private function posData(): array
             'status' => 'Unpaid',
             'description' => $saleOrder->description,
             'image_path' => $saleOrder->image_path,
+            'details' => $details?->toArray(),
+            'custom_expenses' => $details?->custom_expenses,
             'items' => $saleOrder->items->map(function ($item) {
                 return [
                     'item_name' => $item->item_name,
                     'item_category' => $item->item_category,
                     'item_code' => $item->item_code,
                     'item_description' => $item->item_description,
+                    'tafseel' => $item->tafseel,
                     'quantity' => $item->quantity,
+                    'gross_w' => $item->gross_w,
+                    'net_w' => $item->net_w,
                     'unit' => $item->unit,
                     'unit_price' => $item->unit_price,
                     'discount' => $item->discount,
@@ -1669,6 +1702,8 @@ private function posData(): array
 
     private function mapDeliveryChallanToSaleDraft(Sale $challan, string $nextInvoiceNumber): array
     {
+        $details = $challan->details;
+
         return [
             'source_type' => 'delivery_challan',
             'source_challan_id' => $challan->id,
@@ -1700,13 +1735,18 @@ private function posData(): array
             'status' => 'Unpaid',
             'description' => $challan->description,
             'image_path' => $challan->image_path,
+            'details' => $details?->toArray(),
+            'custom_expenses' => $details?->custom_expenses,
             'items' => $challan->items->map(function ($item) {
                 return [
                     'item_name' => $item->item_name,
                     'item_category' => $item->item_category,
                     'item_code' => $item->item_code,
                     'item_description' => $item->item_description,
+                    'tafseel' => $item->tafseel,
                     'quantity' => $item->quantity,
+                    'gross_w' => $item->gross_w,
+                    'net_w' => $item->net_w,
                     'unit' => $item->unit,
                     'unit_price' => $item->unit_price,
                     'discount' => $item->discount,
@@ -1719,6 +1759,8 @@ private function posData(): array
 
     private function mapProformaToSaleDraft(Sale $proforma, string $nextInvoiceNumber): array
     {
+        $details = $proforma->details;
+
         return [
             'source_type' => 'proforma',
             'source_proforma_id' => $proforma->id,
@@ -1749,13 +1791,18 @@ private function posData(): array
             'status' => 'Unpaid',
             'description' => $proforma->description,
             'image_path' => $proforma->image_path,
+            'details' => $details?->toArray(),
+            'custom_expenses' => $details?->custom_expenses,
             'items' => $proforma->items->map(function ($item) {
                 return [
                     'item_name' => $item->item_name,
                     'item_category' => $item->item_category,
                     'item_code' => $item->item_code,
                     'item_description' => $item->item_description,
+                    'tafseel' => $item->tafseel,
                     'quantity' => $item->quantity,
+                    'gross_w' => $item->gross_w,
+                    'net_w' => $item->net_w,
                     'unit' => $item->unit,
                     'unit_price' => $item->unit_price,
                     'discount' => $item->discount,

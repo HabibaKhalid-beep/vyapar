@@ -431,6 +431,27 @@ function initializeForm(context) {
         $row.find('.item-picker-input').val(selectedValue ? plainLabel.trim() : '');
     }
 
+    function clearSelectedItemRow($row) {
+        if (!$row || !$row.length) {
+            return;
+        }
+
+        $row.find('.item-name').val('');
+        $row.removeAttr('data-bag-weight');
+        $row.find('.item-category').val('');
+        $row.find('.item-code').val('');
+        $row.find('.item-desc').val('');
+        $row.find('.item-tafseel').val('');
+        $row.find('.gross-w-input').val('0');
+        $row.find('.net-w-input').val('0');
+        $row.find('.item-rate').val('0');
+        $row.find('.item-unit').val('');
+        $row.find('.item-discount').val('0');
+        $row.find('.item-discount-pct').val('');
+        $row.find('.item-amount').val('0.00');
+        $row.find('.item-picker-input').val('');
+    }
+
     function setupPartyDropdownSearch() {
         const $partySearchInput = $ctx.find('.party-search-input').first();
         const $partyDropdown = $ctx.find('.party-dropdown-wrapper').first();
@@ -760,13 +781,7 @@ function initializeForm(context) {
 
     function getDefaultCustomExpenseRows() {
         return [
-            { heading: 'Broker 1', mode: '+', percentage: '', amount: 0, details: '', account_type: 'broker', account_id: '', account_name: '' },
-            { heading: 'Mazdoori', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
-            { heading: 'Commission', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
-            { heading: 'Dak', mode: 'S', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
-            { heading: 'Karaya Naam', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
-            { heading: 'Local', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
-            { heading: 'Bardana', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
+            { heading: '', mode: '+', percentage: '', amount: 0, details: '', account_type: '', account_id: '', account_name: '' },
         ];
     }
 
@@ -816,6 +831,15 @@ function initializeForm(context) {
         `;
     }
 
+    function buildLedgerAccountActionMarkup() {
+        return `
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-primary ledger-account-action" href="#" data-action="party">+ Add New Party</a></li>
+            <li><a class="dropdown-item text-primary ledger-account-action" href="#" data-action="broker">+ Add New Broker</a></li>
+            <li><a class="dropdown-item text-primary ledger-account-action" href="#" data-action="item">+ Add New Item</a></li>
+        `;
+    }
+
     function renderLedgerAccountMenu($menu, query = '') {
         if (!$menu || !$menu.length) {
             return;
@@ -847,7 +871,8 @@ function initializeForm(context) {
             `;
         }).filter(Boolean).join('');
 
-        $menu.html(html || '<li class="px-3 py-2 text-muted small">No account found</li>');
+        const body = html || '<li class="px-3 py-2 text-muted small">No account found</li>';
+        $menu.html(body + buildLedgerAccountActionMarkup());
     }
 
     function refreshLedgerAccountMenus() {
@@ -862,7 +887,8 @@ function initializeForm(context) {
         const legacyMode = String(row.mode || row.operator || '+').toUpperCase();
         const mode = legacyMode === 'SAME' ? 'S' : (['+', '-', 'S'].includes(legacyMode) ? legacyMode : '+');
         const rawHeading = String(row.heading || row.title || '').trim();
-        const heading = rawHeading.toLowerCase() === 'new row' ? '' : rawHeading;
+        const hiddenDefaultHeadings = ['new row', 'broker 1', 'broker 2', 'broker 3', 'bardana', 'mazdoori', 'commission', 'dak', 'karaya naam', 'local'];
+        const heading = hiddenDefaultHeadings.includes(rawHeading.toLowerCase()) ? '' : rawHeading;
 
         let accountType = row.account_type || '';
         let accountId = row.account_id || '';
@@ -981,23 +1007,15 @@ function initializeForm(context) {
 
     function loadCustomExpenseRows() {
         const savedRows = JSON.parse(localStorage.getItem(getCustomExpenseStorageKey()) || '[]');
-        let rowsToRender = Array.isArray(savedRows) && savedRows.length
+        const rowsToRender = Array.isArray(savedRows) && savedRows.length
             ? savedRows
             : getDefaultCustomExpenseRows();
-
-        const hasBrokerRows = Array.isArray(rowsToRender) && rowsToRender.some((row) => {
-            const normalized = normalizeCustomExpenseRow(row || {});
-            return normalized.account_type === 'broker';
-        });
-        if (!hasBrokerRows) {
-            rowsToRender = [...getDefaultCustomExpenseRows().filter((row) => row.account_type === 'broker'), ...rowsToRender];
-        }
 
         const $container = $ctx.find('.custom-expense-rows');
         $container.empty();
         rowsToRender.map((row) => normalizeCustomExpenseRow(row)).forEach((row) => createCustomExpenseRow(row));
 
-        if (!Array.isArray(savedRows) || !savedRows.length || !hasBrokerRows) {
+        if (!Array.isArray(savedRows) || !savedRows.length) {
             persistCustomExpenseRows();
         }
     }
@@ -1320,9 +1338,12 @@ function initializeForm(context) {
             syncRowCategoryOptions($row, item.item_category || '');
             $row.find('.item-code').val(item.item_code || '');
             $row.find('.item-desc').val(item.item_description || '');
+            $row.find('.item-tafseel').val(item.tafseel || '');
             $row.find('.item-discount').val(item.discount || 0);
             updateRowDiscountPercentFromAmount($row);
             $row.find('.item-qty').val(item.quantity || 0);
+            $row.find('.gross-w-input').val(item.gross_w || 0);
+            $row.find('.net-w-input').val(item.net_w || 0);
             if (item.unit) {
                 ensureUnitOption($row.find('.item-unit'), item.unit);
             }
@@ -1384,6 +1405,8 @@ function initializeForm(context) {
             $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
             if (paymentType === 'cash') {
                 $ctx.find('.default-payment-type').val('cash');
+            } else if (paymentType === 'cheques' || paymentType === 'cheque') {
+                $ctx.find('.default-payment-type').val('cheques');
             } else if (payment.bank_account_id) {
                 $ctx.find('.default-payment-type').val(`bank-${payment.bank_account_id}`);
             }
@@ -1417,6 +1440,9 @@ function initializeForm(context) {
         }
 
         const details = sale.details || sale.sale_detail || null;
+        const customExpenses = (details && Array.isArray(details.custom_expenses))
+            ? details.custom_expenses
+            : (Array.isArray(sale.custom_expenses) ? sale.custom_expenses : []);
         if (details) {
             $ctx.find('.warehouse-select').val(details.warehouse_id || '');
             $ctx.find('.delivery-person-input').val(details.delivery_person || '');
@@ -1427,14 +1453,14 @@ function initializeForm(context) {
             $ctx.find('.goods-name-input').val(details.goods_name || '');
             $ctx.find('.details-extra-input').val(details.details_extra || '');
             $ctx.find('.bilti-gari-input').val(details.bilti_gari_no || '');
+        }
 
-            if (Array.isArray(details.custom_expenses) && details.custom_expenses.length) {
-                const $container = $ctx.find('.custom-expense-rows');
-                $container.empty();
-                details.custom_expenses.forEach((row) => createCustomExpenseRow(row));
-                persistCustomExpenseRows();
-                syncLegacyBrokerFieldsFromCustomRows();
-            }
+        if (customExpenses.length) {
+            const $container = $ctx.find('.custom-expense-rows');
+            $container.empty();
+            customExpenses.forEach((row) => createCustomExpenseRow(row));
+            persistCustomExpenseRows();
+            syncLegacyBrokerFieldsFromCustomRows();
         }
 
         syncDefaultPaymentFields();
@@ -1761,8 +1787,15 @@ function initializeForm(context) {
 
     $ctx.on('focus click', '.item-picker-input', function() {
         const $row = $(this).closest('tr');
+        if ($row.data('suppressItemPickerOpen')) {
+            $row.removeData('suppressItemPickerOpen');
+            return;
+        }
         const rawQuery = String($(this).val() || '').trim();
-        const query = rawQuery.toLowerCase() === 'select item' ? '' : rawQuery;
+        const selectedLabel = String($row.find('.item-name option:selected').data('label') || '').trim().toLowerCase();
+        const query = (rawQuery.toLowerCase() === 'select item' || (selectedLabel && rawQuery.toLowerCase() === selectedLabel))
+            ? ''
+            : rawQuery;
         if (loadItemsIfNeeded($row, query)) {
             return;
         }
@@ -1772,6 +1805,16 @@ function initializeForm(context) {
     $ctx.on('input', '.item-picker-input', function() {
         const $row = $(this).closest('tr');
         const rawQuery = String($(this).val() || '').trim();
+        if (rawQuery === '') {
+            clearSelectedItemRow($row);
+            if (loadItemsIfNeeded($row, '')) {
+                return;
+            }
+            renderItemPicker($row, '');
+            updateMarketRowAmount($row);
+            calculateTotals();
+            return;
+        }
         const query = rawQuery.toLowerCase() === 'select item' ? '' : rawQuery;
         if (loadItemsIfNeeded($row, query)) {
             return;
@@ -1806,6 +1849,10 @@ function initializeForm(context) {
         // Log to verify (can remove later)
         console.log('Selected item for modal:', window.selectedItemForModal);
 
+        $row.data('suppressItemPickerOpen', true);
+        $row.find('.item-picker-input').val(itemName || 'Search Item').blur();
+        $row.find('.item-picker-panel').removeClass('open');
+        hideItemPickerPanels();
         $row.find('.item-name').val(itemId).trigger('change');
     });
 
@@ -2113,6 +2160,7 @@ function initializeForm(context) {
             if (data.item) {
                 // Refresh the item picker from the server so the list stays consistent.
                 refreshItemsList(data.item);
+                window.refreshLedgerAdjustmentAccountMenus?.();
 
                 // Close modal
                 const modalEl = document.getElementById('addItemModal');
@@ -2270,7 +2318,10 @@ function initializeForm(context) {
                 item_category: $row.find('.item-category').val() || '',
                 item_code: $row.find('.item-code').val() || '',
                 item_description: $row.find('.item-desc').val() || '',
+                tafseel: $row.find('.item-tafseel').val() || '',
                 quantity: parseInt($row.find('.item-qty').val() || 0, 10) || 0,
+                gross_w: parseFloat($row.find('.gross-w-input').val() || 0) || 0,
+                net_w: parseFloat($row.find('.net-w-input').val() || 0) || 0,
                 unit: $row.find('.item-unit').val() || '',
                 unit_price: parseFloat($row.find('.item-rate').val() || 0) || 0,
                 discount: parseFloat($row.find('.item-discount').val() || 0) || 0,
@@ -2285,8 +2336,9 @@ function initializeForm(context) {
         const defaultTypeVal = $ctx.find('.default-payment-type').val();
         if (defaultTypeVal) {
             const isCash = defaultTypeVal === 'cash';
-            const bankId = isCash ? null : parseInt(defaultTypeVal.replace('bank-', ''), 10);
-            const bank = !isCash ? (window.bankAccounts || []).find(b => b.id === bankId) : null;
+            const isCheque = defaultTypeVal === 'cheques';
+            const bankId = defaultTypeVal.startsWith('bank-') ? parseInt(defaultTypeVal.replace('bank-', ''), 10) : null;
+            const bank = bankId ? (window.bankAccounts || []).find(b => b.id === bankId) : null;
             const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
             const defaultReference = $ctx.find('.default-payment-reference').val() || null;
             const defaultDirection = $ctx.find('.default-payment-direction').val() || 'payment_in';
@@ -2294,7 +2346,7 @@ function initializeForm(context) {
             if (defaultAmount > 0) {
                 payments.push({
                     direction: defaultDirection,
-                    payment_type: isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank'),
+                    payment_type: isCheque ? 'Cheques' : (isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank')),
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -2308,6 +2360,7 @@ function initializeForm(context) {
             const rawType = $entry.find('.payment-type-entry').val() || '';
             const isBank = rawType.startsWith('bank-');
             const isCash = rawType === 'cash';
+            const isCheque = rawType === 'cheques';
             const bankId = isBank ? rawType.replace('bank-', '') : null;
             const bank = isBank ? (window.bankAccounts || []).find(b => String(b.id) === String(bankId)) : null;
 
@@ -2318,7 +2371,7 @@ function initializeForm(context) {
 
             payments.push({
                 direction,
-                payment_type: isCash ? 'cash' : (isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType),
+                payment_type: isCheque ? 'Cheques' : (isCash ? 'cash' : (isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType)),
                 bank_account_id: bankId,
                 amount: amount,
                 reference: reference,
@@ -2467,6 +2520,7 @@ function initializeForm(context) {
             })
             .then(data => {
                 if (data && data.success) {
+                    localStorage.removeItem(getCustomExpenseStorageKey());
                     if (data.bill_number) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
@@ -2734,7 +2788,7 @@ function initializeForm(context) {
 
         // Include the default payment row (first row) as additional payment when editing
         const defaultType = $ctx.find('.default-payment-type').val() || '';
-        if (defaultType.startsWith('bank-') || defaultType === 'cash') {
+        if (defaultType.startsWith('bank-') || defaultType === 'cash' || defaultType === 'cheques') {
             received += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
         }
 
@@ -2743,7 +2797,8 @@ function initializeForm(context) {
             const rawType = $(el).val() || '';
             const isBank = rawType.startsWith('bank-');
             const isCash = rawType === 'cash';
-            if (!isBank && !isCash) return sum;
+            const isCheque = rawType === 'cheques';
+            if (!isBank && !isCash && !isCheque) return sum;
 
             const amountInput = $(el).closest('.payment-entry').find('.payment-amount');
             return sum + (parseFloat(amountInput.val() || 0) || 0);
@@ -2802,6 +2857,9 @@ function initializeForm(context) {
     loadCustomExpenseRows();
     refreshLedgerAccountMenus();
     window.refreshLedgerAdjustmentAccountMenus = refreshLedgerAccountMenus;
+    document.getElementById('addPartyModal')?.addEventListener('hidden.bs.modal', function () {
+        window.refreshLedgerAdjustmentAccountMenus?.();
+    });
 
     $ctx.on('click', '.custom-mode-btn', function() {
         const $button = $(this);
@@ -2846,6 +2904,32 @@ function initializeForm(context) {
         if (dropdownToggle) {
             const dropdown = bootstrap.Dropdown.getInstance(dropdownToggle) || bootstrap.Dropdown.getOrCreateInstance(dropdownToggle);
             dropdown.hide();
+        }
+    });
+
+    $ctx.on('click', '.ledger-account-action', function(e) {
+        e.preventDefault();
+        const action = $(this).data('action') || '';
+
+        if (action === 'party') {
+            const addPartyModalEl = document.getElementById('addPartyModal');
+            if (addPartyModalEl) {
+                bootstrap.Modal.getOrCreateInstance(addPartyModalEl).show();
+            }
+            return;
+        }
+
+        if (action === 'broker') {
+            openBrokerModalForm();
+            return;
+        }
+
+        if (action === 'item') {
+            window.activeSaleItemRowIndex = -1;
+            const addItemModalEl = document.getElementById('addItemModal');
+            if (addItemModalEl) {
+                bootstrap.Modal.getOrCreateInstance(addItemModalEl).show();
+            }
         }
     });
 
