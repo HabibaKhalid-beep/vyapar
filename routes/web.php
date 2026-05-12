@@ -134,6 +134,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
     // Delivery Challan
     Route::get('delivery-challan', [DeliveryController::class, 'deliveryChallan'])->name('delivery-challan');
+    Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextNumber'])->name('delivery-challan.next-number');
     Route::get('create-challan', [DeliveryController::class, 'createChallan'])->name('create-challan');
     Route::post('delivery-challan', [DeliveryController::class, 'store'])->name('delivery-challan.store');
     Route::get('delivery-challan/{sale}/edit', [DeliveryController::class, 'edit'])->name('delivery-challan.edit');
@@ -143,6 +144,8 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('delivery-challan/{sale}/print', [DeliveryController::class, 'print'])->name('delivery-challan.print');
     Route::get('delivery-challan/{sale}/pdf', [DeliveryController::class, 'pdf'])->name('delivery-challan.pdf');
     Route::get('delivery-challan/{sale}/duplicate', [DeliveryController::class, 'duplicate'])->name('delivery-challan.duplicate');
+   
+Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextNumber'])->name('delivery-challan.next-number');
 
     // Sale Orders
     Route::get('sale-order', [SaleOrderController::class, 'saleOrder'])->name('sale-order');

@@ -655,11 +655,25 @@ function initializeForm(context) {
     $ctx.find('.invoice-date').val(todayValue);
     $ctx.find('.order-date').val(todayValue);
     $ctx.find('.due-date').val(todayValue);
-    $ctx.find('.due-days-select').val('0');
+  $ctx.find('.due-days-select').val('0');
 
     // If editing an existing sale, populate the form with saved values
     if (window.editSaleData) {
         populateFormFromSale(window.editSaleData);
+    }
+
+    // Auto-fetch next invoice number for new tabs
+    if (!window.editSaleData) {
+        fetch('/dashboard/delivery-challan/next-number', {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.bill_number) {
+                $ctx.find('.bill-number').val(data.bill_number);
+            }
+        })
+        .catch(() => {});
     }
 
     // ========== TOGGLE FIELDS BASED ON DOCUMENT TYPE ==========
@@ -2312,7 +2326,9 @@ function initializeForm(context) {
     function gatherSaleData() {
         const items = Array.from($ctx.find('.item-row')).map(row => {
             const $row = $(row);
-            const itemName = $row.find('.item-name option:selected').data('label') || $row.find('.item-name option:selected').text() || '';
+           // REPLACE WITH:
+const $selectedOption = $row.find('.item-name option:selected');
+const itemName = String($selectedOption.data('label') || $selectedOption.text() || '').trim();
             return {
                 item_name: itemName,
                 item_category: $row.find('.item-category').val() || '',
@@ -2327,7 +2343,7 @@ function initializeForm(context) {
                 discount: parseFloat($row.find('.item-discount').val() || 0) || 0,
                 amount: parseFloat($row.find('.item-amount').val() || 0) || 0,
             };
-        }).filter(item => item.item_name || item.quantity || item.amount);
+        }).filter(item => item.item_name && String(item.item_name).trim() !== '');
 
         const payments = [];
         const $marketRow = $ctx.find('.item-row').first();
@@ -2380,6 +2396,7 @@ function initializeForm(context) {
 
         return {
             type: $ctx.find('.doc-type').val() || 'invoice',
+            
             source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
             source_sale_order_id: window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null,
             source_challan_id: window.sourceChallanId || window.editSaleData?.source_challan_id || null,

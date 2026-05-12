@@ -361,4 +361,14 @@ class DeliveryController extends Controller
             'notification_sent_at' => now(),
         ])->save();
     }
+    public function getNextNumber()
+{
+    $nextSaleId = (Sale::max('id') ?? 0) + 1;
+    $nextInvoiceNumber = TransactionNumberPrefix::format('delivery_challan', $nextSaleId);
+
+    return response()->json([
+        'bill_number' => $nextInvoiceNumber
+    ]);
 }
+}
+

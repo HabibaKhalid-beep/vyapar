@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-   <title>Delivery Challan</title>
+    <title>Delivery Challan</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
@@ -107,10 +107,10 @@ ul#partyDropdownMenu {
     margin-top: 2px;
 }
 .party-option > span:first-child {
-    width: 60%;
+    width: 60%; /* Party name */
 }
 .party-option > span:last-child {
-    width: 40%;
+    width: 40%; /* Opening balance */
     text-align: right;
 }
 
@@ -1154,6 +1154,20 @@ textarea.meta-control,
     margin-top: 2px;
 }
 
+.broker-inline-add-btn {
+    border: 0;
+    background: transparent;
+    color: #2563eb;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    padding: 0 4px;
+}
+
+.broker-inline-add-btn:hover {
+    color: #1d4ed8;
+}
+
 #partyBalanceDisplay {
     margin-top: 2px !important;
     font-size: 11px;
@@ -1347,13 +1361,51 @@ textarea.meta-control,
     background: #fbfdff;
 }
 
+.bottom-right .custom-expense-row.no-heading .calc-label {
+    display: none !important;
+}
+
 .bottom-right .custom-expense-inputs {
+    display: flex;
+    align-items: center;
     gap: 6px;
     flex-wrap: wrap;
 }
 
-.bottom-right .custom-expense-operator,
-.bottom-right .custom-expense-unit,
+.bottom-right .custom-expense-mode-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px;
+    border: 1px solid #d7e0ea;
+    border-radius: 999px;
+    background: #fff;
+}
+
+.bottom-right .custom-mode-btn {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.bottom-right .custom-mode-btn.is-active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.bottom-right .custom-expense-account-wrap {
+    min-width: 190px;
+    flex: 1 1 210px;
+}
+
+.bottom-right .custom-expense-account-input,
+.bottom-right .custom-expense-details,
+.bottom-right .custom-expense-pct,
 .bottom-right .custom-expense-value {
     min-height: 30px;
     height: 30px;
@@ -1364,14 +1416,50 @@ textarea.meta-control,
     font-size: 11px;
 }
 
-.bottom-right .custom-expense-operator,
-.bottom-right .custom-expense-unit {
-    width: 54px;
+.bottom-right .custom-expense-pct {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    text-align: right;
+    flex: 0 0 56px !important;
+}
+
+.bottom-right .custom-expense-details {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    flex: 0 0 180px !important;
 }
 
 .bottom-right .custom-expense-value {
-    width: 80px;
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
     text-align: right;
+    flex: 0 0 80px !important;
+}
+
+.bottom-right .ledger-account-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.bottom-right .ledger-account-option small {
+    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.bottom-right .ledger-account-group-label {
+    padding: 6px 14px 4px;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 .bottom-right .remove-custom-expense-row {
@@ -1386,6 +1474,7 @@ textarea.meta-control,
 .bottom-right .add-custom-expense-row {
     min-width: 120px;
     max-width: 140px;
+    margin-left: 242px;
 }
 
 @media (max-width: 1200px) {
@@ -1597,6 +1686,32 @@ textarea.meta-control,
 .bg-gradient-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
+.item-table tfoot td {
+    background: #fbfdff;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 0;
+    padding: 12px 10px;
+}
+
+.item-table .column-total-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.item-table .column-total-value {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.item-table .tfoot-add-row-cell {
+    text-align: left;
+}
     </style>
 
 @php
@@ -1653,8 +1768,7 @@ textarea.meta-control,
             </div>
             <!-- Browser Toolbar / Heading Area -->
             <div class="browser-toolbar d-flex align-items-center px-3">
-              <p class="mt-3 ms-3 mb-0 me-3 mb-2">Delivery Challan | </p>
-                
+                <p class="mt-3 ms-3 mb-0 me-3 mb-2"> Delivery Challan</p>
                 <div class="toolbar-spacer"></div>
                 <div class="toolbar-warehouse-block">
                     <p class="toolbar-warehouse-label">Warehouse</p>
@@ -1713,7 +1827,7 @@ textarea.meta-control,
         </li>
           @foreach($parties as $party)
           <li>
-           <a class="dropdown-item d-flex justify-content-between align-items-start party-option" href="#"
+            <a class="dropdown-item d-flex justify-content-between align-items-start party-option" href="#"
                data-id="{{ $party->id }}"
                data-name="{{ $party->name }}"
                data-phone="{{ $party->phone }}"
@@ -1791,15 +1905,15 @@ textarea.meta-control,
                                     </div>
                                 </div>
                                 <div class="header-aux-fields">
-                                    <div class="header-mini-fields-grid">
+                                    {{-- <div class="header-mini-fields-grid">
                                         <div class="party-meta-field header-mini-field">
                                             <div class="floating-input-wrapper">
                                                 <input type="text" name="delivery_person" class="meta-control delivery-person-input" placeholder=" ">
                                                 <label>Delivery Person</label>
                                             </div>
                                         </div>
-                                     
-                                    </div>
+
+                                    </div> --}}
                                     <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
                                         <div class="party-meta-field header-mini-field">
                                             <div class="floating-input-wrapper">
@@ -1823,7 +1937,7 @@ textarea.meta-control,
                                 </div>
                                 <div class="input-group invoice-number-group">
                                     <span>Invoice No.</span>
-                                   <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}">
+                                    <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
                                 </div>
                                 <div class="input-group date-wrapper invoice-date-group">
                                     <span>Invoice Date</span>
@@ -1864,10 +1978,9 @@ textarea.meta-control,
                                         <th>TADAAT</th>
                                         <th>GROSS W</th>
                                         <th>NET W</th>
-                                        <th>WEIGHT</th>
-                                        <th>RATE</th>
                                         <th class="custom-size-th">UNIT</th>
-                                        <th>PRICE UNIT</th>
+                                        <th>RATE</th>
+                                        <th>AMOUNT</th>
                                         <th class="col-category d-none">CATEGORY</th>
                                         <th class="col-item-code d-none">ITEM CODE</th>
                                         <th class="col-description d-none">DESCRIPTION</th>
@@ -1944,8 +2057,6 @@ textarea.meta-control,
                                         <td><input type="number" class="item-qty tadaat-input" value="1"></td>
                                         <td><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
                                         <td><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
-                                        <td><input type="number" class="item-bag_weight" readonly></td>
-                                        <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
                                         <td class="custom-size-td">
                                             <select class="item-unit">
                                                 <option value="">Select Unit</option>
@@ -1965,7 +2076,8 @@ textarea.meta-control,
                                                 <option value="ML">Milliliter</option>
                                             </select>
                                         </td>
-                                        <td><input type="number" class="item-price-unit" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
+                                        <td><input type="number" class="item-amount" value="0" min="0" step="0.01" readonly></td>
                                         <td class="col-category d-none">
                                             <select class="item-category">
                                                 <option value="">Select Category</option>
@@ -1982,24 +2094,41 @@ textarea.meta-control,
                                                 <input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount">
                                             </div>
                                         </td>
-                                        <td class="d-none"><input type="number" class="item-amount" value="0"></td>
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
+                                <tfoot>
+                                    <tr class="item-totals-row">
+                                        <td colspan="2" class="tfoot-add-row-cell">
+                                            <button type="button" class="btn-add-row add-row-btn">ADD ROW</button>
+                                        </td>
+                                        <td></td>
+                                        <td>
+                                            <span class="column-total-label">Total Tadaat</span>
+                                            <span class="column-total-value total-qty">0</span>
+                                        </td>
+                                        <td>
+                                            <span class="column-total-label">Total Gross W</span>
+                                            <span class="column-total-value total-gross-w">0.00</span>
+                                        </td>
+                                        <td>
+                                            <span class="column-total-label">Total Net W</span>
+                                            <span class="column-total-value total-net-w">0.00</span>
+                                        </td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>
+                                            <span class="column-total-label">Total</span>
+                                            <span class="column-total-value total-base-amount">0.00</span>
+                                        </td>
+                                        <td class="col-category d-none"></td>
+                                        <td class="col-item-code d-none"></td>
+                                        <td class="col-description d-none"></td>
+                                        <td class="col-discount d-none"></td>
+                                        <td class="add-col"></td>
+                                    </tr>
+                                </tfoot>
                             </table>
-                            <div class="table-footer">
-                                <button type="button" class="btn-add-row add-row-btn">ADD ROW</button>
-                                <div class="footer-totals">
-                                    <div>
-                                        <span class="total-label">TOTAL QTY</span>
-                                        <span class="total-qty">0</span>
-                                    </div>
-                                    <div>
-                                        <span class="total-label">TOTAL AMOUNT</span>
-                                        <span class="total-base-amount">0</span>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Bottom Split Section -->
@@ -2015,13 +2144,15 @@ textarea.meta-control,
                                         <select class="input-control default-payment-type">
                                             <option value="">Select Payment Type</option>
                                             <option value="cash" selected>Cash</option>
+                                            <option value="cheques">Cheques</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
                                             <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
+                                                                                <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
+
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
-                                        <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
                                     </div>
 
                                     <div class="payment-entries">
@@ -2045,13 +2176,15 @@ textarea.meta-control,
                                          <select class="input-control payment-type-entry">
                                               <option value="">Select Bank Account</option>
                                               <option value="cash" selected>Cash</option>
+                                              <option value="cheques">Cheques</option>
                                               @foreach($bankAccounts as $bank)
                                                   <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                               @endforeach
                                               <option value="add_new_bank">+ Add Bank Account</option>
                                           </select>
+                                                                                  <input type="text" class="input-control payment-reference" placeholder="Reference">
+
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
-                                        <input type="text" class="input-control payment-reference" placeholder="Reference">
                                         <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
@@ -2091,18 +2224,8 @@ textarea.meta-control,
                                     </div>
 
                                     <div class="description-side-fields compact-side-fields" style="margin-left:110px; margin-top:10px;">
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="party_no" class="meta-control party-no-input" placeholder=" ">
-                                                <label>Party/Broker</label>
-                                            </div>
-                                        </div>
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="city" class="meta-control city-input" placeholder=" ">
-                                                <label>City</label>
-                                            </div>
-                                        </div>
+                                      
+                                        
                                         <div class="party-meta-field">
                                             <div class="floating-input-wrapper">
                                                 <input type="text" name="goods_name" class="meta-control goods-name-input" placeholder=" ">
@@ -2141,15 +2264,16 @@ textarea.meta-control,
 
                             <!-- Right Column -->
                             <div class="bottom-right">
-                                <div class="calc-row broker-calc-row">
+                                <div class="calc-row broker-calc-row d-none legacy-broker-calc-row">
                                     <div class="calc-label">Broker</div>
                                     <div class="calc-inputs broker-calc-inputs">
                                         <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 260px; max-width: 100%;">
-                                            <input type="text" class="form-control broker-search-input w-100" placeholder="Search or select broker..." id="brokerDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
+                                            <input type="text" class="form-control broker-search-input w-100" placeholder="Broker" id="brokerDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
                                             <div class="broker-selected-info">
                                                 <div class="broker-selected-name"></div>
                                                 <div class="broker-selected-phone"></div>
                                             </div>
+
                                             <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
                                                 @foreach($brokers as $broker)
                                                 <li>
@@ -2163,10 +2287,9 @@ textarea.meta-control,
                                                     </a>
                                                 </li>
                                                 @endforeach
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item text-primary" href="#" id="addNewBrokerBtn">+ Add New Broker</a></li>
-                                            </ul>
+                                               </ul>
                                         </div>
+                                        <button type="button" class="broker-inline-add-btn open-broker-modal-btn">+ Broker</button>
                                         <div class="brokerage-inputs">
                                         <select class="brokerage-type">
                                             <option value="">Condition</option>
@@ -2174,6 +2297,7 @@ textarea.meta-control,
                                             <option value="full">Poori Brokerage (0.45%)</option>
                                             <option value="half">Aadhi Brokerage (0.225%)</option>
                                             <option value="custom_pct">Custom %</option>
+                                            <option value="fixed_rs">Rs</option>
                                             <option value="per_kg">Per KG (Safi Wazan)</option>
                                         </select>
                                         <input type="number" class="brokerage-rate" min="0" step="0.01" placeholder="Value">
@@ -2212,7 +2336,7 @@ textarea.meta-control,
                                 </div>
 
                                 <!-- Summary Expense Grid -->
-                     
+
 
                                 <div class="custom-expense-section">
                                     <div class="custom-expense-rows"></div>
@@ -2259,15 +2383,23 @@ textarea.meta-control,
                                         <span class="editable-expense-label custom-expense-heading" contenteditable="true" spellcheck="false">New Row</span>
                                     </div>
                                     <div class="calc-inputs custom-expense-inputs">
-                                        <select class="mini-input custom-expense-operator">
-                                            <option value="+">+</option>
-                                            <option value="-">-</option>
-                                        </select>
-                                        <select class="mini-input custom-expense-unit">
-                                            <option value="rs">Rs</option>
-                                            <option value="pct">%</option>
-                                        </select>
-                                        <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="0">
+                                        <div class="custom-expense-mode-group" role="group" aria-label="Adjustment mode">
+                                            <button type="button" class="custom-mode-btn" data-mode="-">-</button>
+                                            <button type="button" class="custom-mode-btn is-active" data-mode="+">+</button>
+                                            <button type="button" class="custom-mode-btn" data-mode="S">S</button>
+                                        </div>
+                                        <div class="broker-dropdown-wrapper dropdown custom-expense-account-wrap" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 190px; max-width: 100%;">
+                                            <input type="text" class="form-control custom-expense-account-input w-100" placeholder="Party / Broker / Item" data-bs-toggle="dropdown" autocomplete="off">
+                                            <ul class="dropdown-menu w-100 ledger-account-menu"></ul>
+                                        </div>
+                                        <input type="text" class="mini-input custom-expense-details" value="" placeholder="Tafseel">
+                                        <input type="number" class="mini-input custom-expense-pct" value="" min="0" step="0.01" placeholder="%">
+                                        <span class="text-muted small">-</span>
+                                        <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="Amt">
+                                        <input type="hidden" class="custom-expense-mode" value="+">
+                                        <input type="hidden" class="custom-expense-account-type" value="">
+                                        <input type="hidden" class="custom-expense-account-id" value="">
+                                        <input type="hidden" class="custom-expense-account-phone" value="">
                                         <button type="button" class="remove-custom-expense-row" title="Remove">
                                             <i class="fa-solid fa-xmark"></i>
                                         </button>
@@ -2546,7 +2678,6 @@ textarea.meta-control,
 
     window.saleStoreUrl = "{{ route('sale.store') }}";
     window.saleMethod = 'POST';
-    window.nextInvoiceNumber = "{{ $nextInvoiceNumber ?? '' }}";
 
     // Default values
     window.editSaleData = null;
@@ -2556,7 +2687,7 @@ textarea.meta-control,
     window.sourceProformaId = null;
 
     // Optional doc type (avoid JS error)
-window.docType = "delivery_challan";
+   window.docType = "delivery_challan";
 
     @if(isset($sale))
         // Edit mode
@@ -2916,7 +3047,7 @@ window.docType = "delivery_challan";
 
         function initializeEditableHeaders() {
             const tableHeaders = document.querySelectorAll('.item-table th');
-            const storageKey = 'itemTableHeaders_' + (window.docType || 'invoice');
+            const storageKey = 'itemTableHeaders';
             const defaultHeaders = {};
 
             // Build default headers and add editable class
@@ -2951,14 +3082,14 @@ window.docType = "delivery_challan";
         }
 
         function saveHeaderToStorage(index, text) {
-            const storageKey = 'itemTableHeaders_' + (window.docType || 'invoice');
+            const storageKey = 'itemTableHeaders';
             let savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
             savedHeaders[index] = text;
             localStorage.setItem(storageKey, JSON.stringify(savedHeaders));
         }
 
         function loadSavedHeaders() {
-            const storageKey = 'itemTableHeaders_' + (window.docType || 'invoice');
+            const storageKey = 'itemTableHeaders';
             const savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
 
             const tableHeaders = document.querySelectorAll('.item-table th.editable-header');
@@ -3841,7 +3972,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     const optionHtml = `
                       <li>
-                        <a class="dropdown-item d-flex justify-content-between party-option"
+                        <a class="dropdown-item d-flex justify-content-between align-items-start party-option"
                            href="#"
                            data-id="${partyRecord.id}"
                            data-name="${partyRecord.name}"
@@ -3861,7 +3992,10 @@ document.addEventListener("DOMContentLoaded", function () {
                            data-credit-limit-enabled="${partyRecord.credit_limit_enabled || 0}"
                            data-credit-limit-amount="${partyRecord.credit_limit_amount || ''}"
                            data-custom-fields="${String(JSON.stringify(partyRecord.custom_fields || [])).replace(/"/g, '&quot;')}">
-                            <span>${partyRecord.name}</span>
+                            <span class="party-option-main">
+                                <span class="party-option-name">${partyRecord.name}</span>
+                                <span class="party-option-phone">${partyRecord.phone || '-'}</span>
+                            </span>
                             <span class="text-success">0</span>
                         </a>
                       </li>
@@ -3983,59 +4117,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const addModal = new bootstrap.Modal(addModalEl);
     const brokerModal = brokerModalEl ? new bootstrap.Modal(brokerModalEl) : null;
-// Live filter party dropdown by name OR phone number
-dropdownBtn.addEventListener('input', function () {
-        const searchText = String(this.value || '').trim().toLowerCase();
 
-        // Auto-open dropdown when user types
-        if (searchText && !dropdownMenu.classList.contains('show')) {
-            const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(dropdownBtn);
-            bsDropdown.show();
-        }
-
-        const options = Array.from(dropdownMenu.querySelectorAll('li > .party-option'));
-        let anyVisible = false;
-
-        options.forEach(option => {
-            const partyName = String(option.dataset.name || '').trim().toLowerCase();
-            const partyPhone = String(option.dataset.phone || '').trim().toLowerCase();
-            const partyPhone2 = String(option.dataset.phoneNumber2 || '').trim().toLowerCase();
-            const shouldShow = !searchText ||
-                partyName.includes(searchText) ||
-                partyPhone.includes(searchText) ||
-                partyPhone2.includes(searchText);
-            const listItem = option.closest('li');
-            if (listItem) listItem.style.display = shouldShow ? '' : 'none';
-            if (shouldShow) anyVisible = true;
-        });
-
-        const header = dropdownMenu.querySelector('.dropdown-header');
-        if (header) header.closest('li').style.display = (anyVisible || !searchText) ? '' : 'none';
-        partyNoResultsItem.classList.toggle('d-none', anyVisible || !searchText);
-    });
-}
-        let anyVisible = false;
-
-        options.forEach(option => {
-            const partyName = String(option.dataset.name || '').trim().toLowerCase();
-            const partyPhone = String(option.dataset.phone || '').trim().toLowerCase();
-            const partyPhone2 = String(option.dataset.phoneNumber2 || '').trim().toLowerCase();
-            const shouldShow = !searchText ||
-                partyName.includes(searchText) ||
-                partyPhone.includes(searchText) ||
-                partyPhone2.includes(searchText);
-            const listItem = option.closest('li');
-            if (listItem) listItem.style.display = shouldShow ? '' : 'none';
-            if (shouldShow) anyVisible = true;
-        });
-
-        const header = dropdownMenu.querySelector('.dropdown-header');
-        if (header) header.closest('li').style.display = (anyVisible || !searchText) ? '' : 'none';
-        partyNoResultsItem.classList.toggle('d-none', anyVisible || !searchText);
-    });
-}
     const partySearchInput = dropdownBtn;
     if (partySearchInput) {
+        refreshPartyDropdownMenu();
         partySearchInput.addEventListener('keydown', function (e) {
             if (e.key !== 'Enter') {
                 return;
@@ -4050,7 +4135,7 @@ dropdownBtn.addEventListener('input', function () {
 
             const options = Array.from(dropdownMenu.querySelectorAll('.party-option'));
             const exactOption = options.find(opt => {
-                const name = String(opt.querySelector('span:first-child')?.textContent || '').trim().toLowerCase();
+                const name = String(opt.dataset.name || opt.querySelector('.party-option-name')?.textContent || '').trim().toLowerCase();
                 return name === searchTerm.toLowerCase();
             });
 
@@ -4069,6 +4154,7 @@ dropdownBtn.addEventListener('input', function () {
     }
 
     if (brokerSearchInput && brokerDropdownMenu) {
+        refreshBrokerDropdownMenus();
         let brokerNoResultsItem = brokerDropdownMenu.querySelector('.broker-no-results');
         if (!brokerNoResultsItem) {
             brokerNoResultsItem = document.createElement('li');
@@ -4136,6 +4222,99 @@ dropdownBtn.addEventListener('input', function () {
             field.value = value;
         }
     };
+
+    function buildBrokerOptionMarkup(broker) {
+        return `
+        <li>
+            <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
+               data-id="${broker.id || ''}"
+               data-phone="${broker.phone || ''}"
+               data-name="${broker.name || ''}"
+               data-commission-rate="${broker.commission_rate || 0}">
+                <div class="broker-option-name">${broker.name || ''}</div>
+                <div class="broker-option-city text-muted small">${broker.city || '-'}</div>
+            </a>
+        </li>
+    `;
+    }
+
+    function refreshBrokerDropdownMenus() {
+        const brokers = Array.isArray(window.brokers) ? window.brokers : [];
+        const parties = Array.isArray(window.parties) ? window.parties : [];
+        document.querySelectorAll('#brokerDropdownMenu, .broker-dropdown-menu').forEach((menu) => {
+            const brokersMarkup = brokers.map(buildBrokerOptionMarkup).join('');
+            const partiesMarkup = parties.map((party) => `
+                <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center broker-option broker-party-option" href="#"
+                       data-id=""
+                       data-phone="${party.phone || ''}"
+                       data-name="${party.name || ''}"
+                       data-commission-rate="0">
+                        <div class="broker-option-name">${party.name || ''}</div>
+                        <div class="broker-option-city text-muted small">Party</div>
+                    </a>
+                </li>
+            `).join('');
+            const addNewMarkup = `
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-primary add-new-broker-option" href="#">+ Add New Broker</a></li>
+            `;
+            const partySection = partiesMarkup ? `<li><hr class="dropdown-divider"></li>${partiesMarkup}` : '';
+            menu.innerHTML = `${brokersMarkup}${partySection}${addNewMarkup}`;
+        });
+    }
+
+    function refreshPartyDropdownMenu() {
+        const menu = document.getElementById('partyDropdownMenu');
+        if (!menu) return;
+
+        const parties = Array.isArray(window.parties) ? window.parties : [];
+        const partyOptions = parties.map((party) => `
+            <li>
+                <a class="dropdown-item d-flex justify-content-between align-items-start party-option"
+                   href="#"
+                   data-id="${party.id || ''}"
+                   data-name="${party.name || ''}"
+                   data-phone="${party.phone || ''}"
+                   data-phone-number-2="${party.phone_number_2 || ''}"
+                   data-city="${party.city || ''}"
+                   data-ptcl="${party.ptcl_number || ''}"
+                   data-email="${party.email || ''}"
+                   data-address="${String(party.address || '').replace(/"/g, '&quot;')}"
+                   data-billing="${String(party.billing_address || '').replace(/"/g, '&quot;')}"
+                   data-shipping="${String(party.shipping_address || '').replace(/"/g, '&quot;')}"
+                   data-party-group="${party.party_group || ''}"
+                   data-due-days="${party.due_days || ''}"
+                   data-opening="${party.opening_balance || 0}"
+                   data-type="${party.transaction_type || ''}">
+                    <span class="party-option-main">
+                        <span class="party-option-name">${party.name || ''}</span>
+                        <span class="party-option-phone">${party.phone || ''}</span>
+                    </span>
+                    <span class="${party.transaction_type === 'pay' ? 'text-danger' : 'text-success'}">
+                        ${party.transaction_type === 'pay' ? '<i class="fa-solid fa-arrow-up me-1"></i>' : '<i class="fa-solid fa-arrow-down me-1"></i>'}
+                        Rs ${Number(party.opening_balance || 0).toFixed(2)}
+                    </span>
+                </a>
+            </li>
+        `).join('');
+
+        const footer = `
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
+        `;
+
+        menu.innerHTML = `${partyOptions}${footer}`;
+    }
+
+    function openBrokerModalForm() {
+        brokerForm?.reset();
+        const brokerStatusField = document.getElementById('brokerStatus');
+        if (brokerStatusField) brokerStatusField.checked = true;
+        const remainingField = document.getElementById('brokerRemainingBrokerage');
+        if (remainingField) remainingField.value = '0.00';
+        if (brokerModal) brokerModal.show();
+    }
 
     const warehouseSelect = document.querySelector('.warehouse-select');
     const deliveryPersonInput = document.querySelector('.delivery-person-input');
@@ -4323,7 +4502,7 @@ dropdownBtn.addEventListener('input', function () {
         if(e.target.closest(".party-option")) {
             e.preventDefault();
             const option = e.target.closest(".party-option");
-           const name = option.dataset.name || option.querySelector(".party-option-name")?.textContent || '';
+            const name = option.dataset.name || option.querySelector(".party-option-name")?.textContent || '';
             let opening = parseFloat(option.dataset.opening) || 0;
             const type = option.dataset.type;
             const id = option.dataset.id;
@@ -4404,21 +4583,19 @@ else {
         dropdownBtn?.focus();
     });
 
-    brokerDropdownMenu?.addEventListener("click", function(e) {
-        if (e.target.closest("#addNewBrokerBtn")) {
-            e.preventDefault();
-            brokerForm?.reset();
-            if (brokerModal) {
-                brokerModal.show();
-            }
-            return;
+    document.addEventListener('click', function (event) {
+        if (event.target.closest('.add-new-broker-option')) {
+            event.preventDefault();
+            openBrokerModalForm();
         }
+    });
 
+    brokerDropdownMenu?.addEventListener("click", function(e) {
         if (!e.target.closest(".broker-option")) return;
 
         e.preventDefault();
         const option = e.target.closest(".broker-option");
-        const name = option.dataset.name || option.querySelector("span:first-child").textContent;
+        const name = option.dataset.name || option.querySelector(".party-option-name")?.textContent || '';
         const phone = option.dataset.phone || "";
         const id = option.dataset.id || "";
         const commissionRate = parseFloat(option.dataset.commissionRate || 0) || 0;
@@ -4471,30 +4648,11 @@ else {
             window.brokers = Array.isArray(window.brokers) ? window.brokers : [];
             window.brokers = window.brokers.filter(entry => String(entry.id) !== String(broker.id));
             window.brokers.unshift(broker);
-
-            const brokerHtml = `
-                <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center broker-option" href="#"
-                       data-id="${broker.id}"
-                       data-phone="${broker.phone || ''}"
-                       data-name="${broker.name || ''}"
-                       data-commission-rate="${broker.commission_rate || 0}">
-                        <div class="broker-option-name">${broker.name || ''}</div>
-                        <div class="broker-option-city text-muted small">${broker.city || '-'}</div>
-                    </a>
-                </li>
-            `;
-
-            const addBrokerItem = brokerDropdownMenu.querySelector('#addNewBrokerBtn')?.closest('li');
-            const divider = addBrokerItem?.previousElementSibling;
-            if (divider) {
-                divider.insertAdjacentHTML('beforebegin', brokerHtml);
-            } else {
-                brokerDropdownMenu.insertAdjacentHTML('beforeend', brokerHtml);
-            }
+            refreshBrokerDropdownMenus();
+            refreshPartyDropdownMenu();
 
             if (brokerDropdownBtn) {
-                brokerDropdownBtn.value = broker.name || 'Select Broker';
+                brokerDropdownBtn.value = broker.name || 'Broker';
             }
             if (brokerSelectedName) {
                 brokerSelectedName.textContent = broker.name || '';
