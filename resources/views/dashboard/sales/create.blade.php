@@ -4061,12 +4061,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     balanceDisplay.className = partyRecord.transaction_type === 'pay' ? 'text-danger small' : 'text-success small';
                 }
 
-                document.querySelector(".phone-input").value = partyRecord.phone || "";
-                document.querySelector(".city-input").value = partyRecord.city || "";
-                document.querySelector(".ptcl-input").value = partyRecord.ptcl_number || "";
-                document.querySelector(".address-input").value = partyRecord.address || "";
-                document.querySelector(".billing-address").value = partyRecord.billing_address || "";
-                document.querySelector(".shipping-address").value = partyRecord.shipping_address || "";
+              const qs = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = val; };
+
+qs(".phone-input", partyRecord.phone || "");
+qs(".billing-address", partyRecord.billing_address || "");
+qs(".shipping-address", partyRecord.shipping_address || "");
                 applyPartyDueDays(partyRecord);
             }
 

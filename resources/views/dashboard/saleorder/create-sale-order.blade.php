@@ -3979,19 +3979,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     balanceDisplay.className = partyRecord.transaction_type === 'pay' ? 'text-danger small' : 'text-success small';
                 }
 
-                const phoneInput = document.querySelector(".phone-input");
-                const cityInput = document.querySelector(".city-input");
-                const ptclInput = document.querySelector(".ptcl-input");
-                const addressInput = document.querySelector(".address-input");
-                const billingAddressInput = document.querySelector(".billing-address");
-                const shippingAddressInput = document.querySelector(".shipping-address");
-
-                if (phoneInput) phoneInput.value = partyRecord.phone || "";
-                if (cityInput) cityInput.value = partyRecord.city || "";
-                if (ptclInput) ptclInput.value = partyRecord.ptcl_number || "";
-                if (addressInput) addressInput.value = partyRecord.address || "";
-                if (billingAddressInput) billingAddressInput.value = partyRecord.billing_address || "";
-                if (shippingAddressInput) shippingAddressInput.value = partyRecord.shipping_address || "";
+                const qs = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = val; };
+qs(".phone-input", partyRecord.phone || "");
+qs(".billing-address", partyRecord.billing_address || "");
+qs(".shipping-address", partyRecord.shipping_address || "");
                 applyPartyDueDays(partyRecord);
             }
 
