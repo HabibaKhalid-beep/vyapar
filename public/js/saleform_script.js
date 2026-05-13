@@ -709,16 +709,19 @@ function initializeForm(context) {
 
     $ctx.find('.default-payment-direction').val(defaultPaymentDirection);
 
+    function getDueDateBaseValue() {
+        return $ctx.find('.invoice-date').val() || $ctx.find('.order-date').val() || '';
+    }
+
     function updateDueDateFromSelection() {
         const $dueSelect = $ctx.find('.due-days-select');
         const $customInput = $ctx.find('.due-days-custom');
-        const $orderDate = $ctx.find('.order-date');
         const $dueDate = $ctx.find('.due-date');
 
-        if (!$dueSelect.length || !$orderDate.length || !$dueDate.length) return;
+        if (!$dueSelect.length || !$dueDate.length) return;
 
         const selectedValue = $dueSelect.val();
-        const orderDateValue = $orderDate.val();
+        const baseDateValue = getDueDateBaseValue();
 
         if (selectedValue === 'custom') {
             $customInput.removeClass('d-none').focus();
@@ -730,9 +733,9 @@ function initializeForm(context) {
             ? parseInt($customInput.val() || 0, 10)
             : parseInt(selectedValue || 0, 10);
 
-        if (!orderDateValue) return;
+        if (!baseDateValue) return;
 
-        const baseDate = new Date(orderDateValue);
+        const baseDate = new Date(baseDateValue);
         if (Number.isNaN(baseDate.getTime())) return;
 
         const dueDate = new Date(baseDate);
@@ -3090,9 +3093,7 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
     $ctx.on('input', '.due-days-custom', updateDueDateFromSelection);
     $ctx.on('change', '.invoice-date', function() {
         const invoiceDateValue = $(this).val();
-        if (!$ctx.find('.order-date').val()) {
-            $ctx.find('.order-date').val(invoiceDateValue);
-        }
+        $ctx.find('.order-date').val(invoiceDateValue);
         updateDueDateFromSelection();
     });
     $ctx.on('change', '.order-date', updateDueDateFromSelection);

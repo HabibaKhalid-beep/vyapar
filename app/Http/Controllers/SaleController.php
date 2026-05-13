@@ -2073,7 +2073,61 @@ private function posData(): array
 
             $transaction->adjustments()->create($payload);
 
-            if ($row['mode'] !== 'S' || $row['amount'] <= 0 || $row['account_type'] !== 'party' || empty($row['account_id'])) {
+            if ($row['mode'] === '-' && $row['amount'] > 0 && $row['account_type'] === 'broker' && !empty($row['account_id'])) {
+                $brokerLabel = $row['account_name'] ?: ('Broker #' . $row['account_id']);
+                $detailsSuffix = $row['details'] ? ' - ' . $row['details'] : '';
+
+                Transaction::create([
+                    'party_id' => $sale->party_id,
+                    'type' => 'party to party[paid]',
+                    'number' => 'BR-DED-' . ($sale->bill_number ?: $sale->id) . '-' . str_pad((string) ($row['sort_order'] + 1), 2, '0', STR_PAD_LEFT),
+                    'transfer_group' => $this->saleLedgerTransferGroup($sale),
+                    'date' => $sale->invoice_date ?? now(),
+                    'total' => $row['amount'],
+                    'debit' => 0,
+                    'credit' => $row['amount'],
+                    'paid_amount' => 0,
+                    'balance' => floatval($sale->balance ?? 0),
+                    'running_balance' => 0,
+                    'due_date' => $sale->due_date,
+                    'status' => 'posted',
+                    'broker_id' => $row['account_id'],
+                    'description' => 'Brokerage deducted and paid to ' . $brokerLabel . ' against Invoice #' . ($sale->bill_number ?: $sale->id) . $detailsSuffix,
+                ]);
+
+                continue;
+            }
+
+            if ($row['mode'] !== 'S' || $row['amount'] <= 0) {
+                continue;
+            }
+
+            if ($row['account_type'] === 'broker' && !empty($row['account_id'])) {
+                $brokerLabel = $row['account_name'] ?: ('Broker #' . $row['account_id']);
+                $detailsSuffix = $row['details'] ? ' - ' . $row['details'] : '';
+
+                Transaction::create([
+                    'party_id' => $sale->party_id,
+                    'type' => 'party to party[paid]',
+                    'number' => 'S-BR-' . ($sale->bill_number ?: $sale->id) . '-' . str_pad((string) ($row['sort_order'] + 1), 2, '0', STR_PAD_LEFT),
+                    'transfer_group' => $this->saleLedgerTransferGroup($sale),
+                    'date' => $sale->invoice_date ?? now(),
+                    'total' => $row['amount'],
+                    'debit' => 0,
+                    'credit' => $row['amount'],
+                    'paid_amount' => 0,
+                    'balance' => floatval($sale->balance ?? 0),
+                    'running_balance' => 0,
+                    'due_date' => $sale->due_date,
+                    'status' => 'posted',
+                    'broker_id' => $row['account_id'],
+                    'description' => $row['title'] . ' transferred to ' . $brokerLabel . ' against Invoice #' . ($sale->bill_number ?: $sale->id) . $detailsSuffix,
+                ]);
+
+                continue;
+            }
+
+            if ($row['account_type'] !== 'party' || empty($row['account_id'])) {
                 continue;
             }
 

@@ -789,7 +789,6 @@ public function transactions(Party $party)
         });
 
     $manualLedgerTransactions = $party->transactions
-        ->whereNull('transfer_group')
         ->reject(function ($txn) {
             return in_array(strtolower((string) $txn->type), ['sale', 'sale_return', 'purchase', 'purchase_return', 'payment_in', 'payment_out'], true);
         })

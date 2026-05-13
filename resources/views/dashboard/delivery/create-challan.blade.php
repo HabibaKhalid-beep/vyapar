@@ -3848,13 +3848,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const dealDaysSelect = document.querySelector(".due-days-select");
     const dealDaysCustomInput = document.querySelector(".due-days-custom");
     const dueDateInput = document.querySelector(".due-date");
-    const orderDateInput = document.querySelector(".order-date");
-    if (!dealDaysSelect || !dueDateInput || !orderDateInput) {
+    const baseDateInput = document.querySelector(".invoice-date") || document.querySelector(".order-date");
+    if (!dealDaysSelect || !dueDateInput || !baseDateInput) {
         return;
     }
 
     const dueDays = Number(partyRecord.due_days || 0);
-    const orderDateValue = orderDateInput.value;
+    const baseDateValue = baseDateInput.value;
     const allowedDays = ['0', '5', '10', '15', '30', '45'];
 
     if (dueDays > 0) {
@@ -3873,16 +3873,18 @@ document.addEventListener("DOMContentLoaded", function () {
         if (dealDaysCustomInput) dealDaysCustomInput.value = '';
     }
 
-    if (!orderDateValue || dueDays <= 0) {
+    if (!baseDateValue) {
         return;
     }
 
-    const dueDate = new Date(orderDateValue);
+    const dueDate = new Date(baseDateValue);
     if (Number.isNaN(dueDate.getTime())) {
         return;
     }
 
-    dueDate.setDate(dueDate.getDate() + dueDays);
+    if (dueDays > 0) {
+        dueDate.setDate(dueDate.getDate() + dueDays);
+    }
     const yyyy = dueDate.getFullYear();
     const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
     const dd = String(dueDate.getDate()).padStart(2, '0');
@@ -4463,11 +4465,11 @@ document.addEventListener("DOMContentLoaded", function() {
         const dealDaysSelect = document.querySelector(".due-days-select");
         const dealDaysCustomInput = document.querySelector(".due-days-custom");
         const dueDateInput = document.querySelector(".due-date");
-        const orderDateInput = document.querySelector(".order-date");
-        if (!dueDateInput || !orderDateInput || !dealDaysSelect) return;
+        const baseDateInput = document.querySelector(".invoice-date") || document.querySelector(".order-date");
+        if (!dueDateInput || !baseDateInput || !dealDaysSelect) return;
 
         const dueDays = Number(partyRecord.due_days || partyRecord.dueDays || 0);
-        const orderDateValue = orderDateInput.value;
+        const baseDateValue = baseDateInput.value;
 
         if (dueDays > 0) {
             const allowedDays = ['0', '5', '10', '15', '30', '45'];
@@ -4486,14 +4488,16 @@ document.addEventListener("DOMContentLoaded", function() {
             if (dealDaysCustomInput) dealDaysCustomInput.value = '';
         }
 
-        if (!orderDateValue) {
+        if (!baseDateValue) {
             return;
         }
 
-        const dueDate = new Date(orderDateValue);
+        const dueDate = new Date(baseDateValue);
         if (Number.isNaN(dueDate.getTime())) return;
 
-        dueDate.setDate(dueDate.getDate() + dueDays);
+        if (dueDays > 0) {
+            dueDate.setDate(dueDate.getDate() + dueDays);
+        }
         const yyyy = dueDate.getFullYear();
         const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
         const dd = String(dueDate.getDate()).padStart(2, '0');

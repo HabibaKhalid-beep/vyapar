@@ -2358,6 +2358,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const partyFilterDropdown = document.getElementById("filterDropdown");
     const partyFilterApply = document.getElementById("partyFilterApply");
     const partyFilterClear = document.getElementById("partyFilterClear");
+    const partySearchInput = document.getElementById("partySearchInput");
     const partyFilterInputs = partyFilterDropdown
         ? Array.from(partyFilterDropdown.querySelectorAll('input[data-party-filter]'))
         : [];
@@ -2379,23 +2380,29 @@ document.addEventListener("DOMContentLoaded", function () {
     function applyPartyFilters() {
         if (!partyList) return;
         const selectedFilters = getSelectedPartyFilters();
+        const query = (partySearchInput?.value || '').trim().toLowerCase();
         const partyItems = Array.from(partyList.querySelectorAll('.party-item'));
         let firstVisible = null;
 
         partyItems.forEach(li => {
             const balance = parseBalance(li.dataset.currentBalance);
             const transactionType = String(li.dataset.transactionType || '').toLowerCase();
+            const name = String(li.dataset.name || '').toLowerCase();
+            const phone = String(li.dataset.phone || '').toLowerCase();
             const isActive = Math.abs(balance) > 0.0001;
             const isReceive = balance > 0 || transactionType === 'receive';
             const isPay = balance < 0 || transactionType === 'pay';
+            const matchesSearch = !query || name.includes(query) || phone.includes(query);
 
-            const shouldShow = selectedFilters.includes('all') || selectedFilters.some(filter => {
+            const matchesFilter = selectedFilters.includes('all') || selectedFilters.some(filter => {
                 if (filter === 'active') return isActive;
                 if (filter === 'inactive') return !isActive;
                 if (filter === 'receive') return isReceive;
                 if (filter === 'pay') return isPay;
                 return false;
             });
+
+            const shouldShow = matchesSearch && matchesFilter;
 
             li.style.display = shouldShow ? '' : 'none';
             if (shouldShow && !firstVisible) {
@@ -2470,6 +2477,10 @@ document.addEventListener("DOMContentLoaded", function () {
             if (partyFilterDropdown) partyFilterDropdown.style.display = 'none';
         });
     }
+
+    partySearchInput?.addEventListener('input', function () {
+        applyPartyFilters();
+    });
 
     document.querySelectorAll('[data-transfer-toggle]').forEach((toggle) => {
         toggle.addEventListener('click', function (event) {

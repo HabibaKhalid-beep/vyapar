@@ -71,15 +71,11 @@ class Party extends Model
             $signedOpeningBalance *= -1;
         }
 
-        $salesReceivedAmount = $this->relationLoaded('sales')
-            ? (float) $this->sales
-                ->whereIn('type', ['invoice', 'pos'])
-                ->sum(fn ($sale) => (float) ($sale->received_amount ?? 0))
-            : (float) $this->sales()
-                ->whereIn('type', ['invoice', 'pos'])
-                ->sum('received_amount');
+        $ledgerNet = $this->relationLoaded('transactions')
+            ? (float) $this->transactions->sum(fn ($transaction) => (float) $transaction->ledgerEffectValue())
+            : (float) $this->transactions()->get()->sum(fn ($transaction) => (float) $transaction->ledgerEffectValue());
 
-        return $signedOpeningBalance + $salesReceivedAmount;
+        return $signedOpeningBalance + $ledgerNet;
     }
 
     public function getFormattedCurrentBalanceAttribute()

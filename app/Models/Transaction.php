@@ -125,15 +125,10 @@ class Transaction extends Model
                 $signedOpeningBalance *= -1;
             }
 
-            $salesReceivedAmount = (float) Sale::query()
-                ->where('party_id', $partyId)
-                ->whereIn('type', ['invoice', 'pos'])
-                ->sum('received_amount');
-
-            $latestPartyBalance = $signedOpeningBalance + $salesReceivedAmount;
+            $latestPartyBalance = $signedOpeningBalance + $ledgerRunningBalance;
 
             Party::whereKey($partyId)->update([
-                'current_balance' => $latestPartyBalance,
+                'current_balance' => static::normalizeLedgerAmount($latestPartyBalance),
             ]);
         } finally {
             static::$isSyncingPartyBalance = false;
