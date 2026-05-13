@@ -25,6 +25,9 @@
 <style>
     /* Force card inputs to be visibly editable */
 #pscPhone,
+#pscPhoneTwo,
+#pscPtcl,
+#pscAddress,
 #pscBilling,
 #pscShipping {
     display: block !important;
@@ -41,11 +44,14 @@
     appearance: none;
 }
 
-#pscPhone {
+#pscPhone,
+#pscPhoneTwo,
+#pscPtcl {
     height: 28px !important;
     resize: none !important;
 }
 
+#pscAddress,
 #pscBilling,
 #pscShipping {
     resize: vertical !important;
@@ -53,6 +59,9 @@
 }
 
 #pscPhone:hover,
+#pscPhoneTwo:hover,
+#pscPtcl:hover,
+#pscAddress:hover,
 #pscBilling:hover,
 #pscShipping:hover {
     border-color: #d7e0ea !important;
@@ -60,6 +69,9 @@
 }
 
 #pscPhone:focus,
+#pscPhoneTwo:focus,
+#pscPtcl:focus,
+#pscAddress:focus,
 #pscBilling:focus,
 #pscShipping:focus {
     outline: none !important;
@@ -454,8 +466,10 @@ ul#partyDropdownMenu {
     flex: 0 0 315px;
     max-width: 315px;
     margin-left: 0 !important;
-    margin-top: 0 !important;
+    margin-top: 22px;
+    margin-right:10px;
     padding-top: 0;
+    align-self: flex-start;
 }
 
 .action-fields-layout.meta-stack-layout .party-meta-field {
@@ -1841,6 +1855,7 @@ textarea.meta-control,
     width: 100%;
     box-sizing: border-box;
     position: relative;
+    min-height: 100%;
 }
 
 .party-selected-card.visible {
@@ -1852,7 +1867,7 @@ textarea.meta-control,
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .psc-avatar {
@@ -1876,12 +1891,11 @@ textarea.meta-control,
 }
 
 .psc-name {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     color: #0f172a;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .psc-balance {
@@ -1929,7 +1943,7 @@ textarea.meta-control,
 .psc-divider {
     height: 1px;
     background: #e2e8f0;
-    margin: 0 0 10px;
+    margin: 0 0 8px;
 }
 
 /* Detail rows */
@@ -1946,6 +1960,7 @@ textarea.meta-control,
     font-size: 12px;
     color: #475569;
     line-height: 1.4;
+    padding: 4px 0;
 }
 
 .psc-detail-row i {
@@ -1953,6 +1968,10 @@ textarea.meta-control,
     margin-top: 1px;
     flex-shrink: 0;
     color: #94a3b8;
+}
+
+#togglePartyDetailsBtn {
+    display: none !important;
 }
 
     </style>
@@ -2147,6 +2166,18 @@ textarea.meta-control,
         <i class="fa-solid fa-phone"></i>
        <input type="text" id="pscPhone" class="psc-editable-input" placeholder="Phone number">
     </div>
+    <div class="psc-detail-row" id="pscPhoneTwoRow">
+        <i class="fa-brands fa-whatsapp"></i>
+       <input type="text" id="pscPhoneTwo" class="psc-editable-input" placeholder="Alt phone / WhatsApp">
+    </div>
+    <div class="psc-detail-row" id="pscPtclRow">
+        <i class="fa-solid fa-phone-volume"></i>
+       <input type="text" id="pscPtcl" class="psc-editable-input" placeholder="PTCL / Telephone">
+    </div>
+    <div class="psc-detail-row" id="pscAddressRow">
+        <i class="fa-solid fa-location-dot"></i>
+        <textarea id="pscAddress" class="psc-editable-input" rows="2" placeholder="Address"></textarea>
+    </div>
     <div class="psc-detail-row" id="pscBillingRow">
     <i class="fa-solid fa-file-invoice" style="font-size:14px; margin-top:1px; flex-shrink:0; color:#94a3b8;"></i>
     <textarea id="pscBilling" class="psc-editable-input" rows="2" placeholder="Billing address"></textarea>
@@ -2162,6 +2193,7 @@ textarea.meta-control,
 <input type="hidden" id="hiddenPhone" name="phone">
 <input type="hidden" id="hiddenBilling" name="billing_address">
 <input type="hidden" id="hiddenShipping" name="shipping_address">
+<input type="hidden" id="hiddenAddress" name="address">
                                 </div>
                                 </div>
                                <div class="party-meta-grid billing-name-group">
@@ -5148,9 +5180,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (balanceDisplay) balanceDisplay.textContent = '';
 
         const phoneEl = document.getElementById('pscPhone');
+        const phoneTwoEl = document.getElementById('pscPhoneTwo');
+        const ptclEl = document.getElementById('pscPtcl');
+        const addressEl = document.getElementById('pscAddress');
         const billingEl = document.getElementById('pscBilling');
         const shippingEl = document.getElementById('pscShipping');
         if (phoneEl) phoneEl.value = '';
+        if (phoneTwoEl) phoneTwoEl.value = '';
+        if (ptclEl) ptclEl.value = '';
+        if (addressEl) addressEl.value = '';
         if (billingEl) billingEl.value = '';
         if (shippingEl) shippingEl.value = '';
     }
@@ -5159,6 +5197,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const {
             name = '',
             phone = '',
+            phone_number_2 = '',
+            ptcl_number = '',
+            address = '',
             billing_address = '',
             shipping_address = '',
             opening_balance = 0,
@@ -5198,6 +5239,27 @@ document.addEventListener('DOMContentLoaded', function () {
             phoneRow.style.display = '';
         }
 
+        const phoneTwoEl = document.getElementById('pscPhoneTwo');
+        const phoneTwoRow = document.getElementById('pscPhoneTwoRow');
+        if (phoneTwoEl && phoneTwoRow) {
+            phoneTwoEl.value = phone_number_2 || '';
+            phoneTwoRow.style.display = phone_number_2 ? '' : 'none';
+        }
+
+        const ptclEl = document.getElementById('pscPtcl');
+        const ptclRow = document.getElementById('pscPtclRow');
+        if (ptclEl && ptclRow) {
+            ptclEl.value = ptcl_number || '';
+            ptclRow.style.display = ptcl_number ? '' : 'none';
+        }
+
+        const addressEl = document.getElementById('pscAddress');
+        const addressRow = document.getElementById('pscAddressRow');
+        if (addressEl && addressRow) {
+            addressEl.value = address || '';
+            addressRow.style.display = address ? '' : 'none';
+        }
+
         const billingEl = document.getElementById('pscBilling');
         const billingRow = document.getElementById('pscBillingRow');
         if (billingEl && billingRow) {
@@ -5232,6 +5294,9 @@ document.addEventListener('DOMContentLoaded', function () {
             showPartyCard({
                 name:             option.dataset.name     || partyRecord.name             || '',
                 phone:            option.dataset.phone    || partyRecord.phone            || '',
+                phone_number_2:   option.dataset.phoneNumber2 || partyRecord.phone_number_2 || '',
+                ptcl_number:      option.dataset.ptcl     || partyRecord.ptcl_number      || '',
+                address:          option.dataset.address  || partyRecord.address          || '',
                 billing_address:  option.dataset.billing  || partyRecord.billing_address  || '',
                 shipping_address: option.dataset.shipping || partyRecord.shipping_address || '',
                 opening_balance:  option.dataset.opening  || partyRecord.opening_balance  || 0,
@@ -5275,6 +5340,7 @@ document.addEventListener('DOMContentLoaded', function () {
     hideOutside();
 
     if (toggleBtn) {
+        toggleBtn.style.display = 'none';
         toggleBtn.addEventListener('click', function () {
             isOpen = !isOpen;
             if (isOpen) {
@@ -5305,6 +5371,17 @@ document.addEventListener('DOMContentLoaded', function () {
             if (option) option.dataset.phone = t.value;
             const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
             if (rec) rec.phone = t.value;
+        }
+    }
+    if (t.id === 'pscAddress') {
+        const hidden = document.getElementById('hiddenAddress');
+        if (hidden) hidden.value = t.value;
+        const currentId = document.querySelector('.party-id')?.value;
+        if (currentId) {
+            const option = document.querySelector(`.party-option[data-id="${currentId}"]`);
+            if (option) option.dataset.address = t.value;
+            const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
+            if (rec) rec.address = t.value;
         }
     }
     if (t.id === 'pscBilling') {
@@ -5338,7 +5415,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // On Enter key in card inputs — save to window.parties + visual feedback
     document.addEventListener('keydown', function (e) {
         const t = e.target;
-        const isCardInput = ['pscPhone', 'pscBilling', 'pscShipping'].includes(t.id);
+        const isCardInput = ['pscPhone', 'pscAddress', 'pscBilling', 'pscShipping'].includes(t.id);
         if (!isCardInput) return;
 
         const isTextarea = t.tagName === 'TEXTAREA';
@@ -5352,7 +5429,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // On blur of card inputs — save to window.parties
     document.addEventListener('blur', function (e) {
         const t = e.target;
-        if (['pscPhone', 'pscBilling', 'pscShipping'].includes(t.id)) {
+        if (['pscPhone', 'pscAddress', 'pscBilling', 'pscShipping'].includes(t.id)) {
             saveToParties(t);
         }
     }, true);
@@ -5360,11 +5437,13 @@ document.addEventListener('DOMContentLoaded', function () {
  function saveToParties(field) {
     const keyMap = {
         pscPhone:    'phone',
+        pscAddress:  'address',
         pscBilling:  'billing_address',
         pscShipping: 'shipping_address'
     };
     const dataAttrMap = {
         pscPhone:    'phone',
+        pscAddress:  'address',
         pscBilling:  'billing',
         pscShipping: 'shipping'
     };
@@ -5419,6 +5498,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Clear both card AND form fields
             const clearPairs = [
                 ['pscPhone',    'input[name="phone"]'],
+                ['pscAddress',  '#hiddenAddress'],
                 ['pscBilling',  'textarea[name="billing_address"]'],
                 ['pscShipping', 'textarea[name="shipping_address"]'],
             ];
