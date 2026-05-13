@@ -101,6 +101,8 @@
         @foreach($brokers as $broker)
           @php
             $remaining = (float) ($broker->remaining_brokerage ?? ($broker->total_brokerage - $broker->paid_brokerage));
+            $brokerSalesTotal = (float) ($broker->broker_sales_total ?? 0);
+            $brokerSummaryTotal = (float) ($broker->total_brokerage ?? 0) + $brokerSalesTotal;
           @endphp
           <li class="broker-item"
               data-id="{{ $broker->id }}"
@@ -111,14 +113,16 @@
               data-commission-type="{{ $broker->commission_type }}"
               data-commission-rate="{{ number_format((float) $broker->commission_rate, 2, '.', '') }}"
               data-total-brokerage="{{ number_format((float) $broker->total_brokerage, 2, '.', '') }}"
+              data-broker-sales-total="{{ number_format($brokerSalesTotal, 2, '.', '') }}"
+              data-broker-summary-total="{{ number_format($brokerSummaryTotal, 2, '.', '') }}"
               data-paid-brokerage="{{ number_format((float) $broker->paid_brokerage, 2, '.', '') }}"
               data-remaining-brokerage="{{ number_format($remaining, 2, '.', '') }}"
               data-notes="{{ $broker->notes }}"
               data-status="{{ $broker->status ? 1 : 0 }}"
               data-search="{{ strtolower(trim($broker->name . ' ' . ($broker->phone ?? '') . ' ' . ($broker->city ?? ''))) }}">
             <span class="entity-name">{{ $broker->name }}</span>
-            <span class="entity-balance {{ $remaining < 0 ? 'negative' : 'positive' }}">
-              Rs {{ number_format($remaining, 2) }}
+            <span class="entity-balance {{ $brokerSalesTotal < 0 ? 'negative' : 'positive' }}">
+              Rs {{ number_format($brokerSalesTotal, 2) }}
             </span>
           </li>
         @endforeach
@@ -177,12 +181,8 @@
           <div class="summary-value" id="brokerTotalSummary">Rs 0.00</div>
         </div>
         <div class="summary-card">
-          <div class="summary-label">Paid Brokerage</div>
-          <div class="summary-value" id="brokerPaidSummary">Rs 0.00</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-label">Remaining Brokerage</div>
-          <div class="summary-value" id="brokerRemainingSummary">Rs 0.00</div>
+          <div class="summary-label">Broker Amount</div>
+          <div class="summary-value" id="brokerAmountSummary">Rs 0.00</div>
         </div>
         <div class="summary-card">
           <div class="summary-label">Status</div>
@@ -232,15 +232,13 @@
                 <th>Type</th>
                 <th>Bill #</th>
                 <th>Party</th>
-                <th>Total</th>
                 <th>Broker Amount</th>
                 <th>Brokerage Type</th>
-                <th>Status</th>
               </tr>
             </thead>
             <tbody id="brokerHistoryBody">
               <tr class="empty-row">
-                <td colspan="8">Select a broker to view transaction history.</td>
+                <td colspan="9">Select a broker to view transaction history.</td>
               </tr>
             </tbody>
           </table>
@@ -471,6 +469,7 @@
     };
 
     let selectedBrokerElement = null;
+    let brokerModalMode = 'create';
 
     // Format currency
     const formatCurrency = (value) => `Rs ${Number(value || 0).toFixed(2)}`;
@@ -491,7 +490,7 @@
 
     // Display broker details
     const displayBrokerDetails = (brokerItem) => {
-      const totalRemaining = Number(brokerItem.dataset.remainingBrokerage);
+      const totalBrokerAmount = Number(brokerItem.dataset.brokerSalesTotal || 0);
       brokerDetailName.textContent = brokerItem.dataset.name;
       document.getElementById('brokerPhone').textContent = brokerItem.dataset.phone || '-';
       document.getElementById('brokerCity').textContent = brokerItem.dataset.city || '-';
@@ -504,9 +503,8 @@
         : `Rs ${commissionRate}`;
       document.getElementById('brokerCommissionRate').textContent = commissionLabel;
 
-      document.getElementById('brokerTotalSummary').textContent = formatCurrency(brokerItem.dataset.totalBrokerage);
-      document.getElementById('brokerPaidSummary').textContent = formatCurrency(brokerItem.dataset.paidBrokerage);
-      document.getElementById('brokerRemainingSummary').textContent = formatCurrency(totalRemaining);
+      document.getElementById('brokerTotalSummary').textContent = formatCurrency(brokerItem.dataset.brokerSummaryTotal || 0);
+      document.getElementById('brokerAmountSummary').textContent = formatCurrency(totalBrokerAmount);
 
       const status = brokerItem.dataset.status === '1' ? 'Active' : 'Inactive';
       document.getElementById('brokerStatusSummary').textContent = status;
@@ -529,7 +527,7 @@
       brokerHistoryBody.innerHTML = '';
 
       if (!sales || sales.length === 0) {
-        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="8">No matching transactions found.</td></tr>';
+        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="9">No matching transactions found.</td></tr>';
         brokerHistoryInfo.textContent = 'No transactions match the selected filters.';
         return;
       }
@@ -541,10 +539,9 @@
           <td>${sale.type || '-'}</td>
           <td>${sale.bill_number || '-'}</td>
           <td>${sale.party_name || '-'}</td>
-          <td>Rs ${Number(sale.total_amount || 0).toFixed(2)}</td>
+
           <td>Rs ${Number(sale.broker_amount || 0).toFixed(2)}</td>
           <td>${sale.brokerage_type || '-'}</td>
-          <td>${sale.status || '-'}</td>
         `;
         brokerHistoryBody.appendChild(row);
       });
@@ -554,12 +551,12 @@
 
     const loadBrokerHistory = async (brokerId) => {
       if (!brokerId) {
-        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="8">Select a broker to view transaction history.</td></tr>';
+        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="9">Select a broker to view transaction history.</td></tr>';
         brokerHistoryInfo.textContent = 'Select a broker to view transaction history.';
         return;
       }
 
-      brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="8">Loading transaction history...</td></tr>';
+      brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="9">Loading transaction history...</td></tr>';
       brokerHistoryInfo.textContent = 'Loading transaction history...';
 
       const params = new URLSearchParams(getBrokerHistoryFilters());
@@ -580,7 +577,7 @@
         renderBrokerHistory(data.sales || []);
       } catch (error) {
         console.error(error);
-        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="8">Unable to load history.</td></tr>';
+        brokerHistoryBody.innerHTML = '<tr class="empty-row"><td colspan="9">Unable to load history.</td></tr>';
         brokerHistoryInfo.textContent = 'Unable to load history.';
       }
     };
@@ -612,6 +609,7 @@
 
     // Reset form for create
     const resetFormForCreate = () => {
+      brokerModalMode = 'create';
       brokerForm.action = "{{ route('brokers.store') }}";
       brokerFormMethod.value = 'POST';
       brokerModalLabel.textContent = 'Add Broker';
@@ -632,6 +630,7 @@
       if (!selectedBrokerElement) return;
 
       const modal = bootstrap.Modal.getOrCreateInstance(brokerModal);
+      brokerModalMode = 'edit';
       brokerFormMethod.value = 'PUT';
       brokerModalLabel.textContent = 'Edit Broker';
 
@@ -691,7 +690,7 @@
         });
 
         if (response.ok) {
-          const data = await response.json();
+          await response.json().catch(() => ({}));
 
           // Refresh broker list
           location.reload();
@@ -744,9 +743,14 @@
     // Modal open event
     brokerModal.addEventListener('show.bs.modal', (event) => {
       const trigger = event.relatedTarget;
-      if (!trigger || !trigger.id || trigger.id !== 'editBrokerBtn') {
+      const isCreateTrigger = Boolean(trigger && trigger.getAttribute('data-bs-target') === '#addBrokerModal');
+      if (brokerModalMode !== 'edit' && isCreateTrigger) {
         resetFormForCreate();
       }
+    });
+
+    brokerModal.addEventListener('hidden.bs.modal', () => {
+      brokerModalMode = 'create';
     });
 
     // Update remaining when values change

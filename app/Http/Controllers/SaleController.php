@@ -1844,6 +1844,17 @@ private function posData(): array
             + floatval($adjustmentTotal);
     }
 
+    private function calculateSilentBrokerLedgerDeduction(array $data): float
+    {
+        return collect($this->normalizeAdjustmentRows($data['custom_expenses'] ?? []))
+            ->filter(function (array $row) {
+                return $row['mode'] === '-'
+                    && ($row['account_type'] ?? null) === 'broker'
+                    && floatval($row['amount'] ?? 0) > 0;
+            })
+            ->sum(fn (array $row) => floatval($row['amount'] ?? 0));
+    }
+
     private function saleLedgerTransferGroup(Sale $sale): string
     {
         return 'sale-ledger-' . ($sale->id ?: 'draft');
@@ -1937,9 +1948,79 @@ private function posData(): array
         }
     }
 
-    private function syncTransactionItems(Transaction $transaction, Sale $sale): void
+    private function buildLedgerItemAdjustments(Sale $sale, array $data): array
+    {
+        $items = $sale->items()->get()->values();
+        $silentDeduction = $this->calculateSilentBrokerLedgerDeduction($data);
+
+        if ($silentDeduction <= 0 || $items->isEmpty()) {
+            return $items->mapWithKeys(function ($saleItem) {
+                $amount = floatval($saleItem->amount ?? 0);
+                $quantity = floatval($saleItem->quantity ?? 0);
+
+                return [
+                    $saleItem->id => [
+                        'amount' => $amount,
+                        'rate' => $quantity > 0 ? round($amount / $quantity, 2) : floatval($saleItem->unit_price ?? 0),
+                    ],
+                ];
+            })->all();
+        }
+
+        $baseTotal = max(0, $items->sum(fn ($item) => floatval($item->amount ?? 0)));
+        if ($baseTotal <= 0) {
+            return [];
+        }
+
+        $remainingDeduction = min($silentDeduction, $baseTotal);
+        $adjustments = [];
+        $positiveItems = $items->filter(fn ($item) => floatval($item->amount ?? 0) > 0)->values();
+        $lastPositiveIndex = max(0, $positiveItems->count() - 1);
+
+        foreach ($positiveItems as $index => $saleItem) {
+            $itemAmount = floatval($saleItem->amount ?? 0);
+            $quantity = floatval($saleItem->quantity ?? 0);
+
+            if ($remainingDeduction <= 0) {
+                $adjustedAmount = $itemAmount;
+            } elseif ($index === $lastPositiveIndex) {
+                $cutAmount = min($itemAmount, $remainingDeduction);
+                $adjustedAmount = max(0, $itemAmount - $cutAmount);
+                $remainingDeduction -= $cutAmount;
+            } else {
+                $share = round(($itemAmount / $baseTotal) * $silentDeduction, 2);
+                $cutAmount = min($itemAmount, min($share, $remainingDeduction));
+                $adjustedAmount = max(0, $itemAmount - $cutAmount);
+                $remainingDeduction -= $cutAmount;
+            }
+
+            $adjustments[$saleItem->id] = [
+                'amount' => round($adjustedAmount, 2),
+                'rate' => $quantity > 0 ? round($adjustedAmount / $quantity, 2) : floatval($saleItem->unit_price ?? 0),
+            ];
+        }
+
+        foreach ($items as $saleItem) {
+            if (isset($adjustments[$saleItem->id])) {
+                continue;
+            }
+
+            $amount = floatval($saleItem->amount ?? 0);
+            $quantity = floatval($saleItem->quantity ?? 0);
+
+            $adjustments[$saleItem->id] = [
+                'amount' => $amount,
+                'rate' => $quantity > 0 ? round($amount / $quantity, 2) : floatval($saleItem->unit_price ?? 0),
+            ];
+        }
+
+        return $adjustments;
+    }
+
+    private function syncTransactionItems(Transaction $transaction, Sale $sale, array $data = []): void
     {
         $transaction->items()->delete();
+        $ledgerItemAdjustments = $this->buildLedgerItemAdjustments($sale, $data);
 
         foreach ($sale->items()->get() as $saleItem) {
             $resolvedItemId = $saleItem->item_id;
@@ -1950,11 +2031,15 @@ private function posData(): array
                     ->value('id');
             }
 
+            $adjustedItem = $ledgerItemAdjustments[$saleItem->id] ?? null;
+            $ledgerAmount = floatval($adjustedItem['amount'] ?? $saleItem->amount ?? 0);
+            $ledgerRate = floatval($adjustedItem['rate'] ?? $saleItem->unit_price ?? 0);
+
             $transaction->items()->create([
                 'item_id' => $resolvedItemId,
                 'quantity' => floatval($saleItem->quantity ?? 0),
-                'rate' => floatval($saleItem->unit_price ?? 0),
-                'amount' => floatval($saleItem->amount ?? 0),
+                'rate' => $ledgerRate,
+                'amount' => $ledgerAmount,
             ]);
         }
     }
@@ -2083,7 +2168,7 @@ private function posData(): array
         }
 
         $masterTransaction = Transaction::create($transactionPayload);
-        $this->syncTransactionItems($masterTransaction, $sale);
+        $this->syncTransactionItems($masterTransaction, $sale, $data);
         $affectedPartyIds = $this->syncTransactionAdjustments($masterTransaction, $sale, $data);
 
         foreach ($sale->payments()->orderBy('id')->get() as $paymentRecord) {

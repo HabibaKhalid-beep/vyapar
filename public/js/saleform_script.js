@@ -1056,12 +1056,39 @@ function initializeForm(context) {
         $ctx.find('.brokerage-amount').val((parseFloat($primaryBrokerRow.find('.custom-expense-value').val() || 0) || 0).toFixed(2));
     }
 
+    function getSilentBrokerDeduction(baseAmount = 0) {
+        let deduction = 0;
+
+        $ctx.find('.custom-expense-row').each(function () {
+            const $row = $(this);
+            const mode = ($row.find('.custom-expense-mode').val() || '+').toUpperCase();
+            const accountType = ($row.find('.custom-expense-account-type').val() || '').toLowerCase();
+
+            if (mode !== '-' || accountType !== 'broker') {
+                return;
+            }
+
+            const pct = parseFloat($row.find('.custom-expense-pct').val() || 0) || 0;
+            const rawValue = parseFloat($row.find('.custom-expense-value').val() || 0) || 0;
+            const amount = pct > 0 ? ((baseAmount * pct) / 100) : rawValue;
+
+            if (pct > 0) {
+                $row.find('.custom-expense-value').val(amount.toFixed(2));
+            }
+
+            deduction += amount;
+        });
+
+        return deduction;
+    }
+
     function getCustomExpenseTotal(baseAmount = 0) {
         let total = 0;
 
         $ctx.find('.custom-expense-row').each(function () {
             const $row = $(this);
             const mode = ($row.find('.custom-expense-mode').val() || '+').toUpperCase();
+            const accountType = ($row.find('.custom-expense-account-type').val() || '').toLowerCase();
             const pct = parseFloat($row.find('.custom-expense-pct').val() || 0) || 0;
             const rawValue = parseFloat($row.find('.custom-expense-value').val() || 0) || 0;
             let amount = rawValue;
@@ -1075,7 +1102,13 @@ function initializeForm(context) {
                 return;
             }
 
-            total += mode === '-' ? -amount : amount;
+            // Minus adjustments are hidden from visible invoice total.
+            // They are handled separately in backend/ledger posting.
+            if (mode === '-') {
+                return;
+            }
+
+            total += amount;
         });
         syncLegacyBrokerFieldsFromCustomRows();
         return total;

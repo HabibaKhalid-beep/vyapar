@@ -350,7 +350,7 @@ ul#partyDropdownMenu {
 }
 
 .action-fields-layout.meta-stack-layout {
-    grid-template-columns: minmax(220px, 250px) minmax(0, 360px);
+    grid-template-columns: minmax(220px, 280px) minmax(220px, 280px);
     gap: 18px;
 }
 
@@ -359,7 +359,7 @@ ul#partyDropdownMenu {
     flex-direction: column;
     gap: 12px;
     width: 100%;
-    max-width: 360px;
+    max-width: 280px;
     margin-left: 0 !important;
     margin-top: 0 !important;
     padding-top: 0;
@@ -2265,14 +2265,14 @@ textarea.meta-control,
                                         </div>
                                         <div class="party-meta-field">
                                             <div class="floating-input-wrapper">
-                                                <input type="text" name="details_extra" class="meta-control details-extra-input" placeholder=" ">
-                                                <label>Details Extra</label>
+                                                <input type="text" name="bilti_gari_no" class="meta-control bilti-gari-input" placeholder=" ">
+                                                <label>Bilti No / Gari No</label>
                                             </div>
                                         </div>
                                         <div class="party-meta-field">
                                             <div class="floating-input-wrapper">
-                                                <input type="text" name="bilti_gari_no" class="meta-control bilti-gari-input" placeholder=" ">
-                                                <label>Bilti No / Gari No</label>
+                                                <input type="text" name="details_extra" class="meta-control details-extra-input" placeholder=" ">
+                                                <label>Details Extra</label>
                                             </div>
                                         </div>
                                     </div>
@@ -3346,8 +3346,6 @@ textarea.meta-control,
                   </div>
                   <input type="text" name="custom_fields[]" class="form-control form-control-sm" placeholder="Field name">
                 </div>
-
-                <input type="hidden" id="transactionTypeValue" name="transaction_type">
                 @endfor
 
               </div>
@@ -3925,26 +3923,40 @@ document.addEventListener("DOMContentLoaded", function () {
    function saveParty(closeAfterSave = true) {
     const form = document.getElementById("addPartyForm");
     const data = new FormData(form);
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
     // Transaction type fix
-    const toReceive = document.getElementById("toReceive").checked;
-    const toPay = document.getElementById("toPay").checked;
-    if(toReceive) data.set("transaction_type", "receive");
-    else if(toPay) data.set("transaction_type", "pay");
+    const toReceiveCheckbox = document.getElementById("toReceive");
+    const toPayCheckbox = document.getElementById("toPay");
+    const toReceive = toReceiveCheckbox?.checked;
+    const toPay = toPayCheckbox?.checked;
+    if (toReceive && toPay && toReceiveCheckbox && toPayCheckbox) {
+        toPayCheckbox.checked = false;
+    }
+    if (toReceive) data.set("transaction_type", "receive");
+    else if (toPay) data.set("transaction_type", "pay");
 
     // Credit limit fix
     const creditSwitch = document.getElementById("creditLimitSwitch");
-    data.set("credit_limit_enabled", creditSwitch.checked ? 1 : 0);
+    data.set("credit_limit_enabled", creditSwitch?.checked ? 1 : 0);
+    data.set("_token", csrfToken);
 
     fetch("{{ route('parties.store') }}", {
         method: "POST",
         headers: {
-            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-            "Accept": "application/json"   // important!
+            "X-CSRF-TOKEN": csrfToken,
+            "Accept": "application/json"
         },
         body: data
     })
-    .then(res => res.json())
+    .then(async res => {
+        const payload = await res.json().catch(() => null);
+        if (!res.ok) {
+            const message = payload?.message || (payload?.errors ? Object.values(payload.errors).flat().join(' ') : 'Unable to save party.');
+            throw new Error(message);
+        }
+        return payload;
+    })
     .then(res => {
         if(res.success) {
             const party = res.party || {};
@@ -3967,6 +3979,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 custom_fields: party.custom_fields || data.getAll('custom_fields[]') || [],
                 party_type: party.party_type || data.getAll('party_type[]') || [],
                 transaction_type: party.transaction_type || data.get('transaction_type') || '',
+            };
+
+            const setOptionalField = (selector, value) => {
+                const field = document.querySelector(selector);
+                if (field) {
+                    field.value = value;
+                }
             };
 
             if (partyRecord.party_group) {
@@ -4061,11 +4080,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     balanceDisplay.className = partyRecord.transaction_type === 'pay' ? 'text-danger small' : 'text-success small';
                 }
 
-              const qs = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = val; };
 
-qs(".phone-input", partyRecord.phone || "");
-qs(".billing-address", partyRecord.billing_address || "");
-qs(".shipping-address", partyRecord.shipping_address || "");
+                setOptionalField(".phone-input", partyRecord.phone || "");
+                setOptionalField(".city-input", partyRecord.city || "");
+                setOptionalField(".ptcl-input", partyRecord.ptcl_number || "");
+                setOptionalField(".address-input", partyRecord.address || "");
+                setOptionalField(".billing-address", partyRecord.billing_address || "");
+                setOptionalField(".shipping-address", partyRecord.shipping_address || "");
                 applyPartyDueDays(partyRecord);
             }
 
@@ -4094,10 +4115,11 @@ qs(".shipping-address", partyRecord.shipping_address || "");
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         } else {
+            const errorMessage = res.message || 'Error saving party';
             const errorToast = document.createElement('div');
             errorToast.innerHTML = `
                 <div style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                    <i class="fa-solid fa-exclamation me-2"></i> Error saving party
+                    <i class="fa-solid fa-exclamation me-2"></i> ${errorMessage}
                 </div>
             `;
             document.body.appendChild(errorToast);
@@ -4109,7 +4131,7 @@ qs(".shipping-address", partyRecord.shipping_address || "");
         const errorToast = document.createElement('div');
         errorToast.innerHTML = `
             <div style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 4px; margin: 10px; position: fixed; top: 20px; right: 20px; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                    <i class="fa-solid fa-exclamation me-2"></i> Something went wrong! Check console.
+                    <i class="fa-solid fa-exclamation me-2"></i> ${err.message || 'Something went wrong!'}
                 </div>
             `;
         document.body.appendChild(errorToast);

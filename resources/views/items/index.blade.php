@@ -234,6 +234,7 @@
     font-size: 12px;
 }
 .col-qty { width: 70px; text-align: right; }
+.col-netw { width: 82px; text-align: right; }
 .col-sort { width: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6b7280; }
 
 /* Left panel filter dropdown */
@@ -271,7 +272,9 @@
 .il-item-row.active { background: #eff6ff; }
 .il-item-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; margin-right: 8px; flex-shrink: 0; }
 .il-item-name { flex: 1; font-size: 14px; color: #111827; font-weight: 500; }
-.il-item-qty { width: 50px; text-align: right; font-size: 14px; color: #10b981; font-weight: 600; }
+.il-item-qty { width: 58px; text-align: right; font-size: 14px; color: #10b981; font-weight: 600; }
+.il-item-qty.neg { color: #dc2626; }
+.il-item-qty.pos { color: #16a34a; }
 
 .il-item-more-wrap {
     position: relative; width: 24px; height: 24px; flex-shrink: 0;
@@ -344,6 +347,8 @@
 .il-stat-label { font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
 .il-stat-value { font-size: 13px; font-weight: 700; color: #16a34a; }
 .il-stat-value.neutral { color: #16a34a; }
+.il-stat-value.neg { color: #dc2626 !important; }
+.il-stat-value.pos { color: #16a34a !important; }
 
 .il-share-popup {
     position: absolute; top: calc(100% + 6px); left: 0;
@@ -716,6 +721,7 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
                     </div>
                 </span>
                 <span class="col-qty">QUANTITY</span>
+                <span class="col-netw">NET W</span>
                 <span class="col-sort" id="qty-sort-arrow" onclick="sortByQty()" title="Sort by quantity" style="font-size:12px;color:#6b7280;">↕</span>
                 <span style="width:24px;"></span>
             </div>
@@ -840,12 +846,24 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
                                         </span>
                                         <div class="col-resize-handle" data-col="qty"></div>
                                     </th>
+                                    <th data-col="net_w" style="width:120px;">
+                                        <span class="th-inner" onclick="sortTxnCol('net_w')">
+                                            NET W <span class="th-sort-arrow"></span>
+                                        </span>
+                                        <div class="col-resize-handle" data-col="net_w"></div>
+                                    </th>
                                     <th data-col="price" style="width:130px;" class="th-price-right">
                                         <span class="th-inner" onclick="sortTxnCol('price')" style="justify-content:flex-end;width:100%;">
                                             PRICE/ UNIT <span class="th-sort-arrow"></span>
                                             <i class="fa-solid fa-filter th-filter-icon" onclick="toggleColFilter(event,'cf-price')"></i>
                                         </span>
                                         <div class="col-resize-handle" data-col="price"></div>
+                                    </th>
+                                    <th data-col="amount" style="width:140px;" class="th-price-right">
+                                        <span class="th-inner" onclick="sortTxnCol('amount')" style="justify-content:flex-end;width:100%;">
+                                            AMOUNT <span class="th-sort-arrow"></span>
+                                        </span>
+                                        <div class="col-resize-handle" data-col="amount"></div>
                                     </th>
                                     <th data-col="status" style="width:110px;">
                                         <span class="th-inner" onclick="sortTxnCol('status')">
@@ -1189,7 +1207,8 @@ function renderList(items = getFilteredItems()) {
         <div class="il-item-row ${selectedIdx === index ? 'active' : ''}" onclick="selectItem(${index})">
             <span class="il-item-dot"></span>
             <span class="il-item-name">${esc(item.name)}</span>
-            <span class="il-item-qty">${getTotalQty(index)}</span>
+            <span class="il-item-qty ${stockSignClass(getTotalQty(index))}">${formatSignedStock(getTotalQty(index))}</span>
+            <span class="il-item-qty">${parseFloat(item.total_net_w || 0).toFixed(2)}</span>
             <div class="il-item-more-wrap" onclick="event.stopPropagation()">
                 <button class="il-item-more-btn" onclick="toggleItemDD(event,${index})" title="Options">
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1273,6 +1292,16 @@ function getTotalQty(idx) {
     return parseFloat(allItems[idx]?.stock_qty ?? allItems[idx]?.opening_qty ?? 0);
 }
 
+function formatSignedStock(value) {
+    const qty = parseFloat(value || 0) || 0;
+    return qty > 0 ? `+${qty}` : `${qty}`;
+}
+
+function stockSignClass(value) {
+    const qty = parseFloat(value || 0) || 0;
+    return qty < 0 ? 'neg' : 'pos';
+}
+
 function getItemId(item, idx) {
     return String(item?.id ?? `idx-${idx}`);
 }
@@ -1341,12 +1370,14 @@ function selectItem(idx) {
     document.getElementById('detail-purchase').textContent = item.purchase_price ? 'Rs ' + parseFloat(item.purchase_price).toFixed(2) : '—';
 
     const stockQty = parseFloat(item.stock_qty ?? item.opening_qty ?? 0);
-    document.getElementById('detail-stock-qty').textContent = stockQty;
+    document.getElementById('detail-stock-qty').textContent = formatSignedStock(stockQty);
+    document.getElementById('detail-stock-qty').className = `il-stat-value ${stockSignClass(stockQty)}`;
     document.getElementById('detail-stock-val').textContent = 'Rs ' + (parseFloat(item.purchase_price || 0) * stockQty).toFixed(2);
+    document.getElementById('detail-stock-val').className = `il-stat-value ${stockSignClass(stockQty)}`;
 
     // Show loading
     document.getElementById('txn-tbody').innerHTML = `
-        <tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">Loading transactions...</td></tr>
+        <tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">Loading transactions...</td></tr>
     `;
 
     // Fetch fresh item data and transactions from server
@@ -1369,8 +1400,10 @@ function selectItem(idx) {
         if (freshItem && freshItem.id) {
             allItems[idx] = { ...allItems[idx], ...freshItem };
             const updatedStockQty = parseFloat(freshItem.stock_qty ?? freshItem.opening_qty ?? 0);
-            document.getElementById('detail-stock-qty').textContent = updatedStockQty;
+            document.getElementById('detail-stock-qty').textContent = formatSignedStock(updatedStockQty);
+            document.getElementById('detail-stock-qty').className = `il-stat-value ${stockSignClass(updatedStockQty)}`;
             document.getElementById('detail-stock-val').textContent = 'Rs ' + (parseFloat(freshItem.purchase_price || 0) * updatedStockQty).toFixed(2);
+            document.getElementById('detail-stock-val').className = `il-stat-value ${stockSignClass(updatedStockQty)}`;
         }
 
         // Update transactions
@@ -1379,7 +1412,7 @@ function selectItem(idx) {
     })
     .catch(() => {
         document.getElementById('txn-tbody').innerHTML = `
-            <tr><td colspan="9" style="text-align:center;color:#ef4444;padding:48px 0;font-size:13px;">Failed to load transactions.</td></tr>
+            <tr><td colspan="11" style="text-align:center;color:#ef4444;padding:48px 0;font-size:13px;">Failed to load transactions.</td></tr>
         `;
     });
 }
@@ -1391,7 +1424,7 @@ function renderTxns(idx) {
     const tbody = document.getElementById('txn-tbody');
     const txns  = transactions[idx] || [];
     if (!txns.length) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions to show</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions to show</td></tr>`;
         return;
     }
     const statusColor = { 'Paid': '#22c55e', 'Partial': '#f59e0b', 'Unpaid': '#ef4444' };
@@ -1400,14 +1433,16 @@ function renderTxns(idx) {
         const status   = t.status || 'Unpaid';
         const color    = statusColor[status] || '#9ca3af';
         return `
-        <tr id="txn-row-${idx}-${ti}" onclick="selectTxnRow(${idx},${ti})" style="cursor:pointer;user-select:none;">
+        <tr id="txn-row-${idx}-${ti}" onclick="openTxnAction(${idx},${ti},'edit')" style="cursor:pointer;user-select:none;">
             <td class="td-dot"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};"></span></td>
             <td>${esc(t.type)}</td>
             <td>${esc(t.invoice ?? '')}</td>
             <td>${esc(t.name ?? '')}</td>
             <td>${esc(t.date)}</td>
             <td>${t.qty} ${esc(t.unit)}</td>
+            <td>${parseFloat(t.net_w || 0).toFixed(2)}</td>
             <td class="td-price">${t.price ? 'Rs ' + parseFloat(t.price).toFixed(2) : '—'}</td>
+            <td class="td-price">${t.amount !== undefined && t.amount !== null ? 'Rs ' + parseFloat(t.amount || 0).toFixed(2) : '—'}</td>
             <td style="font-weight:500;color:${color};">${esc(status)}</td>
             <td class="td-actions">
                 <div class="il-row-menu-wrap">
@@ -1459,15 +1494,17 @@ function filterTxns(q) {
         t.type.toLowerCase().includes(q.toLowerCase()) || (t.details || '').toLowerCase().includes(q.toLowerCase())
     );
     if (!txns.length) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions found</td></tr>`;
         return;
     }
     tbody.innerHTML = txns.map((t, ti) => `
-        <tr>
+        <tr onclick="openTxnAction(${selectedIdx},${ti},'edit')" style="cursor:pointer;user-select:none;">
             <td class="td-dot"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#111111;"></span></td>
             <td>${esc(t.type)}</td><td></td><td>${esc(t.details || '')}</td><td>${esc(t.date)}</td>
             <td>${t.qty} ${esc(t.unit)}</td>
+            <td>${parseFloat(t.net_w || 0).toFixed(2)}</td>
             <td class="td-price">${t.price ? 'Rs ' + parseFloat(t.price).toFixed(2) : '—'}</td>
+            <td class="td-price">${t.amount !== undefined && t.amount !== null ? 'Rs ' + parseFloat(t.amount || 0).toFixed(2) : '—'}</td>
             <td class="td-status">—</td><td class="td-actions"></td>
         </tr>
     `).join('');
@@ -1529,15 +1566,17 @@ function applyColFilters() {
 function renderFilteredTxns(txns) {
     const idx = selectedIdx;
     const tbody = document.getElementById('txn-tbody');
-    if (!txns.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions found</td></tr>`; return; }
+    if (!txns.length) { tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions found</td></tr>`; return; }
     tbody.innerHTML = txns.map((t, ti) => {
         const originalTi = getTransactionIndex(idx, t);
         return `
-        <tr style="cursor:pointer;user-select:none;" onclick="selectTxnRow(${idx},${originalTi})">
+        <tr style="cursor:pointer;user-select:none;" onclick="openTxnAction(${idx},${originalTi},'edit')">
             <td class="td-dot"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#111111;"></span></td>
             <td>${esc(t.type)}</td><td></td><td>${esc(t.details || '')}</td><td>${esc(t.date)}</td>
             <td>${t.qty} ${esc(t.unit)}</td>
+            <td>${parseFloat(t.net_w || 0).toFixed(2)}</td>
             <td class="td-price">${t.price ? 'Rs ' + parseFloat(t.price).toFixed(2) : '—'}</td>
+            <td class="td-price">${t.amount !== undefined && t.amount !== null ? 'Rs ' + parseFloat(t.amount || 0).toFixed(2) : '—'}</td>
             <td class="td-status">—</td>
             <td class="td-actions">
                 <div class="il-row-menu-wrap">
@@ -1566,7 +1605,9 @@ function sortTxnCol(col) {
     const txns = transactions[selectedIdx] || [];
     txns.sort((a, b) => {
         if (col==='qty')   return txnSortAsc ? parseFloat(a.qty)-parseFloat(b.qty) : parseFloat(b.qty)-parseFloat(a.qty);
+        if (col==='net_w') return txnSortAsc ? parseFloat(a.net_w||0)-parseFloat(b.net_w||0) : parseFloat(b.net_w||0)-parseFloat(a.net_w||0);
         if (col==='price') return txnSortAsc ? parseFloat(a.price||0)-parseFloat(b.price||0) : parseFloat(b.price||0)-parseFloat(a.price||0);
+        if (col==='amount') return txnSortAsc ? parseFloat(a.amount||0)-parseFloat(b.amount||0) : parseFloat(b.amount||0)-parseFloat(a.amount||0);
         const av = (col==='type'?a.type:col==='name'?a.details:col==='date'?a.date:col==='invoice'?a.invoice:a.status)||'';
         const bv = (col==='type'?b.type:col==='name'?b.details:col==='date'?b.date:col==='invoice'?b.invoice:b.status)||'';
         return txnSortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
@@ -2154,9 +2195,11 @@ fetch(`/dashboard/items/${item.id}/adjust`, {
             showToast('Stock adjustment saved!');
 
             // ── Refresh right panel stats and list ──
-            document.getElementById('detail-stock-qty').textContent = data.stock_qty;
+            document.getElementById('detail-stock-qty').textContent = formatSignedStock(data.stock_qty);
+            document.getElementById('detail-stock-qty').className = `il-stat-value ${stockSignClass(data.stock_qty)}`;
             document.getElementById('detail-stock-val').textContent =
                 'Rs ' + (parseFloat(item.purchase_price || 0) * parseFloat(data.stock_qty)).toFixed(2);
+            document.getElementById('detail-stock-val').className = `il-stat-value ${stockSignClass(data.stock_qty)}`;
 
             renderTxns(selectedIdx);
             renderList();
@@ -2174,6 +2217,3 @@ function formatDate(d) { if(!d)return''; const[y,m,day]=d.split('-'); return day
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 @endpush
-
-
-

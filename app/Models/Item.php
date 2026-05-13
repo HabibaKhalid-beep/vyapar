@@ -21,7 +21,7 @@ class Item extends Model
         'is_active' => 'boolean',
     ];
 
-    protected $appends = ['stock_qty'];
+    protected $appends = ['stock_qty', 'total_net_w'];
 
     public function category()
     {
@@ -57,12 +57,25 @@ class Item extends Model
             ->whereHas('sale', fn($q) => $q->where('type', 'sale_return'))
             ->sum('quantity');
 
-        return max(0, floatval($this->opening_qty) + floatval($returned) - floatval($sold));
+        return floatval($this->opening_qty) + floatval($returned) - floatval($sold);
     }
 
     public function getStockValueAttribute(): float
     {
         return $this->stock_qty * floatval($this->purchase_price);
+    }
+
+    public function getTotalNetWAttribute(): float
+    {
+        $sold = $this->saleItems()
+            ->whereHas('sale', fn($q) => $q->whereIn('type', ['invoice', 'pos']))
+            ->sum('net_w');
+
+        $returned = $this->saleItems()
+            ->whereHas('sale', fn($q) => $q->where('type', 'sale_return'))
+            ->sum('net_w');
+
+        return floatval($sold) - floatval($returned);
     }
 
     public function scopeActive($query)

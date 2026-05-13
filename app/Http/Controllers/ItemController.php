@@ -9,6 +9,8 @@ use App\Models\ItemUnit;
 use Illuminate\Http\Request;
 use App\Models\SaleItem;
 use App\Models\Sale;
+use App\Models\Transaction;
+use App\Models\TransactionItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -864,6 +866,19 @@ class ItemController extends Controller
             $sale = $si->sale;
             if (!$sale) return null;
 
+            $ledgerTransaction = Transaction::query()
+                ->where('transfer_group', 'sale-ledger-' . $sale->id)
+                ->where('number', $sale->bill_number ?: (string) $sale->id)
+                ->first();
+            $transactionItemAmount = null;
+
+            if ($ledgerTransaction && !empty($si->item_id)) {
+                $transactionItemAmount = TransactionItem::query()
+                    ->where('transaction_id', $ledgerTransaction->id)
+                    ->where('item_id', $si->item_id)
+                    ->value('amount');
+            }
+
             return [
                 'id'       => $sale->id,
                 'type'     => $typeMap[$sale->type] ?? ucfirst($sale->type),
@@ -874,9 +889,11 @@ class ItemController extends Controller
                                 ? \Carbon\Carbon::parse($sale->invoice_date)->format('d/m/Y')
                                 : \Carbon\Carbon::parse($sale->created_at)->format('d/m/Y'),
                 'qty'      => $si->quantity ?? 0,
+                'net_w'    => $si->net_w ?? 0,
                 'unit'     => $si->unit ?? '',
                 'price'    => $si->unit_price ?? 0,
                 'status'   => $sale->status ?? 'Unpaid',
+                'amount'   => $transactionItemAmount ?? $si->amount ?? 0,
                 'isAdd'    => !in_array($sale->type, ['sale_return']),
             ];
         })->filter()->values();

@@ -13,7 +13,10 @@ class BrokerController extends Controller
 {
     public function index(): View
     {
-        $brokers = Broker::latest()->get();
+        $brokers = Broker::query()
+            ->withSum('sales as broker_sales_total', 'broker_amount')
+            ->latest()
+            ->get();
 
         $salesTypes = Sale::query()
             ->whereNotNull('type')
@@ -52,20 +55,33 @@ class BrokerController extends Controller
             ->with('success', 'Broker added successfully.');
     }
 
-    public function update(Request $request, Broker $broker): RedirectResponse
+    public function update(Request $request, Broker $broker): RedirectResponse|JsonResponse
     {
         $data = $this->validateBroker($request);
 
         $broker->update($data);
+
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'broker' => $broker->fresh()->loadSum('sales as broker_sales_total', 'broker_amount'),
+            ]);
+        }
 
         return redirect()
             ->route('brokers.index')
             ->with('success', 'Broker updated successfully.');
     }
 
-    public function destroy(Broker $broker): RedirectResponse
+    public function destroy(Broker $broker): RedirectResponse|JsonResponse
     {
         $broker->delete();
+
+        if (request()->expectsJson() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+            ]);
+        }
 
         return redirect()
             ->route('brokers.index')
@@ -97,6 +113,9 @@ class BrokerController extends Controller
         }
 
         $sales = $query->latest('invoice_date')->limit(100)->get()->map(function (Sale $sale) {
+            $brokerAmount = (float) $sale->broker_amount;
+            $netAmount = max(0, ((float) $sale->grand_total) - $brokerAmount);
+
             return [
                 'id' => $sale->id,
                 'type' => $sale->type,
@@ -107,7 +126,8 @@ class BrokerController extends Controller
                 'total_amount' => (float) $sale->total_amount,
                 'brokerage_type' => $sale->brokerage_type,
                 'brokerage_rate' => (float) $sale->brokerage_rate,
-                'broker_amount' => (float) $sale->broker_amount,
+                'broker_amount' => $brokerAmount,
+                'net_amount' => $netAmount,
                 'status' => $sale->status,
             ];
         });
