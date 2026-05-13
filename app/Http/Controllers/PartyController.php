@@ -720,44 +720,42 @@ public function transactions(Party $party)
     $party->refresh();
     $party->loadMissing(['transactions.counterParty', 'sales', 'purchases']);
 
-    $salesTransactions = Sale::query()
+    $salesByNumber = Sale::query()
         ->where('party_id', $party->id)
         ->get()
-        ->map(function ($sale) {
-            $amount = (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
-            $date = $sale->invoice_date ?? $sale->order_date ?? $sale->due_date ?? $sale->created_at;
-            $typeLabel = match ($sale->type) {
+        ->keyBy(fn ($sale) => (string) ($sale->bill_number ?: $sale->id));
+
+    $salesTransactions = $party->transactions
+        ->filter(function ($txn) {
+            return in_array(strtolower((string) $txn->type), ['invoice', 'pos', 'sale_return'], true);
+        })
+        ->map(function ($txn) use ($salesByNumber) {
+            $sale = $salesByNumber->get((string) ($txn->number ?: ''));
+            $rawType = strtolower((string) $txn->type);
+            $typeLabel = match ($rawType) {
                 'invoice', 'pos' => 'Sale',
                 'sale_return' => 'Sale Return',
-                'estimate' => 'Estimate',
-                'sale_order' => 'Sale Order',
-                'proforma' => 'Proforma Invoice',
-                'delivery_challan' => 'Delivery Challan',
-                default => ucfirst((string) $sale->type),
+                default => ucfirst((string) $txn->type),
             };
-
-            $effect = match ($sale->type) {
-                'sale_return' => -1 * $amount,
-                'invoice', 'pos' => $amount,
-                default => 0,
-            };
+            $effect = $txn->ledgerEffectValue();
 
             return [
-                'id' => 'sale-' . $sale->id,
+                'id' => 'sale-ledger-' . $txn->id,
                 'type' => $typeLabel,
-                'raw_type' => (string) $sale->type,
+                'raw_type' => (string) $txn->type,
                 'source' => 'sale',
-                'number' => $sale->bill_number ?: (string) $sale->id,
-                'date' => optional($date),
-                'description' => (string) ($sale->description ?? ''),
+                'number' => $txn->number ?: '-',
+                'date' => optional($txn->date),
+                'description' => (string) ($txn->description ?? ''),
                 'debit' => $effect > 0 ? $effect : 0,
                 'credit' => $effect < 0 ? abs($effect) : 0,
                 'effect' => $effect,
-                'row_balance' => (float) ($sale->balance ?? max(0, $amount - (float) ($sale->received_amount ?? 0))),
-                'due_date' => optional($sale->due_date),
-                'status' => (string) ($sale->status ?? ''),
+                'row_balance' => (float) ($txn->balance ?? max(0, abs($effect) - (float) ($txn->paid_amount ?? 0))),
+                'display_total' => (float) ($txn->total ?? abs($effect)),
+                'due_date' => optional($txn->due_date),
+                'status' => (string) ($txn->status ?? ''),
                 'sort_order' => 20,
-                'actions' => $this->saleActionUrls($sale),
+                'actions' => $sale ? $this->saleActionUrls($sale) : [],
             ];
         });
 
@@ -790,7 +788,7 @@ public function transactions(Party $party)
 
     $manualLedgerTransactions = $party->transactions
         ->reject(function ($txn) {
-            return in_array(strtolower((string) $txn->type), ['sale', 'sale_return', 'purchase', 'purchase_return', 'payment_in', 'payment_out'], true);
+            return in_array(strtolower((string) $txn->type), ['sale', 'invoice', 'pos', 'sale_return', 'purchase', 'purchase_return', 'payment_in', 'payment_out'], true);
         })
         ->map(function ($txn) {
         $effect = $txn->ledgerEffectValue();
@@ -833,12 +831,12 @@ public function transactions(Party $party)
         $runningBalance += (float) ($entry['effect'] ?? 0);
         $entry['date'] = $entry['date']?->format('d/m/Y');
         $entry['due_date'] = $entry['due_date']?->format('Y-m-d');
-        $entry['total'] = number_format((float) (($entry['debit'] ?? 0) + ($entry['credit'] ?? 0)), 2);
+        $entry['total'] = number_format((float) ($entry['display_total'] ?? (($entry['debit'] ?? 0) + ($entry['credit'] ?? 0))), 2);
         $entry['balance'] = number_format((float) ($entry['row_balance'] ?? 0), 2);
         $entry['debit'] = number_format((float) ($entry['debit'] ?? 0), 2);
         $entry['credit'] = number_format((float) ($entry['credit'] ?? 0), 2);
         $entry['running_balance'] = number_format($runningBalance, 2);
-        unset($entry['effect'], $entry['row_balance'], $entry['sort_order']);
+        unset($entry['effect'], $entry['row_balance'], $entry['sort_order'], $entry['display_total']);
         return $entry;
     });
 

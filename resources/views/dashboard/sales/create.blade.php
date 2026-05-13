@@ -403,7 +403,7 @@ ul#partyDropdownMenu {
 .billing-name-field .floating-input-wrapper .meta-control,
 .party-details .floating-input-wrapper .meta-control {
     width: 100%;
-    max-width:280px;
+    max-width: none;
 }
 
 .description-side-fields {
@@ -437,16 +437,22 @@ ul#partyDropdownMenu {
 }
 
 .action-fields-layout.meta-stack-layout {
-    grid-template-columns: minmax(220px, 280px) minmax(220px, 280px);
-    gap: 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 22px;
+}
+
+.action-fields-layout.meta-stack-layout .action-buttons-column {
+    flex: 0 0 270px;
+    max-width: 270px;
 }
 
 .action-fields-layout.meta-stack-layout .description-side-fields {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    width: 100%;
-    max-width: 280px;
+    flex: 0 0 315px;
+    max-width: 315px;
     margin-left: 0 !important;
     margin-top: 0 !important;
     padding-top: 0;

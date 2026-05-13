@@ -621,7 +621,8 @@ private function posData(): array
 
         $type = $data['type'] ?? $sale->type ?? 'invoice';
         $grandTotal = floatval($data['grand_total'] ?? 0);
-        $balance = max(0, $grandTotal - $receivedAmount);
+        $partyTransferDeduction = min($this->calculatePartyTransferDeduction($data), $grandTotal);
+        $balance = max(0, $grandTotal - $receivedAmount - $partyTransferDeduction);
         $invoiceDate = !empty($data['invoice_date'])
             ? Carbon::parse($data['invoice_date'])
             : ($sale->invoice_date ? Carbon::parse($sale->invoice_date) : now());
@@ -911,7 +912,8 @@ private function posData(): array
 
         $type = $data['type'] ?? 'invoice';
         $grandTotal = floatval($data['grand_total'] ?? 0);
-        $balance = max(0, $grandTotal - $receivedAmount);
+        $partyTransferDeduction = min($this->calculatePartyTransferDeduction($data), $grandTotal);
+        $balance = max(0, $grandTotal - $receivedAmount - $partyTransferDeduction);
         $invoiceDate = !empty($data['invoice_date'])
             ? Carbon::parse($data['invoice_date'])
             : ($type === 'sale_order' ? now() : now());
@@ -1849,7 +1851,26 @@ private function posData(): array
         return collect($this->normalizeAdjustmentRows($data['custom_expenses'] ?? []))
             ->filter(function (array $row) {
                 return $row['mode'] === '-'
-                    && ($row['account_type'] ?? null) === 'broker'
+                    && floatval($row['amount'] ?? 0) > 0;
+            })
+            ->sum(fn (array $row) => floatval($row['amount'] ?? 0));
+    }
+
+    private function calculatePartyTransferDeduction(array $data): float
+    {
+        return collect($this->normalizeAdjustmentRows($data['custom_expenses'] ?? []))
+            ->filter(function (array $row) {
+                return in_array($row['mode'] ?? null, ['-', 'S'], true)
+                    && floatval($row['amount'] ?? 0) > 0;
+            })
+            ->sum(fn (array $row) => floatval($row['amount'] ?? 0));
+    }
+
+    private function calculateSameModeDeduction(array $data): float
+    {
+        return collect($this->normalizeAdjustmentRows($data['custom_expenses'] ?? []))
+            ->filter(function (array $row) {
+                return ($row['mode'] ?? null) === 'S'
                     && floatval($row['amount'] ?? 0) > 0;
             })
             ->sum(fn (array $row) => floatval($row['amount'] ?? 0));
@@ -2190,8 +2211,15 @@ private function posData(): array
 
         $this->deleteSaleLedgerTransactions($sale);
 
-        $saleAmount = floatval($sale->grand_total ?? 0);
+        $grossSaleAmount = floatval($sale->grand_total ?? 0);
+        $sameModeDeduction = min($this->calculateSameModeDeduction($data), $grossSaleAmount);
+        $partyTransferDeduction = min($this->calculatePartyTransferDeduction($data), $grossSaleAmount);
+        $saleAmount = $grossSaleAmount;
         $ledgerType = $this->resolveLedgerTypeFromSale((string) $sale->type);
+        $transactionBalance = max(0, round($saleAmount - floatval($sale->received_amount ?? 0) - $partyTransferDeduction, 2));
+        $saleLedgerAmount = $sameModeDeduction > 0
+            ? 0
+            : max(0, round($saleAmount, 2));
 
         $transactionPayload = [
             'party_id' => $sale->party_id,
@@ -2200,10 +2228,10 @@ private function posData(): array
             'transfer_group' => $this->saleLedgerTransferGroup($sale),
             'date' => $sale->invoice_date ?? now(),
             'total' => $saleAmount,
-            'debit' => $ledgerType === 'sale_return' ? 0 : $saleAmount,
-            'credit' => $ledgerType === 'sale_return' ? $saleAmount : 0,
+            'debit' => $ledgerType === 'sale_return' ? 0 : $saleLedgerAmount,
+            'credit' => $ledgerType === 'sale_return' ? $saleLedgerAmount : 0,
             'paid_amount' => floatval($sale->received_amount ?? 0),
-            'balance' => floatval($sale->balance ?? 0),
+            'balance' => $transactionBalance,
             'running_balance' => 0,
             'due_date' => $sale->due_date,
             'status' => $sale->status,
