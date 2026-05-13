@@ -468,13 +468,18 @@ ul#partyDropdownMenu {
 /* =========================
    TEXTAREA COMPACT
 ========================= */
-
 textarea.meta-control,
 .party-details .address-field textarea.meta-control{
-    min-height:86px !important;
-    height:86px !important;
-    resize:none;
-    padding:16px 10px 14px 10px !important;
+    min-height: 80px !important;
+    height: 80px !important;
+    max-height: 80px !important;
+    width: 200px !important;
+    max-width: 200px !important;
+    resize: none;
+    overflow-y: auto !important;
+    padding: 8px 10px !important;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
 }
 
 /* =========================
@@ -540,9 +545,12 @@ textarea.meta-control,
    ADDRESS WIDTH FIX
 ========================= */
 
-.billing-address-field,
+.billing-address-field{
+    width: 200px !important;
+    max-width: 200px !important;
+}
 .shipping-address-field{
-    width:100%;
+    width: 100%;
 }
 
 .cash-mode .party-details .phone-field {
@@ -1892,11 +1900,15 @@ textarea.meta-control,
                                         </div>
                                     </div>
                                     <div class="party-meta-field address-field billing-address-field">
-                                        <div class="floating-input-wrapper">
-                                            <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "></textarea>
-                                            <label>Billing Address</label>
-                                        </div>
-                                    </div>
+    <div class="floating-input-wrapper" style="position:relative;">
+        <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" " 
+            style="min-height:90px !important; height:90px !important; max-height:90px !important; 
+                   overflow-y:auto !important; resize:none; font-size:12px; line-height:1.5;
+                   scrollbar-width:thin; padding:8px 10px !important;"></textarea>
+        <label>Party Details</label>
+        <span class="party-save-indicator" style="position:absolute; top:4px; right:6px; font-size:10px; font-weight:600; opacity:0; transition:opacity 0.3s;"></span>
+    </div>
+</div>
                                     <div class="party-meta-field address-field shipping-address-field">
                                         <div class="floating-input-wrapper">
                                             <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
@@ -3917,26 +3929,19 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(res => {
         if(res.success) {
             const party = res.party || {};
-            const partyRecord = {
-                id: party.id || '',
-                name: party.name || data.get('name') || '',
-                phone: party.phone || data.get('phone') || '',
-                phone_number_2: party.phone_number_2 || data.get('phone_number_2') || '',
-                ptcl_number: party.ptcl_number || data.get('ptcl_number') || '',
-                email: party.email || data.get('email') || '',
-                city: party.city || data.get('city') || '',
-                address: party.address || data.get('address') || '',
-                billing_address: party.billing_address || data.get('billing_address') || '',
-                shipping_address: party.shipping_address || data.get('shipping_address') || '',
-                party_group: party.party_group || data.get('party_group') || '',
-                due_days: party.due_days || data.get('due_days') || '',
-                opening_balance: party.opening_balance || data.get('opening_balance') || 0,
-                credit_limit_enabled: party.credit_limit_enabled || data.get('credit_limit_enabled') || 0,
-                credit_limit_amount: party.credit_limit_amount || data.get('credit_limit_amount') || '',
-                custom_fields: party.custom_fields || data.getAll('custom_fields[]') || [],
-                party_type: party.party_type || data.getAll('party_type[]') || [],
-                transaction_type: party.transaction_type || data.get('transaction_type') || '',
-            };
+         const partyRecord = {
+    name:             selectedParty.name             ?? option.dataset.name         ?? name,
+    phone:            selectedParty.phone            ?? option.dataset.phone        ?? "",
+    phone_number_2:   selectedParty.phone_number_2   ?? option.dataset.phoneNumber2 ?? "",
+    ptcl_number:      selectedParty.ptcl_number      ?? option.dataset.ptcl         ?? "",
+    email:            selectedParty.email            ?? option.dataset.email        ?? "",
+    city:             selectedParty.city             ?? option.dataset.city         ?? "",
+    party_group:      selectedParty.party_group      ?? option.dataset.partyGroup   ?? "",
+    address:          selectedParty.address          ?? option.dataset.address      ?? "",
+    billing_address:  selectedParty.billing_address  ?? option.dataset.billing      ?? "",
+    shipping_address: selectedParty.shipping_address ?? option.dataset.shipping     ?? "",
+    due_days:         selectedParty.due_days         ?? option.dataset.dueDays      ?? "",
+};
 
             if (partyRecord.party_group) {
                 window.salePartyGroups = window.salePartyGroups || [];
@@ -4451,15 +4456,43 @@ document.addEventListener("DOMContentLoaded", function() {
             showPartyWrap.classList.toggle('d-none', !shouldShowLink);
         }
     };
+const setPartyFieldValues = (partyRecord = {}) => {
 
-    const setPartyFieldValues = (partyRecord = {}) => {
-        setFieldValue(".phone-input", partyRecord.phone || "");
-        setFieldValue(".city-input", partyRecord.city || "");
-        setFieldValue(".ptcl-input", partyRecord.ptcl_number || partyRecord.ptcl || "");
-        setFieldValue(".address-input", partyRecord.address || "");
-        setFieldValue(".billing-address", partyRecord.billing_address || partyRecord.billing || "");
-        setFieldValue(".shipping-address", partyRecord.shipping_address || partyRecord.shipping || "");
-    };
+    // Show party details section
+    const partyDetailsSection = document.querySelector(".party-details");
+    if (partyDetailsSection) partyDetailsSection.classList.remove("d-none");
+
+    // Show phone field
+    const phoneField = document.querySelector(".phone-field");
+    if (phoneField) phoneField.style.display = "";
+
+    // Show shipping field
+    const shippingField = document.querySelector(".shipping-address-field");
+    if (shippingField) shippingField.style.display = "";
+
+    // Fill phone input (top phone field)
+    setFieldValue(".phone-input", partyRecord.phone || "");
+
+    // Build FULL party details block
+let billingContent = "";
+
+if (partyRecord.name) billingContent += partyRecord.name.toUpperCase() + "\n";
+
+// M: all mobile numbers on one line
+const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
+if (mobiles.length) billingContent += "M: " + mobiles.join(", ") + "\n";
+
+// W: WhatsApp / secondary (remove from M line, put separately if you have a wp field)
+// T: PTCL
+if (partyRecord.ptcl_number) billingContent += "T: " + partyRecord.ptcl_number + "\n";
+// Em: email
+if (partyRecord.email) billingContent += "Em: " + partyRecord.email + "\n";
+// 📍 city + address
+const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
+if (addrParts.length) billingContent += "📍 " + addrParts.join(", ");
+
+setFieldValue(".billing-address", billingContent.trim());
+};
 
     const setDueDateFromParty = (partyRecord = {}) => {
         const dealDaysSelect = document.querySelector(".due-days-select");
@@ -4514,18 +4547,25 @@ document.addEventListener("DOMContentLoaded", function() {
             const type = option.dataset.type;
             const id = option.dataset.id;
             const selectedParty = (window.parties || []).find((party) => String(party.id) === String(id)) || {};
-            const partyRecord = {
-                phone: selectedParty.phone ?? option.dataset.phone ?? "",
-                city: selectedParty.city ?? option.dataset.city ?? "",
-                ptcl_number: selectedParty.ptcl_number ?? option.dataset.ptcl ?? "",
-                address: selectedParty.address ?? option.dataset.address ?? "",
-                billing_address: selectedParty.billing_address ?? option.dataset.billing ?? "",
-                shipping_address: selectedParty.shipping_address ?? option.dataset.shipping ?? "",
-                due_days: selectedParty.due_days ?? option.dataset.dueDays ?? "",
-            };
+         const partyRecord = {
+    name:             selectedParty.name             ?? option.dataset.name        ?? name,
+    phone:            selectedParty.phone            ?? option.dataset.phone       ?? "",
+    phone_number_2:   selectedParty.phone_number_2   ?? option.dataset.phoneNumber2 ?? "",
+    ptcl_number:      selectedParty.ptcl_number      ?? option.dataset.ptcl        ?? "",
+    email:            selectedParty.email            ?? option.dataset.email       ?? "",
+    city:             selectedParty.city             ?? option.dataset.city        ?? "",
+    party_group:      selectedParty.party_group      ?? option.dataset.partyGroup  ?? "",
+    address:          selectedParty.address          ?? option.dataset.address     ?? "",
+    billing_address:  selectedParty.billing_address  ?? option.dataset.billing     ?? "",
+    shipping_address: selectedParty.shipping_address ?? option.dataset.shipping    ?? "",
+    due_days:         selectedParty.due_days         ?? option.dataset.dueDays     ?? "",
+};
 
             // Button pe sirf party name
             dropdownBtn.value = name;
+            // Clear billing name input when party is selected
+const billingNameInp = document.querySelector('.billing-name-input');
+if (billingNameInp) billingNameInp.value = '';
 
             // Show balance below button with color
           if(type === "pay"){
@@ -4548,11 +4588,11 @@ else {
             partyIdInput.value = id;
 
             // Populate detail fields
-            setPartyFieldValues(partyRecord);
-            setDueDateFromParty(partyRecord);
             partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
-            showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
-            syncCashPartyLayout();
+showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+syncCashPartyLayout();
+setPartyFieldValues(partyRecord);
+setDueDateFromParty(partyRecord);
         }
         else if(e.target.id === "addNewPartyBtn") {
             const partySearchValue = dropdownBtn?.value?.toString().trim() || '';
@@ -4786,23 +4826,204 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 });
+// Auto-save party details when edited
+document.addEventListener('input', function(e) {
+    const billingAddr = e.target.closest('.billing-address');
+    if (!billingAddr) return;
 
-document.addEventListener('click', function (e) {
-    const partyOption = e.target.closest('.party-option');
-    if (!partyOption) return;
+    const partyIdInput = document.querySelector('.party-id');
+    const partyId = partyIdInput?.value?.trim();
+    if (!partyId) return;
 
-    const dropdownBtn = document.querySelector('#partyDropdownBtn.party-search-input');
-    if (!dropdownBtn) return;
+    clearTimeout(window._partyAutoSaveTimer);
+    window._partyAutoSaveTimer = setTimeout(() => {
+        const rawText = billingAddr.value || '';
+        
+        // Parse fields from the textarea content
+        const lines = rawText.split('\n');
+        const parsed = {};
+        lines.forEach(line => {
+            const colonIdx = line.indexOf(':');
+            if (colonIdx === -1) return;
+            const key = line.substring(0, colonIdx).trim().toLowerCase();
+            const val = line.substring(colonIdx + 1).trim();
+            if (key === 'name') parsed.name = val;
+            else if (key === 'mob' || key === 'mob 1') parsed.phone = val;
+            else if (key === 'mob 2') parsed.phone_number_2 = val;
+            else if (key === 'ptcl') parsed.ptcl_number = val;
+            else if (key === 'email') parsed.email = val;
+            else if (key === 'city') parsed.city = val;
+            else if (key === 'group') parsed.party_group = val;
+        });
 
-    const partyName = partyOption.dataset.name || partyOption.querySelector('.party-option-name')?.textContent?.trim() || '';
-    if (!partyName) return;
+        // Extract address block (after "Address:" line)
+        const addrMatch = rawText.match(/Address:\n([\s\S]*)/i);
+        if (addrMatch) parsed.billing_address = addrMatch[1].trim();
 
-    if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {
-        dropdownBtn.value = partyName;
-    } else {
-        dropdownBtn.textContent = partyName;
-    }
+        if (!parsed.name) return; // don't save if name missing
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
+        fetch(`/dashboard/parties/${partyId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(parsed)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success || data.party) {
+                // Update window.parties cache
+                const idx = (window.parties || []).findIndex(p => String(p.id) === String(partyId));
+                if (idx !== -1) {
+                    window.parties[idx] = { ...window.parties[idx], ...parsed };
+                }
+                // Show subtle save indicator
+                billingAddr.style.borderColor = '#28a745';
+                setTimeout(() => { billingAddr.style.borderColor = ''; }, 1200);
+            }
+        })
+        .catch(() => {
+            billingAddr.style.borderColor = '#dc3545';
+            setTimeout(() => { billingAddr.style.borderColor = ''; }, 1200);
+        });
+    }, 800); // debounce 800ms
 });
+// ===== AUTO-SAVE PARTY DETAILS ON EDIT =====
+(function() {
+    function getActivePane() {
+        return document.querySelector('.tab-pane.active') || document;
+    }
+
+    // Delegate input event on document to catch all tabs
+    document.addEventListener('input', function(e) {
+        const textarea = e.target;
+        if (!textarea.classList.contains('billing-address')) return;
+
+        const pane = textarea.closest('.tab-pane') || document;
+        const partyId = pane.querySelector('.party-id')?.value?.trim();
+        if (!partyId) return;
+
+        // Show "saving..." indicator
+        const indicator = textarea.closest('.floating-input-wrapper')?.querySelector('.party-save-indicator');
+        if (indicator) {
+            indicator.textContent = '● saving...';
+            indicator.style.color = '#f59e0b';
+            indicator.style.opacity = '1';
+        }
+
+        clearTimeout(textarea._saveTimer);
+        textarea._saveTimer = setTimeout(() => {
+            const rawText = textarea.value || '';
+
+            // Parse the structured text back into fields
+            const parsed = { billing_address: '' };
+            const lines = rawText.split('\n');
+            let addressLines = [];
+            let inAddress = false;
+
+            lines.forEach(line => {
+                if (inAddress) {
+                    addressLines.push(line);
+                    return;
+                }
+                if (/^address\s*:/i.test(line)) {
+                    inAddress = true;
+                    const afterColon = line.replace(/^address\s*:/i, '').trim();
+                    if (afterColon) addressLines.push(afterColon);
+                    return;
+                }
+                const colonIdx = line.indexOf(':');
+                if (colonIdx === -1) return;
+                const key = line.substring(0, colonIdx).trim().toLowerCase().replace(/\s+/g, '_');
+                const val = line.substring(colonIdx + 1).trim();
+                if (!val) return;
+
+                if (key === 'name') parsed.name = val;
+                else if (key === 'mob' || key === 'mob_1') parsed.phone = val;
+                else if (key === 'mob_2') parsed.phone_number_2 = val;
+                else if (key === 'ptcl') parsed.ptcl_number = val;
+                else if (key === 'email') parsed.email = val;
+                else if (key === 'city') parsed.city = val;
+                else if (key === 'group') parsed.party_group = val;
+            });
+
+            if (addressLines.length) {
+                parsed.billing_address = addressLines.join('\n').trim();
+            }
+
+            // Also sync phone input field if name changed
+            if (parsed.name) {
+                const dropdownBtn = pane.querySelector('#partyDropdownBtn');
+                if (dropdownBtn && dropdownBtn.tagName === 'INPUT') {
+                    dropdownBtn.value = parsed.name;
+                }
+            }
+            if (parsed.phone) {
+                const phoneInput = pane.querySelector('.phone-input');
+                if (phoneInput) phoneInput.value = parsed.phone;
+            }
+
+            // Update window.parties cache immediately
+            const partyIdx = (window.parties || []).findIndex(p => String(p.id) === String(partyId));
+            if (partyIdx !== -1) {
+                window.parties[partyIdx] = { ...window.parties[partyIdx], ...parsed };
+            }
+
+            // Save to server
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            fetch(`/dashboard/parties/${partyId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(parsed)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (indicator) {
+                    if (data.success || data.party) {
+                        indicator.textContent = '✓ saved';
+                        indicator.style.color = '#22c55e';
+                        setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
+
+                        // Update dropdown option data attributes too
+                        const option = document.querySelector(`.party-option[data-id="${partyId}"]`);
+                        if (option) {
+                            if (parsed.name) option.dataset.name = parsed.name;
+                            if (parsed.phone) option.dataset.phone = parsed.phone;
+                            if (parsed.city) option.dataset.city = parsed.city;
+                            if (parsed.billing_address) option.dataset.billing = parsed.billing_address;
+                            const nameEl = option.querySelector('.party-option-name');
+                            if (nameEl && parsed.name) nameEl.textContent = parsed.name;
+                            const phoneEl = option.querySelector('.party-option-phone');
+                            if (phoneEl && parsed.phone) phoneEl.textContent = parsed.phone;
+                        }
+                    } else {
+                        indicator.textContent = '✗ error';
+                        indicator.style.color = '#ef4444';
+                        setTimeout(() => { indicator.style.opacity = '0'; }, 3000);
+                    }
+                }
+            })
+            .catch(() => {
+                if (indicator) {
+                    indicator.textContent = '✗ failed';
+                    indicator.style.color = '#ef4444';
+                    setTimeout(() => { indicator.style.opacity = '0'; }, 3000);
+                }
+            });
+        }, 900);
+    });
+})();
+
 </script>
 </body>
 

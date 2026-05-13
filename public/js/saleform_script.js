@@ -662,21 +662,23 @@ function initializeForm(context) {
         populateFormFromSale(window.editSaleData);
     }
 
-    // Auto-fetch next invoice number for new tabs
-    if (!window.editSaleData) {
-       fetch('/dashboard/sale-return/next-number', {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(res => res.json())
-        .then(data => {
-           if (data && (data.number || data.bill_number)) {
-    $ctx.find('.bill-number').val(data.number || data.bill_number);
-}
-            }
-        )
-        .catch(() => {});
-    }
+// Auto-fetch next invoice number for new tabs
+if (!window.editSaleData) {
+    const currentDocType = window.docType || 'invoice';
+    window._tabOpenCount = (window._tabOpenCount || 0) + 1;
+    const tabOffset = window._tabOpenCount - 1;
 
+    fetch(`/dashboard/sale/next-number?type=${currentDocType}&offset=${tabOffset}`, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data && data.bill_number) {
+            $ctx.find('.bill-number').val(data.bill_number);
+        }
+    })
+    .catch(() => {});
+}
     // ========== TOGGLE FIELDS BASED ON DOCUMENT TYPE ==========
     const docType = window.docType || 'invoice';
     const typeLabels = {
@@ -1348,7 +1350,7 @@ function initializeForm(context) {
                 $ctx.find('.city-input').val(party.city || '');
                 $ctx.find('.ptcl-input').val(party.ptcl_number || party.ptcl || '');
                 $ctx.find('.address-input').val(party.address || '');
-$ctx.find('.billing-address').val(party.billing_address || sale.billing_address || '');
+party_name: $ctx.find('.billing-name-input').val().trim() || getPartyDropdownDisplay() || '',
 $ctx.find('.shipping-address').val(party.shipping_address || sale.shipping_address || '');
 $('#hiddenPhone').val(party.phone || sale.phone || '');
 $('#hiddenBilling').val(party.billing_address || sale.billing_address || '');
@@ -1543,30 +1545,65 @@ $('#hiddenShipping').val(party.shipping_address || sale.shipping_address || '');
         }
     });
 
-    $ctx.on('click', '.party-option', function(e) {
-        e.preventDefault();
-        const $option = $(this);
-        const partyId = $option.data('id') || '';
-        const partyName = $.trim($option.data('name') || $option.find('.party-option-name').text() || '');
-        const phone = $option.data('phone') || '';
-        const billing = $option.data('billing') || '';
-        const shipping = $option.data('shipping') || '';
+  $ctx.on('click', '.party-option', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
 
-        $ctx.find('.party-id').val(partyId);
-        setPartyDropdownDisplay(partyName || 'Select Party');
-        $ctx.find('.phone-input').val(phone);
-        $ctx.find('.billing-address').val(billing);
-        $ctx.find('.shipping-address').val(shipping);
-        $ctx.find('.party-details').removeClass('d-none');
+    const $option = $(this);
+    const partyId  = String($option.data('id') || '').trim();
+    const partyName = $.trim($option.data('name') || $option.find('.party-option-name').text() || '');
 
-        const dropdownBtn = document.getElementById('partyDropdownBtn');
-        if (dropdownBtn) {
-            const dropdown = bootstrap.Dropdown.getOrCreateInstance(dropdownBtn);
-            if (dropdown) {
-                dropdown.hide();
-            }
-        }
-    });
+    // Read ALL data from the clicked option's data attributes first
+    // then fall back to window.parties for anything missing
+    const wp = (window.parties || []).find(p => String(p.id) === partyId) || {};
+
+    const name           = $option.data('name')         || wp.name             || partyName;
+    const phone          = $option.data('phone')        || wp.phone            || "";
+    const phone_number_2 = $option.data('phoneNumber2') || wp.phone_number_2   || "";
+    const ptcl_number    = $option.data('ptcl')         || wp.ptcl_number      || "";
+    const email          = $option.data('email')        || wp.email            || "";
+    const city           = $option.data('city')         || wp.city             || "";
+    const party_group    = $option.data('partyGroup')   || wp.party_group      || "";
+    const address        = $option.data('address')      || wp.address          || "";
+    const billing_addr   = $option.data('billing')      || wp.billing_address  || "";
+    const shipping_addr  = $option.data('shipping')     || wp.shipping_address || "";
+    const due_days       = $option.data('dueDays')      || wp.due_days         || "";
+
+    // Set party ID and dropdown display
+    $ctx.find('.party-id').val(partyId);
+    setPartyDropdownDisplay(name || 'Select Party');
+
+    // Set phone field
+    $ctx.find('.phone-input').val(phone);
+
+    // Build full party details text
+    let details = "";
+    if (name) details += name.toUpperCase() + "\n";
+    const mobiles = [phone, phone_number_2].filter(Boolean);
+    if (mobiles.length) details += "M: " + mobiles.join(", ") + "\n";
+    if (ptcl_number) details += "T: " + ptcl_number + "\n";
+    if (email)       details += "Em: " + email + "\n";
+    const addrLine = billing_addr || address || "";
+    const addrParts = [city, addrLine].filter(Boolean);
+    if (addrParts.length) details += "📍 " + addrParts.join(", ");
+
+    $ctx.find('.billing-address').val(details.trim());
+    $ctx.find('.shipping-address').val(shipping_addr);
+
+    // Show party details section
+    $ctx.find('.party-details').removeClass('d-none');
+    $ctx.find('.phone-field').show();
+    $ctx.find('.billing-address-field').show();
+    $ctx.find('.shipping-address-field').show();
+
+    // Close the dropdown
+    const dropdownToggle = document.getElementById('partyDropdownBtn');
+    if (dropdownToggle) {
+        try {
+            bootstrap.Dropdown.getOrCreateInstance(dropdownToggle).hide();
+        } catch(err) {}
+    }
+});
 
     // Add row functionality
     $ctx.off('click', '.add-row-btn').on('click', '.add-row-btn', function(e) {
@@ -2450,7 +2487,7 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
             brokerage_type: $ctx.find('.brokerage-type').val() || null,
             brokerage_rate: parseFloat($ctx.find('.brokerage-base-amount').val() || $ctx.find('.brokerage-rate').val() || 0) || 0,
             broker_amount: parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0,
-            party_name: getPartyDropdownDisplay() || $ctx.find('.party-select option:selected').text() || '',
+           party_name: $ctx.find('.billing-name-input').val().trim() || getPartyDropdownDisplay() || $ctx.find('.party-select option:selected').text() || '',
             phone: document.getElementById('pscPhone')?.value || $ctx.find('.phone-input').val() || '',
             warehouse_id: $ctx.find('.warehouse-select').val() || null,
             delivery_person: $ctx.find('.delivery-person-input').val() || '',

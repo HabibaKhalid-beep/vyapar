@@ -421,37 +421,55 @@ function initializeForm(context) {
     });
 
     $ctx.on('click', '.party-option', function(e) {
-        e.preventDefault();
-        const $option = $(this);
-        const partyId = $option.data('id') || '';
-        const partyName = $.trim($option.find('span').first().text());
-        const phone = $option.data('phone') || '';
-        const billing = $option.data('billing') || '';
+    e.preventDefault();
+    const $option = $(this);
+    const partyId = $option.data('id') || '';
+    const partyName = $.trim($option.data('name') || $option.find('.party-option-name').text() || '');
 
-        $ctx.find('.party-id').val(partyId);
-        $ctx.find('#partyDropdownBtn').text(partyName || 'Select Party');
-        $ctx.find('.phone-input').val(phone);
-        $ctx.find('.billing-address').val(billing);
-    });
+    // Find full party from window.parties
+   const selectedParty = (window.parties || []).find(p => String(p.id) === String(partyId)) || {};
 
-    // Party search/filter functionality
-    $ctx.on('input', '.party-search-input', function(e) {
-        e.stopPropagation();
-        const searchValue = $(this).val().toLowerCase().trim();
-        const $partyOptions = $ctx.find('.party-option');
+const partyRecord = {
+    name:             $option.data('name')         || selectedParty.name             || partyName,
+    phone:            $option.data('phone')        || selectedParty.phone            || "",
+    phone_number_2:   $option.data('phoneNumber2') || selectedParty.phone_number_2   || "",
+    ptcl_number:      $option.data('ptcl')         || selectedParty.ptcl_number      || "",
+    email:            $option.data('email')        || selectedParty.email            || "",
+    city:             $option.data('city')         || selectedParty.city             || "",
+    party_group:      $option.data('partyGroup')   || selectedParty.party_group      || "",
+    address:          $option.data('address')      || selectedParty.address          || "",
+    billing_address:  $option.data('billing')      || selectedParty.billing_address  || "",
+    shipping_address: $option.data('shipping')     || selectedParty.shipping_address || "",
+    due_days:         $option.data('dueDays')      || selectedParty.due_days         || "",
+};
+    $ctx.find('.party-id').val(partyId);
+    setPartyDropdownDisplay(partyName || 'Select Party');
 
-        $partyOptions.each(function() {
-            const $this = $(this);
-            const partyName = $.trim($this.find('span').first().text()).toLowerCase();
-            const partyPhone = $this.data('phone') ? String($this.data('phone')).toLowerCase() : '';
+    // Fill phone field
+    $ctx.find('.phone-input').val(partyRecord.phone);
 
-            if (searchValue === '' || partyName.includes(searchValue) || partyPhone.includes(searchValue)) {
-                $this.closest('li').removeClass('d-none');
-            } else {
-                $this.closest('li').addClass('d-none');
-            }
-        });
-    });
+    // Build FULL party details content
+    let billingContent = "";
+    if (partyRecord.name)           billingContent += "Name:  " + partyRecord.name          + "\n";
+    if (partyRecord.phone)          billingContent += "Mob:   " + partyRecord.phone          + "\n";
+    if (partyRecord.phone_number_2) billingContent += "WUP:   " + partyRecord.phone_number_2 + "\n";
+    if (partyRecord.ptcl_number)    billingContent += "TEL:   " + partyRecord.ptcl_number    + "\n";
+    if (partyRecord.email)          billingContent += "Email: " + partyRecord.email          + "\n";
+    if (partyRecord.city)           billingContent += "City:  " + partyRecord.city           + "\n";
+    if (partyRecord.party_group)    billingContent += "Group: " + partyRecord.party_group    + "\n";
+    const billingAddr = partyRecord.billing_address || partyRecord.address || "";
+    if (billingAddr) billingContent += "\nAddress:\n" + billingAddr;
+
+    $ctx.find('.billing-address').val(billingContent.trim());
+    $ctx.find('.shipping-address').val(partyRecord.shipping_address || "");
+    $ctx.find('.party-details').removeClass('d-none');
+
+    const dropdownToggle = document.getElementById('partyDropdownBtn');
+    if (dropdownToggle) {
+        const dropdown = bootstrap.Dropdown.getOrCreateInstance(dropdownToggle);
+        if (dropdown) dropdown.hide();
+    }
+});
 
     // Prevent dropdown from closing when clicking on search input
     $ctx.on('click', '.party-search-input', function(e) {

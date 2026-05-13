@@ -132,10 +132,11 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/sale-return/{sale}/bank-history', [SaleReturnController::class, 'bankHistory'])->name('sale-return.bank-history');
     Route::get('/sale-return/{sale}/duplicate', [SaleReturnController::class, 'duplicate'])->name('sale-return.duplicate');
     Route::get('/sale-return/next-number', [SaleReturnController::class, 'nextInvoiceNumber'])->name('sale-return.next-number');
+    Route::get('/sale/next-number', [SaleController::class, 'getNextNumber'])->name('sale.next-number');
 
     // Delivery Challan
     Route::get('delivery-challan', [DeliveryController::class, 'deliveryChallan'])->name('delivery-challan');
-    Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextNumber'])->name('delivery-challan.next-number');
+   
     Route::get('create-challan', [DeliveryController::class, 'createChallan'])->name('create-challan');
     Route::post('delivery-challan', [DeliveryController::class, 'store'])->name('delivery-challan.store');
     Route::get('delivery-challan/{sale}/edit', [DeliveryController::class, 'edit'])->name('delivery-challan.edit');

@@ -2398,5 +2398,28 @@ if ($receivedAmount >= $grandTotal && $grandTotal > 0) return 'Paid';
 
     return view('dashboard.sales.payement-in', compact('parties', 'bankAccounts'));
 }
+public function getNextNumber(Request $request)
+{
+    $type = $request->query('type', 'invoice');
+    $offset = max(0, (int) $request->query('offset', 0));
+
+    $prefixTypeMap = [
+        'invoice'          => 'invoice',
+        'estimate'         => 'estimate',
+        'sale_order'       => 'sale_order',
+        'proforma'         => 'proforma_invoice',
+        'delivery_challan' => 'delivery_challan',
+        'sale_return'      => 'credit_note',
+        'pos'              => 'invoice',
+    ];
+
+    $nextSaleId = (Sale::max('id') ?? 0) + 1 + $offset;
+    $nextNumber = TransactionNumberPrefix::format(
+        $prefixTypeMap[$type] ?? 'invoice',
+        $nextSaleId
+    );
+
+    return response()->json(['bill_number' => $nextNumber]);
+}
 
 }

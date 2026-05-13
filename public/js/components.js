@@ -645,4 +645,50 @@
       isSuperAdmin,
     });
   }
+  // ===== SIDEBAR + BUTTON HANDLERS =====
+document.addEventListener('click', function(e) {
+    const plusBtn = e.target.closest('.menu-plus-btn[data-modal]');
+    if (!plusBtn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    const modalId = plusBtn.getAttribute('data-modal');
+    const modalEl = document.getElementById(modalId);
+
+    if (modalEl) {
+        // Reset form if exists
+        const form = modalEl.querySelector('form');
+        if (form) form.reset();
+
+        // Reset specific fields for party modal
+        if (modalId === 'addPartyModal') {
+            const nameInput = modalEl.querySelector('#partyNameInput');
+            if (nameInput) {
+                nameInput.value = '';
+                setTimeout(() => nameInput.focus(), 300);
+            }
+            // Reset tab to first tab (Address)
+            const firstTab = modalEl.querySelector('#party-address-tab');
+            if (firstTab && window.bootstrap) {
+                bootstrap.Tab.getOrCreateInstance(firstTab).show();
+            }
+        }
+
+        // Show modal
+        if (window.bootstrap) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+    } else {
+        // Fallback: redirect to page
+        const fallbackUrls = {
+            'addPartyModal': '/dashboard/parties?action=add',
+            'addItemModal':  '/dashboard/items?action=add',
+        };
+        if (fallbackUrls[modalId]) {
+            window.location.href = fallbackUrls[modalId];
+        }
+    }
+});
 })();
