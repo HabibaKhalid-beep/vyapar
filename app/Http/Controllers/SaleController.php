@@ -1876,6 +1876,16 @@ private function posData(): array
             ->sum(fn (array $row) => floatval($row['amount'] ?? 0));
     }
 
+    private function calculateMinusModeDeduction(array $data): float
+    {
+        return collect($this->normalizeAdjustmentRows($data['custom_expenses'] ?? []))
+            ->filter(function (array $row) {
+                return ($row['mode'] ?? null) === '-'
+                    && floatval($row['amount'] ?? 0) > 0;
+            })
+            ->sum(fn (array $row) => floatval($row['amount'] ?? 0));
+    }
+
     private function saleLedgerTransferGroup(Sale $sale): string
     {
         return 'sale-ledger-' . ($sale->id ?: 'draft');
@@ -2106,7 +2116,7 @@ private function posData(): array
                     'date' => $sale->invoice_date ?? now(),
                     'total' => $row['amount'],
                     'debit' => 0,
-                    'credit' => $row['amount'],
+                    'credit' => 0,
                     'paid_amount' => 0,
                     'balance' => floatval($sale->balance ?? 0),
                     'running_balance' => 0,
@@ -2213,11 +2223,12 @@ private function posData(): array
 
         $grossSaleAmount = floatval($sale->grand_total ?? 0);
         $sameModeDeduction = min($this->calculateSameModeDeduction($data), $grossSaleAmount);
+        $minusModeDeduction = min($this->calculateMinusModeDeduction($data), $grossSaleAmount);
         $partyTransferDeduction = min($this->calculatePartyTransferDeduction($data), $grossSaleAmount);
         $saleAmount = $grossSaleAmount;
         $ledgerType = $this->resolveLedgerTypeFromSale((string) $sale->type);
         $transactionBalance = max(0, round($saleAmount - floatval($sale->received_amount ?? 0) - $partyTransferDeduction, 2));
-        $saleLedgerAmount = $sameModeDeduction > 0
+        $saleLedgerAmount = ($sameModeDeduction > 0 || $minusModeDeduction > 0)
             ? 0
             : max(0, round($saleAmount, 2));
 
