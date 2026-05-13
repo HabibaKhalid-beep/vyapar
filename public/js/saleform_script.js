@@ -1345,8 +1345,11 @@ function initializeForm(context) {
                 $ctx.find('.city-input').val(party.city || '');
                 $ctx.find('.ptcl-input').val(party.ptcl_number || party.ptcl || '');
                 $ctx.find('.address-input').val(party.address || '');
-                $ctx.find('.billing-address').val(party.billing_address || sale.billing_address || '');
-                $ctx.find('.shipping-address').val(party.shipping_address || sale.shipping_address || '');
+$ctx.find('.billing-address').val(party.billing_address || sale.billing_address || '');
+$ctx.find('.shipping-address').val(party.shipping_address || sale.shipping_address || '');
+$('#hiddenPhone').val(party.phone || sale.phone || '');
+$('#hiddenBilling').val(party.billing_address || sale.billing_address || '');
+$('#hiddenShipping').val(party.shipping_address || sale.shipping_address || '');
             } else {
                 setPartyDropdownDisplay(sale.party_name || 'Select Party');
             }
@@ -2445,7 +2448,7 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
             brokerage_rate: parseFloat($ctx.find('.brokerage-base-amount').val() || $ctx.find('.brokerage-rate').val() || 0) || 0,
             broker_amount: parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0,
             party_name: getPartyDropdownDisplay() || $ctx.find('.party-select option:selected').text() || '',
-            phone: $ctx.find('.phone-input').val() || '',
+            phone: document.getElementById('pscPhone')?.value || $ctx.find('.phone-input').val() || '',
             warehouse_id: $ctx.find('.warehouse-select').val() || null,
             delivery_person: $ctx.find('.delivery-person-input').val() || '',
             bilti_no: $ctx.find('.bilti-no-input').val() || '',
@@ -2457,8 +2460,8 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
             goods_name: $ctx.find('.goods-name-input').val() || '',
             details_extra: $ctx.find('.details-extra-input').val() || '',
             bilti_gari_no: $ctx.find('.bilti-gari-input').val() || '',
-            billing_address: $ctx.find('.billing-address').val() || '',
-            shipping_address: $ctx.find('.shipping-address').val() || '',
+            billing_address: document.getElementById('pscBilling')?.value || $ctx.find('.billing-address').val() || '',
+shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.shipping-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
             invoice_date: $ctx.find('.invoice-date').val() || '',
             order_date: $ctx.find('.order-date').val() || '',

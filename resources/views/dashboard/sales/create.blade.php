@@ -23,6 +23,93 @@
 </head>
 
 <style>
+    /* Force card inputs to be visibly editable */
+#pscPhone,
+#pscBilling,
+#pscShipping {
+    display: block !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+    color: #475569 !important;
+    font-family: inherit !important;
+    cursor: text !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+#pscPhone {
+    height: 28px !important;
+    resize: none !important;
+}
+
+#pscBilling,
+#pscShipping {
+    resize: vertical !important;
+    min-height: 36px !important;
+}
+
+#pscPhone:hover,
+#pscBilling:hover,
+#pscShipping:hover {
+    border-color: #d7e0ea !important;
+    background: #f8fafc !important;
+}
+
+#pscPhone:focus,
+#pscBilling:focus,
+#pscShipping:focus {
+    outline: none !important;
+    border-color: #2563eb !important;
+    background: #fff !important;
+}
+    /* Always hide the standalone party detail fields — use card fields only */
+/* party-details wrapper must stay as contents for grid to work */
+.party-details {
+    display: contents !important;
+}
+
+/* Individual fields hidden by default — JS will show/hide them */
+.phone-field,
+.billing-address-field,
+.shipping-address-field {
+    display: none;
+}
+
+/* psc-details inside card — always visible */
+.psc-details {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+    .psc-editable-input {
+    flex: 1;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    font-size: 12px;
+    color: #475569;
+    padding: 2px 6px;
+    resize: none;
+    line-height: 1.4;
+    width: 100%;
+    transition: border-color 0.15s, background 0.15s;
+    font-family: inherit;
+}
+
+.psc-editable-input:hover {
+    border-color: #d7e0ea;
+    background: #f8fafc;
+}
+
+.psc-editable-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #fff;
+}
     /* Dropdown with two columns and scrollbar */
     #partyDropdownMenu {
     min-width: 280px;
@@ -1739,6 +1826,129 @@ textarea.meta-control,
 .item-table .tfoot-add-row-cell {
     text-align: left;
 }
+.party-selected-card {
+    display: none;
+    border: 1px solid #d7e0ea;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 14px 14px 12px;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.party-selected-card.visible {
+    display: block;
+}
+
+/* Top row: avatar + name + balance + X button */
+.psc-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.psc-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.psc-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.psc-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.psc-balance {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.psc-balance.receive {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+}
+
+.psc-balance.pay {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+}
+.psc-close-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #d7e0ea;
+    border-radius: 6px;
+    background: transparent;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 14px;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.psc-close-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+/* Divider */
+.psc-divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 0 0 10px;
+}
+
+/* Detail rows */
+.psc-details {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.psc-detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.4;
+}
+
+.psc-detail-row i {
+    font-size: 14px;
+    margin-top: 1px;
+    flex-shrink: 0;
+    color: #94a3b8;
+}
+
     </style>
 
 @php
@@ -1843,23 +2053,20 @@ textarea.meta-control,
                                 <div class="party-selector-panel">
                                 <!-- Party dropdown button -->
 <div class="dropdown party-dropdown-wrapper compact-header-field" data-bs-auto-close="outside" style="position: relative;">
-    <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 8px; min-height: 32px;">
+    <input type="text" class="form-control party-search-input w-100" placeholder="Search party..."
+           id="partyDropdownBtn" data-bs-toggle="dropdown"
+           style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 8px; min-height: 32px;">
 
-    <!-- Balance display -->
-    <div id="partyBalanceDisplay" style="color: #007bff; font-weight: 600; margin-top: 4px;">
-        <!-- JS will populate balance here -->
-    </div>
+    <div id="partyBalanceDisplay" style="display:none;"></div>
 
-    <!-- Dropdown menu (existing) -->
     <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu">
         <li><a class="dropdown-item text-primary" href="#" id="addNewPartyBtn">+ Add New Party</a></li>
         <li class="dropdown-header d-flex justify-content-between px-3">
-
             <span>Party Name</span>
             <span>Opening Balance</span>
         </li>
-          @foreach($parties as $party)
-          <li>
+        @foreach($parties as $party)
+        <li>
             <a class="dropdown-item d-flex justify-content-between align-items-start party-option" href="#"
                data-id="{{ $party->id }}"
                data-name="{{ $party->name }}"
@@ -1880,30 +2087,75 @@ textarea.meta-control,
                data-credit-limit-amount="{{ $party->credit_limit_amount ?? '' }}"
                data-custom-fields="{{ e(json_encode($party->custom_fields ?? [])) }}">
                 <span class="party-option-main">
-                  <span class="party-option-name">{{ $party->name }}</span>
-                  <span class="party-option-phone">{{ $party->phone ?: '-' }}</span>
+                    <span class="party-option-name">{{ $party->name }}</span>
+                    <span class="party-option-phone">{{ $party->phone ?: '-' }}</span>
                 </span>
-                <span
-                  @if($party->transaction_type == 'pay')
-                      class="text-danger"
-                  @elseif($party->transaction_type == 'receive')
-                      class="text-success"
-                  @endif
-                >
-                  @if($party->transaction_type == 'pay')
-                      <i class="fa-solid fa-arrow-up me-1"></i>
-                  @elseif($party->transaction_type == 'receive')
-                      <i class="fa-solid fa-arrow-down me-1"></i>
-                  @endif
-                  ₹{{ number_format($party->opening_balance ?? 0, 2) }}
+                <span @if($party->transaction_type == 'pay') class="text-danger" @elseif($party->transaction_type == 'receive') class="text-success" @endif>
+                    @if($party->transaction_type == 'pay')
+                        <i class="fa-solid fa-arrow-up me-1"></i>
+                    @elseif($party->transaction_type == 'receive')
+                        <i class="fa-solid fa-arrow-down me-1"></i>
+                    @endif
+                    ₹{{ number_format($party->opening_balance ?? 0, 2) }}
                 </span>
             </a>
-          </li>
-          @endforeach
-
+        </li>
+        @endforeach
     </ul>
 </div>
+
+<!-- Party selected card — shown after party is picked -->
+<div class="party-selected-card" id="partySelectedCard">
+    <div class="psc-top">
+        <div class="psc-avatar" id="pscAvatar">AT</div>
+        <div class="psc-info">
+            <div class="psc-name" id="pscName">Ahmed Traders</div>
+            <span class="psc-balance receive" id="pscBalance">
+                <i class="fa-solid fa-arrow-down" style="font-size:10px;"></i>
+                Rs 0.00 to receive
+            </span>
+        </div>
+        <button type="button" class="psc-close-btn" id="pscCloseBtn" title="Change party">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="psc-divider"></div>
+<button type="button" id="togglePartyDetailsBtn" style="
+    background: none;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+">
+    <i class="fa-solid fa-chevron-down" id="togglePartyDetailsIcon"></i>
+    &nbsp; More Details
+</button>
+   <div class="psc-details">
+    <div class="psc-detail-row" id="pscPhoneRow">
+        <i class="fa-solid fa-phone"></i>
+       <input type="text" id="pscPhone" class="psc-editable-input" placeholder="Phone number">
+    </div>
+    <div class="psc-detail-row" id="pscBillingRow">
+    <i class="fa-solid fa-file-invoice" style="font-size:14px; margin-top:1px; flex-shrink:0; color:#94a3b8;"></i>
+    <textarea id="pscBilling" class="psc-editable-input" rows="2" placeholder="Billing address"></textarea>
+</div>
+    <div class="psc-detail-row" id="pscShippingRow">
+        <i class="fa-solid fa-truck"></i>
+        <textarea id="pscShipping" class="psc-editable-input" rows="2" placeholder="Shipping address"></textarea>
+    </div>
+</div>
+</div>
+
 <input type="hidden" class="party-id" name="party_id">
+<input type="hidden" id="hiddenPhone" name="phone">
+<input type="hidden" id="hiddenBilling" name="billing_address">
+<input type="hidden" id="hiddenShipping" name="shipping_address">
                                 </div>
                                 </div>
                                <div class="party-meta-grid billing-name-group">
@@ -1917,26 +2169,26 @@ textarea.meta-control,
         </div>
     </div>
 </div>
-                                <div class="party-meta-grid party-details d-none">
-                                    <div class="party-meta-field phone-field compact-header-field">
-                                        <div class="floating-input-wrapper" >
-                                            <input type="text" name="phone" class="meta-control phone-input" placeholder=" ">
-                                            <label>Phone No.</label>
-                                        </div>
-                                    </div>
-                                    <div class="party-meta-field address-field billing-address-field">
-                                        <div class="floating-input-wrapper">
-                                            <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "></textarea>
-                                            <label>Billing Address</label>
-                                        </div>
-                                    </div>
-                                    <div class="party-meta-field address-field shipping-address-field">
-                                        <div class="floating-input-wrapper">
-                                            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
-                                            <label>Shipping Address</label>
-                                        </div>
-                                    </div>
-                                </div>
+                          <div class="party-meta-grid party-details">
+    <div class="party-meta-field phone-field compact-header-field">
+        <div class="floating-input-wrapper">
+            <input type="text" name="phone" class="meta-control phone-input" placeholder=" ">
+            <label>Phone No.</label>
+        </div>
+    </div>
+    <div class="party-meta-field address-field billing-address-field">
+        <div class="floating-input-wrapper">
+            <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "></textarea>
+            <label>Billing Address</label>
+        </div>
+    </div>
+ <div class="party-meta-field address-field shipping-address-field">
+        <div class="floating-input-wrapper">
+            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
+            <label>Shipping Address</label>
+        </div>
+    </div>
+</div>
                                 <div class="header-aux-fields">
                                     {{-- <div class="header-mini-fields-grid">
                                         <div class="party-meta-field header-mini-field">
@@ -4485,14 +4737,14 @@ document.addEventListener("DOMContentLoaded", function() {
     partySelectorGroup?.setAttribute('data-cash-party-visible', 'false');
     showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
 
-    const syncCashPartyLayout = () => {
+   const syncCashPartyLayout = () => {
         const isCash = document.getElementById("saleToggleSwitch")?.checked;
         const hasParty = Boolean((partyIdInput?.value || '').trim());
         const cashPartySelectorVisible = partySelectorGroup?.getAttribute('data-cash-party-visible') === 'true';
         const cashLinkArmed = showPartyWrap?.getAttribute('data-cash-link-armed') === 'true';
 
         if (partyDetails) {
-            partyDetails.classList.toggle('d-none', !(isCash || hasParty));
+            partyDetails.classList.add('d-none');
         }
 
         if (partySelectorGroup) {
@@ -4504,7 +4756,6 @@ document.addEventListener("DOMContentLoaded", function() {
             showPartyWrap.classList.toggle('d-none', !shouldShowLink);
         }
     };
-
     const setPartyFieldValues = (partyRecord = {}) => {
         setFieldValue(".phone-input", partyRecord.phone || "");
         setFieldValue(".city-input", partyRecord.city || "");
@@ -4791,9 +5042,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if (showPartyWrap) {
             showPartyWrap.classList.toggle('d-none', !isCash || cashPartySelectorVisible || !cashLinkArmed);
         }
-        if (partyDetails) {
-            const hasParty = Boolean((partyIdInput?.value || '').trim());
-            partyDetails.classList.toggle('d-none', !(isCash || hasParty));
+       if (partyDetails) {
+            partyDetails.classList.add('d-none');
         }
     }
 
@@ -4852,6 +5102,323 @@ document.addEventListener('click', function (e) {
         dropdownBtn.value = partyName;
     } else {
         dropdownBtn.textContent = partyName;
+    }
+});
+</script>
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    function getInitials(name) {
+        return (name || '')
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map(w => w[0] || '')
+            .join('')
+            .toUpperCase() || '?';
+    }
+
+    function hidePartyCard() {
+        const searchInput = document.getElementById('partyDropdownBtn');
+        const card = document.getElementById('partySelectedCard');
+        const partyIdInput = document.querySelector('.party-id');
+        const partyDetails = document.querySelector('.party-details');
+
+        if (partyDetails) partyDetails.classList.add('d-none');
+        if (searchInput) {
+            searchInput.closest('.dropdown.party-dropdown-wrapper').style.display = '';
+            searchInput.value = '';
+            searchInput.focus();
+        }
+        if (card) card.classList.remove('visible');
+        if (partyIdInput) partyIdInput.value = '';
+
+        const balanceDisplay = document.getElementById('partyBalanceDisplay');
+        if (balanceDisplay) balanceDisplay.textContent = '';
+
+        const phoneEl = document.getElementById('pscPhone');
+        const billingEl = document.getElementById('pscBilling');
+        const shippingEl = document.getElementById('pscShipping');
+        if (phoneEl) phoneEl.value = '';
+        if (billingEl) billingEl.value = '';
+        if (shippingEl) shippingEl.value = '';
+    }
+
+    function showPartyCard(partyData) {
+        const {
+            name = '',
+            phone = '',
+            billing_address = '',
+            shipping_address = '',
+            opening_balance = 0,
+            transaction_type = ''
+        } = partyData;
+
+        const searchInput = document.getElementById('partyDropdownBtn');
+        const card = document.getElementById('partySelectedCard');
+        if (searchInput) searchInput.closest('.dropdown.party-dropdown-wrapper').style.display = 'none';
+        if (card) card.classList.add('visible');
+
+        const avatar = document.getElementById('pscAvatar');
+        if (avatar) avatar.textContent = getInitials(name);
+
+        const nameEl = document.getElementById('pscName');
+        if (nameEl) nameEl.textContent = name;
+
+        const balEl = document.getElementById('pscBalance');
+        if (balEl) {
+            const amount = parseFloat(opening_balance) || 0;
+            const isReceive = transaction_type === 'receive';
+            const isPay = transaction_type === 'pay';
+            balEl.className = 'psc-balance ' + (isReceive ? 'receive' : isPay ? 'pay' : '');
+            const arrow = isReceive
+                ? '<i class="fa-solid fa-arrow-down" style="font-size:10px;"></i>'
+                : isPay
+                    ? '<i class="fa-solid fa-arrow-up" style="font-size:10px;"></i>'
+                    : '';
+            const label = isReceive ? 'to receive' : isPay ? 'to pay' : '';
+            balEl.innerHTML = arrow + ' Rs ' + amount.toFixed(2) + (label ? ' ' + label : '');
+        }
+
+        const phoneEl = document.getElementById('pscPhone');
+        const phoneRow = document.getElementById('pscPhoneRow');
+        if (phoneEl && phoneRow) {
+            phoneEl.value = phone || '';
+            phoneRow.style.display = '';
+        }
+
+        const billingEl = document.getElementById('pscBilling');
+        const billingRow = document.getElementById('pscBillingRow');
+        if (billingEl && billingRow) {
+            billingEl.value = billing_address || '';
+            billingRow.style.display = '';
+        }
+
+        const shippingEl = document.getElementById('pscShipping');
+        const shippingRow = document.getElementById('pscShippingRow');
+        if (shippingEl && shippingRow) {
+            shippingEl.value = shipping_address || '';
+            shippingRow.style.display = '';
+        }
+    }
+
+    // X button
+    const closeBtn = document.getElementById('pscCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hidePartyCard);
+    }
+
+    // Listen for party option clicks
+    document.addEventListener('click', function (e) {
+        const option = e.target.closest('.party-option');
+        if (!option) return;
+
+        const id = option.dataset.id || '';
+        if (!id) return;
+
+        setTimeout(function () {
+            const partyRecord = (window.parties || []).find(p => String(p.id) === String(id)) || {};
+            showPartyCard({
+                name:             option.dataset.name     || partyRecord.name             || '',
+                phone:            option.dataset.phone    || partyRecord.phone            || '',
+                billing_address:  option.dataset.billing  || partyRecord.billing_address  || '',
+                shipping_address: option.dataset.shipping || partyRecord.shipping_address || '',
+                opening_balance:  option.dataset.opening  || partyRecord.opening_balance  || 0,
+                transaction_type: option.dataset.type     || partyRecord.transaction_type || '',
+            });
+        }, 50);
+    });
+
+    // Edit mode: show card if party already selected
+    const existingPartyId = document.querySelector('.party-id')?.value;
+    if (existingPartyId) {
+        const partyRecord = (window.parties || []).find(p => String(p.id) === String(existingPartyId));
+        if (partyRecord) showPartyCard(partyRecord);
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    var toggleBtn     = document.getElementById('togglePartyDetailsBtn');
+    var phoneField    = document.querySelector('.phone-field');
+    var billingField  = document.querySelector('.billing-address-field');
+    var shippingField = document.querySelector('.shipping-address-field');
+    var pscDetails    = document.querySelector('.psc-details');
+    var isOpen        = false;
+
+    if (pscDetails) pscDetails.style.display = 'flex';
+
+    function hideOutside() {
+        if (phoneField)    phoneField.style.display = 'none';
+        if (billingField)  billingField.style.display = 'none';
+        if (shippingField) shippingField.style.display = 'none';
+    }
+
+    function showOutside() {
+        if (phoneField)    phoneField.style.display = 'flex';
+        if (billingField)  billingField.style.display = 'flex';
+        if (shippingField) shippingField.style.display = 'flex';
+    }
+
+    hideOutside();
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+            isOpen = !isOpen;
+            if (isOpen) {
+                showOutside();
+                toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-up"></i> &nbsp; Less Details';
+            } else {
+                hideOutside();
+                toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-down"></i> &nbsp; More Details';
+            }
+        });
+    }
+
+    // ── REAL-TIME two-way sync: card input ↔ outside form field ──
+    // Uses event delegation to work with dynamically created elements
+
+    // Card input → outside form field (live as you type)
+  document.addEventListener('input', function (e) {
+    const t = e.target;
+    if (t.id === 'pscPhone') {
+        const hidden = document.getElementById('hiddenPhone');
+        if (hidden) hidden.value = t.value;
+        // Update ALL phone inputs
+        document.querySelectorAll('.phone-input, input[name="phone"]').forEach(el => el.value = t.value);
+        // Update party dropdown option data attribute
+        const currentId = document.querySelector('.party-id')?.value;
+        if (currentId) {
+            const option = document.querySelector(`.party-option[data-id="${currentId}"]`);
+            if (option) option.dataset.phone = t.value;
+            const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
+            if (rec) rec.phone = t.value;
+        }
+    }
+    if (t.id === 'pscBilling') {
+        const hidden = document.getElementById('hiddenBilling');
+        if (hidden) hidden.value = t.value;
+        // Update ALL billing address fields
+        document.querySelectorAll('.billing-address, textarea[name="billing_address"]').forEach(el => el.value = t.value);
+        const currentId = document.querySelector('.party-id')?.value;
+        if (currentId) {
+            const option = document.querySelector(`.party-option[data-id="${currentId}"]`);
+            if (option) option.dataset.billing = t.value;
+            const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
+            if (rec) rec.billing_address = t.value;
+        }
+    }
+    if (t.id === 'pscShipping') {
+        const hidden = document.getElementById('hiddenShipping');
+        if (hidden) hidden.value = t.value;
+        // Update ALL shipping address fields
+        document.querySelectorAll('.shipping-address, textarea[name="shipping_address"]').forEach(el => el.value = t.value);
+        const currentId = document.querySelector('.party-id')?.value;
+        if (currentId) {
+            const option = document.querySelector(`.party-option[data-id="${currentId}"]`);
+            if (option) option.dataset.shipping = t.value;
+            const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
+            if (rec) rec.shipping_address = t.value;
+        }
+    }
+});
+
+    // On Enter key in card inputs — save to window.parties + visual feedback
+    document.addEventListener('keydown', function (e) {
+        const t = e.target;
+        const isCardInput = ['pscPhone', 'pscBilling', 'pscShipping'].includes(t.id);
+        if (!isCardInput) return;
+
+        const isTextarea = t.tagName === 'TEXTAREA';
+        if (e.key === 'Enter' && (!isTextarea || e.ctrlKey)) {
+            e.preventDefault();
+            saveToParties(t);
+            t.blur();
+        }
+    });
+
+    // On blur of card inputs — save to window.parties
+    document.addEventListener('blur', function (e) {
+        const t = e.target;
+        if (['pscPhone', 'pscBilling', 'pscShipping'].includes(t.id)) {
+            saveToParties(t);
+        }
+    }, true);
+
+ function saveToParties(field) {
+    const keyMap = {
+        pscPhone:    'phone',
+        pscBilling:  'billing_address',
+        pscShipping: 'shipping_address'
+    };
+    const dataAttrMap = {
+        pscPhone:    'phone',
+        pscBilling:  'billing',
+        pscShipping: 'shipping'
+    };
+    const partyKey = keyMap[field.id];
+    const dataAttr = dataAttrMap[field.id];
+    if (!partyKey) return;
+
+    const currentId = document.querySelector('.party-id')?.value;
+    if (currentId) {
+        // Update window.parties array
+        const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
+        if (rec) rec[partyKey] = field.value;
+
+        // Update all dropdown option data attributes
+        document.querySelectorAll(`.party-option[data-id="${currentId}"]`).forEach(option => {
+            if (dataAttr) option.dataset[dataAttr] = field.value;
+            // Also update the visible phone subtitle in the dropdown list
+            if (field.id === 'pscPhone') {
+                const phoneSpan = option.querySelector('.party-option-phone');
+                if (phoneSpan) phoneSpan.textContent = field.value || '-';
+            }
+        });
+    }
+
+    field.style.transition = 'border-color 0.2s';
+    field.style.borderColor = '#10b981';
+    setTimeout(() => { field.style.borderColor = ''; }, 1000);
+}
+
+    // ── X button: full reset ──
+    const closeBtn = document.getElementById('pscCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+            const card         = document.getElementById('partySelectedCard');
+            const searchInput  = document.getElementById('partyDropdownBtn');
+            const partyIdInput = document.querySelector('.party-id');
+            const balDisplay   = document.getElementById('partyBalanceDisplay');
+
+            if (searchInput) {
+                searchInput.closest('.dropdown.party-dropdown-wrapper').style.display = '';
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            if (card)         card.classList.remove('visible');
+            if (partyIdInput) partyIdInput.value = '';
+            if (balDisplay)   balDisplay.textContent = '';
+
+            hideOutside();
+            isOpen = false;
+            if (toggleBtn) toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-down"></i> &nbsp; More Details';
+
+            // Clear both card AND form fields
+            const clearPairs = [
+                ['pscPhone',    'input[name="phone"]'],
+                ['pscBilling',  'textarea[name="billing_address"]'],
+                ['pscShipping', 'textarea[name="shipping_address"]'],
+            ];
+            clearPairs.forEach(([cardId, formSel]) => {
+                const cardEl = document.getElementById(cardId);
+                const formEl = document.querySelector(formSel);
+                if (cardEl) cardEl.value = '';
+                if (formEl) formEl.value = '';
+            });
+        });
     }
 });
 </script>
