@@ -33,6 +33,7 @@ use App\Http\Controllers\SimpleInvoiceController;
 use App\Models\Barcode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Http\Controllers\ChequeController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -180,6 +181,12 @@ Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextN
     Route::get('/bank-accounts/{bankAccount}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit');
     Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
     Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
+     // ─── Cheques ───────────────────────────────────────────────
+    Route::get('/cheques',          [ChequeController::class, 'index'])  ->name('cheques.index');
+    Route::post('/cheques',         [ChequeController::class, 'store'])  ->name('cheques.store');
+    Route::post('/cheques/adjust',  [ChequeController::class, 'adjust']) ->name('cheques.adjust');
+Route::patch('/cheques/{cheque}', [ChequeController::class, 'update'])->name('cheques.update');
+ 
 
     // Purchase & Expenses
 

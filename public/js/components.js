@@ -61,7 +61,7 @@
     // Cash/Bank items
     'cashbank.loan_accounts': ['cashbank.loan_accounts'],
     'cashbank.bank_accounts': ['cashbank.bank_accounts'],
-    'cashbank.view': ['cashbank.view', 'cashbank.loan_accounts', 'cashbank.bank_accounts'],
+    'cashbank.view': ['cashbank.view', 'cashbank.loan_accounts', 'cashbank.bank_accounts', 'cashbank.cheques'],
   };
 
   const hasExtendedPermission = (permission) => {
@@ -296,6 +296,18 @@
           `,
           href: '/dashboard/cash-in-hand',
           dataPage: 'cash-in-hand',
+          permission: 'cashbank.view'
+          
+        },
+        {
+          label: `
+            <span style="position:relative;display:block;padding-right:28px;">
+              Cheques
+              <span class="menu-plus-btn" data-modal="addChequeModal" style="position:absolute;right:-95px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
+            </span>
+          `,
+          href: '/dashboard/cheques',
+          dataPage: 'cheques',
           permission: 'cashbank.view'
         },
       ],

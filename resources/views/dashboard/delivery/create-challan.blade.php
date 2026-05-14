@@ -1720,6 +1720,65 @@ textarea.meta-control,
 .item-table .tfoot-add-row-cell {
     text-align: left;
 }
+/* ===== PARTY SELECTED CARD ===== */
+.party-selected-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    background: #f0f7ff;
+    border: 1.5px solid #2563eb;
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-height: 34px;
+    width: 100%;
+    cursor: default;
+    box-sizing: border-box;
+}
+
+.party-selected-card .party-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 0;
+}
+
+.party-selected-card .party-card-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #1e293b;
+}
+
+.party-selected-card .party-card-line {
+    color: #475569;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.party-selected-card .party-card-balance {
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.party-selected-card .party-card-clear {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.party-selected-card .party-card-clear:hover {
+    color: #dc2626;
+}
     </style>
 
 @php
@@ -1893,28 +1952,9 @@ textarea.meta-control,
     </div>
 </div>
                                 <div class="party-meta-grid party-details d-none">
-                                    <div class="party-meta-field phone-field compact-header-field">
-                                        <div class="floating-input-wrapper" >
-                                            <input type="text" name="phone" class="meta-control phone-input" placeholder=" ">
-                                            <label>Phone No.</label>
-                                        </div>
-                                    </div>
-                                    <div class="party-meta-field address-field billing-address-field">
-    <div class="floating-input-wrapper" style="position:relative;">
-        <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" " 
-            style="min-height:90px !important; height:90px !important; max-height:90px !important; 
-                   overflow-y:auto !important; resize:none; font-size:12px; line-height:1.5;
-                   scrollbar-width:thin; padding:8px 10px !important;"></textarea>
-        <label>Party Details</label>
-        <span class="party-save-indicator" style="position:absolute; top:4px; right:6px; font-size:10px; font-weight:600; opacity:0; transition:opacity 0.3s;"></span>
-    </div>
-</div>
-                                    <div class="party-meta-field address-field shipping-address-field">
-                                        <div class="floating-input-wrapper">
-                                            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
-                                            <label>Shipping Address</label>
-                                        </div>
-                                    </div>
+                                   
+                       
+                                    
                                 </div>
                                 <div class="header-aux-fields">
                                     {{-- <div class="header-mini-fields-grid">
@@ -4457,41 +4497,116 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
 const setPartyFieldValues = (partyRecord = {}) => {
-
-    // Show party details section
+    // Show party details section (keep for form data)
     const partyDetailsSection = document.querySelector(".party-details");
     if (partyDetailsSection) partyDetailsSection.classList.remove("d-none");
 
-    // Show phone field
     const phoneField = document.querySelector(".phone-field");
     if (phoneField) phoneField.style.display = "";
 
-    // Show shipping field
     const shippingField = document.querySelector(".shipping-address-field");
     if (shippingField) shippingField.style.display = "";
 
-    // Fill phone input (top phone field)
     setFieldValue(".phone-input", partyRecord.phone || "");
 
-    // Build FULL party details block
-let billingContent = "";
+    let billingContent = "";
+    if (partyRecord.name) billingContent += partyRecord.name.toUpperCase() + "\n";
+    const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
+    if (mobiles.length) billingContent += "M: " + mobiles.join(", ") + "\n";
+    if (partyRecord.ptcl_number) billingContent += "T: " + partyRecord.ptcl_number + "\n";
+    if (partyRecord.email) billingContent += "Em: " + partyRecord.email + "\n";
+    const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
+    if (addrParts.length) billingContent += "📍 " + addrParts.join(", ");
+    setFieldValue(".billing-address", billingContent.trim());
 
-if (partyRecord.name) billingContent += partyRecord.name.toUpperCase() + "\n";
+    // ===== SHOW PARTY CARD IN SEARCH BAR =====
+    renderPartyCard(partyRecord);
+};
 
-// M: all mobile numbers on one line
-const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
-if (mobiles.length) billingContent += "M: " + mobiles.join(", ") + "\n";
+const renderPartyCard = (partyRecord = {}) => {
+    const wrapper = document.querySelector('.party-dropdown-wrapper');
+    const searchInput = document.getElementById('partyDropdownBtn');
+    if (!wrapper || !searchInput) return;
 
-// W: WhatsApp / secondary (remove from M line, put separately if you have a wp field)
-// T: PTCL
-if (partyRecord.ptcl_number) billingContent += "T: " + partyRecord.ptcl_number + "\n";
-// Em: email
-if (partyRecord.email) billingContent += "Em: " + partyRecord.email + "\n";
-// 📍 city + address
-const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
-if (addrParts.length) billingContent += "📍 " + addrParts.join(", ");
+    // Remove old card if any
+    const oldCard = wrapper.querySelector('.party-selected-card');
+    if (oldCard) oldCard.remove();
 
-setFieldValue(".billing-address", billingContent.trim());
+    if (!partyRecord.name) {
+        // No party — show input again
+        searchInput.style.display = '';
+        searchInput.value = '';
+        const balanceDisplay = document.getElementById('partyBalanceDisplay');
+        if (balanceDisplay) balanceDisplay.innerHTML = '';
+        return;
+    }
+
+    // Hide search input
+    searchInput.style.display = 'none';
+
+    // Build balance display
+    const opening = parseFloat(partyRecord.opening_balance || 0);
+    const type = partyRecord.transaction_type;
+    let balanceHtml = '';
+    if (type === 'pay') {
+        balanceHtml = `<span class="party-card-balance text-danger"><i class="fa-solid fa-arrow-up me-1"></i>₹${opening.toFixed(2)}</span>`;
+    } else if (type === 'receive') {
+        balanceHtml = `<span class="party-card-balance text-success"><i class="fa-solid fa-arrow-down me-1"></i>₹${opening.toFixed(2)}</span>`;
+    } else if (opening) {
+        balanceHtml = `<span class="party-card-balance text-muted">₹${opening.toFixed(2)}</span>`;
+    }
+
+    // Build lines
+    const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
+    const lines = [];
+    if (mobiles.length) lines.push(`M: ${mobiles.join(', ')}`);
+    if (partyRecord.ptcl_number) lines.push(`T: ${partyRecord.ptcl_number}`);
+    if (partyRecord.email) lines.push(`Em: ${partyRecord.email}`);
+    const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
+    if (addrParts.length) lines.push(`📍 ${addrParts.join(', ')}`);
+
+    const linesHtml = lines.map(l => `<span class="party-card-line">${l}</span>`).join('');
+
+    const card = document.createElement('div');
+    card.className = 'party-selected-card';
+    card.innerHTML = `
+        <div class="party-card-info">
+            <span class="party-card-name">${partyRecord.name}</span>
+            ${linesHtml}
+            ${balanceHtml}
+        </div>
+        <button type="button" class="party-card-clear" title="Change Party">✕</button>
+    `;
+
+    // Clear button — reset to search
+    card.querySelector('.party-card-clear').addEventListener('click', function (e) {
+        e.stopPropagation();
+        card.remove();
+        searchInput.style.display = '';
+        searchInput.value = '';
+        searchInput.focus();
+
+        const partyIdInput = document.querySelector('.party-id');
+        if (partyIdInput) partyIdInput.value = '';
+
+        const balanceDisplay = document.getElementById('partyBalanceDisplay');
+        if (balanceDisplay) balanceDisplay.innerHTML = '';
+
+        // Hide party details
+        const partyDetailsSection = document.querySelector('.party-details');
+        if (partyDetailsSection) partyDetailsSection.classList.add('d-none');
+
+        setFieldValue('.phone-input', '');
+        setFieldValue('.billing-address', '');
+        setFieldValue('.shipping-address', '');
+    });
+
+    // Insert card right before the search input (same position)
+    searchInput.insertAdjacentElement('beforebegin', card);
+
+    // Also hide balance display below (already shown in card)
+    const balanceDisplay = document.getElementById('partyBalanceDisplay');
+    if (balanceDisplay) balanceDisplay.innerHTML = '';
 };
 
     const setDueDateFromParty = (partyRecord = {}) => {
@@ -4559,6 +4674,8 @@ setFieldValue(".billing-address", billingContent.trim());
     billing_address:  selectedParty.billing_address  ?? option.dataset.billing     ?? "",
     shipping_address: selectedParty.shipping_address ?? option.dataset.shipping    ?? "",
     due_days:         selectedParty.due_days         ?? option.dataset.dueDays     ?? "",
+    opening_balance:      selectedParty.opening_balance      ?? parseFloat(option.dataset.opening || 0),
+    transaction_type:     selectedParty.transaction_type     ?? option.dataset.type ?? type,
 };
 
             // Button pe sirf party name

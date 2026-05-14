@@ -748,6 +748,17 @@ private function posData(): array
                 ]);
 
                 $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
+                // Save to cheque_transactions if payment type is cheque
+if (strtolower($rawPaymentType) === 'cheque') {
+    \App\Models\ChequeTransaction::create([
+        'type'          => 'CHEQUE_IN',
+        'name'          => 'Cheque received for invoice #' . ($sale->bill_number ?: $sale->id),
+        'cheque_number' => $payment['reference'] ?? null,
+        'amount'        => $paymentAmount,
+        'date'          => $sale->invoice_date ?? now()->toDateString(),
+        'status'        => 'pending',
+    ]);
+}
                 if ($bank) {
                     $bank->opening_balance = ($bank->opening_balance ?? 0)
                         + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);

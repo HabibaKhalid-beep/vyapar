@@ -403,7 +403,11 @@ class PurchaseBillController extends Controller
                 ]);
             }
 
-            $purchase->payments()->delete();
+           
+    
+    
+
+$purchase->payments()->delete();
             foreach ($data['payments'] ?? [] as $payment) {
                 $purchase->payments()->create([
                     'payment_type' => $payment['payment_type'],
@@ -411,6 +415,17 @@ class PurchaseBillController extends Controller
                     'amount' => $payment['amount'] ?? 0,
                     'reference' => $payment['reference'] ?? null,
                 ]);
+
+                if (strtolower($payment['payment_type']) === 'cheque') {
+                    \App\Models\ChequeTransaction::create([
+                        'type'          => 'CHEQUE_OUT',
+                        'name'          => 'Cheque paid for purchase #' . ($purchase->bill_number ?: $purchase->id),
+                        'cheque_number' => $payment['reference'] ?? null,
+                        'amount'        => (float) ($payment['amount'] ?? 0),
+                        'date'          => $purchase->bill_date ?? now()->toDateString(),
+                        'status'        => 'pending',
+                    ]);
+                }
             }
 
             return $purchase->fresh(['items', 'payments.bankAccount', 'party']);
