@@ -1952,54 +1952,25 @@ textarea.meta-control,
     </div>
 </div>
                                 <div class="party-meta-grid party-details d-none">
-                                    <div class="party-meta-field phone-field compact-header-field">
-                                        <div class="floating-input-wrapper" >
-                                            <input type="text" name="phone" class="meta-control phone-input" placeholder=" ">
-                                            <label>Phone No.</label>
-                                        </div>
-                                    </div>
-                                    <div class="party-meta-field address-field billing-address-field">
-    <div class="floating-input-wrapper" style="position:relative;">
-        <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" " 
-            style="min-height:90px !important; height:90px !important; max-height:90px !important; 
-                   overflow-y:auto !important; resize:none; font-size:12px; line-height:1.5;
-                   scrollbar-width:thin; padding:8px 10px !important;"></textarea>
-        <label>Party Details</label>
-        <span class="party-save-indicator" style="position:absolute; top:4px; right:6px; font-size:10px; font-weight:600; opacity:0; transition:opacity 0.3s;"></span>
+                                  
+                         
+                                </div>
+                             <div class="header-aux-fields">
+    <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
+        <div class="party-meta-field header-mini-field">
+            <div class="floating-input-wrapper">
+                <input type="text" name="po_no" class="meta-control po-no-input" placeholder=" ">
+                <label>PO No.</label>
+            </div>
+        </div>
+        <div class="party-meta-field header-mini-field">
+            <div class="floating-input-wrapper">
+                <input type="date" name="po_date" class="meta-control po-date-input" placeholder=" ">
+                <label>PO Date</label>
+            </div>
+        </div>
     </div>
 </div>
-                                    <div class="party-meta-field address-field shipping-address-field">
-                                        <div class="floating-input-wrapper">
-                                            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
-                                            <label>Shipping Address</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="header-aux-fields">
-                                    <div class="header-mini-fields-grid">
-                                        <div class="party-meta-field header-mini-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="delivery_person" class="meta-control delivery-person-input" placeholder=" ">
-                                                <label>Delivery Person</label>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                    <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
-                                        <div class="party-meta-field header-mini-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="po_no" class="meta-control po-no-input" placeholder=" ">
-                                                <label>PO No.</label>
-                                            </div>
-                                        </div>
-                                        <div class="party-meta-field header-mini-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="date" name="po_date" class="meta-control po-date-input" placeholder=" ">
-                                                <label>PO Date</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
                             <div class="header-right w-25">
