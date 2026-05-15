@@ -1952,25 +1952,49 @@ textarea.meta-control,
     </div>
 </div>
                                 <div class="party-meta-grid party-details d-none">
-                                  
-                         
-                                </div>
-                             <div class="header-aux-fields">
-    <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
-        <div class="party-meta-field header-mini-field">
-            <div class="floating-input-wrapper">
-                <input type="text" name="po_no" class="meta-control po-no-input" placeholder=" ">
-                <label>PO No.</label>
-            </div>
-        </div>
-        <div class="party-meta-field header-mini-field">
-            <div class="floating-input-wrapper">
-                <input type="date" name="po_date" class="meta-control po-date-input" placeholder=" ">
-                <label>PO Date</label>
-            </div>
-        </div>
+
+                                    <div class="party-meta-field address-field billing-address-field">
+    <div class="floating-input-wrapper" style="position:relative;">
+        <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" " 
+            style="min-height:90px !important; height:90px !important; max-height:90px !important; 
+                   overflow-y:auto !important; resize:none; font-size:12px; line-height:1.5;
+                   scrollbar-width:thin; padding:8px 10px !important;"></textarea>
+        <label>Billing Address</label>
+        <span class="party-save-indicator" style="position:absolute; top:4px; right:6px; font-size:10px; font-weight:600; opacity:0; transition:opacity 0.3s;"></span>
     </div>
 </div>
+                                    <div class="party-meta-field address-field shipping-address-field">
+                                        <div class="floating-input-wrapper">
+                                            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
+                                            <label>Shipping Address</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="header-aux-fields">
+                                    <div class="header-mini-fields-grid">
+                                        <div class="party-meta-field header-mini-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="delivery_person" class="meta-control delivery-person-input" placeholder=" ">
+                                                <label>Delivery Person</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="header-mini-fields-grid po-fields-group {{ !empty($customerPoDetailsEnabled) ? '' : 'is-hidden' }}">
+                                        <div class="party-meta-field header-mini-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="text" name="po_no" class="meta-control po-no-input" placeholder=" ">
+                                                <label>PO No.</label>
+                                            </div>
+                                        </div>
+                                        <div class="party-meta-field header-mini-field">
+                                            <div class="floating-input-wrapper">
+                                                <input type="date" name="po_date" class="meta-control po-date-input" placeholder=" ">
+                                                <label>PO Date</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="header-right w-25">
@@ -4357,24 +4381,29 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     const warehouseSelect = document.querySelector('.warehouse-select');
-    const deliveryPersonInput = document.querySelector('.delivery-person-input');
-    const deliveryPhoneInput = document.querySelector('.delivery-person-phone-input');
 
-    const fillWarehouseHandler = () => {
-        if (!warehouseSelect) return;
-        const selectedOption = warehouseSelect.selectedOptions[0];
-        if (!selectedOption) return;
+const fillWarehouseHandler = () => {
+    if (!warehouseSelect) return;
+    const selectedOption = warehouseSelect.selectedOptions[0];
+    if (!selectedOption) return;
 
-        const handlerName = selectedOption.dataset.handlerName || '';
-        const handlerPhone = selectedOption.dataset.handlerPhone || '';
+    const handlerName = selectedOption.dataset.handlerName || '';
+    const handlerPhone = selectedOption.dataset.handlerPhone || '';
 
-        if (deliveryPersonInput && handlerName) {
-            deliveryPersonInput.value = handlerName;
-        }
-        if (deliveryPhoneInput) {
-            deliveryPhoneInput.value = handlerPhone;
-        }
-    };
+    // Query inside the active tab content only
+    const activeTab = document.querySelector('#content-area .invoice-container');
+    if (!activeTab) return;
+
+    const deliveryPersonInput = activeTab.querySelector('.delivery-person-input');
+    const deliveryPhoneInput = activeTab.querySelector('.delivery-person-phone-input');
+
+    if (deliveryPersonInput && handlerName && !deliveryPersonInput.value) {
+        deliveryPersonInput.value = handlerName;
+    }
+    if (deliveryPhoneInput && handlerPhone) {
+        deliveryPhoneInput.value = handlerPhone;
+    }
+};
 
     const warehouseModalEl = document.getElementById('warehouseModal');
     const warehouseForm = document.getElementById('warehouseForm');
@@ -4499,15 +4528,7 @@ const setPartyFieldValues = (partyRecord = {}) => {
 
     setFieldValue(".phone-input", partyRecord.phone || "");
 
-    let billingContent = "";
-    if (partyRecord.name) billingContent += partyRecord.name.toUpperCase() + "\n";
-    const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
-    if (mobiles.length) billingContent += "M: " + mobiles.join(", ") + "\n";
-    if (partyRecord.ptcl_number) billingContent += "T: " + partyRecord.ptcl_number + "\n";
-    if (partyRecord.email) billingContent += "Em: " + partyRecord.email + "\n";
-    const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
-    if (addrParts.length) billingContent += "📍 " + addrParts.join(", ");
-    setFieldValue(".billing-address", billingContent.trim());
+  setFieldValue(".billing-address", partyRecord.billing_address || "");
 
     // ===== SHOW PARTY CARD IN SEARCH BAR =====
     renderPartyCard(partyRecord);
@@ -4552,8 +4573,7 @@ const renderPartyCard = (partyRecord = {}) => {
     if (mobiles.length) lines.push(`M: ${mobiles.join(', ')}`);
     if (partyRecord.ptcl_number) lines.push(`T: ${partyRecord.ptcl_number}`);
     if (partyRecord.email) lines.push(`Em: ${partyRecord.email}`);
-    const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
-    if (addrParts.length) lines.push(`📍 ${addrParts.join(', ')}`);
+    if (partyRecord.city) lines.push(`📍 ${partyRecord.city}`);
 
     const linesHtml = lines.map(l => `<span class="party-card-line">${l}</span>`).join('');
 
