@@ -658,10 +658,10 @@
                             <!-- Left Column -->
                             <div class="bottom-left">
                                 <div class="d-flex flex-column align-items-start w-100">
-                                    <div class="action-fields-layout meta-stack-layout w-100">
-                                        <div class="action-buttons-column">
-                                            <div class="description-action-group mb-2 w-100">
-                                                <button type="button" class="btn-action-light action-btn add-description">
+                                    <div class="action-fields-layout w-100 d-flex flex-column gap-2">
+                                        <div class="d-flex align-items-center gap-3 flex-nowrap w-100">
+                                            <div class="description-action-group flex-shrink-0" style="width: 245px;">
+                                                <button type="button" class="btn-action-light action-btn add-description w-100" style="min-height: 52px;">
                                                     <i class="fa-solid fa-align-left"></i>
                                                     ADD DESCRIPTION
                                                 </button>
@@ -675,36 +675,38 @@
                                                 </div>
                                             </div>
 
-                                            <div class="action-buttons d-flex flex-wrap gap-2 mb-2 w-100">
-                                                <button type="button" class="btn-action-light action-btn add-image">
-                                                    <i class="fa-solid fa-camera"></i>
-                                                    ADD IMAGE
-                                                </button>
-
-                                                <button type="button" class="btn-action-light action-btn add-document">
-                                                    <i class="fa-solid fa-align-left"></i>
-                                                    ADD DOCUMENT
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div class="description-side-fields compact-side-fields">
-                                            <div class="party-meta-field">
+                                            <div class="party-meta-field flex-grow-1 mb-0" style="min-width: 0; max-width: 265px;">
                                                 <div class="floating-input-wrapper">
-                                                    <input type="text" name="goods_name" class="meta-control goods-name-input" placeholder=" ">
+                                                    <input type="text" name="goods_name" class="meta-control goods-name-input" placeholder=" " style="min-height: 52px;">
                                                     <label>Goodz / Name</label>
                                                 </div>
                                             </div>
-                                            <div class="party-meta-field">
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-3 flex-nowrap w-100">
+                                            <button type="button" class="btn-action-light action-btn add-image flex-shrink-0" style="width: 245px; min-height: 52px;">
+                                                <i class="fa-solid fa-camera"></i>
+                                                ADD IMAGE
+                                            </button>
+
+                                            <div class="party-meta-field flex-grow-1 mb-0" style="min-width: 0; max-width: 265px;">
                                                 <div class="floating-input-wrapper">
-                                                    <input type="text" name="details_extra" class="meta-control details-extra-input" placeholder=" ">
-                                                    <label>Details Extra</label>
+                                                    <input type="text" name="bilti_gari_no" class="meta-control bilti-gari-input" placeholder=" " style="min-height: 52px;">
+                                                    <label>Bilti No / Gari No</label>
                                                 </div>
                                             </div>
-                                            <div class="party-meta-field">
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-3 flex-nowrap w-100">
+                                            <button type="button" class="btn-action-light action-btn add-document flex-shrink-0" style="width: 245px; min-height: 52px;">
+                                                <i class="fa-solid fa-align-left"></i>
+                                                ADD DOCUMENT
+                                            </button>
+
+                                            <div class="party-meta-field flex-grow-1 mb-0" style="min-width: 0; max-width: 265px;">
                                                 <div class="floating-input-wrapper">
-                                                    <input type="text" name="bilti_gari_no" class="meta-control bilti-gari-input" placeholder=" ">
-                                                    <label>Bilti No / Gari No</label>
+                                                    <input type="text" name="details_extra" class="meta-control details-extra-input" placeholder=" " style="min-height: 52px;">
+                                                    <label>Details Extra</label>
                                                 </div>
                                             </div>
                                         </div>
