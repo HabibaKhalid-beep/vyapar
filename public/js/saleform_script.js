@@ -824,6 +824,7 @@ if (!window.editSaleData) {
                 name: broker.name || '',
                 meta: broker.city || broker.phone || '',
                 phone: broker.phone || '',
+                commission_rate: parseFloat(broker.commission_rate ?? 0) || 0,
             })),
             items: items.map((item) => ({
                 type: 'item',
@@ -843,7 +844,8 @@ if (!window.editSaleData) {
                    data-account-id="${account.id}"
                    data-account-name="${account.name || ''}"
                    data-account-meta="${account.meta || ''}"
-                   data-account-phone="${account.phone || ''}">
+                   data-account-phone="${account.phone || ''}"
+                   data-commission-rate="${account.commission_rate ?? 0}">
                     <span>${account.name || '-'}</span>
                     <small>${account.type}</small>
                 </a>
@@ -977,6 +979,14 @@ if (!window.editSaleData) {
         localStorage.setItem(getCustomExpenseStorageKey(), JSON.stringify(serializeCustomExpenseRows()));
     }
 
+    function isFreshSaleCreateMode() {
+        return !window.editSaleData
+            && !window.sourceEstimateId
+            && !window.sourceSaleOrderId
+            && !window.sourceChallanId
+            && !window.sourceProformaId;
+    }
+
     function createCustomExpenseRow(row = {}) {
         const template = document.getElementById('custom-expense-row-template');
         const container = $ctx.find('.custom-expense-rows').get(0);
@@ -1026,7 +1036,10 @@ if (!window.editSaleData) {
     }
 
     function loadCustomExpenseRows() {
-        const savedRows = JSON.parse(localStorage.getItem(getCustomExpenseStorageKey()) || '[]');
+        const useSavedRows = !isFreshSaleCreateMode();
+        const savedRows = useSavedRows
+            ? JSON.parse(localStorage.getItem(getCustomExpenseStorageKey()) || '[]')
+            : [];
         const rowsToRender = Array.isArray(savedRows) && savedRows.length
             ? savedRows
             : getDefaultCustomExpenseRows();
@@ -1034,6 +1047,12 @@ if (!window.editSaleData) {
         const $container = $ctx.find('.custom-expense-rows');
         $container.empty();
         rowsToRender.map((row) => normalizeCustomExpenseRow(row)).forEach((row) => createCustomExpenseRow(row));
+
+        if (isFreshSaleCreateMode()) {
+            localStorage.removeItem(getCustomExpenseStorageKey());
+            persistCustomExpenseRows();
+            return;
+        }
 
         if (!Array.isArray(savedRows) || !savedRows.length) {
             persistCustomExpenseRows();
@@ -3010,6 +3029,7 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
         const accountId = $option.data('accountId') || '';
         const accountName = String($option.data('accountName') || '').trim();
         const accountPhone = String($option.data('accountPhone') || '').trim();
+        const commissionRate = parseFloat($option.data('commissionRate') || 0) || 0;
 
         $row.find('.custom-expense-account-type').val(accountType);
         $row.find('.custom-expense-account-id').val(accountId);
@@ -3018,6 +3038,7 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
 
         if (accountType === 'broker') {
             $row.find('.custom-expense-heading').text('');
+            $row.find('.custom-expense-pct').val(commissionRate > 0 ? commissionRate.toFixed(2) : '');
         }
 
         persistCustomExpenseRows();

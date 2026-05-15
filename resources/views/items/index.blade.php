@@ -1208,7 +1208,7 @@ function renderList(items = getFilteredItems()) {
             <span class="il-item-dot"></span>
             <span class="il-item-name">${esc(item.name)}</span>
             <span class="il-item-qty ${stockSignClass(getTotalQty(index))}">${formatSignedStock(getTotalQty(index))}</span>
-            <span class="il-item-qty">${parseFloat(item.total_net_w || 0).toFixed(2)}</span>
+            <span class="il-item-qty ${stockSignClass(getTotalQty(index))}">${parseFloat(item.total_net_w || 0).toFixed(2)}</span>
             <div class="il-item-more-wrap" onclick="event.stopPropagation()">
                 <button class="il-item-more-btn" onclick="toggleItemDD(event,${index})" title="Options">
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

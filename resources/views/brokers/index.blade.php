@@ -121,7 +121,7 @@
               data-status="{{ $broker->status ? 1 : 0 }}"
               data-search="{{ strtolower(trim($broker->name . ' ' . ($broker->phone ?? '') . ' ' . ($broker->city ?? ''))) }}">
             <span class="entity-name">{{ $broker->name }}</span>
-            <span class="entity-balance {{ $brokerSalesTotal > 0 ? 'negative' : ($brokerSalesTotal < 0 ? 'positive' : 'neutral') }}" style="color: {{ $brokerSalesTotal > 0 ? '#dc2626' : ($brokerSalesTotal < 0 ? '#059669' : '#6b7280') }} !important;">
+            <span class="entity-balance" style="color: {{ $brokerSalesTotal > 0 ? '#dc2626' : ($brokerSalesTotal < 0 ? '#0f9d58' : '#6b7280') }} !important;">
               Rs {{ number_format($brokerSalesTotal, 2) }}
             </span>
           </li>

@@ -621,8 +621,7 @@ private function posData(): array
 
         $type = $data['type'] ?? $sale->type ?? 'invoice';
         $grandTotal = floatval($data['grand_total'] ?? 0);
-        $partyTransferDeduction = min($this->calculatePartyTransferDeduction($data), $grandTotal);
-        $balance = max(0, $grandTotal - $receivedAmount - $partyTransferDeduction);
+        $balance = max(0, $grandTotal - $receivedAmount);
         $invoiceDate = !empty($data['invoice_date'])
             ? Carbon::parse($data['invoice_date'])
             : ($sale->invoice_date ? Carbon::parse($sale->invoice_date) : now());
@@ -923,8 +922,7 @@ if (strtolower($rawPaymentType) === 'cheque') {
 
         $type = $data['type'] ?? 'invoice';
         $grandTotal = floatval($data['grand_total'] ?? 0);
-        $partyTransferDeduction = min($this->calculatePartyTransferDeduction($data), $grandTotal);
-        $balance = max(0, $grandTotal - $receivedAmount - $partyTransferDeduction);
+        $balance = max(0, $grandTotal - $receivedAmount);
         $invoiceDate = !empty($data['invoice_date'])
             ? Carbon::parse($data['invoice_date'])
             : ($type === 'sale_order' ? now() : now());
@@ -2235,10 +2233,9 @@ if (strtolower($rawPaymentType) === 'cheque') {
         $grossSaleAmount = floatval($sale->grand_total ?? 0);
         $sameModeDeduction = min($this->calculateSameModeDeduction($data), $grossSaleAmount);
         $minusModeDeduction = min($this->calculateMinusModeDeduction($data), $grossSaleAmount);
-        $partyTransferDeduction = min($this->calculatePartyTransferDeduction($data), $grossSaleAmount);
         $saleAmount = $grossSaleAmount;
         $ledgerType = $this->resolveLedgerTypeFromSale((string) $sale->type);
-        $transactionBalance = max(0, round($saleAmount - floatval($sale->received_amount ?? 0) - $partyTransferDeduction, 2));
+        $transactionBalance = max(0, round($saleAmount - floatval($sale->received_amount ?? 0), 2));
         $saleLedgerAmount = ($sameModeDeduction > 0 || $minusModeDeduction > 0)
             ? 0
             : max(0, round($saleAmount, 2));

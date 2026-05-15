@@ -678,7 +678,15 @@ opacity:1;
   margin: 0 16px;
 }
 .entity-balance.positive {
-  color: #9ca3af !important; /* override green */
+  color: #0f9d58 !important; /* green for receive */
+}
+
+.entity-balance.negative {
+  color: #dc2626 !important; /* red for payable */
+}
+
+.entity-balance.neutral {
+  color: #6b7280 !important;
 }
 /* Right side */
 .right-side {
