@@ -1345,16 +1345,36 @@ if (!window.editSaleData) {
             const party = (window.parties || []).find(p => String(p.id) === String(sale.party_id || ''));
             $ctx.find('.party-id').val(sale.party_id || '');
             if (party) {
+                const phone = party.phone || sale.phone || '';
+                const phoneNumber2 = party.phone_number_2 || '';
+                const ptclNumber = party.ptcl_number || party.ptcl || '';
+                const email = party.email || '';
+                const city = party.city || '';
+                const address = party.address || '';
+                const billingAddress = party.billing_address || sale.billing_address || '';
+                const shippingAddress = party.shipping_address || sale.shipping_address || '';
+                let billingDetails = '';
+
                 setPartyDropdownDisplay(party.name || sale.party_name || 'Select Party');
-                $ctx.find('.phone-input').val(party.phone || sale.phone || '');
-                $ctx.find('.city-input').val(party.city || '');
-                $ctx.find('.ptcl-input').val(party.ptcl_number || party.ptcl || '');
-                $ctx.find('.address-input').val(party.address || '');
-party_name: $ctx.find('.billing-name-input').val().trim() || getPartyDropdownDisplay() || '',
-$ctx.find('.shipping-address').val(party.shipping_address || sale.shipping_address || '');
-$('#hiddenPhone').val(party.phone || sale.phone || '');
-$('#hiddenBilling').val(party.billing_address || sale.billing_address || '');
-$('#hiddenShipping').val(party.shipping_address || sale.shipping_address || '');
+                $ctx.find('.phone-input').val(phone);
+                $ctx.find('.city-input').val(city);
+                $ctx.find('.ptcl-input').val(ptclNumber);
+                $ctx.find('.address-input').val(address);
+
+                if (party.name) billingDetails += String(party.name).toUpperCase() + "\n";
+                const mobiles = [phone, phoneNumber2].filter(Boolean);
+                if (mobiles.length) billingDetails += "M: " + mobiles.join(", ") + "\n";
+                if (ptclNumber) billingDetails += "T: " + ptclNumber + "\n";
+                if (email) billingDetails += "Em: " + email + "\n";
+                const addrLine = billingAddress || address || "";
+                const addrParts = [city, addrLine].filter(Boolean);
+                if (addrParts.length) billingDetails += "📍 " + addrParts.join(", ");
+
+                $ctx.find('.billing-address').val(billingDetails.trim());
+                $ctx.find('.shipping-address').val(shippingAddress);
+                $('#hiddenPhone').val(phone);
+                $('#hiddenBilling').val(billingDetails.trim());
+                $('#hiddenShipping').val(shippingAddress);
             } else {
                 setPartyDropdownDisplay(sale.party_name || 'Select Party');
             }
@@ -1372,7 +1392,12 @@ $('#hiddenShipping').val(party.shipping_address || sale.shipping_address || '');
         }
 
         $ctx.find('.phone-input').val(sale.phone || '');
-        $ctx.find('.billing-address').val(sale.billing_address || '');
+        if (!$ctx.find('.billing-address').val()) {
+            $ctx.find('.billing-address').val(sale.billing_address || '');
+        }
+        if (!$ctx.find('.shipping-address').val()) {
+            $ctx.find('.shipping-address').val(sale.shipping_address || '');
+        }
         $ctx.find('.bill-number').val(sale.bill_number || '');
         $ctx.find('.invoice-date').val(sale.invoice_date ? sale.invoice_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
         $ctx.find('.order-date').val(sale.order_date ? sale.order_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);

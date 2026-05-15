@@ -1,0 +1,32 @@
+body{
+background:#f5f6fa;
+font-family:Arial;
+}
+
+.card{
+border-radius:8px;
+border:1px solid #e2e2e2;
+}
+
+.summary-card{
+background:#f3edf7;
+width:300px;
+}
+
+.table thead{
+background:#f8f9fb;
+}
+
+.table td,
+.table th{
+vertical-align:middle;
+font-size:14px;
+}
+
+.text-danger{
+color:#ff4d4f !important;
+}
+
+.text-warning{
+color:#fa8c16 !important;
+}

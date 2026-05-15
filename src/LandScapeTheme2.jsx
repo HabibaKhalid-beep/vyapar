@@ -67,7 +67,7 @@ const LandScapeTheme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
               <td className="tax4-td-left"><strong>{item.name}</strong></td>
               <td className="tax4-td-right">{item.qty}</td>
               <td className="tax4-td-right">{formatCurrency(item.rate)}</td>
-              <td className="tax4-td-right">{formatCurrency(item.amount)}</td>
+              <td className="tax4-td-right">{formatCurrency(item.amount ?? item.amt)}</td>
             </tr>
           ))}
           <tr className="tax4-total-row">

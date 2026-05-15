@@ -3,6 +3,8 @@ import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
 const LandScapeTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const view = getInvoiceViewModel(invoiceData)
+  const isDeliveryChallan = String(view.documentType || view.title || '').toLowerCase().includes('delivery_challan')
+    || String(view.title || '').toLowerCase().includes('delivery challan')
 
   return (
     <div className="tax3-wrapper">
@@ -67,7 +69,7 @@ const LandScapeTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, sign
               <td className="tax3-td-left"><strong>{item.name}</strong></td>
               <td className="tax3-td-right">{item.qty}</td>
               <td className="tax3-td-right">{formatCurrency(item.rate)}</td>
-              <td className="tax3-td-right">{formatCurrency(item.amount)}</td>
+              <td className="tax3-td-right">{formatCurrency(item.amount ?? item.amt)}</td>
             </tr>
           ))}
           <tr className="tax3-total-row">

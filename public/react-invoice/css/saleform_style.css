@@ -45,9 +45,63 @@
 }
 
 .header-left {
-    display: flex;
-    gap: 15px;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    align-items: start;
+}
+
+.cash-party-selector-group {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.billing-name-group {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.party-details {
+    display: contents;
+}
+
+.party-details .phone-field {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.party-details .billing-address-field {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.party-details .shipping-address-field {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.party-selector-group {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.party-selector-panel {
+    width: 100%;
+    margin-right: 0 !important;
+}
+
+.party-dropdown-wrapper {
+    width: 100%;
+    display: block;
+    min-width: 0;
+}
+
+.party-dropdown-wrapper .party-search-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    height: 32px;
+    padding: 5px 8px !important;
 }
 
 .header-right {
@@ -409,11 +463,88 @@ td {
     color: var(--text-muted);
     cursor: pointer;
     text-align: left;
-    width: 100%;
 }
 
 .btn-action-light i {
     font-size: 16px;
+}
+
+.btn-action-light.action-btn {
+    width: auto;
+    min-width: 180px;
+    max-width: 240px;
+    justify-content: flex-start; /* center ki jagah */
+}
+.description-action-group {
+    display: flex ;
+    flex-direction: column;
+    width: 100%;
+}
+
+.description-action-group .btn-action-light{
+    justify-content: flex-start;
+    padding-left: 12px;
+}
+
+.description-content-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+}
+
+.description-pane {
+    flex: 1 1 100%;
+    width: auto !important;
+}
+
+.description-side-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 150px));
+    gap: 8px 10px;
+    align-content: start;
+}
+
+.description-side-fields .party-meta-field {
+    min-width: 0;
+}
+
+.description-side-fields .floating-input-wrapper .meta-control {
+    width: 100%;
+}
+
+.action-fields-layout {
+    display: grid;
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+    gap: 16px;
+    width: 100%;
+    align-items: start;
+}
+
+.action-buttons-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.compact-side-fields {
+    justify-content: start;
+    padding-top: 2px;
+}
+
+@media (max-width: 768px) {
+    .description-pane,
+    .description-side-fields,
+    .action-fields-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.action-buttons {
+    display: flex ;
+    flex-direction: column;
+    width: 100%;
 }
 
 /* Calculation Rows */
@@ -449,6 +580,83 @@ td {
     margin-top: 10px;
 }
 
+.bottom-right .editable-expense-label {
+    display: inline-block;
+    min-width: 72px;
+    padding: 3px 6px;
+    border: 1px dashed transparent;
+    border-radius: 6px;
+    cursor: text;
+    line-height: 1.2;
+}
+
+.bottom-right .editable-expense-label:focus {
+    outline: none;
+    border-color: #93c5fd;
+    background: #f8fbff;
+}
+
+.bottom-right .custom-expense-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.bottom-right .custom-expense-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bottom-right .custom-expense-row {
+    padding: 8px 10px;
+    border: 1px solid #dbe4f0;
+    border-radius: 10px;
+    background: #fbfdff;
+}
+
+.bottom-right .custom-expense-inputs {
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.bottom-right .custom-expense-operator,
+.bottom-right .custom-expense-unit,
+.bottom-right .custom-expense-value {
+    min-height: 30px;
+    height: 30px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #d7e0ea;
+    background: #fff;
+    font-size: 11px;
+}
+
+.bottom-right .custom-expense-operator,
+.bottom-right .custom-expense-unit {
+    width: 54px;
+}
+
+.bottom-right .custom-expense-value {
+    width: 80px;
+    text-align: right;
+}
+
+.bottom-right .remove-custom-expense-row {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    background: #fff5f5;
+    color: #dc2626;
+}
+
+.bottom-right .add-custom-expense-row {
+    min-width: 120px;
+    max-width: 140px;
+}
+
 .total-input-large {
     width: 100%;
     padding: 12px;
@@ -472,6 +680,7 @@ td {
     background: #fafafa;
     border: 1px dashed #d1d5db;
     border-radius: 8px;
+    width: 540px;
 }
 
 .image-upload-section .image-preview {

@@ -72,7 +72,7 @@ const TaxTheme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
               <td className="tax3-td-left"><strong>{item.name}</strong></td>
               <td className="tax3-td-right">{item.qty}</td>
               <td className="tax3-td-right">{formatCurrency(item.rate)}</td>
-              <td className="tax3-td-right">{formatCurrency(item.amount)}</td>
+              <td className="tax3-td-right">{formatCurrency(item.amount ?? item.amt)}</td>
             </tr>
           ))}
           <tr className="tax3-total-row">

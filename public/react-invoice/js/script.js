@@ -55,6 +55,25 @@ class TabManager {
                 const isCash = e.target.checked;
                 // Apply to all tabs
                 document.querySelectorAll('.tab-pane').forEach(pane => {
+                    const partySelectorGroup = pane.querySelector('.party-selector-group');
+                    if (partySelectorGroup) {
+                        partySelectorGroup.classList.toggle('d-none', isCash);
+                    }
+
+                    const partyDetails = pane.querySelectorAll('.party-details');
+                    partyDetails.forEach(field => {
+                        if (isCash) {
+                            field.classList.add('d-none');
+                        }
+                    });
+
+                    if (isCash) {
+                        const partyIdInput = pane.querySelector('.party-id');
+                        const partySearchInput = pane.querySelector('.party-search-input');
+                        if (partyIdInput) partyIdInput.value = '';
+                        if (partySearchInput) partySearchInput.value = '';
+                    }
+
                     const label = pane.querySelector('.party-label');
                     const cashFields = pane.querySelectorAll('.cash-fields');
                     if (label) {
@@ -86,6 +105,12 @@ class TabManager {
                 // Update the template for new tabs
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = this.formTemplate;
+                const tempPartySelectorGroup = tempDiv.querySelector('.party-selector-group');
+                if (tempPartySelectorGroup) {
+                    tempPartySelectorGroup.classList.toggle('d-none', isCash);
+                }
+                const tempPartyDetails = tempDiv.querySelectorAll('.party-details');
+                tempPartyDetails.forEach(field => field.classList.add('d-none'));
                 const tempLabel = tempDiv.querySelector('.party-label');
                 const tempCashFields = tempDiv.querySelectorAll('.cash-fields');
                 const tempCashFieldsTwo = tempDiv.querySelectorAll('.cash-fields-two');
@@ -113,6 +138,7 @@ class TabManager {
                 });
                 this.formTemplate = tempDiv.innerHTML;
             });
+            saleToggle.dispatchEvent(new Event('change'));
         }
 
         this.confirmBtn.addEventListener('click', () => {
@@ -127,7 +153,7 @@ class TabManager {
         await this.createNewTab(`${this.getTabPrefix()} #1`);
     }
 
-    async createNewTab(title = null, content = "") {
+   async createNewTab(title = null, content = "") {
         if (this.tabs.length >= this.MAX_TABS) {
             this.limitModal.show();
             return;
@@ -138,7 +164,8 @@ class TabManager {
         const id = `tab-${Date.now()}-${this.tabCounter}`;
 
         // Use form template if no content provided
-        if (!content && this.formTemplate) {
+        const isFormTab = !content && !!this.formTemplate;
+        if (isFormTab) {
             content = this.formTemplate;
         }
 
@@ -150,8 +177,22 @@ class TabManager {
         this.activateTab(id);
 
         // Initialize form logic for this specific tab
-        if (typeof initializeForm === 'function' && content === this.formTemplate) {
+        if (isFormTab && typeof initializeForm === 'function') {
             initializeForm(paneEl);
+
+         const billInput = paneEl.querySelector('.bill-number');
+if (billInput && window.nextInvoiceNumber) {
+    const base = String(window.nextInvoiceNumber).trim();
+    const match = base.match(/^(.*?)(\d+)$/);
+    if (match) {
+        const prefix = match[1]; // keep original prefix e.g. "CN-"
+        const num = parseInt(match[2], 10);
+        const tabOffset = this.tabs.length - 1;
+        billInput.value = prefix + (num + tabOffset);
+    } else {
+        billInput.value = base + '-' + this.tabs.length;
+    }
+}
         }
 
         // Scroll tab strip to end
@@ -283,3 +324,4 @@ class TabManager {
 document.addEventListener('DOMContentLoaded', () => {
     new TabManager();
 });
+    

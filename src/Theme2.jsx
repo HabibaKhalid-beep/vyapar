@@ -4,6 +4,8 @@ import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 const Theme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const accent = selectedColor || '#888888'
   const view = getInvoiceViewModel(invoiceData)
+  const isDeliveryChallan = String(view.documentType || view.title || '').toLowerCase().includes('delivery_challan')
+    || String(view.title || '').toLowerCase().includes('delivery challan')
 
   return (
     <div className="t1-wrapper">
@@ -38,17 +40,34 @@ const Theme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
       </div>
 
       {/* BILL TO + INVOICE DETAILS */}
-      <div className="t1-info-row">
-        <div className="t1-billto-block">
-          <p className="t1-billto-label">Bill To</p>
-          <p className="t1-billto-name">{view.billTo}</p>
+      {isDeliveryChallan ? (
+        <div className="t1-info-row">
+          <div className="t1-billto-block">
+            <p className="t1-billto-label">Delivery Challan for</p>
+            <p className="t1-billto-name">{view.deliveryChallanFor}</p>
+            <p><strong>Contact No.:</strong> {view.deliveryChallanPhone}</p>
+          </div>
+          <div className="t1-invoice-details">
+            <p className="t1-details-heading">Transportation Details</p>
+            <p className="t1-details-line"><strong>BROKAR:</strong> {view.transportBrokerName}</p>
+            <p className="t1-details-line"><strong>Transport:</strong> {view.transportName}</p>
+            <p className="t1-details-line"><strong>Bilti/Gari #:</strong> {view.biltiGariNo || view.biltiNo}</p>
+            <p className="t1-details-line"><strong>City:</strong> {view.transportCity}</p>
+          </div>
         </div>
-        <div className="t1-invoice-details">
-          <p className="t1-details-heading">Invoice Details</p>
-          <p className="t1-details-line">Invoice No. : {view.invoiceNo}</p>
-          <p className="t1-details-line">Date : {view.date}</p>
+      ) : (
+        <div className="t1-info-row">
+          <div className="t1-billto-block">
+            <p className="t1-billto-label">Bill To</p>
+            <p className="t1-billto-name">{view.billTo}</p>
+          </div>
+          <div className="t1-invoice-details">
+            <p className="t1-details-heading">Invoice Details</p>
+            <p className="t1-details-line">Invoice No. : {view.invoiceNo}</p>
+            <p className="t1-details-line">Date : {view.date}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* TABLE */}
       <table className="t1-table">
@@ -68,7 +87,7 @@ const Theme2 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
               <td className="t1-td-left"><strong>{item.name}</strong></td>
               <td className="t1-td-right">{item.qty}</td>
               <td className="t1-td-right">{formatCurrency(item.rate)}</td>
-              <td className="t1-td-right">{formatCurrency(item.amount)}</td>
+              <td className="t1-td-right">{formatCurrency(item.amount ?? item.amt)}</td>
             </tr>
           ))}
           <tr className="t1-total-row">

@@ -4,6 +4,8 @@ import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 const Theme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const accent = selectedColor || '#888888'
   const view = getInvoiceViewModel(invoiceData)
+  const isDeliveryChallan = String(view.documentType || view.title || '').toLowerCase().includes('delivery_challan')
+    || String(view.title || '').toLowerCase().includes('delivery challan')
 
   return (
     <div className="t1-wrapper">
@@ -38,17 +40,34 @@ const Theme3 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
       </div>
 
       {/* BILL TO + INVOICE DETAILS */}
-      <div className="t1-info-row" style={{ borderTopColor: accent }}>
-        <div className="t1-billto-block">
-          <p className="t1-billto-label" style={{backgroundColor:accent,color:'white'}}>Bill To</p>
-          <p className="t1-billto-name">{view.billTo}</p>
+      {isDeliveryChallan ? (
+        <div className="t1-info-row" style={{ borderTopColor: accent }}>
+          <div className="t1-billto-block">
+            <p className="t1-billto-label" style={{backgroundColor:accent,color:'white'}}>Delivery Challan for</p>
+            <p className="t1-billto-name">{view.deliveryChallanFor}</p>
+            <p><strong>Contact No.:</strong> {view.deliveryChallanPhone}</p>
+          </div>
+          <div className="t1-invoice-details">
+            <p className="t1-details-heading" style={{backgroundColor:accent,color:'white'}}>Transportation Details</p>
+            <p className="t1-details-line"><strong>BROKAR:</strong> {view.transportBrokerName}</p>
+            <p className="t1-details-line"><strong>Transport:</strong> {view.transportName}</p>
+            <p className="t1-details-line"><strong>Bilti/Gari #:</strong> {view.biltiGariNo || view.biltiNo}</p>
+            <p className="t1-details-line"><strong>City:</strong> {view.transportCity}</p>
+          </div>
         </div>
-        <div className="t1-invoice-details">
-          <p className="t1-details-heading" style={{backgroundColor:accent,color:'white'}}>Invoice Details</p>
-          <p className="t1-details-line">Invoice No. : {view.invoiceNo}</p>
-          <p className="t1-details-line">Date : {view.date}</p>
+      ) : (
+        <div className="t1-info-row" style={{ borderTopColor: accent }}>
+          <div className="t1-billto-block">
+            <p className="t1-billto-label" style={{backgroundColor:accent,color:'white'}}>Bill To</p>
+            <p className="t1-billto-name">{view.billTo}</p>
+          </div>
+          <div className="t1-invoice-details">
+            <p className="t1-details-heading" style={{backgroundColor:accent,color:'white'}}>Invoice Details</p>
+            <p className="t1-details-line">Invoice No. : {view.invoiceNo}</p>
+            <p className="t1-details-line">Date : {view.date}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* TABLE */}
       <table className="t1-table">

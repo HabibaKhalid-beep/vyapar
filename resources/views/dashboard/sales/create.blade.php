@@ -5161,6 +5161,70 @@ document.addEventListener('DOMContentLoaded', function () {
             .toUpperCase() || '?';
     }
 
+    function isConvertedSaleFlow() {
+        return Boolean(
+            window.sourceEstimateId ||
+            window.sourceSaleOrderId ||
+            window.sourceChallanId ||
+            window.sourceProformaId
+        );
+    }
+
+    function setPartySearchPreview(partyData) {
+        const searchInput = document.getElementById('partyDropdownBtn');
+        const wrapper = searchInput?.closest('.dropdown.party-dropdown-wrapper');
+        const card = document.getElementById('partySelectedCard');
+        const partyIdInput = document.querySelector('.party-id');
+        const phoneField = document.querySelector('.phone-field');
+        const billingField = document.querySelector('.billing-address-field');
+        const shippingField = document.querySelector('.shipping-address-field');
+        const phoneInput = document.querySelector('.phone-input');
+        const billingInput = document.querySelector('.billing-address');
+        const shippingInput = document.querySelector('.shipping-address');
+        const hiddenPhone = document.getElementById('hiddenPhone');
+        const hiddenBilling = document.getElementById('hiddenBilling');
+        const hiddenShipping = document.getElementById('hiddenShipping');
+        const hiddenAddress = document.getElementById('hiddenAddress');
+        const phone = partyData?.phone || '';
+        const phoneTwo = partyData?.phone_number_2 || '';
+        const ptcl = partyData?.ptcl_number || '';
+        const email = partyData?.email || '';
+        const city = partyData?.city || '';
+        const address = partyData?.address || '';
+        const rawBillingAddress = partyData?.billing_address || '';
+        const shippingAddress = partyData?.shipping_address || '';
+        let billingDetails = '';
+
+        if (wrapper) wrapper.style.display = '';
+        if (card) card.classList.remove('visible');
+        if (searchInput) {
+            searchInput.value = partyData?.name || '';
+        }
+        if (partyIdInput && partyData?.id) {
+            partyIdInput.value = String(partyData.id);
+        }
+
+        if (partyData?.name) billingDetails += String(partyData.name).toUpperCase() + '\n';
+        const mobiles = [phone, phoneTwo].filter(Boolean);
+        if (mobiles.length) billingDetails += 'M: ' + mobiles.join(', ') + '\n';
+        if (ptcl) billingDetails += 'T: ' + ptcl + '\n';
+        if (email) billingDetails += 'Em: ' + email + '\n';
+        const addrLine = rawBillingAddress || address || '';
+        const addrParts = [city, addrLine].filter(Boolean);
+        if (addrParts.length) billingDetails += '📍 ' + addrParts.join(', ');
+
+        if (phoneField) phoneField.style.display = 'flex';
+        if (billingField) billingField.style.display = 'flex';
+        if (shippingField) shippingField.style.display = 'flex';
+        if (phoneInput) phoneInput.value = phone;
+        if (billingInput) billingInput.value = billingDetails.trim();
+        if (shippingInput) shippingInput.value = shippingAddress;
+        if (hiddenPhone) hiddenPhone.value = phone;
+        if (hiddenBilling) hiddenBilling.value = billingDetails.trim();
+        if (hiddenShipping) hiddenShipping.value = shippingAddress;
+        if (hiddenAddress) hiddenAddress.value = address;
+    }
+
     function hidePartyCard() {
         const searchInput = document.getElementById('partyDropdownBtn');
         const card = document.getElementById('partySelectedCard');
@@ -5194,7 +5258,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function showPartyCard(partyData) {
+        if (isConvertedSaleFlow()) {
+            setPartySearchPreview(partyData);
+            return;
+        }
+
         const {
+            id = '',
             name = '',
             phone = '',
             phone_number_2 = '',
@@ -5208,8 +5278,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const searchInput = document.getElementById('partyDropdownBtn');
         const card = document.getElementById('partySelectedCard');
+        const partyIdInput = document.querySelector('.party-id');
         if (searchInput) searchInput.closest('.dropdown.party-dropdown-wrapper').style.display = 'none';
         if (card) card.classList.add('visible');
+        if (partyIdInput && id) partyIdInput.value = String(id);
 
         const avatar = document.getElementById('pscAvatar');
         if (avatar) avatar.textContent = getInitials(name);
@@ -5292,6 +5364,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(function () {
             const partyRecord = (window.parties || []).find(p => String(p.id) === String(id)) || {};
             showPartyCard({
+                id:               id,
                 name:             option.dataset.name     || partyRecord.name             || '',
                 phone:            option.dataset.phone    || partyRecord.phone            || '',
                 phone_number_2:   option.dataset.phoneNumber2 || partyRecord.phone_number_2 || '',
@@ -5309,7 +5382,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const existingPartyId = document.querySelector('.party-id')?.value;
     if (existingPartyId) {
         const partyRecord = (window.parties || []).find(p => String(p.id) === String(existingPartyId));
-        if (partyRecord) showPartyCard(partyRecord);
+        if (partyRecord) {
+            if (isConvertedSaleFlow()) {
+                setPartySearchPreview(partyRecord);
+            } else {
+                showPartyCard(partyRecord);
+            }
+        }
     }
 });
 </script>
@@ -5338,6 +5417,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     hideOutside();
+
+    const hasConvertedSource = Boolean(
+        window.sourceEstimateId ||
+        window.sourceSaleOrderId ||
+        window.sourceChallanId ||
+        window.sourceProformaId
+    );
+    const hasSelectedParty = Boolean(document.querySelector('.party-id')?.value);
+    if (hasConvertedSource && hasSelectedParty) {
+        showOutside();
+    }
 
     if (toggleBtn) {
         toggleBtn.style.display = 'none';

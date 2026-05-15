@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
+use App\Models\Broker;
 use App\Models\PaymentIn;
 use App\Models\Sale;
+use App\Models\SaleDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -123,7 +125,7 @@ class InvoiceController extends Controller
         ];
 
         if ($request->filled('sale_id')) {
-            $sale = Sale::with(['items.item', 'party', 'broker', 'challanDetail', 'payments.bankAccount'])
+            $sale = Sale::with(['items.item', 'party', 'broker', 'challanDetail', 'details', 'payments.bankAccount'])
                 ->findOrFail($request->integer('sale_id'));
 
             $docType = $request->query('doc');
@@ -133,7 +135,7 @@ class InvoiceController extends Controller
                 if ($sale->type === 'delivery_challan') {
                     $invoiceSource = $sale;
                 } elseif ($sale->reference_id) {
-                    $sourceChallan = Sale::with(['items.item', 'party', 'challanDetail'])
+                    $sourceChallan = Sale::with(['items.item', 'party', 'broker', 'challanDetail', 'details'])
                         ->whereKey($sale->reference_id)
                         ->where('type', 'delivery_challan')
                         ->first();
@@ -178,7 +180,7 @@ class InvoiceController extends Controller
 
     private function mapSaleToThemePreviewData(Sale $sale): array
     {
-        $sale->loadMissing(['challanDetail']);
+        $sale->loadMissing(['challanDetail', 'details', 'broker', 'party']);
         $bankAccount = $sale->payments
             ->pluck('bankAccount')
             ->filter()
@@ -193,15 +195,24 @@ class InvoiceController extends Controller
         $taxPct = $this->formatPercentValue($sale->tax_pct);
 
         $items = $sale->items->map(function ($item) use ($taxPct) {
+            $quantity = (float) ($item->quantity ?? 0);
+            $rate = (float) ($item->unit_price ?? 0);
+            $amount = (float) ($item->amount ?? 0);
+
+            if ($amount <= 0 && $quantity > 0 && $rate > 0) {
+                $amount = round($quantity * $rate, 2);
+            }
+
             return [
                 'name' => (string) ($item->item_name ?: ($item->item?->name ?: 'Item')),
                 'hsn' => (string) ($item->item_code ?: ($item->item?->item_code ?: '')),
                 'qty' => (string) ($item->quantity ?? 0),
                 'unit' => (string) ($item->unit ?: ($item->item?->unit ?: '')),
-                'rate' => (float) ($item->unit_price ?? 0),
+                'rate' => $rate,
                 'disc' => number_format((float) ($item->discount ?? 0), 2, '.', ''),
                 'gst' => $taxPct,
-                'amt' => (float) ($item->amount ?? 0),
+                'amt' => $amount,
+                'amount' => $amount,
             ];
         })->values()->all();
 
@@ -221,6 +232,8 @@ class InvoiceController extends Controller
         $createdAt = $sale->created_at instanceof Carbon ? $sale->created_at : Carbon::parse($sale->created_at);
         $invoiceDate = $sale->invoice_date ? Carbon::parse($sale->invoice_date) : $createdAt;
         $challanDetail = $sale->challanDetail;
+        $saleDetail = $sale->details;
+        $transportBroker = $this->resolveTransportationBroker($sale, $saleDetail);
         $partyCity = (string) ($sale->party?->city ?: '');
         if ($sale->type === 'delivery_challan' && $sale->challanDetail?->invoice_date) {
             $invoiceDate = Carbon::parse($sale->challanDetail->invoice_date);
@@ -264,11 +277,65 @@ class InvoiceController extends Controller
             'bankName' => (string) ($bankAccount?->bank_name ?: $bankAccount?->display_name ?: ''),
             'bankAccountNumber' => (string) ($bankAccount?->account_number ?: ''),
             'bankAccountHolder' => (string) ($bankAccount?->account_holder_name ?: ''),
-            'brokerName' => (string) ($challanDetail?->broker_name ?: $sale->broker?->name ?: ''),
-            'brokerPhone' => (string) ($challanDetail?->broker_phone ?: $sale->broker?->phone ?: ''),
+            'brokerName' => (string) ($challanDetail?->broker_name ?: $transportBroker['name'] ?: $sale->broker?->name ?: ''),
+            'brokerPhone' => (string) ($challanDetail?->broker_phone ?: $transportBroker['phone'] ?: $sale->broker?->phone ?: ''),
             'city' => $partyCity,
             'warehouseName' => (string) ($challanDetail?->warehouse_name ?: ''),
             'holderName' => (string) ($challanDetail?->warehouse_handler_name ?: ''),
+            'documentType' => (string) $sale->type,
+            'deliveryChallanFor' => (string) ($sale->display_party_name !== '-' ? $sale->display_party_name : 'Walk-in Customer'),
+            'deliveryChallanPhone' => (string) ($sale->phone ?: ($sale->party?->phone ?: '')),
+            'deliveryPerson' => (string) ($saleDetail?->delivery_person ?: ''),
+            'transportBrokerName' => (string) ($transportBroker['name'] ?: $sale->broker?->name ?: ''),
+            'transportBrokerCity' => (string) ($transportBroker['city'] ?: ''),
+            'transportBrokerPhone' => (string) ($transportBroker['phone'] ?: $sale->broker?->phone ?: ''),
+            'transportName' => (string) ($saleDetail?->goods_name ?: ''),
+            'biltiNo' => (string) ($saleDetail?->bilti_no ?: ''),
+            'biltiGariNo' => (string) ($saleDetail?->bilti_gari_no ?: ($challanDetail?->vehicle_number ?: '')),
+            'transportCity' => (string) ($saleDetail?->city ?: $partyCity),
+            'transportDetail' => (string) ($saleDetail?->details_extra ?: ''),
+        ];
+    }
+
+    private function resolveTransportationBroker(Sale $sale, ?SaleDetail $saleDetail): array
+    {
+        if ($saleDetail && is_array($saleDetail->custom_expenses)) {
+            foreach ($saleDetail->custom_expenses as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                $mode = strtoupper((string) ($row['mode'] ?? $row['operator'] ?? ''));
+                if ($mode !== 'S') {
+                    continue;
+                }
+
+                $accountType = strtolower((string) ($row['account_type'] ?? ''));
+                $accountId = !empty($row['account_id']) ? (int) $row['account_id'] : (!empty($row['brokerId']) ? (int) $row['brokerId'] : null);
+
+                if ($accountType !== 'broker' && empty($accountId)) {
+                    continue;
+                }
+
+                $broker = $accountId ? Broker::find($accountId) : null;
+                $name = trim((string) ($row['account_name'] ?? $row['brokerName'] ?? $broker?->name ?? ''));
+
+                if ($name === '' && !$broker) {
+                    continue;
+                }
+
+                return [
+                    'name' => $name,
+                    'city' => (string) ($broker?->city ?? ''),
+                    'phone' => (string) ($broker?->phone ?? ''),
+                ];
+            }
+        }
+
+        return [
+            'name' => (string) ($sale->broker?->name ?? ''),
+            'city' => (string) ($sale->broker?->city ?? ''),
+            'phone' => (string) ($sale->broker?->phone ?? ''),
         ];
     }
 

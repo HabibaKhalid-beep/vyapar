@@ -4,6 +4,8 @@ import { getInvoiceViewModel } from './invoiceData'
 const ThermalTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const accent = selectedColor || '#111111'
   const view = getInvoiceViewModel(invoiceData)
+  const isDeliveryChallan = String(view.documentType || view.title || '').toLowerCase().includes('delivery_challan')
+    || String(view.title || '').toLowerCase().includes('delivery challan')
   return (
     <div className="t5-wrapper">
 
@@ -20,13 +22,23 @@ const ThermalTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signat
       <p className="t5-title">Invoice</p>
 
       {/* BILL TO + DATE/INVOICE NO */}
-      <div className="t5-info-row">
-        <p className="t5-billto-name">{view.billTo}</p>
-        <div className="t5-invoice-details">
-          <p className="t5-details-line">Date: {view.date}</p>
-          <p className="t5-details-line">Invoice No.: {view.invoiceNo}</p>
+      {isDeliveryChallan ? (
+        <div className="t5-info-row">
+          <p className="t5-billto-name">{view.deliveryChallanFor}</p>
+          <div className="t5-invoice-details">
+            <p className="t5-details-line"><strong>BROKAR:</strong> {view.transportBrokerName}</p>
+            <p className="t5-details-line"><strong>Transport:</strong> {view.transportName}</p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="t5-info-row">
+          <p className="t5-billto-name">{view.billTo}</p>
+          <div className="t5-invoice-details">
+            <p className="t5-details-line">Date: {view.date}</p>
+            <p className="t5-details-line">Invoice No.: {view.invoiceNo}</p>
+          </div>
+        </div>
+      )}
 
       {/* DASHED HR */}
       <hr className="t5-dashed" />

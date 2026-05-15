@@ -71,6 +71,46 @@ $(document).ready(function () {
     return url.toString();
   }
 
+  function buildReactInvoiceUrl(baseUrl, saleId, extraParams = {}) {
+    if (!baseUrl) return '';
+    const url = new URL(baseUrl, window.location.origin);
+    const savedTheme = getInvoiceThemeState(saleId);
+
+    if (savedTheme) {
+      if (savedTheme.mode === 'thermal') {
+        url.searchParams.set('theme', `thermal${savedTheme.thermalThemeId || 1}`);
+      } else if (savedTheme.regularThemeId) {
+        const map = {
+          1: 'tally',
+          2: 'LandScapeTheme1',
+          3: 'LandScapeTheme2',
+          4: 'tax1',
+          5: 'tax2',
+          6: 'tax3',
+          7: 'tax4',
+          8: 'tax5',
+          9: 'tax6',
+          10: 'divine',
+          11: 'french',
+          12: 'theme1',
+          13: 'theme2',
+          14: 'theme3',
+          15: 'theme4',
+        };
+        url.searchParams.set('theme', map[savedTheme.regularThemeId] || 'tally');
+      }
+      if (savedTheme.accent) url.searchParams.set('accent', savedTheme.accent);
+    }
+
+    Object.entries(extraParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value);
+      }
+    });
+
+    return url.toString();
+  }
+
   function openPreviewModal(url, title) {
     if (!salePreviewModal || !salePreviewFrame || !url) {
       if (url) window.open(url, '_blank');
@@ -202,46 +242,19 @@ $(document).ready(function () {
         }
       }
 
-      // Firm filter (party name) - will match the Party Name column (index 2)
-      if (visible && firmFilter) {
-        const partyName = $row.find('td').eq(2).text().trim().toLowerCase();
-        if (partyName !== (firmFilter || '').toLowerCase()) {
-          visible = false;
-        }
-      }
-
-      // Date range filter
-      if (visible && periodFilter && periodFilter !== 'all') {
-        const dateText = $row.find('td').eq(0).text().trim();
-        const rowDate = parseDateDMY(dateText);
-        if (!rowDate) {
-          visible = false;
-        } else {
-          let rangeStart = null;
-          let rangeEnd = null;
-
-          if (periodFilter === 'custom') {
-            rangeStart = customFrom ? new Date(customFrom) : null;
-            rangeEnd = customTo ? new Date(customTo) : null;
-          } else {
-            const range = getPeriodRange(periodFilter);
-            rangeStart = range.start;
-            rangeEnd = range.end;
-          }
-
-          if (rangeStart && rangeEnd) {
-            // Normalize time for comparisons
-            rangeStart.setHours(0, 0, 0, 0);
-            rangeEnd.setHours(23, 59, 59, 999);
-            if (rowDate < rangeStart || rowDate > rangeEnd) {
-              visible = false;
-            }
-          }
-        }
-      }
-
       $row.toggle(visible);
     });
+
+    const hasActiveFilter = Boolean(normalizedSearch)
+      || Object.values(columnFilters).some(val => (val || '').toString().trim() !== '');
+
+    if (hasActiveFilter) {
+      $('.pagination').hide();
+      $('.pagination-wrapper').hide();
+    } else {
+      $('.pagination').show();
+      $('.pagination-wrapper').show();
+    }
   }
 
   function filterTransactions(term) {
@@ -304,6 +317,29 @@ $(document).ready(function () {
     filterTransactions(val);
   });
 
+  function goWithFilters(nextPeriod, nextFirm, nextFrom, nextTo) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('page');
+    if (nextPeriod && nextPeriod !== 'all') {
+      url.searchParams.set('period', nextPeriod);
+    } else {
+      url.searchParams.delete('period');
+    }
+    if (nextFirm) {
+      url.searchParams.set('firm', nextFirm);
+    } else {
+      url.searchParams.delete('firm');
+    }
+    if (nextPeriod === 'custom') {
+      if (nextFrom) url.searchParams.set('from', nextFrom); else url.searchParams.delete('from');
+      if (nextTo) url.searchParams.set('to', nextTo); else url.searchParams.delete('to');
+    } else {
+      url.searchParams.delete('from');
+      url.searchParams.delete('to');
+    }
+    window.location.href = url.toString();
+  }
+
   $periodSelect.on('change', function () {
     periodFilter = $(this).val();
     const iso = (d) => d.toISOString().split('T')[0];
@@ -311,36 +347,34 @@ $(document).ready(function () {
     if (periodFilter === 'custom') {
       $customDateRange.show();
       const today = new Date();
-      // Default both from/to to today when custom is selected
-      $customFrom.val(iso(today));
-      $customTo.val(iso(today));
+      $customFrom.val($customFrom.val() || iso(today));
+      $customTo.val($customTo.val() || iso(today));
       customFrom = $customFrom.val();
       customTo = $customTo.val();
-      updateRangeDisplay(new Date(customFrom), new Date(customTo));
-    } else {
-      $customDateRange.hide();
-      const range = getPeriodRange(periodFilter);
-      if (range.start && range.end) {
-        updateRangeDisplay(range.start, range.end);
-      }
+      goWithFilters(periodFilter, firmFilter, customFrom, customTo);
+      return;
     }
-
-    applyFilters();
+    $customDateRange.hide();
+    goWithFilters(periodFilter, firmFilter, null, null);
   });
 
   $firmSelect.on('change', function () {
     firmFilter = $(this).val() || '';
-    applyFilters();
+    goWithFilters(periodFilter, firmFilter, customFrom, customTo);
   });
 
   $customFrom.on('change', function () {
     customFrom = $(this).val();
-    applyFilters();
+    if (periodFilter === 'custom') {
+      goWithFilters(periodFilter, firmFilter, customFrom, customTo);
+    }
   });
 
   $customTo.on('change', function () {
     customTo = $(this).val();
-    applyFilters();
+    if (periodFilter === 'custom') {
+      goWithFilters(periodFilter, firmFilter, customFrom, customTo);
+    }
   });
 
   // Make the search icon clickable/usable
@@ -350,18 +384,23 @@ $(document).ready(function () {
 
   // Action buttons
   $('#exportExcel').on('click', function () {
+    const headers = $('table.txn-table thead th').not(':last').map(function () {
+      const $th = $(this);
+      const headerText = $th.find('.column-filter-header span').first().text().trim()
+        || $th.clone().children().remove().end().text().trim();
+      return headerText || '';
+    }).get();
+
     const rows = [];
-    $('table.txn-table thead tr').each(function () {
-      const cols = $(this).find('th').not(':last').map(function () {
-        return $(this).text().trim();
-      }).get();
-      rows.push(cols.join(','));
-    });
+    rows.push(headers.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','));
+
     $('table.txn-table tbody tr:visible').each(function () {
       const cols = $(this).find('td').not(':last').map(function () {
-        return '"' + $(this).text().trim().replace(/"/g, '""') + '"';
+        return $(this).text().replace(/\s+/g, ' ').trim();
       }).get();
-      rows.push(cols.join(','));
+      if (!cols.length) return;
+      const normalized = headers.map((_, idx) => cols[idx] ?? '');
+      rows.push(normalized.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','));
     });
     const csvContent = rows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -391,9 +430,9 @@ $(document).ready(function () {
     const saleId = $menu.data('sale-id');
     const isCancelled = String($menu.data('is-cancelled')) === '1';
     const editUrl = $menu.data('edit-url');
-    const previewUrl = buildUrlWithTheme($menu.data('preview-url'), saleId);
-    const pdfUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
-    const printUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
+    const previewUrl = buildReactInvoiceUrl($menu.data('preview-url'), saleId);
+    const pdfUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId);
+    const printUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { print: 1 });
     const deliveryPreviewUrl = $menu.data('delivery-preview-url');
     const paymentHistoryUrl = $menu.data('payment-history-url');
     const bankHistoryUrl = $menu.data('bank-history-url');
@@ -504,7 +543,7 @@ $(document).ready(function () {
       }
     } else if (action === 'preview') {
       if (previewUrl) {
-        window.open(previewUrl, '_blank');
+        openPreviewModal(previewUrl, `Invoice Preview - ${saleNumber}`);
       }
     } else if (action === 'print') {
       if (printUrl) {
@@ -639,7 +678,7 @@ $(document).ready(function () {
   $(document).on('click', '.row-action-print', function () {
     const $menu = $(this).closest('td').find('.sale-action-menu');
     const saleId = $menu.data('sale-id');
-    const printUrl = buildUrlWithTheme($menu.data('pdf-url'), saleId);
+    const printUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { print: 1 });
     if (printUrl) {
       window.open(printUrl, '_blank');
     }

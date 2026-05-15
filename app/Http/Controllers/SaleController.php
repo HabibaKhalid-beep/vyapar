@@ -1828,7 +1828,7 @@ if (strtolower($rawPaymentType) === 'cheque') {
 
     private function shouldCreateLedgerForSaleType(string $type): bool
     {
-        return in_array($type, ['invoice', 'pos', 'sale_return'], true);
+        return in_array($type, ['invoice', 'pos', 'sale_return', 'delivery_challan'], true);
     }
 
     private function resolveLedgerTypeFromSale(string $type): string

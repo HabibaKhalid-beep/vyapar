@@ -1,84 +1,22 @@
 import './TallyTheme.css'
+import { getInvoiceViewModel } from './invoiceData'
 
 const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSignatureClick, selectedColor, terms, onTermsClick, logo, onLogoClick }) => {
-  const items = invoiceData?.items?.length ? invoiceData.items : [
-    { name: 'Sample Item', qty: 1, rate: 100, amount: 100 }
-  ]
-  const totalQty = items.reduce((sum, item) => sum + Number(item.qty || 0), 0)
-  const subtotal = Number(invoiceData?.subtotal ?? items.reduce((sum, item) => sum + Number(item.amount || 0), 0))
-  const total = Number(invoiceData?.total ?? subtotal)
-  const rawBalance = Number(invoiceData?.balance ?? invoiceData?.balance_amount ?? 0)
-  const receivedFromBalance = Math.max(total - rawBalance, 0)
-  const received = Number(invoiceData?.received ?? invoiceData?.received_amount ?? receivedFromBalance ?? 0)
-  const balance = Number(invoiceData?.balance ?? invoiceData?.balance_amount ?? Math.max(total - received, 0))
-  const billTo = invoiceData?.billTo || 'Walk-in Customer'
-  const invoiceNo = invoiceData?.invoiceNo || '3'
-  const invoiceDate = invoiceData?.date || '09/04/2026'
-  const summaryTotal = received > 0 ? received : total
-  const summarySubtotal = summaryTotal
-  const amountInWords = numberToRupeesWords(summaryTotal)
+  const view = getInvoiceViewModel(invoiceData)
+  const items = view.items
+  const totalQty = view.totalQty
+  const total = view.total
+  const received = view.received
+  const balance = view.balance
+  const billTo = view.billTo
+  const invoiceNo = view.invoiceNo
+  const invoiceDate = view.date
+  const summaryTotal = view.paidTotal
+  const summarySubtotal = view.subtotalPaid
+  const amountInWords = view.amountInWords
+  const isDeliveryChallan = String(view.documentType || view.title || '').toLowerCase().includes('delivery_challan')
+    || String(view.title || '').toLowerCase().includes('delivery challan')
   const formatCurrency = (value) => `Rs ${Number(value || 0).toFixed(2)}`
-
-  function numberToRupeesWords(value) {
-    const amount = Number(value || 0)
-    if (!isFinite(amount)) return 'Zero Rupees only'
-
-    const integerPart = Math.floor(Math.abs(amount))
-    const decimalPart = Math.round((Math.abs(amount) - integerPart) * 100)
-
-    const words = integerPart === 0 ? 'Zero' : numberToIndianWords(integerPart)
-    const paisaWords = decimalPart > 0 ? ` and ${numberToIndianWords(decimalPart)} Paisa` : ''
-    const rupeesWord = integerPart === 1 ? 'Rupee' : 'Rupees'
-
-    return `${words} ${rupeesWord}${paisaWords} only`
-  }
-
-  function numberToIndianWords(num) {
-    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
-
-    const toWordsBelowHundred = (n) => {
-      if (n < 20) return ones[n]
-      const t = Math.floor(n / 10)
-      const o = n % 10
-      return `${tens[t]}${o ? ' ' + ones[o] : ''}`.trim()
-    }
-
-    const toWordsBelowThousand = (n) => {
-      const h = Math.floor(n / 100)
-      const rest = n % 100
-      const head = h ? `${ones[h]} Hundred` : ''
-      const tail = rest ? `${head ? ' ' : ''}${toWordsBelowHundred(rest)}` : ''
-      return `${head}${tail}`.trim()
-    }
-
-    const parts = []
-    let remaining = num
-
-    const crore = Math.floor(remaining / 10000000)
-    if (crore) {
-      parts.push(`${toWordsBelowThousand(crore)} Crore`)
-      remaining %= 10000000
-    }
-
-    const lakh = Math.floor(remaining / 100000)
-    if (lakh) {
-      parts.push(`${toWordsBelowThousand(lakh)} Lakh`)
-      remaining %= 100000
-    }
-
-    const thousand = Math.floor(remaining / 1000)
-    if (thousand) {
-      parts.push(`${toWordsBelowThousand(thousand)} Thousand`)
-      remaining %= 1000
-    }
-
-    if (remaining) {
-      parts.push(toWordsBelowThousand(remaining))
-    }
-
-    return parts.join(' ').trim()
-  }
 
   return (
     <div className="tally-wrapper">
@@ -102,18 +40,43 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
         </div>
       </div>
 
-      <div className="tally-info">
-        <div className="tally-bill">
-          <p className="tally-label">Bill To:</p>
-          <p className="tally-value">{billTo}</p>
+      {isDeliveryChallan ? (
+        <div className="tally-transport-info">
+          <div className="tally-transport-col">
+            <p className="tally-label">Delivery Challan for</p>
+            <p className="tally-value">{view.deliveryChallanFor}</p>
+            <p className="tally-transport-line"><strong>Contact No.:</strong> {view.deliveryChallanPhone}</p>
+          </div>
+          <div className="tally-transport-col">
+            <p className="tally-label">Transportation Details</p>
+            <p className="tally-transport-line"><strong>BROKAR : :</strong> {view.transportBrokerName}</p>
+            <p className="tally-transport-line"><strong>Transport Name/Goodz:</strong> {view.transportName}</p>
+            <p className="tally-transport-line"><strong>Bilti no / Gari NO3#:</strong> {view.biltiGariNo || view.biltiNo}</p>
+            <p className="tally-transport-line"><strong>City ::</strong> {view.transportCity}</p>
+            {view.transportDetail ? <p className="tally-transport-line"><strong>Detail:</strong> {view.transportDetail}</p> : null}
+          </div>
+          <div className="tally-transport-col">
+            <p className="tally-label">Challan Details</p>
+            <p className="tally-transport-line"><strong>Challan No.</strong> {invoiceNo}</p>
+            <p className="tally-transport-line"><strong>Date:</strong> {invoiceDate}</p>
+            <p className="tally-transport-line"><strong>Delivery Persan:</strong> {view.deliveryPerson}</p>
+            <p className="tally-transport-line">{view.transportBrokerCity}</p>
+          </div>
         </div>
-        <div className="tally-invoice-details">
-          <p className="tally-label">Invoice Details:</p>
-          <p>No: <strong>{invoiceNo}</strong></p>
-          <p>Date: <strong>{invoiceDate}</strong></p>
-          {invoiceData?.referenceNo ? <p>Ref: <strong>{invoiceData.referenceNo}</strong></p> : null}
+      ) : (
+        <div className="tally-info">
+          <div className="tally-bill">
+            <p className="tally-label">Bill To:</p>
+            <p className="tally-value">{billTo}</p>
+          </div>
+          <div className="tally-invoice-details">
+            <p className="tally-label">Invoice Details:</p>
+            <p>No: <strong>{invoiceNo}</strong></p>
+            <p>Date: <strong>{invoiceDate}</strong></p>
+            {invoiceData?.referenceNo ? <p>Ref: <strong>{invoiceData.referenceNo}</strong></p> : null}
+          </div>
         </div>
-      </div>
+      )}
 
       <table className="tally-table">
         <thead>
@@ -132,7 +95,7 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
               <td><strong>{item.name}</strong></td>
               <td>{item.qty}</td>
               <td>{formatCurrency(item.rate)}</td>
-              <td>{formatCurrency(item.amount)}</td>
+              <td>{formatCurrency(item.amount ?? item.amt)}</td>
             </tr>
           ))}
           <tr className="tally-total-row">

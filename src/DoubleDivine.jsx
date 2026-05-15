@@ -75,7 +75,7 @@ const DoubleDivine = ({ businessInfo, onCompanyClick, onLogoClick, logo, signatu
               <td><strong>{item.name}</strong></td>
               <td>{item.qty}</td>
               <td>{formatCurrency(item.rate)}</td>
-              <td>{formatCurrency(item.amount)}</td>
+              <td>{formatCurrency(item.amount ?? item.amt)}</td>
             </tr>
           ))}
           <tr className="divine-total-row" style={{ backgroundColor: selectedColor }}>

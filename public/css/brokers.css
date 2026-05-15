@@ -273,6 +273,10 @@
   color: #dc2626 !important;
 }
 
+.entity-balance.neutral {
+  color: #6b7280 !important;
+}
+
 /* Filter icon and dropdown */
 .filter-icon {
   color: #dc2626;

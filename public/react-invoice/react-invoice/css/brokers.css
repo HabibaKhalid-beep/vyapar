@@ -1,0 +1,251 @@
+.brokers-page {
+  padding: 8px 0 32px;
+}
+
+.brokers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.brokers-eyebrow {
+  margin: 0 0 6px;
+  color: #0f6fcc;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brokers-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.brokers-subtitle {
+  margin: 8px 0 0;
+  max-width: 640px;
+  color: #64748b;
+}
+
+.brokers-add-btn,
+.brokers-submit-btn {
+  background: linear-gradient(135deg, #0f6fcc, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  box-shadow: 0 16px 30px rgba(15, 111, 204, 0.18);
+}
+
+.brokers-add-btn:hover,
+.brokers-submit-btn:hover {
+  color: #fff;
+  opacity: 0.96;
+}
+
+.brokers-alert {
+  border-radius: 16px;
+  margin-bottom: 18px;
+}
+
+.brokers-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.brokers-metric-card,
+.brokers-panel,
+.broker-modal-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.brokers-metric-card {
+  padding: 18px 20px;
+}
+
+.brokers-metric-label {
+  display: block;
+  margin-bottom: 10px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.brokers-metric-card strong {
+  color: #0f172a;
+  font-size: 24px;
+}
+
+.brokers-panel {
+  overflow: hidden;
+}
+
+.brokers-panel-toolbar {
+  padding: 18px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.brokers-search {
+  position: relative;
+  max-width: 360px;
+}
+
+.brokers-search i {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.brokers-search input {
+  width: 100%;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  padding: 11px 14px 11px 40px;
+  outline: none;
+}
+
+.brokers-search input:focus,
+.broker-modal-card .form-control:focus,
+.broker-modal-card .form-select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+}
+
+.brokers-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.brokers-table tbody td {
+  padding: 16px 18px;
+  border-color: #eef2f7;
+  vertical-align: middle;
+}
+
+.brokers-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brokers-name-cell strong {
+  color: #0f172a;
+}
+
+.brokers-name-cell span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.brokers-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.brokers-status.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.brokers-status.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.brokers-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brokers-edit-btn,
+.brokers-delete-btn {
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-weight: 600;
+}
+
+.brokers-edit-btn {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: none;
+}
+
+.brokers-delete-btn {
+  background: #fff1f2;
+  color: #be123c;
+  border: none;
+}
+
+.broker-modal-header,
+.broker-modal-footer {
+  border: none;
+  padding: 22px 24px 0;
+}
+
+.broker-modal-card .modal-body {
+  padding: 20px 24px 24px;
+}
+
+.broker-modal-subtitle {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.broker-modal-card .form-label {
+  font-weight: 600;
+  color: #334155;
+}
+
+.broker-modal-card textarea.form-control {
+  min-height: 96px;
+}
+
+.broker-switch {
+  margin-top: 10px;
+}
+
+@media (max-width: 991px) {
+  .brokers-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .brokers-header {
+    flex-direction: column;
+  }
+
+  .brokers-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .brokers-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -4,6 +4,8 @@ import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const accent = selectedColor || '#888888'
   const view = getInvoiceViewModel(invoiceData)
+  const isDeliveryChallan = String(view.documentType || view.title || '').toLowerCase().includes('delivery_challan')
+    || String(view.title || '').toLowerCase().includes('delivery challan')
 
   return (
     <div className="t4-wrapper">
@@ -37,17 +39,34 @@ const Theme4 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, on
       </div>
 
       {/* BILL TO + INVOICE DETAILS */}
-      <div className="t4-info-row">
-        <div className="t4-billto-block">
-          <p className="t4-billto-label">Bill To</p>
-          <p className="t4-billto-name">{view.billTo}</p>
+      {isDeliveryChallan ? (
+        <div className="t4-info-row">
+          <div className="t4-billto-block">
+            <p className="t4-billto-label">Delivery Challan for</p>
+            <p className="t4-billto-name">{view.deliveryChallanFor}</p>
+            <p><strong>Contact No.:</strong> {view.deliveryChallanPhone}</p>
+          </div>
+          <div className="t4-invoice-details">
+            <p className="t4-details-heading">Transportation Details</p>
+            <p className="t4-details-line"><strong>BROKAR:</strong> {view.transportBrokerName}</p>
+            <p className="t4-details-line"><strong>Transport:</strong> {view.transportName}</p>
+            <p className="t4-details-line"><strong>Bilti/Gari #:</strong> {view.biltiGariNo || view.biltiNo}</p>
+            <p className="t4-details-line"><strong>City:</strong> {view.transportCity}</p>
+          </div>
         </div>
-        <div className="t4-invoice-details">
-          <p className="t4-details-heading">Invoice Details</p>
-          <p className="t4-details-line">Invoice No. : {view.invoiceNo}</p>
-          <p className="t4-details-line">Date : {view.date}</p>
+      ) : (
+        <div className="t4-info-row">
+          <div className="t4-billto-block">
+            <p className="t4-billto-label">Bill To</p>
+            <p className="t4-billto-name">{view.billTo}</p>
+          </div>
+          <div className="t4-invoice-details">
+            <p className="t4-details-heading">Invoice Details</p>
+            <p className="t4-details-line">Invoice No. : {view.invoiceNo}</p>
+            <p className="t4-details-line">Date : {view.date}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* TABLE */}
       <table className="t4-table">

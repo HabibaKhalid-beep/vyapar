@@ -3,6 +3,8 @@ import { formatCurrency, getInvoiceViewModel } from './invoiceData'
 
 const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature, onSignatureClick, selectedColor, terms, onTermsClick, invoiceData }) => {
   const view = getInvoiceViewModel(invoiceData)
+  const isDeliveryChallan = String(view.documentType || view.title || '').toLowerCase().includes('delivery_challan')
+    || String(view.title || '').toLowerCase().includes('delivery challan')
 
   return (
     <div className="tax1-wrapper">
@@ -25,17 +27,34 @@ const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
       <h2 className="tax1-title">Invoice</h2>
 
       {/* BILL TO + INVOICE DETAILS */}
-      <div className="tax1-info">
-        <div className="tax1-bill">
-          <p className="tax1-label">Bill To</p>
-          <p className="tax1-value">{view.billTo}</p>
+      {isDeliveryChallan ? (
+        <div className="tax1-info">
+          <div className="tax1-bill">
+            <p className="tax1-label">Delivery Challan for</p>
+            <p className="tax1-value">{view.deliveryChallanFor}</p>
+            <p><strong>Contact No.:</strong> {view.deliveryChallanPhone}</p>
+          </div>
+          <div className="tax1-invoice-details">
+            <p className="tax1-label">Transportation Details</p>
+            <p><strong>BROKAR:</strong> {view.transportBrokerName}</p>
+            <p><strong>Transport:</strong> {view.transportName}</p>
+            <p><strong>Bilti/Gari #:</strong> {view.biltiGariNo || view.biltiNo}</p>
+            <p><strong>City:</strong> {view.transportCity}</p>
+          </div>
         </div>
-        <div className="tax1-invoice-details">
-          <p className="tax1-label">Invoice Details</p>
-          <p>Invoice No. : <strong>{view.invoiceNo}</strong></p>
-          <p>Date : <strong>{view.date}</strong></p>
+      ) : (
+        <div className="tax1-info">
+          <div className="tax1-bill">
+            <p className="tax1-label">Bill To</p>
+            <p className="tax1-value">{view.billTo}</p>
+          </div>
+          <div className="tax1-invoice-details">
+            <p className="tax1-label">Invoice Details</p>
+            <p>Invoice No. : <strong>{view.invoiceNo}</strong></p>
+            <p>Date : <strong>{view.date}</strong></p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* TABLE */}
       <table className="tax1-table">
@@ -55,7 +74,7 @@ const TaxTheme1 = ({ businessInfo, onCompanyClick, onLogoClick, logo, signature,
               <td><strong>{item.name}</strong></td>
               <td>{item.qty}</td>
               <td>{formatCurrency(item.rate)}</td>
-              <td>{formatCurrency(item.amount)}</td>
+              <td>{formatCurrency(item.amount ?? item.amt)}</td>
             </tr>
           ))}
           <tr className="tax1-total-row">

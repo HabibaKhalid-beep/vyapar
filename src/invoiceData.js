@@ -2,15 +2,22 @@ const fallbackItem = { name: 'Sample Item', hsn: '', qty: 1, unit: '', rate: 100
 
 export function getInvoiceViewModel(invoiceData = {}) {
   const items = Array.isArray(invoiceData.items) && invoiceData.items.length
-    ? invoiceData.items.map((item) => ({
-      name: item.name || 'Item',
-      hsn: item.hsn || '',
-      qty: Number(item.qty || 0),
-      unit: item.unit || '',
-      rate: Number(item.rate || 0),
-      discount: Number(item.discount || 0),
-      amount: Number(item.amount || 0),
-    }))
+    ? invoiceData.items.map((item) => {
+      const qty = Number(item.qty || 0)
+      const rate = Number(item.rate || 0)
+      const explicitAmount = Number(item.amount ?? item.amt ?? 0)
+      const amount = explicitAmount > 0 ? explicitAmount : (qty > 0 && rate > 0 ? qty * rate : 0)
+
+      return {
+        name: item.name || 'Item',
+        hsn: item.hsn || '',
+        qty,
+        unit: item.unit || '',
+        rate,
+        discount: Number(item.discount || 0),
+        amount,
+      }
+    })
     : [fallbackItem]
 
   const totalQty = items.reduce((sum, item) => sum + Number(item.qty || 0), 0)
@@ -21,10 +28,10 @@ export function getInvoiceViewModel(invoiceData = {}) {
   const rawBalance = Number(invoiceData.balance ?? invoiceData.balance_amount ?? 0)
   const receivedFromBalance = Math.max(total - rawBalance, 0)
   const received = Number(invoiceData.received ?? invoiceData.received_amount ?? receivedFromBalance ?? 0)
-  const paidAmount = received > 0 ? received : total
-  const subtotalPaid = paidAmount
+  const paidAmount = total
+  const subtotalPaid = subtotal
 
-  const amountInWords = numberToRupeesWords(paidAmount)
+  const amountInWords = numberToRupeesWords(total)
   const balance = Number(invoiceData.balance ?? invoiceData.balance_amount ?? Math.max(total - received, 0))
 
   return {
@@ -46,6 +53,17 @@ export function getInvoiceViewModel(invoiceData = {}) {
     city: invoiceData.city || '',
     warehouseName: invoiceData.warehouseName || '',
     holderName: invoiceData.holderName || '',
+    documentType: invoiceData.documentType || '',
+    deliveryChallanFor: invoiceData.deliveryChallanFor || invoiceData.billTo || '',
+    deliveryChallanPhone: invoiceData.deliveryChallanPhone || invoiceData.billPhone || '',
+    deliveryPerson: invoiceData.deliveryPerson || '',
+    transportBrokerName: invoiceData.transportBrokerName || invoiceData.brokerName || '',
+    transportBrokerCity: invoiceData.transportBrokerCity || '',
+    transportName: invoiceData.transportName || '',
+    biltiNo: invoiceData.biltiNo || '',
+    biltiGariNo: invoiceData.biltiGariNo || '',
+    transportCity: invoiceData.transportCity || invoiceData.city || '',
+    transportDetail: invoiceData.transportDetail || '',
     items,
     totalQty,
     subtotal,

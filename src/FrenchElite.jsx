@@ -62,7 +62,7 @@ const FrenchElite = ({ selectedColor, businessInfo, signature, onCompanyClick, o
               <td className="fe-td-left"><strong>{item.name}</strong></td>
               <td className="fe-td-right">{item.qty}</td>
               <td className="fe-td-right">{formatCurrency(item.rate)}</td>
-              <td className="fe-td-right">{formatCurrency(item.amount)}</td>
+              <td className="fe-td-right">{formatCurrency(item.amount ?? item.amt)}</td>
             </tr>
           ))}
           <tr style={{ backgroundColor: selectedColor }} className="fe-total-row">

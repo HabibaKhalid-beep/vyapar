@@ -312,6 +312,9 @@ class PerfomaController extends Controller
 
     private function buildSalePayload(array $data, array $imagePaths = [], array $documentPaths = []): array
     {
+        $grandTotal = (float) ($data['grand_total'] ?? 0);
+        $partyTransferDeduction = min($this->calculatePartyTransferDeduction($data), $grandTotal);
+
         return [
             'type' => 'proforma',
             'party_id' => $data['party_id'] ?? null,
@@ -330,9 +333,9 @@ class PerfomaController extends Controller
             'tax_pct' => $data['tax_pct'] ?? 0,
             'tax_amount' => $data['tax_amount'] ?? 0,
             'round_off' => $data['round_off'] ?? 0,
-            'grand_total' => $data['grand_total'] ?? 0,
+            'grand_total' => $grandTotal,
             'received_amount' => 0,
-            'balance' => $data['grand_total'] ?? 0,
+            'balance' => max(0, $grandTotal - $partyTransferDeduction),
             'status' => 'open',
             'description' => $data['description'] ?? null,
             'image_path' => $imagePaths[0] ?? ($data['image_path'] ?? null),
@@ -371,6 +374,45 @@ class PerfomaController extends Controller
                 $request->merge([$field => $decoded]);
             }
         }
+    }
+
+    private function calculatePartyTransferDeduction(array $data): float
+    {
+        return collect($this->normalizeAdjustmentRows($data['custom_expenses'] ?? []))
+            ->filter(function (array $row) {
+                return in_array($row['mode'] ?? null, ['-', 'S'], true)
+                    && (float) ($row['amount'] ?? 0) > 0;
+            })
+            ->sum(fn (array $row) => (float) ($row['amount'] ?? 0));
+    }
+
+    private function normalizeAdjustmentRows($rows): array
+    {
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach (array_values($rows) as $index => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $mode = strtoupper((string) ($row['mode'] ?? $row['operator'] ?? '+'));
+            $mode = in_array($mode, ['+', '-', 'S'], true) ? $mode : '+';
+            $amount = isset($row['amount'])
+                ? (float) $row['amount']
+                : (isset($row['value']) ? (float) $row['value'] : 0);
+
+            $normalized[] = [
+                'mode' => $mode,
+                'amount' => round(max(0, $amount), 2),
+                'sort_order' => $index,
+            ];
+        }
+
+        return $normalized;
     }
 
     /**

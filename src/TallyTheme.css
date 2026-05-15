@@ -53,6 +53,26 @@
   margin-bottom: 20px;
 }
 
+.tally-transport-info {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+  padding: 18px 20px;
+}
+
+.tally-transport-col {
+  min-width: 0;
+}
+
+.tally-transport-line {
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0 0 8px;
+  word-break: break-word;
+}
+
 .tally-bill {
   flex: 1;
   padding: 15px;
@@ -170,4 +190,10 @@
 }
 .tally-table thead tr th {
     background-color: inherit;
+}
+
+@media (max-width: 768px) {
+  .tally-transport-info {
+    grid-template-columns: 1fr;
+  }
 }

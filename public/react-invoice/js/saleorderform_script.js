@@ -5,7 +5,7 @@ function initializeForm(context) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const itemOptionsHtml = (window.items || []).map(item => {
-        const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}">${richLabel}</option>`;
+        const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${item.category_name || item.category?.name || item.category || item.category_id || ''}" data-item-code="${item.item_code || ''}" data-description="${item.description || item.item_description || ''}" data-discount="${item.discount ?? 0}">${richLabel}</option>`;
     }).join('');
 
     const today = new Date();
@@ -124,10 +124,11 @@ function initializeForm(context) {
 
     function addRow() {
         const rowCount = $ctx.find('.item-rows tr').length + 1;
-        const isCatVisible = $ctx.find('.check-category').is(':checked');
-        const isCodeVisible = $ctx.find('.check-item-code').is(':checked');
-        const isDescVisible = $ctx.find('.check-description').is(':checked');
-        const isDiscVisible = $ctx.find('.check-discount').is(':checked');
+        const settings = window.getItemColumnSettings ? window.getItemColumnSettings() : { category: false, code: false, description: false, discount: false };
+        const isCatVisible = settings.category;
+        const isCodeVisible = settings.code;
+        const isDescVisible = settings.description;
+        const isDiscVisible = settings.discount;
 
         const newRow = `
             <tr class="item-row">
@@ -141,10 +142,10 @@ function initializeForm(context) {
                         ${itemOptionsHtml}
                     </select>
                 </td>
-                <td class="col-category ${isCatVisible ? '' : 'd-none'}"><input type="text" class="item-category" placeholder="Category"></td>
-                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code"></td>
-                <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description"></td>
-                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><input type="number" class="item-discount" value="0"></td>
+                <td class="col-category ${isCatVisible ? '' : 'd-none'}"><select class="item-category"><option value="">Select Category</option></select></td>
+                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
+                <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description" readonly></td>
+                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><div class="item-discount-fields"><input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%"><input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount"></div></td>
                 <td><input type="number" class="item-qty" value="1"></td>
                 <td>
                     <select class="item-unit">
@@ -168,13 +169,13 @@ function initializeForm(context) {
         let advance = 0;
 
         const defaultType = $ctx.find('.default-payment-type').val() || '';
-        if (defaultType.startsWith('bank-')) {
+        if (defaultType.startsWith('bank-') || defaultType === 'cash') {
             advance += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
         }
 
         advance += Array.from($ctx.find('.payment-type-entry')).reduce((sum, el) => {
             const rawType = $(el).val() || '';
-            if (!rawType.startsWith('bank-')) {
+            if (!rawType.startsWith('bank-') && rawType !== 'cash') {
                 return sum;
             }
 
@@ -264,14 +265,15 @@ function initializeForm(context) {
 
         const defaultTypeVal = $ctx.find('.default-payment-type').val();
         if (defaultTypeVal) {
-            const bankId = parseInt(defaultTypeVal.replace('bank-', ''), 10);
-            const bank = (window.bankAccounts || []).find(b => b.id === bankId);
+            const isCash = defaultTypeVal === 'cash';
+            const bankId = isCash ? null : parseInt(defaultTypeVal.replace('bank-', ''), 10);
+            const bank = !isCash ? (window.bankAccounts || []).find(b => b.id === bankId) : null;
             const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
             const defaultReference = $ctx.find('.default-payment-reference').val() || null;
 
             if (defaultAmount > 0) {
                 payments.push({
-                    payment_type: bank?.display_with_account || bank?.display_name || 'Bank',
+                    payment_type: isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank'),
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -283,6 +285,7 @@ function initializeForm(context) {
             const $entry = $(entry);
             const rawType = $entry.find('.payment-type-entry').val() || '';
             const isBank = rawType.startsWith('bank-');
+            const isCash = rawType === 'cash';
             const bankId = isBank ? rawType.replace('bank-', '') : null;
             const bank = isBank ? (window.bankAccounts || []).find(b => String(b.id) === String(bankId)) : null;
             const amount = parseFloat($entry.find('.payment-amount').val() || 0) || 0;
@@ -293,7 +296,7 @@ function initializeForm(context) {
             }
 
             payments.push({
-                payment_type: isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType,
+                payment_type: isCash ? 'cash' : (isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType),
                 bank_account_id: bankId,
                 amount,
                 reference,
@@ -350,6 +353,41 @@ function initializeForm(context) {
             $ctx.find('.billing-address').val('');
             $ctx.find('.shipping-address').val('');
         }
+    });
+
+    // Party search/filter functionality
+    $ctx.on('input', '.party-search-input', function(e) {
+        e.stopPropagation();
+        const searchValue = $(this).val().toLowerCase().trim();
+        const $partyOptions = $ctx.find('.party-option');
+
+        $partyOptions.each(function() {
+            const $this = $(this);
+            const partyName = $.trim($this.find('span').first().text()).toLowerCase();
+            const partyPhone = $this.data('phone') ? String($this.data('phone')).toLowerCase() : '';
+
+            if (searchValue === '' || partyName.includes(searchValue) || partyPhone.includes(searchValue)) {
+                $this.closest('li').removeClass('d-none');
+            } else {
+                $this.closest('li').addClass('d-none');
+            }
+        });
+    });
+
+    // Prevent dropdown from closing when clicking on search input
+    $ctx.on('click', '.party-search-input', function(e) {
+        e.stopPropagation();
+    });
+
+    // Prevent dropdown from closing when typing in search
+    $ctx.on('keydown keyup', '.party-search-input', function(e) {
+        e.stopPropagation();
+    });
+
+    // Clear search input when dropdown closes
+    $ctx.on('hidden.bs.dropdown', '#partyDropdownMenu', function() {
+        $ctx.find('.party-search-input').val('');
+        $ctx.find('.party-option').closest('li').removeClass('d-none');
     });
 
     $ctx.on('click', '.party-option', function(e) {
@@ -433,9 +471,22 @@ function initializeForm(context) {
         const $selected = $(this).find('option:selected');
         const price = parseFloat($selected.data('price')) || parseFloat($selected.data('sale-price')) || 0;
         const unit = $selected.data('unit') || '';
+        const category = $selected.data('category') || '';
+        const itemCode = $selected.data('item-code') || '';
+        const description = $selected.data('description') || '';
+        const discount = $selected.data('discount');
 
         $row.find('.item-qty').val(1);
         $row.find('.item-price').val(price.toFixed(2));
+        $row.find('.item-category').val(category);
+        $row.find('.item-code').val(itemCode);
+        $row.find('.item-desc').val(description);
+        if (discount !== undefined && discount !== null && discount !== '') {
+            const currentDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
+            if (currentDiscount === 0) {
+                $row.find('.item-discount').val(discount);
+            }
+        }
         if (unit) {
             ensureUnitOption($row.find('.item-unit'), unit);
         }
@@ -496,11 +547,12 @@ function initializeForm(context) {
     $ctx.on('input change', '.round-off-val', calculateTotals);
 
     $ctx.on('click', '.add-description', function() {
-        const $pane = $ctx.find('.description-pane');
-        $pane.toggleClass('d-none');
-        if (!$pane.hasClass('d-none')) {
-            $pane.find('.description-input').focus();
-        }
+        const $btn = $(this);
+        const $pane = $btn.closest('.description-action-group').find('.description-pane');
+
+        $btn.addClass('d-none');
+        $pane.removeClass('d-none');
+        $pane.find('.description-input').focus();
     });
 
     $ctx.on('click', '.add-image', function() {
@@ -543,16 +595,19 @@ function initializeForm(context) {
         $ctx.find('.selected-document-name').text(fileName ? 'Document: ' + fileName : '');
     });
 
-    $ctx.on('click', '.btn-save', function() {
+    function submitSaleOrder(btn, options = {}) {
         const saleOrderData = gatherSaleOrderData();
+        const idleText = options.idleText || 'Save';
+        const loadingText = options.loadingText || 'Saving...';
+        const successMessage = options.successMessage || 'Sale order saved successfully!';
+        const redirectToShare = Boolean(options.redirectToShare);
 
         if (!saleOrderData.items.length) {
             showToast('Please add at least one item before saving.', true);
             return;
         }
 
-        const btn = $(this);
-        btn.prop('disabled', true).text('Saving...');
+        btn.prop('disabled', true).text(loadingText);
 
         fetch(window.saleOrderStoreUrl, {
             method: window.saleOrderMethod || 'POST',
@@ -585,10 +640,11 @@ function initializeForm(context) {
                         $ctx.find('.bill-number').val(data.bill_number);
                     }
 
-                    showToast('Sale order saved successfully! Redirecting...');
-                    if (data.redirect_url) {
+                    showToast(successMessage, false);
+                    const targetUrl = redirectToShare ? (data.share_url || data.redirect_url) : data.redirect_url;
+                    if (targetUrl) {
                         setTimeout(() => {
-                            window.location.href = data.redirect_url;
+                            window.location.href = targetUrl;
                         }, 1500);
                     }
                     return;
@@ -601,8 +657,25 @@ function initializeForm(context) {
                 showToast('Error saving sale order. ' + (err.message || ''), true);
             })
             .finally(() => {
-                btn.prop('disabled', false).text('Save');
+                btn.prop('disabled', false).text(idleText);
             });
+    }
+
+    $ctx.on('click', '.btn-save', function() {
+        submitSaleOrder($(this), {
+            idleText: 'Save',
+            loadingText: 'Saving...',
+            successMessage: 'Sale order saved successfully! Redirecting...',
+        });
+    });
+
+    $ctx.on('click', '.btn-share-main', function() {
+        submitSaleOrder($(this), {
+            redirectToShare: true,
+            idleText: 'Share',
+            loadingText: 'Saving...',
+            successMessage: 'Sale order saved successfully! Opening invoice preview...',
+        });
     });
 
     setupAdjustmentControls();
