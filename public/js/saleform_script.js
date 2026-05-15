@@ -1380,16 +1380,7 @@ if (!window.editSaleData) {
                 $ctx.find('.ptcl-input').val(ptclNumber);
                 $ctx.find('.address-input').val(address);
 
-                if (party.name) billingDetails += String(party.name).toUpperCase() + "\n";
-                const mobiles = [phone, phoneNumber2].filter(Boolean);
-                if (mobiles.length) billingDetails += "M: " + mobiles.join(", ") + "\n";
-                if (ptclNumber) billingDetails += "T: " + ptclNumber + "\n";
-                if (email) billingDetails += "Em: " + email + "\n";
-                const addrLine = billingAddress || address || "";
-                const addrParts = [city, addrLine].filter(Boolean);
-                if (addrParts.length) billingDetails += "📍 " + addrParts.join(", ");
-
-                $ctx.find('.billing-address').val(billingDetails.trim());
+               $ctx.find('.billing-address').val(billingAddress);
                 $ctx.find('.shipping-address').val(shippingAddress);
                 $('#hiddenPhone').val(phone);
                 $('#hiddenBilling').val(billingDetails.trim());
@@ -1621,17 +1612,7 @@ if (!window.editSaleData) {
     $ctx.find('.phone-input').val(phone);
 
     // Build full party details text
-    let details = "";
-    if (name) details += name.toUpperCase() + "\n";
-    const mobiles = [phone, phone_number_2].filter(Boolean);
-    if (mobiles.length) details += "M: " + mobiles.join(", ") + "\n";
-    if (ptcl_number) details += "T: " + ptcl_number + "\n";
-    if (email)       details += "Em: " + email + "\n";
-    const addrLine = billing_addr || address || "";
-    const addrParts = [city, addrLine].filter(Boolean);
-    if (addrParts.length) details += "📍 " + addrParts.join(", ");
-
-    $ctx.find('.billing-address').val(details.trim());
+   $ctx.find('.billing-address').val(billing_addr || address);
     $ctx.find('.shipping-address').val(shipping_addr);
 
     // Show party details section
