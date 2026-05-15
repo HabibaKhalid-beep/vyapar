@@ -152,9 +152,8 @@ ul#partyDropdownMenu {
 
 .compact-header-field {
     width: 100%;
-    max-width: 240px;
+    max-width: 180px;
 }
-
 .compact-header-field .meta-control,
 .compact-header-field .party-search-input {
     width: 100% !important;
@@ -380,7 +379,7 @@ ul#partyDropdownMenu {
 
 .header-aux-fields {
     grid-column: 3;
-    grid-row: 2;
+    grid-row: 1;
     display: grid;
     grid-template-columns: 1fr;
     gap: 6px;
@@ -1064,22 +1063,21 @@ textarea.meta-control,
 
 .header-section {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 420px;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 6px;
     align-items: start;
 }
 
 .header-left {
     display: grid;
-    grid-template-columns: minmax(0, 280px) minmax(0, 220px) minmax(170px, 0.7fr);
-    gap: 6px 8px;
-    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 160px);
+    grid-template-rows: auto auto auto;
+    gap: 6px;
     align-items: start;
-    justify-items: start;
 }
-
 .billing-name-group {
-    justify-self: start;
+    grid-column: 2;
+    grid-row: 1;
     width: 100%;
 }
 
@@ -1778,7 +1776,92 @@ textarea.meta-control,
 
 .party-selected-card .party-card-clear:hover {
     color: #dc2626;
+}.header-left {
+    display: grid;
+    grid-template-columns: minmax(0, 200px) minmax(0, 160px) minmax(130px, 0.5fr);
+    grid-template-rows: auto auto auto;
+    gap: 4px 6px;
+    min-width: 0;
+    align-items: start;
+    justify-items: start;
 }
+
+.cash-party-selector-group {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.billing-name-group {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+}
+
+.party-details .billing-address-field {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.party-details .shipping-address-field {
+    grid-column: ;
+    grid-row: 3;
+}
+
+.header-aux-fields {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 0 !important;
+    align-items: stretch;
+}.cash-party-selector-group {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.billing-name-group {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+}
+
+.party-details .billing-address-field {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.party-details .shipping-address-field {
+    grid-column: 2;   /* ← was 1, now moves to RIGHT column */
+    grid-row: 2;      /* ← was 3, now same row as billing address */
+}
+
+.header-left {
+    display: grid;
+    grid-template-columns: minmax(0, 200px) minmax(0, 160px) minmax(130px, 0.5fr);
+    grid-template-rows: auto auto auto;
+    gap: 4px 6px;
+    min-width: 0;
+    align-items: start;
+    justify-items: start;
+}
+
+.party-details .shipping-address-field {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.header-aux-fields {
+    grid-column: 3;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 0 !important;
+    margin-left: 35px;   /* ← adds gap between shipping address and delivery person */
+    align-items: stretch;
+}
+
     </style>
 
 @php
@@ -1959,7 +2042,7 @@ textarea.meta-control,
             style="min-height:90px !important; height:90px !important; max-height:90px !important; 
                    overflow-y:auto !important; resize:none; font-size:12px; line-height:1.5;
                    scrollbar-width:thin; padding:8px 10px !important;"></textarea>
-        <label>Billing Address</label>
+        <label>Billing Adddress</label>
         <span class="party-save-indicator" style="position:absolute; top:4px; right:6px; font-size:10px; font-weight:600; opacity:0; transition:opacity 0.3s;"></span>
     </div>
 </div>
@@ -4381,29 +4464,24 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     const warehouseSelect = document.querySelector('.warehouse-select');
+    const deliveryPersonInput = document.querySelector('.delivery-person-input');
+    const deliveryPhoneInput = document.querySelector('.delivery-person-phone-input');
 
-const fillWarehouseHandler = () => {
-    if (!warehouseSelect) return;
-    const selectedOption = warehouseSelect.selectedOptions[0];
-    if (!selectedOption) return;
+    const fillWarehouseHandler = () => {
+        if (!warehouseSelect) return;
+        const selectedOption = warehouseSelect.selectedOptions[0];
+        if (!selectedOption) return;
 
-    const handlerName = selectedOption.dataset.handlerName || '';
-    const handlerPhone = selectedOption.dataset.handlerPhone || '';
+        const handlerName = selectedOption.dataset.handlerName || '';
+        const handlerPhone = selectedOption.dataset.handlerPhone || '';
 
-    // Query inside the active tab content only
-    const activeTab = document.querySelector('#content-area .invoice-container');
-    if (!activeTab) return;
-
-    const deliveryPersonInput = activeTab.querySelector('.delivery-person-input');
-    const deliveryPhoneInput = activeTab.querySelector('.delivery-person-phone-input');
-
-    if (deliveryPersonInput && handlerName && !deliveryPersonInput.value) {
-        deliveryPersonInput.value = handlerName;
-    }
-    if (deliveryPhoneInput && handlerPhone) {
-        deliveryPhoneInput.value = handlerPhone;
-    }
-};
+        if (deliveryPersonInput && handlerName) {
+            deliveryPersonInput.value = handlerName;
+        }
+        if (deliveryPhoneInput) {
+            deliveryPhoneInput.value = handlerPhone;
+        }
+    };
 
     const warehouseModalEl = document.getElementById('warehouseModal');
     const warehouseForm = document.getElementById('warehouseForm');
@@ -4528,7 +4606,15 @@ const setPartyFieldValues = (partyRecord = {}) => {
 
     setFieldValue(".phone-input", partyRecord.phone || "");
 
-  setFieldValue(".billing-address", partyRecord.billing_address || "");
+    let billingContent = "";
+    if (partyRecord.name) billingContent += partyRecord.name.toUpperCase() + "\n";
+    const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
+    if (mobiles.length) billingContent += "M: " + mobiles.join(", ") + "\n";
+    if (partyRecord.ptcl_number) billingContent += "T: " + partyRecord.ptcl_number + "\n";
+    if (partyRecord.email) billingContent += "Em: " + partyRecord.email + "\n";
+    const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
+    if (addrParts.length) billingContent += "📍 " + addrParts.join(", ");
+    setFieldValue(".billing-address", billingContent.trim());
 
     // ===== SHOW PARTY CARD IN SEARCH BAR =====
     renderPartyCard(partyRecord);
@@ -4573,7 +4659,8 @@ const renderPartyCard = (partyRecord = {}) => {
     if (mobiles.length) lines.push(`M: ${mobiles.join(', ')}`);
     if (partyRecord.ptcl_number) lines.push(`T: ${partyRecord.ptcl_number}`);
     if (partyRecord.email) lines.push(`Em: ${partyRecord.email}`);
-    if (partyRecord.city) lines.push(`📍 ${partyRecord.city}`);
+    const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
+    if (addrParts.length) lines.push(`📍 ${addrParts.join(', ')}`);
 
     const linesHtml = lines.map(l => `<span class="party-card-line">${l}</span>`).join('');
 
