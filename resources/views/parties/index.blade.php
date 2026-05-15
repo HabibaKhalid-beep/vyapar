@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"> -->
 
 
@@ -467,7 +467,7 @@
         <div class="party-groups-sidebar-header">
           <div class="party-groups-sidebar-title-row">
             <h3>Groups</h3>
-           
+
           </div>
           <div class="party-groups-search">
             <i class="fa fa-search"></i>
@@ -2189,7 +2189,37 @@ function closeHeaderDropdown() {
 }
 
 function toggleSort(el){
-    el.classList.toggle("active");
+    if (window.event) {
+        const clickedInsideFilter = window.event.target?.closest?.('.filter-wrapper');
+        if (clickedInsideFilter) {
+            return;
+        }
+    }
+
+    const th = el.closest('th');
+    if (!th) return;
+
+    const headers = Array.from(document.querySelectorAll('#partyTxnTable thead th'));
+    const headerIndex = headers.indexOf(th);
+    const column = ['type', 'number', 'date', 'total', 'balance', 'status'][headerIndex] || null;
+    if (!column) return;
+
+    const currentSort = window.partyTxnSortState || { column: null, direction: 'asc' };
+    const nextDirection = currentSort.column === column && currentSort.direction === 'asc' ? 'desc' : 'asc';
+    window.partyTxnSortState = { column, direction: nextDirection };
+
+    document.querySelectorAll('#partyTxnTable thead .table-main').forEach((header) => {
+        header.classList.remove('active', 'sort-desc');
+    });
+
+    el.classList.add('active');
+    if (nextDirection === 'desc') {
+        el.classList.add('sort-desc');
+    }
+
+    if (typeof window.applyPartyTxnRenderedState === 'function') {
+        window.applyPartyTxnRenderedState();
+    }
 }
 
 function toggleParentArrows(el){
@@ -2197,6 +2227,11 @@ function toggleParentArrows(el){
 }
 
 function toggleFilterDropdown(icon){
+    if (window.event) {
+        window.event.stopPropagation();
+        window.event.preventDefault();
+    }
+
     const dropdown = icon.nextElementSibling;
     dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
 }
@@ -2355,6 +2390,14 @@ document.addEventListener("DOMContentLoaded", function () {
         { key: 'balance', label: 'Balance' },
         { key: 'status', label: 'Status' }
     ];
+    let transactionColumnFilters = {
+        type: { values: [] },
+        number: { operator: 'contains', value: '' },
+        date: { operator: 'equal_to', value: '', value_to: '' },
+        total: { operator: 'equal_to', value: '' },
+        balance: { operator: 'equal_to', value: '' },
+        status: { values: [] }
+    };
     const partyFilterDropdown = document.getElementById("filterDropdown");
     const partyFilterApply = document.getElementById("partyFilterApply");
     const partyFilterClear = document.getElementById("partyFilterClear");
@@ -3114,23 +3157,484 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
     }
 
+    function normalizeTxnFilterLabel(value) {
+        const normalized = String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+        return ({
+            'sale order': 'sale order',
+            'sale order ': 'sale order',
+            'sale(e-invoice)': 'sale',
+            'credit note(e-invoice)': 'credit note',
+            'performance invoice': 'proforma invoice',
+            'payment-in': 'payment in',
+            'payment-out': 'payment out',
+        })[normalized] || normalized.replace(/-/g, ' ');
+    }
+
+    function getTxnTypeAliases(txn) {
+        const visibleType = normalizeTxnFilterLabel(txn.type || '');
+        const formattedType = normalizeTxnFilterLabel(formatTxnType(txn.type));
+        const rawType = normalizeTxnFilterLabel(txn.raw_type || '');
+        const aliases = new Set([visibleType, formattedType]);
+
+        if (rawType) {
+            aliases.add(rawType);
+        }
+
+        if (rawType === 'invoice') aliases.add('sale');
+        if (rawType === 'estimate') aliases.add('estimate');
+        if (rawType === 'sale_return') {
+            aliases.add('sale return');
+            aliases.add('credit note');
+        }
+        if (rawType === 'sale_order') aliases.add('sale order');
+        if (rawType === 'proforma') {
+            aliases.add('proforma invoice');
+            aliases.add('performance invoice');
+        }
+        if (rawType === 'delivery_challan') aliases.add('delivery challan');
+        if (rawType === 'pay') aliases.add('payable opening balance');
+        if (rawType === 'receive') aliases.add('receivable opening balance');
+
+        return aliases;
+    }
+
+    function hasActiveTransactionFilters() {
+        return Boolean(
+            (transactionColumnFilters.type.values || []).length ||
+            (transactionColumnFilters.status.values || []).length ||
+            (transactionColumnFilters.number.value || '').trim() ||
+            (transactionColumnFilters.date.value || '').trim() ||
+            (transactionColumnFilters.date.value_to || '').trim() ||
+            (transactionColumnFilters.total.value || '').trim() ||
+            (transactionColumnFilters.total.value_to || '').trim() ||
+            (transactionColumnFilters.balance.value || '').trim() ||
+            (transactionColumnFilters.balance.value_to || '').trim()
+        );
+    }
+
+    function getTxnStatusAliases(txn) {
+        return new Set([
+            normalizeTxnFilterLabel(formatTxnStatus(txn.status)),
+            normalizeTxnFilterLabel(txn.status || '')
+        ]);
+    }
+
+    function parseTxnDate(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return null;
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            const parsed = new Date(`${raw}T00:00:00`);
+            return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+        }
+
+        const parts = raw.split('/');
+        if (parts.length === 3) {
+            const [day, month, year] = parts.map((part) => parseInt(part, 10));
+            const parsed = new Date(year, (month || 1) - 1, day || 1);
+            return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+        }
+
+        const parsed = new Date(raw);
+        return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+    }
+
+    function parseTxnNumber(value) {
+        const numeric = parseFloat(String(value ?? '').replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(numeric) ? numeric : 0;
+    }
+
+    function normalizeTxnOperator(value) {
+        const normalized = String(value || '').trim().toLowerCase();
+
+        return ({
+            'contains': 'contains',
+            'exact match': 'exact_match',
+            'equal to': 'equal_to',
+            'less than': 'less_than',
+            'greater than': 'greater_than',
+            'range': 'range'
+        })[normalized] || 'contains';
+    }
+
+    function matchesTxnTextFilter(value, filter) {
+        const expected = String(filter?.value || '').trim().toLowerCase();
+        if (!expected) return true;
+
+        const source = String(value || '').trim().toLowerCase();
+        return filter?.operator === 'exact_match'
+            ? source === expected
+            : source.includes(expected);
+    }
+
+    function matchesTxnNumericFilter(value, filter) {
+        const expected = String(filter?.value || '').trim();
+        if (!expected) return true;
+
+        const source = parseTxnNumber(value);
+        const first = parseTxnNumber(expected);
+        const second = parseTxnNumber(filter?.value_to || '');
+
+        if (filter?.operator === 'less_than') return source < first;
+        if (filter?.operator === 'greater_than') return source > first;
+        if (filter?.operator === 'range') return source >= Math.min(first, second) && source <= Math.max(first, second);
+
+        return source === first;
+    }
+
+    function matchesTxnDateFilter(value, filter) {
+        const expected = String(filter?.value || '').trim();
+        if (!expected) return true;
+
+        const source = parseTxnDate(value);
+        const first = parseTxnDate(expected);
+        const second = parseTxnDate(filter?.value_to || '');
+
+        if (source === null || first === null) return false;
+        if (filter?.operator === 'less_than') return source < first;
+        if (filter?.operator === 'greater_than') return source > first;
+        if (filter?.operator === 'range' && second !== null) return source >= Math.min(first, second) && source <= Math.max(first, second);
+
+        return source === first;
+    }
+
+    function applyTransactionColumnFilters(rows) {
+        const typeValues = transactionColumnFilters.type.values || [];
+        if (typeValues.length && rows.length) {
+            console.log('🔍 DEBUG TYPE FILTER:');
+            console.log('Selected filter values:', typeValues);
+            console.log('Normalized filter values:', typeValues.map(v => normalizeTxnFilterLabel(v)));
+            console.log('First 3 transactions:');
+            rows.slice(0, 3).forEach((txn, idx) => {
+                const aliases = getTxnTypeAliases(txn);
+                const normalizedFilters = typeValues.map(v => normalizeTxnFilterLabel(v));
+                const doesMatch = normalizedFilters.some(fval => aliases.has(fval));
+                console.log(`  [${idx}] type="${txn.type}" raw_type="${txn.raw_type}" → aliases=${JSON.stringify(Array.from(aliases))} → matches=${doesMatch}`);
+            });
+        }
+
+        return rows.filter((txn) => {
+            const typeValues = transactionColumnFilters.type.values || [];
+            if (typeValues.length) {
+                const aliases = getTxnTypeAliases(txn);
+                const normalizedFilters = typeValues.map(v => normalizeTxnFilterLabel(v));
+                const hasMatch = normalizedFilters.some(fval => aliases.has(fval));
+                if (!hasMatch) {
+                    return false;
+                }
+            }
+
+            const statusValues = transactionColumnFilters.status.values || [];
+            if (statusValues.length) {
+                const aliases = getTxnStatusAliases(txn);
+                if (!statusValues.some((value) => aliases.has(normalizeTxnFilterLabel(value)))) {
+                    return false;
+                }
+            }
+
+            if (!matchesTxnTextFilter(txn.number || '-', transactionColumnFilters.number)) return false;
+            if (!matchesTxnDateFilter(txn.date || '', transactionColumnFilters.date)) return false;
+            if (!matchesTxnNumericFilter(txn.total || 0, transactionColumnFilters.total)) return false;
+            if (!matchesTxnNumericFilter(txn.balance || 0, transactionColumnFilters.balance)) return false;
+
+            return true;
+        });
+    }
+
+    function ensureTxnStatusFilter() {
+        const table = document.getElementById('partyTxnTable');
+        const statusHeader = table?.querySelector('thead th:nth-child(6) .table-main');
+        if (!statusHeader || statusHeader.querySelector('.filter-wrapper')) {
+            return;
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'filter-wrapper';
+        wrapper.innerHTML = `
+            <i class="fa-solid fa-filter table-filter-icon" onclick="toggleFilterDropdown(this)"></i>
+            <div class="filter-dropdown" style="width:242px;">
+                <div class="filter-options">
+                    <label><input type="checkbox" value="Paid"> Paid</label>
+                    <label><input type="checkbox" value="Unpaid"> Unpaid</label>
+                    <label><input type="checkbox" value="Partial"> Partial</label>
+                    <label><input type="checkbox" value="Pending"> Pending</label>
+                    <label><input type="checkbox" value="Confirmed"> Confirmed</label>
+                    <label><input type="checkbox" value="Open"> Open</label>
+                    <label><input type="checkbox" value="To Receive"> To Receive</label>
+                    <label><input type="checkbox" value="To Pay"> To Pay</label>
+                </div>
+                <div class="filter-actions">
+                    <button class="clear-btn" type="button">Clear</button>
+                    <button class="apply-btn" type="button">Apply</button>
+                </div>
+            </div>
+        `;
+
+        statusHeader.appendChild(wrapper);
+    }
+
+    function resetTransactionFilters(resetUi = true) {
+        transactionColumnFilters = {
+            type: { values: [] },
+            number: { operator: 'contains', value: '' },
+            date: { operator: 'equal_to', value: '', value_to: '' },
+            total: { operator: 'equal_to', value: '' },
+            balance: { operator: 'equal_to', value: '' },
+            status: { values: [] }
+        };
+
+        if (txnSearchInput) {
+            txnSearchInput.value = '';
+        }
+
+        if (!resetUi) {
+            return;
+        }
+
+        document.querySelectorAll('#partyTxnTable thead .filter-dropdown').forEach((dropdown) => {
+            dropdown.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+            dropdown.querySelectorAll('input[type="text"], input[type="date"]').forEach((input) => {
+                input.value = '';
+            });
+            const rangeInput = dropdown.querySelector('.txn-range-input');
+            if (rangeInput) {
+                rangeInput.value = '';
+                rangeInput.style.display = 'none';
+            }
+        });
+    }
+
+    function initializeTransactionFilterControls() {
+        ensureTxnStatusFilter();
+
+        const table = document.getElementById('partyTxnTable');
+        const dropdowns = table ? Array.from(table.querySelectorAll('thead .filter-dropdown')) : [];
+        const columns = ['type', 'number', 'date', 'total', 'balance', 'status'];
+
+        dropdowns.forEach((dropdown, index) => {
+            const column = columns[index];
+            if (!column) return;
+
+            const dropdownInput = dropdown.querySelector('.dropdown-input');
+            const dropdownOptions = dropdown.querySelector('.dropdown-options');
+
+            if (dropdownInput && dropdownOptions && !dropdownInput.dataset.bound) {
+                dropdownInput.dataset.bound = '1';
+                dropdownInput.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    dropdownOptions.style.display = dropdownOptions.style.display === 'block' ? 'none' : 'block';
+                });
+
+                dropdownOptions.querySelectorAll('.dropdown-option').forEach((option) => {
+                    option.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        dropdownInput.value = this.textContent.trim();
+                        dropdownOptions.style.display = 'none';
+
+                        if (column === 'date') {
+                            const rangeInput = dropdown.querySelector('.txn-range-input');
+                            if (rangeInput) {
+                                rangeInput.style.display = normalizeTxnOperator(dropdownInput.value) === 'range' ? 'block' : 'none';
+                            }
+                        }
+                    });
+                });
+            }
+
+            if ((column === 'type' || column === 'status')) {
+                dropdown.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+                    if (!checkbox.value) {
+                        const label = checkbox.closest('label');
+                        checkbox.value = (label ? label.textContent : '').trim();
+                    }
+
+                    if (!checkbox.dataset.liveFilterBound) {
+                        checkbox.dataset.liveFilterBound = '1';
+                        checkbox.addEventListener('change', function (event) {
+                            event.stopPropagation();
+                            saveTxnFilterFromDropdown(column, dropdown);
+                            applyTransactionSearch();
+                        });
+                    }
+                });
+            }
+
+            if (column === 'date' && !dropdown.querySelector('.txn-range-input')) {
+                const firstDateInput = dropdown.querySelector('input[type="date"]');
+                if (firstDateInput) {
+                    const rangeInput = document.createElement('input');
+                    rangeInput.type = 'date';
+                    rangeInput.className = 'txn-range-input';
+                    rangeInput.style.cssText = 'border:1px solid #d9dfe5; border-radius:6px; height:5vh; color:#9ca3af; padding:6px; margin-top:8px; display:none;';
+                    firstDateInput.insertAdjacentElement('afterend', rangeInput);
+                }
+            }
+
+            if (!dropdown.dataset.buttonsBound) {
+                dropdown.dataset.buttonsBound = '1';
+
+                dropdown.querySelector('.apply-btn')?.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    saveTxnFilterFromDropdown(column, dropdown);
+                    dropdown.style.display = 'none';
+                    applyTransactionSearch();
+                });
+
+                dropdown.querySelector('.clear-btn')?.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (column === 'type' || column === 'status') {
+                        dropdown.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+                            checkbox.checked = false;
+                        });
+                        transactionColumnFilters[column] = { values: [] };
+                    } else {
+                        dropdown.querySelectorAll('input[type="text"], input[type="date"]').forEach((input) => {
+                            input.value = '';
+                        });
+                        const rangeInput = dropdown.querySelector('.txn-range-input');
+                        if (rangeInput) {
+                            rangeInput.style.display = 'none';
+                        }
+
+                        transactionColumnFilters[column] = column === 'number'
+                            ? { operator: 'contains', value: '' }
+                            : { operator: 'equal_to', value: '', value_to: '' };
+                    }
+
+                    dropdown.style.display = 'none';
+                    applyTransactionSearch();
+                });
+            }
+        });
+    }
+
+    function getTxnFilterColumnFromDropdown(dropdown) {
+        const th = dropdown?.closest('th');
+        if (!th) return null;
+
+        const allHeaders = Array.from(document.querySelectorAll('#partyTxnTable thead th'));
+        const headerIndex = allHeaders.indexOf(th);
+
+        return ['type', 'number', 'date', 'total', 'balance', 'status'][headerIndex] || null;
+    }
+
+    function saveTxnFilterFromDropdown(column, dropdown) {
+        if (!column || !dropdown) return;
+
+        if (column === 'type' || column === 'status') {
+            transactionColumnFilters[column] = {
+                values: Array.from(dropdown.querySelectorAll('input[type="checkbox"]:checked'))
+                    .map((checkbox) => String(checkbox.value || '').trim())
+                    .filter(Boolean)
+            };
+            return;
+        }
+
+        const operatorInput = dropdown.querySelector('.dropdown-input');
+        const valueInput = column === 'date'
+            ? dropdown.querySelector('input[type="date"]:not(.txn-range-input)')
+            : dropdown.querySelector('input[type="text"]:not(.dropdown-input)');
+        const rangeInput = dropdown.querySelector('.txn-range-input');
+
+        transactionColumnFilters[column] = {
+            operator: normalizeTxnOperator(operatorInput?.value || (column === 'number' ? 'Contains' : 'Equal To')),
+            value: valueInput?.value?.trim?.() || '',
+            value_to: rangeInput?.value?.trim?.() || ''
+        };
+    }
+
+    function clearTxnFilterFromDropdown(column, dropdown) {
+        if (!column || !dropdown) return;
+
+        if (column === 'type' || column === 'status') {
+            dropdown.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+            transactionColumnFilters[column] = { values: [] };
+            return;
+        }
+
+        dropdown.querySelectorAll('input[type="text"], input[type="date"]').forEach((input) => {
+            input.value = '';
+        });
+
+        const rangeInput = dropdown.querySelector('.txn-range-input');
+        if (rangeInput) {
+            rangeInput.value = '';
+            rangeInput.style.display = 'none';
+        }
+
+        transactionColumnFilters[column] = column === 'number'
+            ? { operator: 'contains', value: '' }
+            : { operator: 'equal_to', value: '', value_to: '' };
+    }
+
+    function sortTransactions(rows) {
+        const sortState = window.partyTxnSortState || { column: null, direction: 'asc' };
+        if (!sortState.column) {
+            return [...rows];
+        }
+
+        const direction = sortState.direction === 'desc' ? -1 : 1;
+        const sorted = [...rows];
+
+        sorted.sort((a, b) => {
+            let first = '';
+            let second = '';
+
+            if (sortState.column === 'type') {
+                first = normalizeTxnFilterLabel(a.type || '');
+                second = normalizeTxnFilterLabel(b.type || '');
+            } else if (sortState.column === 'number') {
+                first = String(a.number || '').toLowerCase();
+                second = String(b.number || '').toLowerCase();
+            } else if (sortState.column === 'date') {
+                first = parseTxnDate(a.date || '') || 0;
+                second = parseTxnDate(b.date || '') || 0;
+            } else if (sortState.column === 'total') {
+                first = parseTxnNumber(a.total || 0);
+                second = parseTxnNumber(b.total || 0);
+            } else if (sortState.column === 'balance') {
+                first = parseTxnNumber(a.balance || 0);
+                second = parseTxnNumber(b.balance || 0);
+            } else if (sortState.column === 'status') {
+                first = normalizeTxnFilterLabel(formatTxnStatus(a.status));
+                second = normalizeTxnFilterLabel(formatTxnStatus(b.status));
+            }
+
+            if (first < second) return -1 * direction;
+            if (first > second) return 1 * direction;
+            return 0;
+        });
+
+        return sorted;
+    }
+
     function renderTransactionsTable(transactions) {
         const tbody = document.getElementById("txnTableBody");
-        filteredTransactionsState = [...transactions];
+        const sortedTransactions = sortTransactions(transactions);
+        filteredTransactionsState = [...sortedTransactions];
 
-        if (!transactions.length) {
+        if (!sortedTransactions.length) {
             const hasSearch = txnSearchInput && txnSearchInput.value.trim() !== '';
+            const hasFilters = hasActiveTransactionFilters();
             showTxnMessage(
                 'fa-solid fa-receipt',
-                hasSearch ? 'No matching transactions' : 'No transactions yet',
-                hasSearch ? 'Try a different search keyword' : 'Create a sale or purchase for this party'
+                (hasSearch || hasFilters) ? 'No matching transactions' : 'No transactions yet',
+                (hasSearch || hasFilters) ? 'Try a different filter or search keyword' : 'Create a sale or purchase for this party'
             );
             return;
         }
 
         tbody.innerHTML = '';
 
-        transactions.forEach(txn => {
+        sortedTransactions.forEach(txn => {
             const row = document.createElement('tr');
             const typeText = formatTxnType(txn.type);
             const normalizedStatusText = (txn.status || '').toLowerCase();
@@ -3177,13 +3681,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function applyTransactionSearch() {
         const keyword = txnSearchInput ? txnSearchInput.value.trim().toLowerCase() : '';
+        const columnFilteredRows = applyTransactionColumnFilters(transactionsState);
 
         if (!keyword) {
-            renderTransactionsTable(transactionsState);
+            renderTransactionsTable(columnFilteredRows);
             return;
         }
 
-        const filteredRows = transactionsState.filter(txn => {
+        const filteredRows = columnFilteredRows.filter(txn => {
             const values = [
                 formatTxnType(txn.type),
                 txn.number,
@@ -3198,6 +3703,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         renderTransactionsTable(filteredRows);
     }
+
+    window.applyPartyTxnRenderedState = applyTransactionSearch;
 
     function toggleTransactionSearch() {
         if (!txnToolbar || !txnSearchInput) return;
@@ -4156,6 +4663,36 @@ document.addEventListener("DOMContentLoaded", function () {
     openTransferHistoryModalBtn?.addEventListener("click", openTransferHistoryModal);
     txnSearchToggle.addEventListener("click", toggleTransactionSearch);
     txnSearchInput.addEventListener("input", applyTransactionSearch);
+    initializeTransactionFilterControls();
+    document.addEventListener('click', function (e) {
+        const filterDropdown = e.target.closest('#partyTxnTable thead .filter-dropdown');
+        if (filterDropdown) {
+            e.stopPropagation();
+        }
+
+        const applyBtn = e.target.closest('#partyTxnTable thead .filter-dropdown .apply-btn');
+        if (applyBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dropdown = applyBtn.closest('.filter-dropdown');
+            const column = getTxnFilterColumnFromDropdown(dropdown);
+            saveTxnFilterFromDropdown(column, dropdown);
+            dropdown.style.display = 'none';
+            applyTransactionSearch();
+            return;
+        }
+
+        const clearBtn = e.target.closest('#partyTxnTable thead .filter-dropdown .clear-btn');
+        if (clearBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dropdown = clearBtn.closest('.filter-dropdown');
+            const column = getTxnFilterColumnFromDropdown(dropdown);
+            clearTxnFilterFromDropdown(column, dropdown);
+            dropdown.style.display = 'none';
+            applyTransactionSearch();
+        }
+    });
     txnPrintTrigger.addEventListener("click", () => openTxnOptionModal('print'));
     txnExcelTrigger.addEventListener("click", () => openTxnOptionModal('excel'));
     txnOptionCancel.addEventListener("click", closeTxnOptionModal);
@@ -4382,6 +4919,11 @@ document.addEventListener("DOMContentLoaded", function () {
     applyPartySettings();
     renderPartyGroupsView();
     switchPartyView('parties');
+
+    const initialParty = partyList.querySelector('.party-item.active') || partyList.querySelector('.party-item');
+    if (initialParty) {
+        initialParty.click();
+    }
 
     // PARTY CLICK → RIGHT PANEL + SELECT
     partyList.addEventListener("click", function (e) {
@@ -4645,9 +5187,7 @@ function loadPartyTransactions(partyId) {
     const tbody = document.getElementById("txnTableBody");
     transactionsState = [];
     filteredTransactionsState = [];
-    if (txnSearchInput) {
-        txnSearchInput.value = '';
-    }
+    resetTransactionFilters(true);
     showTxnMessage('fa fa-spinner fa-spin', 'Loading transactions...', 'Please wait while we fetch party transactions');
 
     fetch(`/dashboard/parties/${partyId}/transactions`)
@@ -4656,7 +5196,7 @@ function loadPartyTransactions(partyId) {
           if (data.success) {
                 updatePartySidebarBalance(partyId, data.total_balance || 0);
                 transactionsState = Array.isArray(data.transactions) ? data.transactions : [];
-                renderTransactionsTable(transactionsState);
+                applyTransactionSearch();
                 return;
           } else {
                 showTxnMessage('fa-solid fa-receipt', 'No transactions yet', 'Create a sale or purchase for this party');

@@ -720,42 +720,39 @@ public function transactions(Party $party)
     $party->refresh();
     $party->loadMissing(['transactions.counterParty', 'sales', 'purchases']);
 
-    $salesByNumber = Sale::query()
-        ->where('party_id', $party->id)
-        ->get()
-        ->keyBy(fn ($sale) => (string) ($sale->bill_number ?: $sale->id));
-
-    $salesTransactions = $party->transactions
-        ->filter(function ($txn) {
-            return in_array(strtolower((string) $txn->type), ['invoice', 'pos', 'sale_return'], true);
-        })
-        ->map(function ($txn) use ($salesByNumber) {
-            $sale = $salesByNumber->get((string) ($txn->number ?: ''));
-            $rawType = strtolower((string) $txn->type);
+    $salesTransactions = $party->sales
+        ->map(function (Sale $sale) {
+            $rawType = strtolower((string) $sale->type);
+            $amount = (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
+            $effect = $rawType === 'sale_return' ? -1 * $amount : $amount;
             $typeLabel = match ($rawType) {
                 'invoice', 'pos' => 'Sale',
                 'sale_return' => 'Sale Return',
-                default => ucfirst((string) $txn->type),
+                'sale_order' => 'Sale Order',
+                'proforma' => 'Proforma Invoice',
+                'delivery_challan' => 'Delivery Challan',
+                default => ucwords(str_replace('_', ' ', $rawType)),
             };
-            $effect = $txn->ledgerEffectValue();
 
             return [
-                'id' => 'sale-ledger-' . $txn->id,
+                'id' => 'sale-' . $sale->id,
                 'type' => $typeLabel,
-                'raw_type' => (string) $txn->type,
+                'raw_type' => (string) $sale->type,
                 'source' => 'sale',
-                'number' => $txn->number ?: '-',
-                'date' => optional($txn->date),
-                'description' => (string) ($txn->description ?? ''),
+                'number' => $sale->bill_number ?: (string) $sale->id,
+                'date' => !empty($sale->invoice_date)
+                    ? \Illuminate\Support\Carbon::parse($sale->invoice_date)
+                    : (!empty($sale->created_at) ? \Illuminate\Support\Carbon::parse($sale->created_at) : null),
+                'description' => (string) ($sale->description ?? ''),
                 'debit' => $effect > 0 ? $effect : 0,
                 'credit' => $effect < 0 ? abs($effect) : 0,
                 'effect' => $effect,
-                'row_balance' => (float) ($txn->balance ?? max(0, abs($effect) - (float) ($txn->paid_amount ?? 0))),
-                'display_total' => (float) ($txn->total ?? abs($effect)),
-                'due_date' => optional($txn->due_date),
-                'status' => (string) ($txn->status ?? ''),
+                'row_balance' => (float) ($sale->balance ?? 0),
+                'display_total' => $amount,
+                'due_date' => !empty($sale->due_date) ? \Illuminate\Support\Carbon::parse($sale->due_date) : null,
+                'status' => (string) ($sale->status ?? ''),
                 'sort_order' => 20,
-                'actions' => $sale ? $this->saleActionUrls($sale) : [],
+                'actions' => $this->saleActionUrls($sale),
             ];
         });
 

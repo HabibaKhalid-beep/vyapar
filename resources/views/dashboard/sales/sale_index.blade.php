@@ -260,10 +260,57 @@
   z-index: 5;
   background-color: #fafafa;
   white-space: nowrap;
+  vertical-align: top;
 }
 
 .custom-table tbody td {
   white-space: nowrap;
+}
+
+.column-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative;
+}
+
+.filter-icon-btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-icon-btn:hover {
+  color: #334155;
+}
+
+.column-filter-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 220px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  z-index: 20;
+}
+
+.column-filter-dropdown.show {
+  display: block;
+}
+
+.column-filter-dropdown .form-control {
+  font-size: 12px;
 }
 
   </style>
@@ -405,7 +452,7 @@
     <div class="table-responsive table-wrapper">
       <table class="table align-middle custom-table mb-0 txn-table">
         <thead>
-          <tr class="{{ strtolower((string) ($sale->status ?? '')) === 'cancelled' ? 'sale-cancelled' : '' }}">
+          <tr>
             <th>
               <div class="column-filter-header">
                 <span>Date</span>
@@ -686,6 +733,140 @@
       const firmSelect = document.getElementById('salesFirmSelect');
       const customFrom = document.getElementById('salesCustomFrom');
       const customTo = document.getElementById('salesCustomTo');
+      const searchInput = document.getElementById('searchTransactionsInput');
+      const table = document.querySelector('.txn-table');
+      const tbody = table?.querySelector('tbody');
+      const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+      const columnFilters = {};
+
+      function normalizeText(value) {
+        return String(value || '').trim().toLowerCase();
+      }
+
+      function applySalesTableFilters() {
+        if (!tbody) {
+          return;
+        }
+
+        const keyword = normalizeText(searchInput?.value || '');
+        let visibleCount = 0;
+
+        rows.forEach((row) => {
+          const cells = Array.from(row.children);
+          const rowText = normalizeText(row.textContent);
+
+          const matchesSearch = !keyword || rowText.includes(keyword);
+          const matchesColumns = Object.entries(columnFilters).every(([index, value]) => {
+            if (!value) {
+              return true;
+            }
+
+            const cell = cells[Number(index)];
+            return normalizeText(cell?.textContent || '').includes(value);
+          });
+
+          const shouldShow = matchesSearch && matchesColumns;
+          row.style.display = shouldShow ? '' : 'none';
+
+          if (shouldShow) {
+            visibleCount += 1;
+          }
+        });
+
+        let emptyStateRow = tbody.querySelector('.sales-table-empty-state');
+        if (!visibleCount) {
+          if (!emptyStateRow) {
+            emptyStateRow = document.createElement('tr');
+            emptyStateRow.className = 'sales-table-empty-state';
+            emptyStateRow.innerHTML = '<td colspan="11" class="text-center text-muted py-4">No matching sales found.</td>';
+            tbody.appendChild(emptyStateRow);
+          }
+        } else if (emptyStateRow) {
+          emptyStateRow.remove();
+        }
+      }
+
+      document.querySelectorAll('.filter-icon-btn').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const dropdown = this.closest('.column-filter-header')?.nextElementSibling;
+          if (!dropdown) {
+            return;
+          }
+
+          document.querySelectorAll('.column-filter-dropdown.show').forEach((openDropdown) => {
+            if (openDropdown !== dropdown) {
+              openDropdown.classList.remove('show');
+            }
+          });
+
+          dropdown.classList.toggle('show');
+        });
+      });
+
+      document.querySelectorAll('.column-filter-apply').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          const columnIndex = this.dataset.columnIndex;
+          const dropdown = this.closest('.column-filter-dropdown');
+          const input = dropdown?.querySelector('.column-filter-input');
+
+          columnFilters[columnIndex] = normalizeText(input?.value || '');
+          dropdown?.classList.remove('show');
+          applySalesTableFilters();
+        });
+      });
+
+      document.querySelectorAll('.column-filter-input').forEach((input) => {
+        input.addEventListener('input', function () {
+          const dropdown = this.closest('.column-filter-dropdown');
+          const applyButton = dropdown?.querySelector('.column-filter-apply');
+          const columnIndex = applyButton?.dataset.columnIndex;
+
+          if (columnIndex === undefined) {
+            return;
+          }
+
+          const normalizedValue = normalizeText(this.value || '');
+
+          if (normalizedValue) {
+            columnFilters[columnIndex] = normalizedValue;
+          } else {
+            delete columnFilters[columnIndex];
+          }
+
+          applySalesTableFilters();
+        });
+      });
+
+      document.querySelectorAll('.column-filter-clear').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          const columnIndex = this.dataset.columnIndex;
+          const dropdown = this.closest('.column-filter-dropdown');
+          const input = dropdown?.querySelector('.column-filter-input');
+
+          if (input) {
+            input.value = '';
+          }
+
+          delete columnFilters[columnIndex];
+          dropdown?.classList.remove('show');
+          applySalesTableFilters();
+        });
+      });
+
+      searchInput?.addEventListener('input', applySalesTableFilters);
+
+      document.addEventListener('click', function (event) {
+        if (!event.target.closest('.column-filter-dropdown') && !event.target.closest('.filter-icon-btn')) {
+          document.querySelectorAll('.column-filter-dropdown.show').forEach((dropdown) => {
+            dropdown.classList.remove('show');
+          });
+        }
+      });
 
       function buildDateRangeFromPeriod(period) {
         const now = new Date();
