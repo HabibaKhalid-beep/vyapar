@@ -860,7 +860,7 @@
 
     function viewEditRow(refId, refType) {
       closeAllMenus(); if (!refId) return;
-      var routeMap = { 'sale': '/sales/'+refId+'/edit', 'invoice': '/sales/'+refId+'/edit', 'purchase': '/purchases/'+refId+'/edit', 'payment_in': '/payment-in?edit_payment_in='+refId, 'payment_out':'/payment-out?edit_payment_out='+refId, 'expense': '/expenses/'+refId+'/edit' };
+     var routeMap = { 'sale': '/dashboard/sales/'+refId+'/edit', 'invoice': '/dashboard/sales/'+refId+'/edit', 'purchase': '/dashboard/purchase-bills/'+refId+'/edit', 'payment_in': '/dashboard/payment-in?edit_payment_in='+refId, 'payment_out': '/dashboard/payment-out?edit_payment_out='+refId, 'expense': '/dashboard/expense' };
       if (routeMap[refType]) window.location.href = routeMap[refType]; else alert('Not available.');
     }
 
@@ -886,7 +886,7 @@
       fetch(endpoints[refType], { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': window.App.csrfToken } })
       .then(function(r){ return r.json(); }).then(function(d){
         if (d.success && d.history && d.history.length > 0) {
-          var html = ''; items.forEach(function(item) { html += `<div class="p-2 border-bottom"><b>${item.action}</b> - ${item.created_at}</div>`; }); body.innerHTML = html;
+         var html = ''; d.history.forEach(function(item) { html += `<div class="p-2 border-bottom"><b>${item.action}</b> - ${item.created_at}</div>`; }); body.innerHTML = html;
         } else { body.innerHTML = '<p class="text-center p-4">No history found.</p>'; }
       }).catch(function(){ body.innerHTML = '<p class="text-center p-4">No history found.</p>'; });
     }
