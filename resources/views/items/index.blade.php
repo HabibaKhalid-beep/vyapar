@@ -271,10 +271,13 @@
 .il-item-row:hover { background: #f9fafb; }
 .il-item-row.active { background: #eff6ff; }
 .il-item-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; margin-right: 8px; flex-shrink: 0; }
-.il-item-name { flex: 1; font-size: 14px; color: #111827; font-weight: 500; }
-.il-item-qty { width: 58px; text-align: right; font-size: 14px; color: #10b981; font-weight: 600; }
+.il-item-name { flex: 1; min-width: 0; font-size: 14px; color: #111827; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.il-item-qty { width: 70px; flex-shrink: 0; text-align: right; font-size: 14px; color: #10b981; font-weight: 600; }
 .il-item-qty.neg { color: #dc2626; }
 .il-item-qty.pos { color: #16a34a; }
+.il-item-netw { width: 82px; flex-shrink: 0; text-align: right; font-size: 14px; color: #6b7280; font-weight: 600; }
+.il-item-netw.neg { color: #dc2626; }
+.il-item-netw.pos { color: #16a34a; }
 
 .il-item-more-wrap {
     position: relative; width: 24px; height: 24px; flex-shrink: 0;
@@ -1208,7 +1211,7 @@ function renderList(items = getFilteredItems()) {
             <span class="il-item-dot"></span>
             <span class="il-item-name">${esc(item.name)}</span>
             <span class="il-item-qty ${stockSignClass(getTotalQty(index))}">${formatSignedStock(getTotalQty(index))}</span>
-            <span class="il-item-qty ${stockSignClass(getTotalQty(index))}">${parseFloat(item.total_net_w || 0).toFixed(2)}</span>
+            <span class="il-item-netw ${stockSignClass(parseFloat(item.total_net_w || 0))}">${parseFloat(item.total_net_w || 0).toFixed(2)}</span>
             <div class="il-item-more-wrap" onclick="event.stopPropagation()">
                 <button class="il-item-more-btn" onclick="toggleItemDD(event,${index})" title="Options">
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1432,6 +1435,7 @@ function renderTxns(idx) {
         const dotColor = t.isAdd ? '#22c55e' : '#ef4444';
         const status   = t.status || 'Unpaid';
         const color    = statusColor[status] || '#9ca3af';
+        const amountColor = status === 'Paid' ? '#22c55e' : status === 'Unpaid' ? '#ef4444' : '#9ca3af';
         return `
         <tr id="txn-row-${idx}-${ti}" onclick="openTxnAction(${idx},${ti},'edit')" style="cursor:pointer;user-select:none;">
             <td class="td-dot"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};"></span></td>
@@ -1442,7 +1446,7 @@ function renderTxns(idx) {
             <td>${t.qty} ${esc(t.unit)}</td>
             <td>${parseFloat(t.net_w || 0).toFixed(2)}</td>
             <td class="td-price">${t.price ? 'Rs ' + parseFloat(t.price).toFixed(2) : '—'}</td>
-            <td class="td-price">${t.amount !== undefined && t.amount !== null ? 'Rs ' + parseFloat(t.amount || 0).toFixed(2) : '—'}</td>
+            <td class="td-price" style="color:${amountColor};">${t.amount !== undefined && t.amount !== null ? 'Rs ' + parseFloat(t.amount || 0).toFixed(2) : '—'}</td>
             <td style="font-weight:500;color:${color};">${esc(status)}</td>
             <td class="td-actions">
                 <div class="il-row-menu-wrap">
@@ -1497,17 +1501,22 @@ function filterTxns(q) {
         tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:48px 0;font-size:13px;">No transactions found</td></tr>`;
         return;
     }
-    tbody.innerHTML = txns.map((t, ti) => `
+    const statusColor = { 'Paid': '#22c55e', 'Partial': '#f59e0b', 'Unpaid': '#ef4444' };
+    tbody.innerHTML = txns.map((t, ti) => {
+        const status   = t.status || 'Unpaid';
+        const color    = statusColor[status] || '#9ca3af';
+        const amountColor = status === 'Paid' ? '#22c55e' : status === 'Unpaid' ? '#ef4444' : '#9ca3af';
+        return `
         <tr onclick="openTxnAction(${selectedIdx},${ti},'edit')" style="cursor:pointer;user-select:none;">
             <td class="td-dot"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#111111;"></span></td>
-            <td>${esc(t.type)}</td><td></td><td>${esc(t.details || '')}</td><td>${esc(t.date)}</td>
+            <td>${esc(t.type)}</td><td>${esc(t.invoice ?? '')}</td><td>${esc(t.name ?? '')}</td><td>${esc(t.date)}</td>
             <td>${t.qty} ${esc(t.unit)}</td>
             <td>${parseFloat(t.net_w || 0).toFixed(2)}</td>
             <td class="td-price">${t.price ? 'Rs ' + parseFloat(t.price).toFixed(2) : '—'}</td>
-            <td class="td-price">${t.amount !== undefined && t.amount !== null ? 'Rs ' + parseFloat(t.amount || 0).toFixed(2) : '—'}</td>
-            <td class="td-status">—</td><td class="td-actions"></td>
+            <td class="td-price" style="color:${amountColor};">${t.amount !== undefined && t.amount !== null ? 'Rs ' + parseFloat(t.amount || 0).toFixed(2) : '—'}</td>
+            <td style="font-weight:500;color:${color};">${esc(status)}</td><td class="td-actions"></td>
         </tr>
-    `).join('');
+    `; }).join('');
 }
 
 /* ── Column filter dropdowns ── */

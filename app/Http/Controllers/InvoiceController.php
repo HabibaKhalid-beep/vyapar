@@ -207,6 +207,9 @@ class InvoiceController extends Controller
                 'name' => (string) ($item->item_name ?: ($item->item?->name ?: 'Item')),
                 'hsn' => (string) ($item->item_code ?: ($item->item?->item_code ?: '')),
                 'qty' => (string) ($item->quantity ?? 0),
+                'tadaat' => (string) ($item->quantity ?? 0),
+                'gross_w' => (float) ($item->gross_w ?? 0),
+                'net_w' => (float) ($item->net_w ?? 0),
                 'unit' => (string) ($item->unit ?: ($item->item?->unit ?: '')),
                 'rate' => $rate,
                 'disc' => number_format((float) ($item->discount ?? 0), 2, '.', ''),
@@ -221,11 +224,15 @@ class InvoiceController extends Controller
                 'name' => 'Item',
                 'hsn' => '',
                 'qty' => '0',
+                'tadaat' => '0',
+                'gross_w' => 0,
+                'net_w' => 0,
                 'unit' => '',
                 'rate' => 0,
                 'disc' => '0.00',
                 'gst' => $taxPct,
                 'amt' => 0,
+                'amount' => 0,
             ];
         }
 

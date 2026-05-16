@@ -330,7 +330,15 @@ margin:0;
 display:flex;
 align-items:center;
 justify-content:space-between;
-padding:6px 8px;
+gap:10px;
+padding:10px 12px;
+box-sizing:border-box;
+min-width:0;
+}
+
+/* FILTER TOOLBAR */
+.filter-toolbar {
+  padding: 8px 12px 0;
 }
 
 /* HEADER AREA */
@@ -700,9 +708,21 @@ opacity:1;
 }
 
 .entity-name {
-  color: #9ca3af;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #111827;
   font-size: 14px;
+  font-weight: 500;
+}
 
+.entity-balance {
+  margin-left: auto;
+  flex-shrink: 0;
+  text-align: right;
+  font-weight: 600;
 }
 /* parent wrapper */
 .parent-arrows{

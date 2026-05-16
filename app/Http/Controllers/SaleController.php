@@ -148,7 +148,7 @@ class SaleController extends Controller
         $parties = Party::orderBy('name')->get();
         $partyGroups = PartyGroup::orderBy('name')->get();
 
-        $sale->load(['items', 'details']);
+        $sale->load(['items', 'details', 'challanDetail', 'party']);
 
         $nextSaleId = (Sale::max('id') ?? 0) + 1;
         $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
@@ -637,6 +637,9 @@ private function posData(): array
             $data['status'] ?? null,
             $sale->status
         );
+        $resolvedBroker = $this->resolveBrokerSnapshotFromAdjustments($data);
+        $brokerId = $resolvedBroker['broker_id'] ?? ($data['broker_id'] ?? $sale->broker_id);
+        $brokerAmount = $resolvedBroker['broker_amount'] ?? ($data['broker_amount'] ?? 0);
 
         $uploadedImagePaths = $this->storeSaleAttachmentFiles($request->file('images', []), 'sales/images');
         $uploadedDocumentPaths = $this->storeSaleAttachmentFiles($request->file('documents', []), 'sales/documents');
@@ -646,10 +649,10 @@ private function posData(): array
         $sale->update([
             'type' => $type,
             'party_id' => $data['party_id'] ?? $sale->party_id,
-            'broker_id' => $data['broker_id'] ?? $sale->broker_id,
+            'broker_id' => $brokerId,
             'brokerage_type' => $data['brokerage_type'] ?? null,
             'brokerage_rate' => $data['brokerage_rate'] ?? 0,
-            'broker_amount' => $data['broker_amount'] ?? 0,
+            'broker_amount' => $brokerAmount,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
@@ -937,14 +940,17 @@ if (strtolower($rawPaymentType) === 'cheque') {
             $grandTotal,
             $data['status'] ?? null
         );
+        $resolvedBroker = $this->resolveBrokerSnapshotFromAdjustments($data);
+        $brokerId = $resolvedBroker['broker_id'] ?? ($data['broker_id'] ?? null);
+        $brokerAmount = $resolvedBroker['broker_amount'] ?? ($data['broker_amount'] ?? 0);
 
         $sale = Sale::create([
             'type' => $type,
             'party_id' => $data['party_id'] ?? null,
-            'broker_id' => $data['broker_id'] ?? null,
+            'broker_id' => $brokerId,
             'brokerage_type' => $data['brokerage_type'] ?? null,
             'brokerage_rate' => $data['brokerage_rate'] ?? 0,
-            'broker_amount' => $data['broker_amount'] ?? 0,
+            'broker_amount' => $brokerAmount,
             'phone' => $data['phone'] ?? null,
             'billing_address' => $data['billing_address'] ?? null,
             'shipping_address' => $data['shipping_address'] ?? null,
@@ -1368,16 +1374,27 @@ if (strtolower($rawPaymentType) === 'cheque') {
 
         $items = $sale->items->map(function ($item) use ($sale) {
             $taxPct = $this->formatPercentValue($sale->tax_pct);
+            $amount = (float) ($item->amount ?? 0);
+            $rate = (float) ($item->unit_price ?? 0);
+            $quantity = (float) ($item->quantity ?? 0);
+
+            if ($amount <= 0 && $quantity > 0 && $rate > 0) {
+                $amount = round($quantity * $rate, 2);
+            }
 
             return [
                 'name' => $item->item_name ?: ($item->item?->name ?: 'Item'),
                 'hsn' => (string) ($item->item_code ?: ($item->item?->item_code ?: '')),
                 'qty' => (string) ($item->quantity ?? 0),
+                'tadaat' => (string) ($item->quantity ?? 0),
+                'gross_w' => (float) ($item->gross_w ?? 0),
+                'net_w' => (float) ($item->net_w ?? 0),
                 'unit' => (string) ($item->unit ?: ($item->item?->unit ?: '')),
-                'rate' => (float) ($item->unit_price ?? 0),
+                'rate' => $rate,
                 'disc' => number_format((float) ($item->discount ?? 0), 2, '.', ''),
                 'gst' => $taxPct,
-                'amt' => (float) ($item->amount ?? 0),
+                'amt' => $amount,
+                'amount' => $amount,
             ];
         })->values()->all();
 
@@ -1386,11 +1403,15 @@ if (strtolower($rawPaymentType) === 'cheque') {
                 'name' => 'Item',
                 'hsn' => '',
                 'qty' => '0',
+                'tadaat' => '0',
+                'gross_w' => 0,
+                'net_w' => 0,
                 'unit' => '',
                 'rate' => 0,
                 'disc' => '0.00',
                 'gst' => $this->formatPercentValue($sale->tax_pct),
                 'amt' => 0,
+                'amount' => 0,
             ];
         }
 
@@ -1714,6 +1735,19 @@ if (strtolower($rawPaymentType) === 'cheque') {
     private function mapDeliveryChallanToSaleDraft(Sale $challan, string $nextInvoiceNumber): array
     {
         $details = $challan->details;
+        $challanDetails = $challan->challanDetail;
+        $resolvedDetails = [
+            'warehouse_id' => $details?->warehouse_id ?? $challanDetails?->warehouse_id,
+            'delivery_person' => $details?->delivery_person ?? $challanDetails?->warehouse_handler_name,
+            'po_no' => $details?->po_no,
+            'po_date' => $details?->po_date,
+            'city' => $details?->city ?? $challan->party?->city,
+            'party_no' => $details?->party_no,
+            'goods_name' => $details?->goods_name ?? $challanDetails?->destination,
+            'details_extra' => $details?->details_extra,
+            'bilti_gari_no' => $details?->bilti_gari_no ?? $challanDetails?->vehicle_number,
+            'custom_expenses' => $details?->custom_expenses,
+        ];
 
         return [
             'source_type' => 'delivery_challan',
@@ -1746,8 +1780,8 @@ if (strtolower($rawPaymentType) === 'cheque') {
             'status' => 'Unpaid',
             'description' => $challan->description,
             'image_path' => $challan->image_path,
-            'details' => $details?->toArray(),
-            'custom_expenses' => $details?->custom_expenses,
+            'details' => $resolvedDetails,
+            'custom_expenses' => $resolvedDetails['custom_expenses'],
             'items' => $challan->items->map(function ($item) {
                 return [
                     'item_name' => $item->item_name,
@@ -2231,14 +2265,10 @@ if (strtolower($rawPaymentType) === 'cheque') {
         $this->deleteSaleLedgerTransactions($sale);
 
         $grossSaleAmount = floatval($sale->grand_total ?? 0);
-        $sameModeDeduction = min($this->calculateSameModeDeduction($data), $grossSaleAmount);
-        $minusModeDeduction = min($this->calculateMinusModeDeduction($data), $grossSaleAmount);
         $saleAmount = $grossSaleAmount;
         $ledgerType = $this->resolveLedgerTypeFromSale((string) $sale->type);
         $transactionBalance = max(0, round($saleAmount - floatval($sale->received_amount ?? 0), 2));
-        $saleLedgerAmount = ($sameModeDeduction > 0 || $minusModeDeduction > 0)
-            ? 0
-            : max(0, round($saleAmount, 2));
+        $saleLedgerAmount = max(0, round($saleAmount, 2));
 
         $transactionPayload = [
             'party_id' => $sale->party_id,
@@ -2255,7 +2285,7 @@ if (strtolower($rawPaymentType) === 'cheque') {
             'due_date' => $sale->due_date,
             'status' => $sale->status,
             'broker_id' => $sale->broker_id,
-            'broker_amount' => floatval($data['broker_amount'] ?? 0),
+            'broker_amount' => floatval($sale->broker_amount ?? ($data['broker_amount'] ?? 0)),
             'labour' => floatval($data['labour'] ?? 0),
             'bardana' => floatval($data['bardana'] ?? 0),
             'parcel_expense' => floatval($data['parcel_expense'] ?? 0),
@@ -2303,6 +2333,44 @@ if (strtolower($rawPaymentType) === 'cheque') {
     private function normalizePaymentDirection(?string $direction): string
     {
         return 'payment_in';
+    }
+
+    private function resolveBrokerSnapshotFromAdjustments(array $data): array
+    {
+        $fallbackBrokerId = !empty($data['broker_id']) ? (int) $data['broker_id'] : null;
+        $fallbackBrokerAmount = round(max(0, floatval($data['broker_amount'] ?? 0)), 2);
+        $rows = $this->normalizeAdjustmentRows($data['custom_expenses'] ?? []);
+
+        $brokerRows = collect($rows)->filter(function (array $row) {
+            return ($row['account_type'] ?? null) === 'broker'
+                && !empty($row['account_id'])
+                && floatval($row['amount'] ?? 0) > 0
+                && strtoupper((string) ($row['mode'] ?? '+')) !== '-';
+        })->values();
+
+        if ($brokerRows->isEmpty()) {
+            return [
+                'broker_id' => $fallbackBrokerId,
+                'broker_amount' => $fallbackBrokerAmount,
+            ];
+        }
+
+        $selectedBrokerId = $fallbackBrokerId ?: (int) ($brokerRows->first()['account_id'] ?? 0);
+        if (empty($selectedBrokerId)) {
+            return [
+                'broker_id' => $fallbackBrokerId,
+                'broker_amount' => $fallbackBrokerAmount,
+            ];
+        }
+
+        $selectedBrokerAmount = round((float) $brokerRows
+            ->where('account_id', $selectedBrokerId)
+            ->sum(fn (array $row) => floatval($row['amount'] ?? 0)), 2);
+
+        return [
+            'broker_id' => $selectedBrokerId,
+            'broker_amount' => $selectedBrokerAmount > 0 ? $selectedBrokerAmount : $fallbackBrokerAmount,
+        ];
     }
 
     private function normalizeSaleRequestPayload(Request $request): void

@@ -1,4 +1,4 @@
-const fallbackItem = { name: 'Sample Item', hsn: '', qty: 1, unit: '', rate: 100, discount: 0, amount: 100 }
+const fallbackItem = { name: 'Sample Item', hsn: '', qty: 1, tadaat: 1, grossW: 0, netW: 0, unit: '', rate: 100, discount: 0, amount: 100 }
 
 export function getInvoiceViewModel(invoiceData = {}) {
   const items = Array.isArray(invoiceData.items) && invoiceData.items.length
@@ -12,6 +12,9 @@ export function getInvoiceViewModel(invoiceData = {}) {
         name: item.name || 'Item',
         hsn: item.hsn || '',
         qty,
+        tadaat: Number(item.tadaat ?? qty),
+        grossW: Number(item.gross_w ?? item.grossW ?? 0),
+        netW: Number(item.net_w ?? item.netW ?? 0),
         unit: item.unit || '',
         rate,
         discount: Number(item.discount || 0),
@@ -21,6 +24,8 @@ export function getInvoiceViewModel(invoiceData = {}) {
     : [fallbackItem]
 
   const totalQty = items.reduce((sum, item) => sum + Number(item.qty || 0), 0)
+  const totalGrossW = items.reduce((sum, item) => sum + Number(item.grossW || 0), 0)
+  const totalNetW = items.reduce((sum, item) => sum + Number(item.netW || 0), 0)
   const subtotal = Number(invoiceData.subtotal ?? items.reduce((sum, item) => sum + Number(item.amount || 0), 0))
   const discount = Number(invoiceData.discount ?? 0)
   const taxAmount = Number(invoiceData.taxAmount ?? 0)
@@ -66,6 +71,8 @@ export function getInvoiceViewModel(invoiceData = {}) {
     transportDetail: invoiceData.transportDetail || '',
     items,
     totalQty,
+    totalGrossW,
+    totalNetW,
     subtotal,
     subtotalPaid,
     discount,

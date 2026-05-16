@@ -78,50 +78,83 @@
     border-color: #2563eb !important;
     background: #fff !important;
 }
-    /* Always hide the standalone party detail fields — use card fields only */
-/* party-details wrapper must stay as contents for grid to work */
+    /* party-details wrapper must stay as contents for grid to work */
 .party-details {
     display: contents !important;
 }
 
-/* Individual fields hidden by default — JS will show/hide them */
+/* Individual fields visible by default */
 .phone-field,
 .billing-address-field,
 .shipping-address-field {
-    display: none;
+    display: flex !important;
 }
 
-/* psc-details inside card — always visible */
-.psc-details {
+/* ===== PARTY SELECTED CARD ===== */
+.party-selected-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    background: #f0f7ff;
+    border: 1.5px solid #2563eb;
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-height: 34px;
+    width: calc(100% - 20px);
+    cursor: default;
+    box-sizing: border-box;
+}
+
+.party-selected-card.d-none {
+    display: none !important;
+}
+
+.party-selected-card .party-card-info {
     display: flex;
     flex-direction: column;
-    gap: 7px;
-}
-    .psc-editable-input {
-    flex: 1;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    background: transparent;
+    gap: 2px;
     font-size: 12px;
-    color: #475569;
-    padding: 2px 6px;
-    resize: none;
     line-height: 1.4;
-    width: 100%;
-    transition: border-color 0.15s, background 0.15s;
-    font-family: inherit;
+    flex: 1;
+    min-width: 0;
 }
 
-.psc-editable-input:hover {
-    border-color: #d7e0ea;
-    background: #f8fafc;
+.party-selected-card .party-card-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #1e293b;
 }
 
-.psc-editable-input:focus {
-    outline: none;
-    border-color: #2563eb;
-    background: #fff;
+.party-selected-card .party-card-line {
+    color: #475569;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
+.party-selected-card .party-card-balance {
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.party-selected-card .party-card-clear {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.party-selected-card .party-card-clear:hover {
+    color: #dc2626;
+}
+
+
     /* Dropdown with two columns and scrollbar */
     #partyDropdownMenu {
     min-width: 280px;
@@ -1846,134 +1879,53 @@ textarea.meta-control,
 .item-table .tfoot-add-row-cell {
     text-align: left;
 }
-.party-selected-card {
-    display: none;
-    border: 1px solid #d7e0ea;
-    border-radius: 12px;
-    background: #ffffff;
-    padding: 14px 14px 12px;
-    width: 100%;
-    box-sizing: border-box;
-    position: relative;
-    min-height: 100%;
-}
-
-.party-selected-card.visible {
-    display: block;
-}
+/* Party card removed - using dynamic creation with flex layout */
 
 /* Top row: avatar + name + balance + X button */
-.psc-top {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-}
 
-.psc-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #e2e8f0;
-    color: #334155;
+.party-selected-card .party-card-info {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    gap: 2px;
     font-size: 12px;
-    font-weight: 700;
-    flex-shrink: 0;
-    text-transform: uppercase;
-}
-
-.psc-info {
+    line-height: 1.4;
     flex: 1;
     min-width: 0;
 }
 
-.psc-name {
-    font-size: 15px;
+.party-selected-card .party-card-name {
     font-weight: 700;
-    color: #0f172a;
-    white-space: normal;
-    word-break: break-word;
+    font-size: 13px;
+    color: #1e293b;
 }
 
-.psc-balance {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+.party-selected-card .party-card-line {
+    color: #475569;
     font-size: 11px;
-    font-weight: 600;
-    margin-top: 4px;
-    padding: 2px 8px;
-    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.psc-balance.receive {
-    background: rgba(16, 185, 129, 0.12);
-    color: #059669;
+.party-selected-card .party-card-balance {
+    font-weight: 700;
+    font-size: 11px;
 }
 
-.psc-balance.pay {
-    background: rgba(239, 68, 68, 0.12);
+.party-selected-card .party-card-clear {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.party-selected-card .party-card-clear:hover {
     color: #dc2626;
 }
-.psc-close-btn {
-    width: 28px;
-    height: 28px;
-    border: 1px solid #d7e0ea;
-    border-radius: 6px;
-    background: transparent;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    font-size: 14px;
-    padding: 0;
-    transition: background 0.15s, color 0.15s;
-}
-
-.psc-close-btn:hover {
-    background: #f1f5f9;
-    color: #0f172a;
-}
-/* Divider */
-.psc-divider {
-    height: 1px;
-    background: #e2e8f0;
-    margin: 0 0 8px;
-}
-
-/* Detail rows */
-.psc-details {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-}
-
-.psc-detail-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 12px;
-    color: #475569;
-    line-height: 1.4;
-    padding: 4px 0;
-}
-
-.psc-detail-row i {
-    font-size: 14px;
-    margin-top: 1px;
-    flex-shrink: 0;
-    color: #94a3b8;
-}
-
-#togglePartyDetailsBtn {
-    display: none !important;
-}
-
     </style>
 
 @php
@@ -2129,71 +2081,7 @@ textarea.meta-control,
     </ul>
 </div>
 
-<!-- Party selected card — shown after party is picked -->
-<div class="party-selected-card" id="partySelectedCard">
-    <div class="psc-top">
-        <div class="psc-avatar" id="pscAvatar">AT</div>
-        <div class="psc-info">
-            <div class="psc-name" id="pscName">Ahmed Traders</div>
-            <span class="psc-balance receive" id="pscBalance">
-                <i class="fa-solid fa-arrow-down" style="font-size:10px;"></i>
-                Rs 0.00 to receive
-            </span>
-        </div>
-        <button type="button" class="psc-close-btn" id="pscCloseBtn" title="Change party">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-    <div class="psc-divider"></div>
-<button type="button" id="togglePartyDetailsBtn" style="
-    background: none;
-    border: 1px dashed #cbd5e1;
-    border-radius: 6px;
-    color: #2563eb;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 10px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-">
-    <i class="fa-solid fa-chevron-down" id="togglePartyDetailsIcon"></i>
-    &nbsp; More Details
-</button>
-   <div class="psc-details">
-    <div class="psc-detail-row" id="pscPhoneRow">
-        <i class="fa-solid fa-phone"></i>
-       <input type="text" id="pscPhone" class="psc-editable-input" placeholder="Phone number">
-    </div>
-    <div class="psc-detail-row" id="pscPhoneTwoRow">
-        <i class="fa-brands fa-whatsapp"></i>
-       <input type="text" id="pscPhoneTwo" class="psc-editable-input" placeholder="Alt phone / WhatsApp">
-    </div>
-    <div class="psc-detail-row" id="pscPtclRow">
-        <i class="fa-solid fa-phone-volume"></i>
-       <input type="text" id="pscPtcl" class="psc-editable-input" placeholder="PTCL / Telephone">
-    </div>
-    <div class="psc-detail-row" id="pscAddressRow">
-        <i class="fa-solid fa-location-dot"></i>
-        <textarea id="pscAddress" class="psc-editable-input" rows="2" placeholder="Address"></textarea>
-    </div>
-    <div class="psc-detail-row" id="pscBillingRow">
-    <i class="fa-solid fa-file-invoice" style="font-size:14px; margin-top:1px; flex-shrink:0; color:#94a3b8;"></i>
-    <textarea id="pscBilling" class="psc-editable-input" rows="2" placeholder="Billing address"></textarea>
-</div>
-    <div class="psc-detail-row" id="pscShippingRow">
-        <i class="fa-solid fa-truck"></i>
-        <textarea id="pscShipping" class="psc-editable-input" rows="2" placeholder="Shipping address"></textarea>
-    </div>
-</div>
-</div>
-
 <input type="hidden" class="party-id" name="party_id">
-<input type="hidden" id="hiddenPhone" name="phone">
-<input type="hidden" id="hiddenBilling" name="billing_address">
-<input type="hidden" id="hiddenShipping" name="shipping_address">
-<input type="hidden" id="hiddenAddress" name="address">
                                 </div>
                                 </div>
                                <div class="party-meta-grid billing-name-group">
@@ -2208,12 +2096,7 @@ textarea.meta-control,
     </div>
 </div>
                           <div class="party-meta-grid party-details">
-    <div class="party-meta-field phone-field compact-header-field">
-        <div class="floating-input-wrapper">
-            <input type="text" name="phone" class="meta-control phone-input" placeholder=" ">
-            <label>Phone No.</label>
-        </div>
-    </div>
+
     <div class="party-meta-field address-field billing-address-field">
         <div class="floating-input-wrapper">
             <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "></textarea>
@@ -2264,7 +2147,7 @@ textarea.meta-control,
                                 </div>
                                 <div class="input-group date-wrapper invoice-date-group">
                                     <span>Invoice Date</span>
-                                    <input type="date" class="input-control underline-input invoice-date">
+                                    <input type="text" class="input-control underline-input invoice-date" placeholder="dd/mm/yyyy" readonly>
                                 </div>
 
                                 <div class="input-group date-wrapper deal-days-group">
@@ -2282,7 +2165,7 @@ textarea.meta-control,
                                 </div>
                                 <div class="input-group date-wrapper final-due-date-group">
                                     <span>Due Date</span>
-                                    <input type="date" class="input-control underline-input due-date" readonly>
+                                    <input type="text" class="input-control underline-input due-date" placeholder="dd/mm/yyyy" readonly>
                                 </div>
 
                             </div>
@@ -4209,7 +4092,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const yyyy = dueDate.getFullYear();
     const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
     const dd = String(dueDate.getDate()).padStart(2, '0');
-    dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+    dueDateInput.value = `${dd}/${mm}/${yyyy}`;
    }
 
    function saveParty(closeAfterSave = true) {
@@ -4471,6 +4354,33 @@ document.addEventListener("DOMContentLoaded", function() {
     const partySearchInput = dropdownBtn;
     if (partySearchInput) {
         refreshPartyDropdownMenu();
+
+        // Real-time search filtering for party options
+        const filterPartyOptions = (value) => {
+            const searchText = String(value || '').trim().toLowerCase();
+            const options = Array.from(dropdownMenu.querySelectorAll('li > .party-option'));
+            let anyVisible = false;
+
+            options.forEach(option => {
+                const partyName = String(option.dataset.name || option.querySelector('.party-option-name')?.textContent || '').trim().toLowerCase();
+                const partyPhone = String(option.dataset.phone || option.querySelector('.party-option-phone')?.textContent || '').trim().toLowerCase();
+                const optionText = [partyName, partyPhone].filter(Boolean).join(' ');
+                const shouldShow = !searchText || optionText.includes(searchText);
+                const listItem = option.closest('li');
+                if (listItem) {
+                    listItem.style.display = shouldShow ? '' : 'none';
+                }
+                if (shouldShow) {
+                    anyVisible = true;
+                }
+            });
+        };
+
+        // Input event listener for real-time filtering
+        partySearchInput.addEventListener('input', function () {
+            filterPartyOptions(this.value);
+        });
+
         partySearchInput.addEventListener('keydown', function (e) {
             if (e.key !== 'Enter') {
                 return;
@@ -4784,7 +4694,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const cashLinkArmed = showPartyWrap?.getAttribute('data-cash-link-armed') === 'true';
 
         if (partyDetails) {
-            partyDetails.classList.add('d-none');
+            partyDetails.classList.toggle('d-none', !(isCash || hasParty));
         }
 
         if (partySelectorGroup) {
@@ -4797,12 +4707,128 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
     const setPartyFieldValues = (partyRecord = {}) => {
+        // Show party details section (keep for form data)
+        const partyDetailsSection = document.querySelector(".party-details");
+        if (partyDetailsSection) partyDetailsSection.classList.remove("d-none");
+
+        const phoneField = document.querySelector(".phone-field");
+        if (phoneField) phoneField.style.display = "";
+
+        const shippingField = document.querySelector(".shipping-address-field");
+        if (shippingField) shippingField.style.display = "";
+
         setFieldValue(".phone-input", partyRecord.phone || "");
-        setFieldValue(".city-input", partyRecord.city || "");
-        setFieldValue(".ptcl-input", partyRecord.ptcl_number || partyRecord.ptcl || "");
-        setFieldValue(".address-input", partyRecord.address || "");
-        setFieldValue(".billing-address", partyRecord.billing_address || partyRecord.billing || "");
-        setFieldValue(".shipping-address", partyRecord.shipping_address || partyRecord.shipping || "");
+
+        let billingContent = "";
+        if (partyRecord.name) billingContent += partyRecord.name.toUpperCase() + "\n";
+        const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
+        if (mobiles.length) billingContent += "M: " + mobiles.join(", ") + "\n";
+        if (partyRecord.ptcl_number) billingContent += "T: " + partyRecord.ptcl_number + "\n";
+        if (partyRecord.email) billingContent += "Em: " + partyRecord.email + "\n";
+        const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
+        if (addrParts.length) billingContent += "📍 " + addrParts.join(", ");
+        setFieldValue(".billing-address", billingContent.trim());
+
+        // ===== SHOW PARTY CARD IN SEARCH BAR =====
+        renderPartyCard(partyRecord);
+    };
+
+    const renderPartyCard = (partyRecord = {}) => {
+        const wrapper = document.querySelector('.party-dropdown-wrapper');
+        const searchInput = document.getElementById('partyDropdownBtn');
+        if (!wrapper || !searchInput) return;
+
+        // Remove old card if any
+        const oldCard = wrapper.querySelector('.party-selected-card');
+        if (oldCard) oldCard.remove();
+
+        if (!partyRecord.name) {
+            // No party — show input again
+            searchInput.style.display = '';
+            searchInput.value = '';
+            const balanceDisplay = document.getElementById('partyBalanceDisplay');
+            if (balanceDisplay) balanceDisplay.innerHTML = '';
+            const partyDetailsSection = document.querySelector('.party-details');
+            if (partyDetailsSection) partyDetailsSection.classList.add('d-none');
+            const partyIdInput = document.querySelector('.party-id');
+            if (partyIdInput) partyIdInput.value = '';
+            setFieldValue('.phone-input', '');
+            setFieldValue('.billing-address', '');
+            setFieldValue('.shipping-address', '');
+            return;
+        }
+
+        // Hide search input
+        searchInput.style.display = 'none';
+
+        // Build balance display
+        const opening = parseFloat(partyRecord.opening_balance || 0);
+        const type = partyRecord.transaction_type;
+        let balanceHtml = '';
+        if (type === 'pay') {
+            balanceHtml = `<span class="party-card-balance text-danger"><i class="fa-solid fa-arrow-up me-1"></i>₹${opening.toFixed(2)}</span>`;
+        } else if (type === 'receive') {
+            balanceHtml = `<span class="party-card-balance text-success"><i class="fa-solid fa-arrow-down me-1"></i>₹${opening.toFixed(2)}</span>`;
+        } else if (opening) {
+            balanceHtml = `<span class="party-card-balance text-muted">₹${opening.toFixed(2)}</span>`;
+        }
+
+        // Build lines
+        const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
+        const lines = [];
+        if (mobiles.length) lines.push(`M: ${mobiles.join(', ')}`);
+        if (partyRecord.ptcl_number) lines.push(`T: ${partyRecord.ptcl_number}`);
+        if (partyRecord.email) lines.push(`Em: ${partyRecord.email}`);
+        const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
+        if (addrParts.length) lines.push(`📍 ${addrParts.join(', ')}`);
+
+        const linesHtml = lines.map(l => `<span class="party-card-line">${l}</span>`).join('');
+
+        const card = document.createElement('div');
+        card.className = 'party-selected-card';
+        card.innerHTML = `
+            <div class="party-card-info">
+                <span class="party-card-name">${partyRecord.name}</span>
+                ${linesHtml}
+                ${balanceHtml}
+            </div>
+            <button type="button" class="party-card-clear" title="Change Party">✕</button>
+        `;
+
+        // Clear button — reset to search
+        card.querySelector('.party-card-clear').addEventListener('click', function (e) {
+            e.stopPropagation();
+            card.remove();
+            searchInput.style.display = '';
+            searchInput.value = '';
+            searchInput.focus();
+
+            const partyIdInput = document.querySelector('.party-id');
+            if (partyIdInput) partyIdInput.value = '';
+
+            const balanceDisplay = document.getElementById('partyBalanceDisplay');
+            if (balanceDisplay) balanceDisplay.innerHTML = '';
+
+            // Hide party details
+            const partyDetailsSection = document.querySelector('.party-details');
+            if (partyDetailsSection) partyDetailsSection.classList.add('d-none');
+
+            setFieldValue('.phone-input', '');
+            setFieldValue('.billing-address', '');
+            setFieldValue('.shipping-address', '');
+        });
+
+        // Insert card right before the search input (same position)
+        searchInput.insertAdjacentElement('beforebegin', card);
+
+        // Also hide balance display below (already shown in card)
+        const balanceDisplay = document.getElementById('partyBalanceDisplay');
+        if (balanceDisplay) balanceDisplay.innerHTML = '';
+
+        const partyDetailsSection = document.querySelector('.party-details');
+        if (partyDetailsSection) partyDetailsSection.classList.remove('d-none');
+        const partyIdInput = document.querySelector('.party-id');
+        if (partyIdInput && partyRecord.id) partyIdInput.value = String(partyRecord.id);
     };
 
     const setDueDateFromParty = (partyRecord = {}) => {
@@ -4845,58 +4871,69 @@ document.addEventListener("DOMContentLoaded", function() {
         const yyyy = dueDate.getFullYear();
         const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
         const dd = String(dueDate.getDate()).padStart(2, '0');
-        dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+        dueDateInput.value = `${dd}/${mm}/${yyyy}`;
     };
 
 
-    dropdownMenu.addEventListener("click", function(e) {
-        if(e.target.closest(".party-option")) {
-            e.preventDefault();
-            const option = e.target.closest(".party-option");
-            const name = option.dataset.name || option.querySelector(".party-option-name")?.textContent || '';
-            let opening = parseFloat(option.dataset.opening) || 0;
-            const type = option.dataset.type;
+    if (dropdownMenu) {
+        dropdownMenu.addEventListener("click", function(e) {
+            if(e.target.closest(".party-option")) {
+                e.preventDefault();
+                const option = e.target.closest(".party-option");
+                const name = option.dataset.name || option.querySelector(".party-option-name")?.textContent || '';
+                let opening = parseFloat(option.dataset.opening) || 0;
+                const type = option.dataset.type;
             const id = option.dataset.id;
             const selectedParty = (window.parties || []).find((party) => String(party.id) === String(id)) || {};
             const partyRecord = {
-                phone: selectedParty.phone ?? option.dataset.phone ?? "",
-                city: selectedParty.city ?? option.dataset.city ?? "",
-                ptcl_number: selectedParty.ptcl_number ?? option.dataset.ptcl ?? "",
-                address: selectedParty.address ?? option.dataset.address ?? "",
-                billing_address: selectedParty.billing_address ?? option.dataset.billing ?? "",
-                shipping_address: selectedParty.shipping_address ?? option.dataset.shipping ?? "",
-                due_days: selectedParty.due_days ?? option.dataset.dueDays ?? "",
+                name:             selectedParty.name             ?? option.dataset.name        ?? name,
+                phone:            selectedParty.phone            ?? option.dataset.phone       ?? "",
+                phone_number_2:   selectedParty.phone_number_2   ?? option.dataset.phoneNumber2 ?? "",
+                ptcl_number:      selectedParty.ptcl_number      ?? option.dataset.ptcl        ?? "",
+                email:            selectedParty.email            ?? option.dataset.email       ?? "",
+                city:             selectedParty.city             ?? option.dataset.city        ?? "",
+                party_group:      selectedParty.party_group      ?? option.dataset.partyGroup  ?? "",
+                address:          selectedParty.address          ?? option.dataset.address     ?? "",
+                billing_address:  selectedParty.billing_address  ?? option.dataset.billing     ?? "",
+                shipping_address: selectedParty.shipping_address ?? option.dataset.shipping    ?? "",
+                due_days:         selectedParty.due_days         ?? option.dataset.dueDays     ?? "",
+                opening_balance:      selectedParty.opening_balance      ?? parseFloat(option.dataset.opening || 0),
+                transaction_type:     selectedParty.transaction_type     ?? option.dataset.type ?? type,
             };
 
             // Button pe sirf party name
             dropdownBtn.value = name;
+            // Clear billing name input when party is selected
+            const billingNameInp = document.querySelector('.billing-name-input');
+            if (billingNameInp) billingNameInp.value = '';
 
             // Show balance below button with color
-          if(type === "pay"){
-    balanceDisplay.innerHTML = `
-        <i class="fa-solid fa-arrow-up text-danger me-1"></i>
-        ₹${opening.toFixed(2)}
-    `;
-}
-else if(type === "receive"){
-    balanceDisplay.innerHTML = `
-        <i class="fa-solid fa-arrow-down text-success me-1"></i>
-        ₹${opening.toFixed(2)}
-    `;
-}
-else {
-    balanceDisplay.innerHTML = `₹${opening.toFixed(2)}`;
-}
+            if(type === "pay"){
+                balanceDisplay.innerHTML = `
+                    <i class="fa-solid fa-arrow-up text-danger me-1"></i>
+                    ₹${opening.toFixed(2)}
+                `;
+            }
+            else if(type === "receive"){
+                balanceDisplay.innerHTML = `
+                    <i class="fa-solid fa-arrow-down text-success me-1"></i>
+                    ₹${opening.toFixed(2)}
+                `;
+            }
+            else {
+                balanceDisplay.innerHTML = `₹${opening.toFixed(2)}`;
+            }
 
             // Save selected party id
             partyIdInput.value = id;
 
             // Populate detail fields
-            setPartyFieldValues(partyRecord);
-            setDueDateFromParty(partyRecord);
             partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
             showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+            renderPartyCard(partyRecord);
             syncCashPartyLayout();
+            setPartyFieldValues(partyRecord);
+            setDueDateFromParty(partyRecord);
         }
         else if(e.target.id === "addNewPartyBtn") {
             const partySearchValue = dropdownBtn?.value?.toString().trim() || '';
@@ -4911,7 +4948,8 @@ else {
             setPartyFieldValues({});
             syncCashPartyLayout();
         }
-    });
+        });
+    }
 
     billingNameInput?.addEventListener('click', function () {
         if (document.getElementById("saleToggleSwitch")?.checked) {
@@ -5129,23 +5167,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 });
-
-document.addEventListener('click', function (e) {
-    const partyOption = e.target.closest('.party-option');
-    if (!partyOption) return;
-
-    const dropdownBtn = document.querySelector('#partyDropdownBtn.party-search-input');
-    if (!dropdownBtn) return;
-
-    const partyName = partyOption.dataset.name || partyOption.querySelector('.party-option-name')?.textContent?.trim() || '';
-    if (!partyName) return;
-
-    if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {
-        dropdownBtn.value = partyName;
-    } else {
-        dropdownBtn.textContent = partyName;
-    }
-});
 </script>
 <script>
 
@@ -5170,438 +5191,199 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
-    function setPartySearchPreview(partyData) {
-        const searchInput = document.getElementById('partyDropdownBtn');
-        const wrapper = searchInput?.closest('.dropdown.party-dropdown-wrapper');
-        const card = document.getElementById('partySelectedCard');
-        const partyIdInput = document.querySelector('.party-id');
-        const phoneField = document.querySelector('.phone-field');
-        const billingField = document.querySelector('.billing-address-field');
-        const shippingField = document.querySelector('.shipping-address-field');
-        const phoneInput = document.querySelector('.phone-input');
-        const billingInput = document.querySelector('.billing-address');
-        const shippingInput = document.querySelector('.shipping-address');
-        const hiddenPhone = document.getElementById('hiddenPhone');
-        const hiddenBilling = document.getElementById('hiddenBilling');
-        const hiddenShipping = document.getElementById('hiddenShipping');
-        const hiddenAddress = document.getElementById('hiddenAddress');
-        const phone = partyData?.phone || '';
-        const phoneTwo = partyData?.phone_number_2 || '';
-        const ptcl = partyData?.ptcl_number || '';
-        const email = partyData?.email || '';
-        const city = partyData?.city || '';
-        const address = partyData?.address || '';
-        const rawBillingAddress = partyData?.billing_address || '';
-        const shippingAddress = partyData?.shipping_address || '';
-        let billingDetails = '';
-
-        if (wrapper) wrapper.style.display = '';
-        if (card) card.classList.remove('visible');
-        if (searchInput) {
-            searchInput.value = partyData?.name || '';
-        }
-        if (partyIdInput && partyData?.id) {
-            partyIdInput.value = String(partyData.id);
-        }
-
-        if (partyData?.name) billingDetails += String(partyData.name).toUpperCase() + '\n';
-        const mobiles = [phone, phoneTwo].filter(Boolean);
-        if (mobiles.length) billingDetails += 'M: ' + mobiles.join(', ') + '\n';
-        if (ptcl) billingDetails += 'T: ' + ptcl + '\n';
-        if (email) billingDetails += 'Em: ' + email + '\n';
-        const addrLine = rawBillingAddress || address || '';
-        const addrParts = [city, addrLine].filter(Boolean);
-        if (addrParts.length) billingDetails += '📍 ' + addrParts.join(', ');
-
-        if (phoneField) phoneField.style.display = 'flex';
-        if (billingField) billingField.style.display = 'flex';
-        if (shippingField) shippingField.style.display = 'flex';
-        if (phoneInput) phoneInput.value = phone;
-        if (billingInput) billingInput.value = billingDetails.trim();
-        if (shippingInput) shippingInput.value = shippingAddress;
-        if (hiddenPhone) hiddenPhone.value = phone;
-        if (hiddenBilling) hiddenBilling.value = billingDetails.trim();
-        if (hiddenShipping) hiddenShipping.value = shippingAddress;
-        if (hiddenAddress) hiddenAddress.value = address;
-    }
-
-    function hidePartyCard() {
-        const searchInput = document.getElementById('partyDropdownBtn');
-        const card = document.getElementById('partySelectedCard');
-        const partyIdInput = document.querySelector('.party-id');
-        const partyDetails = document.querySelector('.party-details');
-
-        if (partyDetails) partyDetails.classList.add('d-none');
-        if (searchInput) {
-            searchInput.closest('.dropdown.party-dropdown-wrapper').style.display = '';
-            searchInput.value = '';
-            searchInput.focus();
-        }
-        if (card) card.classList.remove('visible');
-        if (partyIdInput) partyIdInput.value = '';
-
-        const balanceDisplay = document.getElementById('partyBalanceDisplay');
-        if (balanceDisplay) balanceDisplay.textContent = '';
-
-        const phoneEl = document.getElementById('pscPhone');
-        const phoneTwoEl = document.getElementById('pscPhoneTwo');
-        const ptclEl = document.getElementById('pscPtcl');
-        const addressEl = document.getElementById('pscAddress');
-        const billingEl = document.getElementById('pscBilling');
-        const shippingEl = document.getElementById('pscShipping');
-        if (phoneEl) phoneEl.value = '';
-        if (phoneTwoEl) phoneTwoEl.value = '';
-        if (ptclEl) ptclEl.value = '';
-        if (addressEl) addressEl.value = '';
-        if (billingEl) billingEl.value = '';
-        if (shippingEl) shippingEl.value = '';
-    }
-
-    function showPartyCard(partyData) {
-        if (isConvertedSaleFlow()) {
-            setPartySearchPreview(partyData);
-            return;
-        }
-
-        const {
-            id = '',
-            name = '',
-            phone = '',
-            phone_number_2 = '',
-            ptcl_number = '',
-            address = '',
-            billing_address = '',
-            shipping_address = '',
-            opening_balance = 0,
-            transaction_type = ''
-        } = partyData;
-
-        const searchInput = document.getElementById('partyDropdownBtn');
-        const card = document.getElementById('partySelectedCard');
-        const partyIdInput = document.querySelector('.party-id');
-        if (searchInput) searchInput.closest('.dropdown.party-dropdown-wrapper').style.display = 'none';
-        if (card) card.classList.add('visible');
-        if (partyIdInput && id) partyIdInput.value = String(id);
-
-        const avatar = document.getElementById('pscAvatar');
-        if (avatar) avatar.textContent = getInitials(name);
-
-        const nameEl = document.getElementById('pscName');
-        if (nameEl) nameEl.textContent = name;
-
-        const balEl = document.getElementById('pscBalance');
-        if (balEl) {
-            const amount = parseFloat(opening_balance) || 0;
-            const isReceive = transaction_type === 'receive';
-            const isPay = transaction_type === 'pay';
-            balEl.className = 'psc-balance ' + (isReceive ? 'receive' : isPay ? 'pay' : '');
-            const arrow = isReceive
-                ? '<i class="fa-solid fa-arrow-down" style="font-size:10px;"></i>'
-                : isPay
-                    ? '<i class="fa-solid fa-arrow-up" style="font-size:10px;"></i>'
-                    : '';
-            const label = isReceive ? 'to receive' : isPay ? 'to pay' : '';
-            balEl.innerHTML = arrow + ' Rs ' + amount.toFixed(2) + (label ? ' ' + label : '');
-        }
-
-        const phoneEl = document.getElementById('pscPhone');
-        const phoneRow = document.getElementById('pscPhoneRow');
-        if (phoneEl && phoneRow) {
-            phoneEl.value = phone || '';
-            phoneRow.style.display = '';
-        }
-
-        const phoneTwoEl = document.getElementById('pscPhoneTwo');
-        const phoneTwoRow = document.getElementById('pscPhoneTwoRow');
-        if (phoneTwoEl && phoneTwoRow) {
-            phoneTwoEl.value = phone_number_2 || '';
-            phoneTwoRow.style.display = phone_number_2 ? '' : 'none';
-        }
-
-        const ptclEl = document.getElementById('pscPtcl');
-        const ptclRow = document.getElementById('pscPtclRow');
-        if (ptclEl && ptclRow) {
-            ptclEl.value = ptcl_number || '';
-            ptclRow.style.display = ptcl_number ? '' : 'none';
-        }
-
-        const addressEl = document.getElementById('pscAddress');
-        const addressRow = document.getElementById('pscAddressRow');
-        if (addressEl && addressRow) {
-            addressEl.value = address || '';
-            addressRow.style.display = address ? '' : 'none';
-        }
-
-        const billingEl = document.getElementById('pscBilling');
-        const billingRow = document.getElementById('pscBillingRow');
-        if (billingEl && billingRow) {
-            billingEl.value = billing_address || '';
-            billingRow.style.display = '';
-        }
-
-        const shippingEl = document.getElementById('pscShipping');
-        const shippingRow = document.getElementById('pscShippingRow');
-        if (shippingEl && shippingRow) {
-            shippingEl.value = shipping_address || '';
-            shippingRow.style.display = '';
-        }
-    }
-
-    // X button
-    const closeBtn = document.getElementById('pscCloseBtn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', hidePartyCard);
-    }
-
-    // Listen for party option clicks
-    document.addEventListener('click', function (e) {
-        const option = e.target.closest('.party-option');
-        if (!option) return;
-
-        const id = option.dataset.id || '';
-        if (!id) return;
-
-        setTimeout(function () {
-            const partyRecord = (window.parties || []).find(p => String(p.id) === String(id)) || {};
-            showPartyCard({
-                id:               id,
-                name:             option.dataset.name     || partyRecord.name             || '',
-                phone:            option.dataset.phone    || partyRecord.phone            || '',
-                phone_number_2:   option.dataset.phoneNumber2 || partyRecord.phone_number_2 || '',
-                ptcl_number:      option.dataset.ptcl     || partyRecord.ptcl_number      || '',
-                address:          option.dataset.address  || partyRecord.address          || '',
-                billing_address:  option.dataset.billing  || partyRecord.billing_address  || '',
-                shipping_address: option.dataset.shipping || partyRecord.shipping_address || '',
-                opening_balance:  option.dataset.opening  || partyRecord.opening_balance  || 0,
-                transaction_type: option.dataset.type     || partyRecord.transaction_type || '',
-            });
-        }, 50);
-    });
-
     // Edit mode: show card if party already selected
     const existingPartyId = document.querySelector('.party-id')?.value;
     if (existingPartyId) {
         const partyRecord = (window.parties || []).find(p => String(p.id) === String(existingPartyId));
         if (partyRecord) {
-            if (isConvertedSaleFlow()) {
-                setPartySearchPreview(partyRecord);
-            } else {
-                showPartyCard(partyRecord);
-            }
+            renderPartyCard(partyRecord);
+            setPartyFieldValues(partyRecord);
+            setDueDateFromParty(partyRecord);
+            partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
+            showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+            syncCashPartyLayout();
         }
     }
 });
 </script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize invoice date with today's date in DD/MM/YYYY format
+    const invoiceDateInput = document.querySelector(".invoice-date");
+    const dueDateInput = document.querySelector(".due-date");
+    const dueDaysSelect = document.querySelector(".due-days-select");
+    const dueDaysCustomInput = document.querySelector(".due-days-custom");
 
-    var toggleBtn     = document.getElementById('togglePartyDetailsBtn');
-    var phoneField    = document.querySelector('.phone-field');
-    var billingField  = document.querySelector('.billing-address-field');
-    var shippingField = document.querySelector('.shipping-address-field');
-    var pscDetails    = document.querySelector('.psc-details');
-    var isOpen        = false;
-
-    if (pscDetails) pscDetails.style.display = 'flex';
-
-    function hideOutside() {
-        if (phoneField)    phoneField.style.display = 'none';
-        if (billingField)  billingField.style.display = 'none';
-        if (shippingField) shippingField.style.display = 'none';
+    // Helper function to parse DD/MM/YYYY to Date object
+    function parseDate(dateString) {
+        if (!dateString) return null;
+        const parts = dateString.split('/');
+        if (parts.length !== 3) return null;
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const year = parseInt(parts[2]);
+        const date = new Date(year, month, day);
+        if (Number.isNaN(date.getTime())) return null;
+        return date;
     }
 
-    function showOutside() {
-        if (phoneField)    phoneField.style.display = 'flex';
-        if (billingField)  billingField.style.display = 'flex';
-        if (shippingField) shippingField.style.display = 'flex';
+    // Helper function to parse YYYY-MM-DD format (from date input) safely without timezone issues
+    function parseYYYYMMDD(dateString) {
+        if (!dateString) return null;
+        const parts = dateString.split('-');
+        if (parts.length !== 3) return null;
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const day = parseInt(parts[2]);
+        const date = new Date(year, month, day);
+        if (Number.isNaN(date.getTime())) return null;
+        return date;
     }
 
-    hideOutside();
-
-    const hasConvertedSource = Boolean(
-        window.sourceEstimateId ||
-        window.sourceSaleOrderId ||
-        window.sourceChallanId ||
-        window.sourceProformaId
-    );
-    const hasSelectedParty = Boolean(document.querySelector('.party-id')?.value);
-    if (hasConvertedSource && hasSelectedParty) {
-        showOutside();
+    // Helper function to format date as DD/MM/YYYY
+    function formatDate(date) {
+        const dd = String(date.getDate()).padStart(2, '0');
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const yyyy = date.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
     }
 
-    if (toggleBtn) {
-        toggleBtn.style.display = 'none';
-        toggleBtn.addEventListener('click', function () {
-            isOpen = !isOpen;
-            if (isOpen) {
-                showOutside();
-                toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-up"></i> &nbsp; Less Details';
+    // Set today's date in DD/MM/YYYY format
+    function setTodayDate() {
+        if (invoiceDateInput) {
+            let dateValue = invoiceDateInput.value;
+            let dateToSet;
+
+            if (dateValue) {
+                // If there's already a value, check if it's in YYYY-MM-DD format and convert it
+                if (dateValue.includes('-')) {
+                    // Format is YYYY-MM-DD
+                    dateToSet = parseYYYYMMDD(dateValue);
+                } else if (dateValue.includes('/')) {
+                    // Format is already DD/MM/YYYY
+                    dateToSet = parseDate(dateValue);
+                }
             } else {
-                hideOutside();
-                toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-down"></i> &nbsp; More Details';
+                // No value, use today's date
+                dateToSet = new Date();
             }
-        });
-    }
 
-    // ── REAL-TIME two-way sync: card input ↔ outside form field ──
-    // Uses event delegation to work with dynamically created elements
-
-    // Card input → outside form field (live as you type)
-  document.addEventListener('input', function (e) {
-    const t = e.target;
-    if (t.id === 'pscPhone') {
-        const hidden = document.getElementById('hiddenPhone');
-        if (hidden) hidden.value = t.value;
-        // Update ALL phone inputs
-        document.querySelectorAll('.phone-input, input[name="phone"]').forEach(el => el.value = t.value);
-        // Update party dropdown option data attribute
-        const currentId = document.querySelector('.party-id')?.value;
-        if (currentId) {
-            const option = document.querySelector(`.party-option[data-id="${currentId}"]`);
-            if (option) option.dataset.phone = t.value;
-            const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
-            if (rec) rec.phone = t.value;
-        }
-    }
-    if (t.id === 'pscAddress') {
-        const hidden = document.getElementById('hiddenAddress');
-        if (hidden) hidden.value = t.value;
-        const currentId = document.querySelector('.party-id')?.value;
-        if (currentId) {
-            const option = document.querySelector(`.party-option[data-id="${currentId}"]`);
-            if (option) option.dataset.address = t.value;
-            const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
-            if (rec) rec.address = t.value;
-        }
-    }
-    if (t.id === 'pscBilling') {
-        const hidden = document.getElementById('hiddenBilling');
-        if (hidden) hidden.value = t.value;
-        // Update ALL billing address fields
-        document.querySelectorAll('.billing-address, textarea[name="billing_address"]').forEach(el => el.value = t.value);
-        const currentId = document.querySelector('.party-id')?.value;
-        if (currentId) {
-            const option = document.querySelector(`.party-option[data-id="${currentId}"]`);
-            if (option) option.dataset.billing = t.value;
-            const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
-            if (rec) rec.billing_address = t.value;
-        }
-    }
-    if (t.id === 'pscShipping') {
-        const hidden = document.getElementById('hiddenShipping');
-        if (hidden) hidden.value = t.value;
-        // Update ALL shipping address fields
-        document.querySelectorAll('.shipping-address, textarea[name="shipping_address"]').forEach(el => el.value = t.value);
-        const currentId = document.querySelector('.party-id')?.value;
-        if (currentId) {
-            const option = document.querySelector(`.party-option[data-id="${currentId}"]`);
-            if (option) option.dataset.shipping = t.value;
-            const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
-            if (rec) rec.shipping_address = t.value;
-        }
-    }
-});
-
-    // On Enter key in card inputs — save to window.parties + visual feedback
-    document.addEventListener('keydown', function (e) {
-        const t = e.target;
-        const isCardInput = ['pscPhone', 'pscAddress', 'pscBilling', 'pscShipping'].includes(t.id);
-        if (!isCardInput) return;
-
-        const isTextarea = t.tagName === 'TEXTAREA';
-        if (e.key === 'Enter' && (!isTextarea || e.ctrlKey)) {
-            e.preventDefault();
-            saveToParties(t);
-            t.blur();
-        }
-    });
-
-    // On blur of card inputs — save to window.parties
-    document.addEventListener('blur', function (e) {
-        const t = e.target;
-        if (['pscPhone', 'pscAddress', 'pscBilling', 'pscShipping'].includes(t.id)) {
-            saveToParties(t);
-        }
-    }, true);
-
- function saveToParties(field) {
-    const keyMap = {
-        pscPhone:    'phone',
-        pscAddress:  'address',
-        pscBilling:  'billing_address',
-        pscShipping: 'shipping_address'
-    };
-    const dataAttrMap = {
-        pscPhone:    'phone',
-        pscAddress:  'address',
-        pscBilling:  'billing',
-        pscShipping: 'shipping'
-    };
-    const partyKey = keyMap[field.id];
-    const dataAttr = dataAttrMap[field.id];
-    if (!partyKey) return;
-
-    const currentId = document.querySelector('.party-id')?.value;
-    if (currentId) {
-        // Update window.parties array
-        const rec = (window.parties || []).find(p => String(p.id) === String(currentId));
-        if (rec) rec[partyKey] = field.value;
-
-        // Update all dropdown option data attributes
-        document.querySelectorAll(`.party-option[data-id="${currentId}"]`).forEach(option => {
-            if (dataAttr) option.dataset[dataAttr] = field.value;
-            // Also update the visible phone subtitle in the dropdown list
-            if (field.id === 'pscPhone') {
-                const phoneSpan = option.querySelector('.party-option-phone');
-                if (phoneSpan) phoneSpan.textContent = field.value || '-';
+            if (dateToSet) {
+                invoiceDateInput.value = formatDate(dateToSet);
+                calculateDueDate();
             }
-        });
+        }
     }
 
-    field.style.transition = 'border-color 0.2s';
-    field.style.borderColor = '#10b981';
-    setTimeout(() => { field.style.borderColor = ''; }, 1000);
-}
+    // Calculate and update due date based on invoice date and deal days
+    function calculateDueDate() {
+        if (!invoiceDateInput || !dueDateInput) return;
 
-    // ── X button: full reset ──
-    const closeBtn = document.getElementById('pscCloseBtn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function () {
-            const card         = document.getElementById('partySelectedCard');
-            const searchInput  = document.getElementById('partyDropdownBtn');
-            const partyIdInput = document.querySelector('.party-id');
-            const balDisplay   = document.getElementById('partyBalanceDisplay');
+        const baseDateValue = invoiceDateInput.value;
+        if (!baseDateValue) {
+            dueDateInput.value = '';
+            return;
+        }
 
-            if (searchInput) {
-                searchInput.closest('.dropdown.party-dropdown-wrapper').style.display = '';
-                searchInput.value = '';
-                searchInput.focus();
+        const baseDate = parseDate(baseDateValue);
+        if (!baseDate) {
+            return;
+        }
+
+        const dueDate = new Date(baseDate);
+
+        let dueDays = 0;
+        if (dueDaysSelect?.value === 'custom') {
+            dueDays = parseInt(dueDaysCustomInput?.value) || 0;
+        } else {
+            dueDays = parseInt(dueDaysSelect?.value) || 0;
+        }
+
+        if (dueDays > 0) {
+            dueDate.setDate(dueDate.getDate() + dueDays);
+        }
+
+        dueDateInput.value = formatDate(dueDate);
+    }
+
+    // Set today's date on page load
+    setTodayDate();
+
+    // Make invoice date clickable to allow date selection
+    if (invoiceDateInput) {
+        invoiceDateInput.style.cursor = 'pointer';
+        invoiceDateInput.addEventListener('click', function() {
+            // Create a hidden date input for the date picker
+            const hiddenDateInput = document.createElement('input');
+            hiddenDateInput.type = 'date';
+            hiddenDateInput.style.display = 'none';
+
+            // Set current date if exists
+            if (invoiceDateInput.value) {
+                const currentDate = parseDate(invoiceDateInput.value);
+                if (currentDate) {
+                    const yyyy = currentDate.getFullYear();
+                    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(currentDate.getDate()).padStart(2, '0');
+                    hiddenDateInput.value = `${yyyy}-${mm}-${dd}`;
+                }
             }
-            if (card)         card.classList.remove('visible');
-            if (partyIdInput) partyIdInput.value = '';
-            if (balDisplay)   balDisplay.textContent = '';
 
-            hideOutside();
-            isOpen = false;
-            if (toggleBtn) toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-down"></i> &nbsp; More Details';
+            document.body.appendChild(hiddenDateInput);
 
-            // Clear both card AND form fields
-            const clearPairs = [
-                ['pscPhone',    'input[name="phone"]'],
-                ['pscAddress',  '#hiddenAddress'],
-                ['pscBilling',  'textarea[name="billing_address"]'],
-                ['pscShipping', 'textarea[name="shipping_address"]'],
-            ];
-            clearPairs.forEach(([cardId, formSel]) => {
-                const cardEl = document.getElementById(cardId);
-                const formEl = document.querySelector(formSel);
-                if (cardEl) cardEl.value = '';
-                if (formEl) formEl.value = '';
+            hiddenDateInput.addEventListener('change', function() {
+                if (hiddenDateInput.value) {
+                    // Parse YYYY-MM-DD format safely
+                    const selectedDate = parseYYYYMMDD(hiddenDateInput.value);
+                    if (selectedDate) {
+                        invoiceDateInput.value = formatDate(selectedDate);
+                        calculateDueDate();
+                    }
+                }
+                document.body.removeChild(hiddenDateInput);
             });
+
+            // Open the date picker
+            hiddenDateInput.click();
         });
+    }
+
+    // Listen for direct input on invoice date
+    if (invoiceDateInput) {
+        invoiceDateInput.addEventListener('change', calculateDueDate);
+        invoiceDateInput.addEventListener('blur', function() {
+            // Validate and reformat the date if user typed it manually
+            if (invoiceDateInput.value) {
+                const parsedDate = parseDate(invoiceDateInput.value);
+                if (parsedDate) {
+                    invoiceDateInput.value = formatDate(parsedDate);
+                    calculateDueDate();
+                }
+            }
+        });
+    }
+
+    // Listen for changes on deal days select
+    if (dueDaysSelect) {
+        dueDaysSelect.addEventListener('change', function() {
+            if (dueDaysSelect.value === 'custom') {
+                dueDaysCustomInput?.classList.remove('d-none');
+                dueDaysCustomInput?.focus();
+            } else {
+                dueDaysCustomInput?.classList.add('d-none');
+                calculateDueDate();
+            }
+        });
+    }
+
+    // Listen for changes on custom deal days input
+    if (dueDaysCustomInput) {
+        dueDaysCustomInput.addEventListener('change', calculateDueDate);
     }
 });
 </script>
+
 </body>
 
 </html>

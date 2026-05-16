@@ -66,52 +66,43 @@
 </div>
 
       </div>
-      <ul class="entity-list" id="partyList">
-        <li class="active" data-party="abc">
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+      <div class="filter-toolbar">
+        <div class="filter-wrapper">
+          <div class="parent-arrows" onclick="this.classList.toggle('active')">
+            <span class="entity-balance positive" style="color: gray !important;">Party Name</span>
+            <div class="counter-arrows">
+              <i class="fa fa-chevron-up increment"></i>
+              <i class="fa fa-chevron-down decrement"></i>
+            </div>
+          </div>
 
-<div class="filter-wrapper">
-<div class="parent-arrows" onclick="this.classList.toggle('active')">
-  <span class="entity-balance positive" style="color: gray !important;">Party Name</span>
-  <div class="counter-arrows">
-    <i class="fa fa-chevron-up increment"></i>
-    <i class="fa fa-chevron-down decrement"></i>
-  </div>
-</div>
+          <i class="fa fa-filter filter-icon" onclick="toggleFilter()"></i>
 
+          <div class="filter-dropdown" id="filterDropdown">
+            <label><input type="checkbox" data-party-filter="all" checked> All</label>
+            <label><input type="checkbox" data-party-filter="active"> Active</label>
+            <label><input type="checkbox" data-party-filter="inactive"> Inactive</label>
+            <label><input type="checkbox" data-party-filter="receive"> To Receive</label>
+            <label><input type="checkbox" data-party-filter="pay"> To Pay</label>
+            <div class="filter-actions">
+              <button class="clear-btn" type="button" id="partyFilterClear">Clear</button>
+              <button class="apply-btn" type="button" id="partyFilterApply">Apply</button>
+            </div>
+          </div>
 
-<i class="fa fa-filter filter-icon" onclick="toggleFilter()"></i>
+          <div class="separator"></div>
 
-<div class="filter-dropdown" id="filterDropdown">
+          <div class="parent-arrows" onclick="this.classList.toggle('active')">
+            <span class="entity-balance positive" style="color: gray !important;">Amount</span>
+            <div class="counter-arrows">
+              <i class="fa fa-chevron-up increment"></i>
+              <i class="fa fa-chevron-down decrement"></i>
+            </div>
+          </div>
+        </div>
+      </div>
 
-<label><input type="checkbox" data-party-filter="all" checked> All</label>
-<label><input type="checkbox" data-party-filter="active"> Active</label>
-<label><input type="checkbox" data-party-filter="inactive"> Inactive</label>
-<label><input type="checkbox" data-party-filter="receive"> To Receive</label>
-<label><input type="checkbox" data-party-filter="pay"> To Pay</label>
-
-<div class="filter-actions">
-<button class="clear-btn" type="button" id="partyFilterClear">Clear</button>
-<button class="apply-btn" type="button" id="partyFilterApply">Apply</button>
-</div>
-
-</div>
-
-</div>
-          <!-- Vertical separator -->
-    <div class="separator"></div>
- <div class="parent-arrows" onclick="this.classList.toggle('active')">
-  <span class="entity-balance positive" style="color: gray !important;">Amount</span>
-  <div class="counter-arrows">
-    <i class="fa fa-chevron-up increment"></i>
-    <i class="fa fa-chevron-down decrement"></i>
-  </div>
-</div>
-
-
-
-</li>
-   <ul id="partiesList">
+      <ul class="entity-list" id="partiesList">
   @foreach($parties as $party)
     <li class="party-item"
         data-id="{{ $party->id }}"
@@ -131,13 +122,20 @@
         data-party-type="{{ $party->party_type }}"
         data-party-group="{{ $party->party_group }}"
         data-sales-total="{{ (float) $party->sales->sum('grand_total') }}"
+        data-display-amount="{{ (float) (($party->transaction_type === 'receive' && $party->sales->sum('grand_total') > 0)
+            ? $party->sales->sum('grand_total')
+            : $party->current_balance) }}"
         data-due-days="{{ $party->due_days }}"
         data-credit-limit-enabled="{{ $party->credit_limit_enabled }}"
         data-credit-limit-amount="{{ $party->credit_limit_amount }}"
         data-custom-fields="{{ json_encode($party->custom_fields ?? []) }}">
       <span class="entity-name">{{ $party->name }}</span>
-      <span class="entity-balance {{ $party->current_balance < 0 ? 'negative' : 'positive' }}">
-        Rs {{ number_format($party->current_balance, 2) }}
+      <span class="entity-balance {{ ((($party->transaction_type === 'receive' && $party->sales->sum('grand_total') > 0)
+            ? $party->sales->sum('grand_total')
+            : $party->current_balance) < 0) ? 'negative' : 'positive' }}">
+        Rs {{ number_format((($party->transaction_type === 'receive' && $party->sales->sum('grand_total') > 0)
+            ? $party->sales->sum('grand_total')
+            : $party->current_balance), 2) }}
       </span>
     </li>
   @endforeach
@@ -4409,6 +4407,15 @@ document.addEventListener("DOMContentLoaded", function () {
         return parseFloat(fallbackBalance ?? partyData.current_balance ?? partyData.opening_balance ?? 0).toFixed(2);
     }
 
+    function getSidebarAmountValue(partyData, fallbackBalance = 0) {
+        const transactionType = String(partyData.transaction_type || partyData.transactionType || '').toLowerCase();
+        const salesTotal = parseFloat(partyData.sales_total ?? partyData.salesTotal ?? 0) || 0;
+        if (transactionType === 'receive' && salesTotal > 0) {
+            return salesTotal.toFixed(2);
+        }
+        return parseFloat(fallbackBalance ?? partyData.current_balance ?? partyData.opening_balance ?? 0).toFixed(2);
+    }
+
     function updatePartySidebarBalance(partyId, balanceValue) {
         const sidebarParty = document.querySelector(`.party-item[data-id="${partyId}"]`);
         if (!sidebarParty) return;
@@ -4420,9 +4427,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const balanceEl = sidebarParty.querySelector(".entity-balance");
         if (!balanceEl) return;
 
-        balanceEl.textContent = `Rs ${normalizedBalance}`;
+        const displayAmount = getSidebarAmountValue({
+            transaction_type: sidebarParty.dataset.transactionType,
+            sales_total: sidebarParty.dataset.salesTotal,
+            current_balance: normalizedBalance,
+        }, normalizedBalance);
+
+        balanceEl.textContent = `Rs ${displayAmount}`;
         balanceEl.classList.remove('positive', 'negative');
-        balanceEl.classList.add(parseFloat(normalizedBalance) < 0 ? 'negative' : 'positive');
+        balanceEl.classList.add(parseFloat(displayAmount) < 0 ? 'negative' : 'positive');
     }
 
     function applyPartySettings() {
@@ -4633,9 +4646,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 li.dataset.creditLimitAmount = partyData.credit_limit_amount || "";
                 li.dataset.customFields = JSON.stringify(party.custom_fields || []);
 
+                const displayAmount = getSidebarAmountValue(partyData, party.current_balance || 0);
                 li.innerHTML = `
                     <span class="entity-name">${party.name}</span>
-                    <span class="entity-balance">Rs ${getDisplayBalanceValue(partyData, party.current_balance || 0)}</span>
+                    <span class="entity-balance">Rs ${displayAmount}</span>
                 `;
 
                 partyList.prepend(li);

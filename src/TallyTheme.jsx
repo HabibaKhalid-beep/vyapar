@@ -5,6 +5,8 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
   const view = getInvoiceViewModel(invoiceData)
   const items = view.items
   const totalQty = view.totalQty
+  const totalGrossW = view.totalGrossW
+  const totalNetW = view.totalNetW
   const total = view.total
   const received = view.received
   const balance = view.balance
@@ -80,32 +82,38 @@ const TallyTheme = ({ businessInfo, invoiceData, onCompanyClick, signature, onSi
 
       <table className="tally-table">
         <thead>
-          <tr style={{ backgroundColor: selectedColor }}>
-            <th>#</th>
-            <th>Item name</th>
-            <th>Quantity</th>
-            <th>Price/ Unit(Rs)</th>
-            <th>Amount(Rs)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, index) => (
-            <tr key={`${item.name}-${index}`}>
-              <td>{index + 1}</td>
-              <td><strong>{item.name}</strong></td>
-              <td>{item.qty}</td>
-              <td>{formatCurrency(item.rate)}</td>
-              <td>{formatCurrency(item.amount ?? item.amt)}</td>
+            <tr style={{ backgroundColor: selectedColor }}>
+              <th>#</th>
+              <th>Item name</th>
+              <th>Tadaat</th>
+              <th>Gross W</th>
+              <th>Net W</th>
+              <th>Price/ Unit(Rs)</th>
+              <th>Amount(Rs)</th>
             </tr>
-          ))}
-          <tr className="tally-total-row">
-            <td></td>
-            <td><strong>Total</strong></td>
-            <td><strong>{totalQty}</strong></td>
-            <td></td>
-            <td><strong>{formatCurrency(total)}</strong></td>
-          </tr>
-        </tbody>
+          </thead>
+          <tbody>
+          {items.map((item, index) => (
+              <tr key={`${item.name}-${index}`}>
+                <td>{index + 1}</td>
+                <td><strong>{item.name}</strong></td>
+                <td>{item.tadaat ?? item.qty}</td>
+                <td>{Number(item.grossW || 0).toFixed(2)}</td>
+                <td>{Number(item.netW || 0).toFixed(2)}</td>
+                <td>{formatCurrency(item.rate)}</td>
+                <td>{formatCurrency(item.amount ?? item.amt)}</td>
+              </tr>
+            ))}
+            <tr className="tally-total-row">
+              <td></td>
+              <td><strong>Total</strong></td>
+              <td><strong>{totalQty}</strong></td>
+              <td><strong>{Number(totalGrossW || 0).toFixed(2)}</strong></td>
+              <td><strong>{Number(totalNetW || 0).toFixed(2)}</strong></td>
+              <td></td>
+              <td><strong>{formatCurrency(total)}</strong></td>
+            </tr>
+          </tbody>
       </table>
 
       <div className="tally-summary">

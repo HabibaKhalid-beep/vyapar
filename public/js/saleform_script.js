@@ -1061,7 +1061,9 @@ if (!window.editSaleData) {
 
     function syncLegacyBrokerFieldsFromCustomRows() {
         const $primaryBrokerRow = $ctx.find('.custom-expense-row').filter(function () {
-            return ($(this).find('.custom-expense-account-type').val() || '') === 'broker';
+            const accountType = ($(this).find('.custom-expense-account-type').val() || '').toLowerCase();
+            const mode = ($(this).find('.custom-expense-mode').val() || '+').toUpperCase();
+            return accountType === 'broker' && mode !== 'S';
         }).first();
         if (!$primaryBrokerRow.length) {
             return;
@@ -1120,10 +1122,6 @@ if (!window.editSaleData) {
             if (pct > 0) {
                 amount = (baseAmount * pct) / 100;
                 $row.find('.custom-expense-value').val(amount.toFixed(2));
-            }
-
-            if (mode === 'S') {
-                return;
             }
 
             // Minus adjustments are hidden from visible invoice total.
@@ -1551,7 +1549,6 @@ if (!window.editSaleData) {
             $container.empty();
             customExpenses.forEach((row) => createCustomExpenseRow(row));
             persistCustomExpenseRows();
-            syncLegacyBrokerFieldsFromCustomRows();
         }
 
         syncDefaultPaymentFields();
@@ -2424,6 +2421,56 @@ if (!window.editSaleData) {
         updatePaymentSummary();
     });
 
+    function normalizeDateForApi(rawValue) {
+        const value = String(rawValue || '').trim();
+        if (!value) return '';
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return value;
+        }
+
+        const slashMatch = value.match(/^(\d{1,4})\/(\d{1,2})\/(\d{1,4})$/);
+        if (!slashMatch) {
+            return value;
+        }
+
+        let a = parseInt(slashMatch[1], 10);
+        let b = parseInt(slashMatch[2], 10);
+        let c = parseInt(slashMatch[3], 10);
+
+        let year;
+        let month;
+        let day;
+
+        if (String(slashMatch[1]).length === 4) {
+            year = a;
+            month = b;
+            day = c;
+        } else {
+            year = c;
+            if (a > 12) {
+                day = a;
+                month = b;
+            } else if (b > 12) {
+                month = a;
+                day = b;
+            } else {
+                month = a;
+                day = b;
+            }
+        }
+
+        if (!year || !month || !day || month < 1 || month > 12 || day < 1 || day > 31) {
+            return value;
+        }
+
+        const yyyy = String(year).padStart(4, '0');
+        const mm = String(month).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
     // Helper: collect data from form
     function gatherSaleData() {
         const items = Array.from($ctx.find('.item-row')).map(row => {
@@ -2519,7 +2566,7 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
             bilti_no: $ctx.find('.bilti-no-input').val() || '',
             gate_no: $ctx.find('.gate-no-input').val() || '',
             po_no: $ctx.find('.po-no-input').val() || '',
-            po_date: $ctx.find('.po-date-input').val() || '',
+            po_date: normalizeDateForApi($ctx.find('.po-date-input').val() || ''),
             city: $ctx.find('.city-input').val() || '',
             party_no: $ctx.find('.party-no-input').val() || '',
             goods_name: $ctx.find('.goods-name-input').val() || '',
@@ -2528,8 +2575,8 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
             billing_address: document.getElementById('pscBilling')?.value || $ctx.find('.billing-address').val() || '',
 shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.shipping-address').val() || '',
             bill_number: $ctx.find('.bill-number').val() || '',
-            invoice_date: $ctx.find('.invoice-date').val() || '',
-            order_date: $ctx.find('.order-date').val() || '',
+            invoice_date: normalizeDateForApi($ctx.find('.invoice-date').val() || ''),
+            order_date: normalizeDateForApi($ctx.find('.order-date').val() || ''),
             deal_days: (function() {
                 const selectedValue = $ctx.find('.due-days-select').val();
                 if (selectedValue === 'custom') {
@@ -2537,7 +2584,7 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
                 }
                 return parseInt(selectedValue || 0, 10) || 0;
             })(),
-            due_date: $ctx.find('.due-date').val() || '',
+            due_date: normalizeDateForApi($ctx.find('.due-date').val() || ''),
             tadad: parseInt($ctx.find('.parachi-input').val() || 0, 10) || 0,
             total_wazan: parseFloat($ctx.find('.total-wazan-input').val() || 0) || 0,
             safi_wazan: parseFloat($ctx.find('.safi-wazan-input').val() || 0) || 0,

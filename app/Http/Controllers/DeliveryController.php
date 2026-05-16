@@ -8,6 +8,7 @@ use App\Models\BankAccount;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
+use App\Models\SaleDetail;
 use App\Support\TransactionNumberPrefix;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -43,7 +44,8 @@ class DeliveryController extends Controller
     {
         abort_unless($sale->type === 'delivery_challan', 404);
 
-        $sale->load(['items', 'challanDetail']);
+        $sale->load(['items', 'challanDetail', 'details', 'party', 'payments']);
+        $this->hydrateDeliverySaleDetails($sale);
 
         return $this->renderChallanForm($sale);
     }
@@ -52,13 +54,24 @@ class DeliveryController extends Controller
     {
         abort_unless($sale->type === 'delivery_challan', 404);
 
-        $sale->load(['items', 'challanDetail']);
+        $sale->load(['items', 'challanDetail', 'details', 'party', 'payments']);
+        $this->hydrateDeliverySaleDetails($sale);
 
         return $this->renderChallanForm(null, $sale);
     }
 
-  private function renderChallanForm(?Sale $challan = null, ?Sale $duplicateChallan = null)
+    private function renderChallanForm(?Sale $challan = null, ?Sale $duplicateChallan = null)
 {
+    if ($challan) {
+        $challan->loadMissing(['items', 'challanDetail', 'details', 'party', 'payments']);
+        $this->hydrateDeliverySaleDetails($challan);
+    }
+
+    if ($duplicateChallan) {
+        $duplicateChallan->loadMissing(['items', 'challanDetail', 'details', 'party', 'payments']);
+        $this->hydrateDeliverySaleDetails($duplicateChallan);
+    }
+
     $items = Item::active()->orderBy('name')->get();
     $parties = Party::orderBy('name')->get();
     $brokers = Broker::orderBy('name')->get();
@@ -93,6 +106,7 @@ class DeliveryController extends Controller
             }
 
             $challanDetail = ChallanDetail::create($this->buildChallanDetailPayload($data, $sale));
+            $this->upsertSaleDetails($sale, $data);
 
             $this->notifyResponsibleUser($challanDetail, $sale);
 
@@ -137,6 +151,7 @@ class DeliveryController extends Controller
                 ['sale_id' => $sale->id],
                 $this->buildChallanDetailPayload($data, $sale)
             );
+            $this->upsertSaleDetails($sale, $data);
 
             $this->notifyResponsibleUser($challanDetail, $sale);
         });
@@ -217,7 +232,14 @@ class DeliveryController extends Controller
             'shipping_address' => 'nullable|string|max:1000',
             'bill_number' => 'required|string|max:100',
             'invoice_date' => 'nullable|date',
+            'order_date' => 'nullable|date',
             'due_date' => 'nullable|date',
+            'deal_days' => 'nullable|integer|min:0',
+            'tadad' => 'nullable|integer|min:0',
+            'total_wazan' => 'nullable|numeric|min:0',
+            'safi_wazan' => 'nullable|numeric|min:0',
+            'rate' => 'nullable|numeric|min:0',
+            'deo' => 'nullable|numeric|min:0',
             'warehouse_id' => 'nullable|exists:warehouses,id',
             'warehouse_name' => 'nullable|string|max:255',
             'warehouse_phone' => 'nullable|string|max:50',
@@ -227,6 +249,15 @@ class DeliveryController extends Controller
             'vehicle_number' => 'nullable|string|max:100',
             'destination' => 'nullable|string|max:255',
             'delivery_expenses' => 'nullable|numeric|min:0',
+            'delivery_person' => 'nullable|string|max:255',
+            'po_no' => 'nullable|string|max:255',
+            'po_date' => 'nullable|date',
+            'city' => 'nullable|string|max:255',
+            'party_no' => 'nullable|string|max:255',
+            'goods_name' => 'nullable|string|max:255',
+            'details_extra' => 'nullable|string|max:255',
+            'bilti_gari_no' => 'nullable|string|max:255',
+            'custom_expenses' => 'nullable|array',
             'total_qty' => 'nullable|integer|min:0',
             'total_amount' => 'nullable|numeric|min:0',
             'discount_pct' => 'nullable|numeric|min:0',
@@ -248,7 +279,10 @@ class DeliveryController extends Controller
             'items.*.item_category' => 'nullable|string|max:255',
             'items.*.item_code' => 'nullable|string|max:255',
             'items.*.item_description' => 'nullable|string',
+            'items.*.tafseel' => 'nullable|string|max:255',
             'items.*.quantity' => 'nullable|integer|min:0',
+            'items.*.gross_w' => 'nullable|numeric|min:0',
+            'items.*.net_w' => 'nullable|numeric|min:0',
             'items.*.unit' => 'nullable|string|max:50',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.discount' => 'nullable|numeric|min:0',
@@ -270,7 +304,14 @@ class DeliveryController extends Controller
             'shipping_address' => $data['shipping_address'] ?? null,
             'bill_number' => $data['bill_number'],
             'invoice_date' => $data['invoice_date'] ?? now()->toDateString(),
+            'order_date' => $data['order_date'] ?? ($data['invoice_date'] ?? now()->toDateString()),
             'due_date' => $data['due_date'] ?? ($data['invoice_date'] ?? now()->toDateString()),
+            'deal_days' => $data['deal_days'] ?? 0,
+            'tadad' => $data['tadad'] ?? ($data['total_qty'] ?? 0),
+            'total_wazan' => $data['total_wazan'] ?? 0,
+            'safi_wazan' => $data['safi_wazan'] ?? 0,
+            'rate' => $data['rate'] ?? 0,
+            'deo' => $data['deo'] ?? 0,
             'total_qty' => $data['total_qty'] ?? 0,
             'total_amount' => $data['total_amount'] ?? 0,
             'discount_pct' => $data['discount_pct'] ?? 0,
@@ -317,12 +358,57 @@ class DeliveryController extends Controller
             'item_category' => $item['item_category'] ?? null,
             'item_code' => $item['item_code'] ?? null,
             'item_description' => $item['item_description'] ?? null,
+            'tafseel' => $item['tafseel'] ?? null,
             'quantity' => $item['quantity'] ?? 0,
+            'gross_w' => $item['gross_w'] ?? 0,
+            'net_w' => $item['net_w'] ?? 0,
             'unit' => $item['unit'] ?? null,
             'unit_price' => $item['unit_price'] ?? 0,
             'discount' => $item['discount'] ?? 0,
             'amount' => $item['amount'] ?? 0,
         ];
+    }
+
+    private function upsertSaleDetails(Sale $sale, array $data): void
+    {
+        $sale->details()->updateOrCreate(
+            ['sale_id' => $sale->id],
+            [
+                'warehouse_id' => $data['warehouse_id'] ?? null,
+                'delivery_person' => $data['delivery_person'] ?? null,
+                'po_no' => $data['po_no'] ?? null,
+                'po_date' => $data['po_date'] ?? null,
+                'city' => $data['city'] ?? null,
+                'party_no' => $data['party_no'] ?? null,
+                'goods_name' => $data['goods_name'] ?? null,
+                'details_extra' => $data['details_extra'] ?? null,
+                'bilti_gari_no' => $data['bilti_gari_no'] ?? null,
+                'custom_expenses' => $data['custom_expenses'] ?? null,
+            ]
+        );
+    }
+
+    private function hydrateDeliverySaleDetails(Sale $sale): void
+    {
+        $challanDetail = $sale->challanDetail;
+        $saleDetail = $sale->details;
+
+        if ($saleDetail) {
+            if ($challanDetail && empty($saleDetail->warehouse_id) && !empty($challanDetail->warehouse_id)) {
+                $saleDetail->warehouse_id = $challanDetail->warehouse_id;
+            }
+            $sale->setRelation('details', $saleDetail);
+            return;
+        }
+
+        $sale->setRelation('details', new SaleDetail([
+            'sale_id' => $sale->id,
+            'warehouse_id' => $challanDetail?->warehouse_id,
+            'delivery_person' => $challanDetail?->warehouse_handler_name,
+            'city' => $sale->party?->city,
+            'goods_name' => $challanDetail?->destination,
+            'bilti_gari_no' => $challanDetail?->vehicle_number,
+        ]));
     }
 
     private function storeChallanImages(Request $request, array $existingPaths = [], array $originalPaths = []): array
@@ -371,4 +457,3 @@ class DeliveryController extends Controller
     ]);
 }
 }
-

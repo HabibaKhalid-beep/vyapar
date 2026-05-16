@@ -2038,8 +2038,8 @@ textarea.meta-control,
 
                                     <div class="party-meta-field address-field billing-address-field">
     <div class="floating-input-wrapper" style="position:relative;">
-        <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" " 
-            style="min-height:90px !important; height:90px !important; max-height:90px !important; 
+        <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "
+            style="min-height:90px !important; height:90px !important; max-height:90px !important;
                    overflow-y:auto !important; resize:none; font-size:12px; line-height:1.5;
                    scrollbar-width:thin; padding:8px 10px !important;"></textarea>
         <label>Billing Adddress</label>
@@ -2090,7 +2090,7 @@ textarea.meta-control,
                                 </div>
                                 <div class="input-group date-wrapper invoice-date-group">
                                     <span>Invoice Date</span>
-                                    <input type="date" class="input-control underline-input invoice-date">
+                                    <input type="text" class="input-control underline-input invoice-date" placeholder="dd/mm/yyyy" readonly>
                                 </div>
 
                                 <div class="input-group date-wrapper deal-days-group">
@@ -2108,7 +2108,7 @@ textarea.meta-control,
                                 </div>
                                 <div class="input-group date-wrapper final-due-date-group">
                                     <span>Due Date</span>
-                                    <input type="date" class="input-control underline-input due-date" readonly>
+                                    <input type="text" class="input-control underline-input due-date" placeholder="dd/mm/yyyy" readonly>
                                 </div>
 
                             </div>
@@ -2825,7 +2825,7 @@ textarea.meta-control,
         unitsStore: "{{ url('dashboard/items/units') }}"
     };
 
-    window.saleStoreUrl = "{{ route('sale.store') }}";
+    window.saleStoreUrl = "{{ route('delivery-challan.store') }}";
     window.saleMethod = 'POST';
 
     // Default values
@@ -2840,9 +2840,9 @@ textarea.meta-control,
 
     @if(isset($sale))
         // Edit mode
-        window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
+        window.saleStoreUrl = "{{ route('delivery-challan.update', $sale->id) }}";
         window.saleMethod = 'PUT';
-        window.editSaleData = @json($sale->load(['items', 'payments']));
+        window.editSaleData = @json($sale);
 
     @elseif(isset($convertedSaleData))
         // Convert from estimate / sale order / challan
@@ -4037,7 +4037,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const yyyy = dueDate.getFullYear();
     const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
     const dd = String(dueDate.getDate()).padStart(2, '0');
-    dueDateInput.value = `${yyyy}-${mm}-${dd}`;
+    dueDateInput.value = `${dd}/${mm}/${yyyy}`;
    }
 
    function saveParty(closeAfterSave = true) {
@@ -4749,6 +4749,34 @@ const renderPartyCard = (partyRecord = {}) => {
         dueDateInput.value = `${yyyy}-${mm}-${dd}`;
     };
 
+    const existingPartyId = partyIdInput?.value?.trim();
+    if (existingPartyId) {
+        const selectedParty = (window.parties || []).find((party) => String(party.id) === String(existingPartyId));
+        const sale = window.editSaleData || {};
+        const partyRecord = selectedParty || {
+            id: existingPartyId,
+            name: sale.party_name || sale.party?.name || '',
+            phone: sale.phone || sale.party?.phone || '',
+            phone_number_2: sale.party?.phone_number_2 || '',
+            ptcl_number: sale.party?.ptcl_number || '',
+            email: sale.party?.email || '',
+            city: sale.party?.city || '',
+            address: sale.party?.address || '',
+            billing_address: sale.billing_address || sale.party?.billing_address || '',
+            shipping_address: sale.shipping_address || sale.party?.shipping_address || '',
+            due_days: sale.party?.due_days || 0,
+            opening_balance: sale.party?.opening_balance || 0,
+            transaction_type: sale.party?.transaction_type || '',
+        };
+
+        renderPartyCard(partyRecord);
+        setPartyFieldValues(partyRecord);
+        setDueDateFromParty(partyRecord);
+        partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
+        showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+        syncCashPartyLayout();
+    }
+
 
     dropdownMenu.addEventListener("click", function(e) {
         if(e.target.closest(".party-option")) {
@@ -5239,6 +5267,184 @@ document.addEventListener('input', function(e) {
 })();
 
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize invoice date with today's date in DD/MM/YYYY format
+    const invoiceDateInput = document.querySelector(".invoice-date");
+    const dueDateInput = document.querySelector(".due-date");
+    const dueDaysSelect = document.querySelector(".due-days-select");
+    const dueDaysCustomInput = document.querySelector(".due-days-custom");
+
+    // Helper function to parse DD/MM/YYYY to Date object
+    function parseDate(dateString) {
+        if (!dateString) return null;
+        const parts = dateString.split('/');
+        if (parts.length !== 3) return null;
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const year = parseInt(parts[2]);
+        const date = new Date(year, month, day);
+        if (Number.isNaN(date.getTime())) return null;
+        return date;
+    }
+
+    // Helper function to parse YYYY-MM-DD format (from date input) safely without timezone issues
+    function parseYYYYMMDD(dateString) {
+        if (!dateString) return null;
+        const parts = dateString.split('-');
+        if (parts.length !== 3) return null;
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const day = parseInt(parts[2]);
+        const date = new Date(year, month, day);
+        if (Number.isNaN(date.getTime())) return null;
+        return date;
+    }
+
+    // Helper function to format date as DD/MM/YYYY
+    function formatDate(date) {
+        const dd = String(date.getDate()).padStart(2, '0');
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const yyyy = date.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // Set today's date in DD/MM/YYYY format
+    function setTodayDate() {
+        if (invoiceDateInput) {
+            let dateValue = invoiceDateInput.value;
+            let dateToSet;
+
+            if (dateValue) {
+                // If there's already a value, check if it's in YYYY-MM-DD format and convert it
+                if (dateValue.includes('-')) {
+                    // Format is YYYY-MM-DD
+                    dateToSet = parseYYYYMMDD(dateValue);
+                } else if (dateValue.includes('/')) {
+                    // Format is already DD/MM/YYYY
+                    dateToSet = parseDate(dateValue);
+                }
+            } else {
+                // No value, use today's date
+                dateToSet = new Date();
+            }
+
+            if (dateToSet) {
+                invoiceDateInput.value = formatDate(dateToSet);
+                calculateDueDate();
+            }
+        }
+    }
+
+    // Calculate and update due date based on invoice date and deal days
+    function calculateDueDate() {
+        if (!invoiceDateInput || !dueDateInput) return;
+
+        const baseDateValue = invoiceDateInput.value;
+        if (!baseDateValue) {
+            dueDateInput.value = '';
+            return;
+        }
+
+        const baseDate = parseDate(baseDateValue);
+        if (!baseDate) {
+            return;
+        }
+
+        const dueDate = new Date(baseDate);
+
+        let dueDays = 0;
+        if (dueDaysSelect?.value === 'custom') {
+            dueDays = parseInt(dueDaysCustomInput?.value) || 0;
+        } else {
+            dueDays = parseInt(dueDaysSelect?.value) || 0;
+        }
+
+        if (dueDays > 0) {
+            dueDate.setDate(dueDate.getDate() + dueDays);
+        }
+
+        dueDateInput.value = formatDate(dueDate);
+    }
+
+    // Set today's date on page load
+    setTodayDate();
+
+    // Make invoice date clickable to allow date selection
+    if (invoiceDateInput) {
+        invoiceDateInput.style.cursor = 'pointer';
+        invoiceDateInput.addEventListener('click', function() {
+            // Create a hidden date input for the date picker
+            const hiddenDateInput = document.createElement('input');
+            hiddenDateInput.type = 'date';
+            hiddenDateInput.style.display = 'none';
+
+            // Set current date if exists
+            if (invoiceDateInput.value) {
+                const currentDate = parseDate(invoiceDateInput.value);
+                if (currentDate) {
+                    const yyyy = currentDate.getFullYear();
+                    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(currentDate.getDate()).padStart(2, '0');
+                    hiddenDateInput.value = `${yyyy}-${mm}-${dd}`;
+                }
+            }
+
+            document.body.appendChild(hiddenDateInput);
+
+            hiddenDateInput.addEventListener('change', function() {
+                if (hiddenDateInput.value) {
+                    // Parse YYYY-MM-DD format safely
+                    const selectedDate = parseYYYYMMDD(hiddenDateInput.value);
+                    if (selectedDate) {
+                        invoiceDateInput.value = formatDate(selectedDate);
+                        calculateDueDate();
+                    }
+                }
+                document.body.removeChild(hiddenDateInput);
+            });
+
+            // Open the date picker
+            hiddenDateInput.click();
+        });
+    }
+
+    // Listen for direct input on invoice date
+    if (invoiceDateInput) {
+        invoiceDateInput.addEventListener('change', calculateDueDate);
+        invoiceDateInput.addEventListener('blur', function() {
+            // Validate and reformat the date if user typed it manually
+            if (invoiceDateInput.value) {
+                const parsedDate = parseDate(invoiceDateInput.value);
+                if (parsedDate) {
+                    invoiceDateInput.value = formatDate(parsedDate);
+                    calculateDueDate();
+                }
+            }
+        });
+    }
+
+    // Listen for changes on deal days select
+    if (dueDaysSelect) {
+        dueDaysSelect.addEventListener('change', function() {
+            if (dueDaysSelect.value === 'custom') {
+                dueDaysCustomInput?.classList.remove('d-none');
+                dueDaysCustomInput?.focus();
+            } else {
+                dueDaysCustomInput?.classList.add('d-none');
+                calculateDueDate();
+            }
+        });
+    }
+
+    // Listen for changes on custom deal days input
+    if (dueDaysCustomInput) {
+        dueDaysCustomInput.addEventListener('change', calculateDueDate);
+    }
+});
+</script>
+
 </body>
 
 </html>
