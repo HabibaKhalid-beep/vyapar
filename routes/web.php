@@ -177,7 +177,8 @@ Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextN
     Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts');
     Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
     Route::post('/bank-accounts/transfer', [BankAccountController::class, 'transfer'])->name('bank-accounts.transfer');
-    Route::get('cash-in-hand', [BankAccountController::class, 'cashInHand'])->name('cash-in-hand');
+   Route::get('cash-in-hand', [BankAccountController::class, 'cashInHand'])->name('cash-in-hand');
+Route::post('cash-in-hand/adjust', [BankAccountController::class, 'adjustCash'])->name('cash-in-hand.adjust');
     Route::get('/bank-accounts/{bankAccount}', [BankAccountController::class, 'show'])->name('bank-accounts.show');
     Route::get('/bank-accounts/{bankAccount}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit');
     Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');

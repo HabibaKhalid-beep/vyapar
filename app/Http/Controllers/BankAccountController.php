@@ -321,4 +321,50 @@ class BankAccountController extends Controller
                 : 'Selected bank accounts marked inactive.',
         ]);
     }
+    public function adjustCash(Request $request)
+{
+    $request->validate([
+        'type'        => 'required|in:add,reduce',
+        'amount'      => 'required|numeric|min:0.01',
+        'date'        => 'required|date',
+        'description' => 'nullable|string|max:500',
+    ]);
+
+    try {
+        DB::transaction(function () use ($request) {
+            $cashAccount = BankAccount::cashAccount();
+            $amount      = (float) $request->amount;
+            $isAdd       = $request->type === 'add';
+
+            if (!$isAdd && ($cashAccount->opening_balance - $amount) < 0) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'amount' => ['Cash cannot go below zero. Current balance: Rs ' . number_format($cashAccount->opening_balance, 0)],
+                ]);
+            }
+
+            $cashAccount->opening_balance = $isAdd
+                ? (float) $cashAccount->opening_balance + $amount
+                : (float) $cashAccount->opening_balance - $amount;
+            $cashAccount->save();
+
+            BankTransaction::create([
+                'from_bank_account_id' => $isAdd ? null : $cashAccount->id,
+                'to_bank_account_id'   => $isAdd ? $cashAccount->id : null,
+                'type'                 => $isAdd ? 'cash_adjust_in' : 'cash_adjust_out',
+                'amount'               => $amount,
+                'transaction_date'     => $request->date,
+                'reference_type'       => 'adjustment',
+                'reference_id'         => null,
+                'description'          => $request->description ?: ($isAdd ? 'Cash Added (Adjustment)' : 'Cash Reduced (Adjustment)'),
+            ]);
+        });
+
+        return response()->json(['success' => true, 'message' => 'Cash adjusted successfully.']);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json(['success' => false, 'message' => collect($e->errors())->flatten()->first()], 422);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
 }
