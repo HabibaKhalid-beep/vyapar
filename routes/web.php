@@ -34,6 +34,7 @@ use App\Models\Barcode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Http\Controllers\ChequeController;
+use App\Http\Controllers\CompanyController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -354,6 +355,15 @@ Route::get('reports/all-parties',                  [ReportController::class, 'al
 Route::get('reports/party-report-by-items',        [ReportController::class, 'partyReportByItems']);
 Route::get('reports/sale-purchase-by-party',       [ReportController::class, 'salePurchaseByParty']);
 Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
+// Company management — inside the dashboard middleware group
+Route::get('/company',                       [CompanyController::class, 'index'])         ->name('company.index');
+Route::post('/company',                      [CompanyController::class, 'store'])         ->name('company.store');
+Route::post('/company/{company}/switch',     [CompanyController::class, 'switchCompany'])->name('company.switch');
+Route::put('/company/{company}/rename',      [CompanyController::class, 'rename'])       ->name('company.rename');
+Route::post('/company/{company}/rename',     [CompanyController::class, 'rename']);
+Route::delete('/company/{company}',          [CompanyController::class, 'destroy'])      ->name('company.destroy');
+Route::get('/company/current',               [CompanyController::class, 'currentCompany'])->name('company.current');
+Route::put('/company/{company}/rename', [CompanyController::class, 'rename'])->name('company.rename');
 
 // ═══════════════════════════════════════
 // ADD THESE ROUTES inside the auth middleware group in web.php
@@ -474,7 +484,8 @@ Route::get('/payments-in/linkable-sales/{party}', [PaymentInController::class, '
 
 });
 
- Route::get('/sales/{sale}/duplicate', [SaleController::class, 'duplicate'])->name('sale.duplicate');
+
+
 
 
  Route::post('/items/bulk-update', [ItemController::class, 'bulkUpdate'])->name('items.bulk-update');

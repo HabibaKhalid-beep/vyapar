@@ -22,7 +22,7 @@
 <body data-page="@yield('page')">
 
 <script>
-  window.App = {
+ window.App = {
     isAuthenticated: @json(Auth::check()),
     user: {
       ...@json(Auth::user()?->only('id', 'name')),
@@ -31,7 +31,8 @@
       permissions: @json(Auth::user()?->getAllPermissions() ?? [])
     },
     logoutUrl: "{{ route('logout') }}",
-    csrfToken: "{{ csrf_token() }}"
+    csrfToken: "{{ csrf_token() }}",
+    current_company_id: @json(session('current_company_id') ?? Auth::user()?->current_company_id ?? null)
   };
 </script>
 

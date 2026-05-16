@@ -159,6 +159,8 @@ a:hover {
   overflow-y: auto;
   overflow-x: hidden;
   transition: width .25s ease;
+   z-index: 100001;
+     width: 260px;
 }
 
 /* Sidebar Search */
@@ -432,8 +434,7 @@ a:hover {
     width: 18px;
     text-align: center;
   }
-  margin-top: auto;
-}
+ 
 .sidebar-logout-btn {
   width: 100%;
   display: flex;
