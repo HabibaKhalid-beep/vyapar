@@ -2190,18 +2190,22 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
                 continue;
             }
 
-            if ($row['mode'] !== 'S' || $row['amount'] <= 0) {
+            if (!in_array($row['mode'], ['S', '-'], true) || $row['amount'] <= 0) {
                 continue;
             }
 
             if ($row['account_type'] === 'broker' && !empty($row['account_id'])) {
                 $brokerLabel = $row['account_name'] ?: ('Broker #' . $row['account_id']);
                 $detailsSuffix = $row['details'] ? ' - ' . $row['details'] : '';
+                $numberPrefix = $row['mode'] === '-' ? 'M-BR-' : 'S-BR-';
+                $descriptionPrefix = $row['mode'] === '-'
+                    ? $row['title'] . ' deducted and transferred to '
+                    : $row['title'] . ' transferred to ';
 
                 Transaction::create([
                     'party_id' => $sale->party_id,
                     'type' => 'party to party[paid]',
-                    'number' => 'S-BR-' . ($sale->bill_number ?: $sale->id) . '-' . str_pad((string) ($row['sort_order'] + 1), 2, '0', STR_PAD_LEFT),
+                    'number' => $numberPrefix . ($sale->bill_number ?: $sale->id) . '-' . str_pad((string) ($row['sort_order'] + 1), 2, '0', STR_PAD_LEFT),
                     'transfer_group' => $this->saleLedgerTransferGroup($sale),
                     'date' => $sale->invoice_date ?? now(),
                     'total' => $row['amount'],
@@ -2213,7 +2217,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
                     'due_date' => $sale->due_date,
                     'status' => 'posted',
                     'broker_id' => $row['account_id'],
-                    'description' => $row['title'] . ' transferred to ' . $brokerLabel . ' against Invoice #' . ($sale->bill_number ?: $sale->id) . $detailsSuffix,
+                    'description' => $descriptionPrefix . $brokerLabel . ' against Invoice #' . ($sale->bill_number ?: $sale->id) . $detailsSuffix,
                 ]);
 
                 continue;
@@ -2228,13 +2232,14 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
                 continue;
             }
 
-            $baseNumber = 'ADJ-' . ($sale->bill_number ?: $sale->id) . '-' . str_pad((string) ($row['sort_order'] + 1), 2, '0', STR_PAD_LEFT);
+            $baseNumber = ($row['mode'] === '-' ? 'DED-' : 'ADJ-') . ($sale->bill_number ?: $sale->id) . '-' . str_pad((string) ($row['sort_order'] + 1), 2, '0', STR_PAD_LEFT);
             $detailsSuffix = $row['details'] ? ' - ' . $row['details'] : '';
             $targetLabel = $targetParty->name ?: ($row['account_name'] ?? 'Selected Account');
+            $titlePrefix = $row['mode'] === '-' ? ($row['title'] . ' deducted') : $row['title'];
 
             Transaction::create([
-                'party_id' => $sale->party_id,
-                'counter_party_id' => $targetParty->id,
+                'party_id' => $targetParty->id,
+                'counter_party_id' => $sale->party_id,
                 'type' => 'party to party[received]',
                 'number' => $baseNumber . '-DR',
                 'transfer_group' => $this->saleLedgerTransferGroup($sale),
@@ -2247,12 +2252,12 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
                 'running_balance' => 0,
                 'due_date' => $sale->due_date,
                 'status' => 'posted',
-                'description' => $row['title'] . ' against Invoice #' . ($sale->bill_number ?: $sale->id) . ' for ' . $targetLabel . $detailsSuffix,
+                'description' => $titlePrefix . ' against Invoice #' . ($sale->bill_number ?: $sale->id) . ' for ' . ($sale->party?->name ?: 'Sale Party') . $detailsSuffix,
             ]);
 
             Transaction::create([
-                'party_id' => $targetParty->id,
-                'counter_party_id' => $sale->party_id,
+                'party_id' => $sale->party_id,
+                'counter_party_id' => $targetParty->id,
                 'type' => 'party to party[paid]',
                 'number' => $baseNumber . '-CR',
                 'transfer_group' => $this->saleLedgerTransferGroup($sale),
@@ -2265,7 +2270,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
                 'running_balance' => 0,
                 'due_date' => $sale->due_date,
                 'status' => 'posted',
-                'description' => $row['title'] . ' linked from Invoice #' . ($sale->bill_number ?: $sale->id) . ' for ' . ($sale->party?->name ?: 'Sale Party') . $detailsSuffix,
+                'description' => $titlePrefix . ' linked from Invoice #' . ($sale->bill_number ?: $sale->id) . ' for ' . $targetLabel . $detailsSuffix,
             ]);
 
             $affectedPartyIds[] = $targetParty->id;

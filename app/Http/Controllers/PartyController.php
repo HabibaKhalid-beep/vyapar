@@ -785,7 +785,18 @@ public function transactions(Party $party)
 
     $manualLedgerTransactions = $party->transactions
         ->reject(function ($txn) {
-            return in_array(strtolower((string) $txn->type), ['sale', 'invoice', 'pos', 'sale_return', 'purchase', 'purchase_return', 'payment_in', 'payment_out'], true);
+            return in_array(strtolower((string) $txn->type), [
+                'sale',
+                'invoice',
+                'pos',
+                'sale_return',
+                'purchase',
+                'purchase_return',
+                'payment_in',
+                'payment_out',
+                'party to party[received]',
+                'party to party[paid]',
+            ], true);
         })
         ->map(function ($txn) {
         $effect = $txn->ledgerEffectValue();

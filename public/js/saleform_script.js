@@ -652,9 +652,39 @@ function initializeForm(context) {
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     const todayValue = `${yyyy}-${mm}-${dd}`;
+    const todayDisplayValue = `${dd}/${mm}/${yyyy}`;
     $ctx.find('.invoice-date').val(todayValue);
     $ctx.find('.order-date').val(todayValue);
     $ctx.find('.due-date').val(todayValue);
+
+    function parseFlexibleDate(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return null;
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            const [year, month, day] = raw.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+            const [day, month, year] = raw.split('/').map(Number);
+            const date = new Date(year, month - 1, day);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        const fallback = new Date(raw);
+        return Number.isNaN(fallback.getTime()) ? null : fallback;
+    }
+
+    function formatDisplayDate(value) {
+        const parsed = parseFlexibleDate(value);
+        if (!parsed) return '';
+        const displayDay = String(parsed.getDate()).padStart(2, '0');
+        const displayMonth = String(parsed.getMonth() + 1).padStart(2, '0');
+        const displayYear = parsed.getFullYear();
+        return `${displayDay}/${displayMonth}/${displayYear}`;
+    }
   $ctx.find('.due-days-select').val('0');
 
     // If editing an existing sale, populate the form with saved values
@@ -737,7 +767,7 @@ if (!window.editSaleData) {
 
         if (!baseDateValue) return;
 
-        const baseDate = new Date(baseDateValue);
+        const baseDate = parseFlexibleDate(baseDateValue);
         if (Number.isNaN(baseDate.getTime())) return;
 
         const dueDate = new Date(baseDate);
@@ -745,10 +775,10 @@ if (!window.editSaleData) {
             dueDate.setDate(dueDate.getDate() + days);
         }
 
-        const yyyy = dueDate.getFullYear();
-        const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(dueDate.getDate()).padStart(2, '0');
-        $dueDate.val(`${yyyy}-${mm}-${dd}`);
+        const displayDay = String(dueDate.getDate()).padStart(2, '0');
+        const displayMonth = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const displayYear = dueDate.getFullYear();
+        $dueDate.val(`${displayDay}/${displayMonth}/${displayYear}`);
     }
 
     function syncDealDaysFromSale(sale) {
@@ -1358,10 +1388,17 @@ if (!window.editSaleData) {
 
     function populateFormFromSale(sale) {
         // Fill header fields
+        let selectedPartyRecord = null;
         if (hasCustomPartyDropdown) {
             const party = (window.parties || []).find(p => String(p.id) === String(sale.party_id || ''));
             $ctx.find('.party-id').val(sale.party_id || '');
             if (party) {
+                selectedPartyRecord = {
+                    ...party,
+                    billing_address: party.billing_address || sale.billing_address || '',
+                    shipping_address: party.shipping_address || sale.shipping_address || '',
+                    phone: party.phone || sale.phone || '',
+                };
                 const phone = party.phone || sale.phone || '';
                 const phoneNumber2 = party.phone_number_2 || '';
                 const ptclNumber = party.ptcl_number || party.ptcl || '';
@@ -1384,6 +1421,21 @@ if (!window.editSaleData) {
                 $('#hiddenBilling').val(billingDetails.trim());
                 $('#hiddenShipping').val(shippingAddress);
             } else {
+                selectedPartyRecord = sale.party_id ? {
+                    id: sale.party_id,
+                    name: sale.party_name || sale.party?.name || 'Select Party',
+                    phone: sale.phone || sale.party?.phone || '',
+                    phone_number_2: sale.party?.phone_number_2 || '',
+                    ptcl_number: sale.party?.ptcl_number || '',
+                    email: sale.party?.email || '',
+                    city: sale.party?.city || '',
+                    address: sale.party?.address || '',
+                    billing_address: sale.billing_address || sale.party?.billing_address || '',
+                    shipping_address: sale.shipping_address || sale.party?.shipping_address || '',
+                    due_days: sale.party?.due_days || 0,
+                    opening_balance: sale.party?.opening_balance || 0,
+                    transaction_type: sale.party?.transaction_type || '',
+                } : null;
                 setPartyDropdownDisplay(sale.party_name || 'Select Party');
             }
         } else {
@@ -1406,11 +1458,16 @@ if (!window.editSaleData) {
         if (!$ctx.find('.shipping-address').val()) {
             $ctx.find('.shipping-address').val(sale.shipping_address || '');
         }
+
+        if (typeof window.initializeSelectedPartyCard === 'function') {
+            window.initializeSelectedPartyCard(selectedPartyRecord);
+        }
+
         $ctx.find('.bill-number').val(sale.bill_number || '');
-        $ctx.find('.invoice-date').val(sale.invoice_date ? sale.invoice_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
-        $ctx.find('.order-date').val(sale.order_date ? sale.order_date.split(' ')[0] : `${yyyy}-${mm}-${dd}`);
+        $ctx.find('.invoice-date').val(sale.invoice_date ? formatDisplayDate(sale.invoice_date.split(' ')[0]) : todayDisplayValue);
+        $ctx.find('.order-date').val(sale.order_date ? formatDisplayDate(sale.order_date.split(' ')[0]) : todayDisplayValue);
         syncDealDaysFromSale(sale);
-        $ctx.find('.due-date').val(sale.due_date ? sale.due_date.split(' ')[0] : '');
+        $ctx.find('.due-date').val(sale.due_date ? formatDisplayDate(sale.due_date.split(' ')[0]) : '');
 
         // Items
         $ctx.find('.item-rows').empty();

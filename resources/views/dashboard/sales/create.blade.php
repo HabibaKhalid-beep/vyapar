@@ -4727,7 +4727,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if (partyRecord.email) billingContent += "Em: " + partyRecord.email + "\n";
         const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
         if (addrParts.length) billingContent += "📍 " + addrParts.join(", ");
-        setFieldValue(".billing-address", billingContent.trim());
+        setFieldValue(".billing-address", partyRecord.billing_address || partyRecord.address || "");
+        setFieldValue(".shipping-address", partyRecord.shipping_address || "");
 
         // ===== SHOW PARTY CARD IN SEARCH BAR =====
         renderPartyCard(partyRecord);
@@ -4838,7 +4839,11 @@ document.addEventListener("DOMContentLoaded", function() {
         const baseDateInput = document.querySelector(".invoice-date") || document.querySelector(".order-date");
         if (!dueDateInput || !baseDateInput || !dealDaysSelect) return;
 
-        const dueDays = Number(partyRecord.due_days || partyRecord.dueDays || 0);
+        const existingSale = window.editSaleData || {};
+        const hasSavedDueDate = Boolean(existingSale.due_date);
+        const dueDays = hasSavedDueDate
+            ? Number(existingSale.deal_days ?? 0)
+            : Number(partyRecord.due_days || partyRecord.dueDays || 0);
         const baseDateValue = baseDateInput.value;
 
         if (dueDays > 0) {
@@ -4858,6 +4863,18 @@ document.addEventListener("DOMContentLoaded", function() {
             if (dealDaysCustomInput) dealDaysCustomInput.value = '';
         }
 
+        if (hasSavedDueDate) {
+            const savedDueDate = String(existingSale.due_date || '');
+            const parsedSavedDueDate = savedDueDate.includes('/')
+                ? null
+                : new Date(savedDueDate);
+
+            dueDateInput.value = parsedSavedDueDate && !Number.isNaN(parsedSavedDueDate.getTime())
+                ? `${String(parsedSavedDueDate.getDate()).padStart(2, '0')}/${String(parsedSavedDueDate.getMonth() + 1).padStart(2, '0')}/${parsedSavedDueDate.getFullYear()}`
+                : savedDueDate;
+            return;
+        }
+
         if (!baseDateValue) {
             return;
         }
@@ -4872,6 +4889,44 @@ document.addEventListener("DOMContentLoaded", function() {
         const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
         const dd = String(dueDate.getDate()).padStart(2, '0');
         dueDateInput.value = `${dd}/${mm}/${yyyy}`;
+    };
+
+    window.renderPartyCard = renderPartyCard;
+    window.setPartyFieldValues = setPartyFieldValues;
+    window.setDueDateFromParty = setDueDateFromParty;
+    window.syncCashPartyLayout = syncCashPartyLayout;
+    window.initializeSelectedPartyCard = function (partyOverride = null) {
+        const partyIdValue = document.querySelector('.party-id')?.value?.trim();
+        const sale = window.editSaleData || {};
+        const saleParty = sale.party || {};
+        const partyRecord = partyOverride
+            || (window.parties || []).find((party) => String(party.id) === String(partyIdValue))
+            || (partyIdValue ? {
+                id: partyIdValue,
+                name: sale.party_name || saleParty.name || '',
+                phone: sale.phone || saleParty.phone || '',
+                phone_number_2: saleParty.phone_number_2 || '',
+                ptcl_number: saleParty.ptcl_number || '',
+                email: saleParty.email || '',
+                city: saleParty.city || '',
+                address: saleParty.address || '',
+                billing_address: sale.billing_address || saleParty.billing_address || '',
+                shipping_address: sale.shipping_address || saleParty.shipping_address || '',
+                due_days: saleParty.due_days || 0,
+                opening_balance: saleParty.opening_balance || 0,
+                transaction_type: saleParty.transaction_type || '',
+            } : null);
+
+        if (!partyRecord || !partyRecord.name) {
+            return;
+        }
+
+        renderPartyCard(partyRecord);
+        setPartyFieldValues(partyRecord);
+        setDueDateFromParty(partyRecord);
+        partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
+        showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
+        syncCashPartyLayout();
     };
 
 
@@ -5192,18 +5247,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Edit mode: show card if party already selected
-    const existingPartyId = document.querySelector('.party-id')?.value;
-    if (existingPartyId) {
-        const partyRecord = (window.parties || []).find(p => String(p.id) === String(existingPartyId));
-        if (partyRecord) {
-            renderPartyCard(partyRecord);
-            setPartyFieldValues(partyRecord);
-            setDueDateFromParty(partyRecord);
-            partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
-            showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
-            syncCashPartyLayout();
-        }
-    }
+    window.initializeSelectedPartyCard();
+    setTimeout(() => window.initializeSelectedPartyCard(), 50);
 });
 </script>
 
@@ -5252,6 +5297,16 @@ document.addEventListener("DOMContentLoaded", function() {
     // Set today's date in DD/MM/YYYY format
     function setTodayDate() {
         if (invoiceDateInput) {
+            if (window.editSaleData?.due_date && dueDateInput) {
+                const savedDueDate = String(window.editSaleData.due_date || '');
+                const parsedSavedDueDate = savedDueDate.includes('/')
+                    ? null
+                    : new Date(savedDueDate);
+                dueDateInput.value = parsedSavedDueDate && !Number.isNaN(parsedSavedDueDate.getTime())
+                    ? `${String(parsedSavedDueDate.getDate()).padStart(2, '0')}/${String(parsedSavedDueDate.getMonth() + 1).padStart(2, '0')}/${parsedSavedDueDate.getFullYear()}`
+                    : savedDueDate;
+            }
+
             let dateValue = invoiceDateInput.value;
             let dateToSet;
 
@@ -5271,7 +5326,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (dateToSet) {
                 invoiceDateInput.value = formatDate(dateToSet);
-                calculateDueDate();
+                if (!window.editSaleData?.due_date) {
+                    calculateDueDate();
+                }
             }
         }
     }

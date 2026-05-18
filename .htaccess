@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # If the request is already for /public, don't loop.
+    RewriteRule ^public/ - [L]
+
+    # Serve existing root files/directories normally.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route everything else through the public directory.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
