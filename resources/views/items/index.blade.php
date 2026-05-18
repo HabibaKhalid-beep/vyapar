@@ -277,7 +277,7 @@
 .il-item-qty.pos { color: #16a34a; }
 .il-item-netw { width: 82px; flex-shrink: 0; text-align: right; font-size: 14px; color: #6b7280; font-weight: 600; }
 .il-item-netw.neg { color: #dc2626; }
-.il-item-netw.pos { color: #16a34a; }
+.il-item-netw.pos { color: #dc2626; }
 
 .il-item-more-wrap {
     position: relative; width: 24px; height: 24px; flex-shrink: 0;

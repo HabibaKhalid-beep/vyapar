@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Broker;
 use App\Models\Sale;
+use App\Models\SaleDetail;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class BrokerController extends Controller
@@ -14,9 +16,16 @@ class BrokerController extends Controller
     public function index(): View
     {
         $brokers = Broker::query()
-            ->withSum('sales as broker_sales_total', 'broker_amount')
             ->latest()
             ->get();
+
+        $brokerSalesTotals = $this->buildBrokerSalesTotalsMap();
+
+        $brokers->each(function (Broker $broker) use ($brokerSalesTotals) {
+            $brokerSalesTotal = (float) ($brokerSalesTotals[$broker->id] ?? 0);
+            $broker->setAttribute('broker_sales_total', $brokerSalesTotal);
+            $broker->setAttribute('broker_summary_total', (float) ($broker->total_brokerage ?? 0) + $brokerSalesTotal);
+        });
 
         $salesTypes = Sale::query()
             ->whereNotNull('type')
@@ -90,7 +99,9 @@ class BrokerController extends Controller
 
     public function history(Request $request, Broker $broker): JsonResponse
     {
-        $query = $broker->sales()->with('party');
+        $query = Sale::query()
+            ->with(['party', 'details'])
+            ->whereNotNull('invoice_date');
 
         if ($request->filled('type')) {
             $query->where('type', $request->input('type'));
@@ -112,8 +123,12 @@ class BrokerController extends Controller
             }
         }
 
-        $sales = $query->latest('invoice_date')->limit(100)->get()->map(function (Sale $sale) {
-            $brokerAmount = (float) $sale->broker_amount;
+        $sales = $query->latest('invoice_date')->limit(300)->get()
+            ->map(function (Sale $sale) use ($broker) {
+            $brokerAmount = (float) ($this->resolveBrokerAmountsForSale($sale)[$broker->id] ?? 0);
+            if ($brokerAmount <= 0) {
+                return null;
+            }
             $netAmount = max(0, ((float) $sale->grand_total) - $brokerAmount);
 
             return [
@@ -130,9 +145,67 @@ class BrokerController extends Controller
                 'net_amount' => $netAmount,
                 'status' => $sale->status,
             ];
-        });
+        })->filter()->values();
 
         return response()->json(['sales' => $sales]);
+    }
+
+    private function buildBrokerSalesTotalsMap(): array
+    {
+        $totals = [];
+
+        Sale::query()
+            ->with('details')
+            ->select(['id', 'broker_id', 'broker_amount'])
+            ->chunkById(200, function (Collection $sales) use (&$totals) {
+                foreach ($sales as $sale) {
+                    foreach ($this->resolveBrokerAmountsForSale($sale) as $brokerId => $amount) {
+                        if ($brokerId <= 0 || $amount <= 0) {
+                            continue;
+                        }
+
+                        $totals[$brokerId] = round(($totals[$brokerId] ?? 0) + $amount, 2);
+                    }
+                }
+            });
+
+        return $totals;
+    }
+
+    private function resolveBrokerAmountsForSale(Sale $sale): array
+    {
+        $details = $sale->details;
+        $rows = is_array($details?->custom_expenses) ? $details->custom_expenses : [];
+        $totals = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $accountType = strtolower(trim((string) ($row['account_type'] ?? '')));
+            $brokerId = (int) ($row['account_id'] ?? $row['brokerId'] ?? 0);
+            $amount = (float) ($row['amount'] ?? $row['value'] ?? 0);
+
+            if ($accountType !== 'broker' || $brokerId <= 0 || $amount <= 0) {
+                continue;
+            }
+
+            $totals[$brokerId] = round(($totals[$brokerId] ?? 0) + $amount, 2);
+        }
+
+        if (!empty($totals)) {
+            return $totals;
+        }
+
+        $fallbackBrokerId = (int) ($sale->broker_id ?? 0);
+        $fallbackAmount = round((float) ($sale->broker_amount ?? 0), 2);
+
+        if ($fallbackBrokerId > 0 && $fallbackAmount > 0) {
+            return [$fallbackBrokerId => $fallbackAmount];
+        }
+
+        return [];
     }
 
     private function validateBroker(Request $request): array

@@ -2838,19 +2838,15 @@ textarea.meta-control,
     // Optional doc type (avoid JS error)
    window.docType = "delivery_challan";
 
-    @if(isset($sale))
+    @if(isset($challan))
         // Edit mode
-        window.saleStoreUrl = "{{ route('delivery-challan.update', $sale->id) }}";
+        window.saleStoreUrl = "{{ route('delivery-challan.update', $challan->id) }}";
         window.saleMethod = 'PUT';
-        window.editSaleData = @json($sale);
+        window.editSaleData = @json($challan);
 
-    @elseif(isset($convertedSaleData))
-        // Convert from estimate / sale order / challan
-        window.editSaleData = @json($convertedSaleData);
-        window.sourceEstimateId = @json($convertedSaleData['source_estimate_id'] ?? null);
-        window.sourceSaleOrderId = @json($convertedSaleData['source_sale_order_id'] ?? null);
-        window.sourceChallanId = @json($convertedSaleData['source_challan_id'] ?? null);
-        window.sourceProformaId = @json($convertedSaleData['source_proforma_id'] ?? null);
+    @elseif(isset($duplicateChallan))
+        // Duplicate challan
+        window.editSaleData = @json($duplicateChallan);
     @endif
 </script>
 
@@ -4614,7 +4610,8 @@ const setPartyFieldValues = (partyRecord = {}) => {
     if (partyRecord.email) billingContent += "Em: " + partyRecord.email + "\n";
     const addrParts = [partyRecord.city, partyRecord.billing_address || partyRecord.address].filter(Boolean);
     if (addrParts.length) billingContent += "📍 " + addrParts.join(", ");
-    setFieldValue(".billing-address", billingContent.trim());
+    setFieldValue(".billing-address", partyRecord.billing_address || partyRecord.address || "");
+    setFieldValue(".shipping-address", partyRecord.shipping_address || "");
 
     // ===== SHOW PARTY CARD IN SEARCH BAR =====
     renderPartyCard(partyRecord);
@@ -4713,7 +4710,11 @@ const renderPartyCard = (partyRecord = {}) => {
         const baseDateInput = document.querySelector(".invoice-date") || document.querySelector(".order-date");
         if (!dueDateInput || !baseDateInput || !dealDaysSelect) return;
 
-        const dueDays = Number(partyRecord.due_days || partyRecord.dueDays || 0);
+        const existingSale = window.editSaleData || {};
+        const hasSavedDueDate = Boolean(existingSale.due_date);
+        const dueDays = hasSavedDueDate
+            ? Number(existingSale.deal_days ?? 0)
+            : Number(partyRecord.due_days || partyRecord.dueDays || 0);
         const baseDateValue = baseDateInput.value;
 
         if (dueDays > 0) {
@@ -4733,6 +4734,18 @@ const renderPartyCard = (partyRecord = {}) => {
             if (dealDaysCustomInput) dealDaysCustomInput.value = '';
         }
 
+        if (hasSavedDueDate) {
+            const savedDueDate = String(existingSale.due_date || '');
+            const parsedSavedDueDate = savedDueDate.includes('/')
+                ? null
+                : new Date(savedDueDate);
+
+            dueDateInput.value = parsedSavedDueDate && !Number.isNaN(parsedSavedDueDate.getTime())
+                ? `${String(parsedSavedDueDate.getDate()).padStart(2, '0')}/${String(parsedSavedDueDate.getMonth() + 1).padStart(2, '0')}/${parsedSavedDueDate.getFullYear()}`
+                : savedDueDate;
+            return;
+        }
+
         if (!baseDateValue) {
             return;
         }
@@ -4749,25 +4762,35 @@ const renderPartyCard = (partyRecord = {}) => {
         dueDateInput.value = `${yyyy}-${mm}-${dd}`;
     };
 
-    const existingPartyId = partyIdInput?.value?.trim();
-    if (existingPartyId) {
-        const selectedParty = (window.parties || []).find((party) => String(party.id) === String(existingPartyId));
+    window.renderPartyCard = renderPartyCard;
+    window.setPartyFieldValues = setPartyFieldValues;
+    window.setDueDateFromParty = setDueDateFromParty;
+    window.syncCashPartyLayout = syncCashPartyLayout;
+    window.initializeSelectedPartyCard = function (partyOverride = null) {
+        const existingPartyId = partyIdInput?.value?.trim();
         const sale = window.editSaleData || {};
-        const partyRecord = selectedParty || {
-            id: existingPartyId,
-            name: sale.party_name || sale.party?.name || '',
-            phone: sale.phone || sale.party?.phone || '',
-            phone_number_2: sale.party?.phone_number_2 || '',
-            ptcl_number: sale.party?.ptcl_number || '',
-            email: sale.party?.email || '',
-            city: sale.party?.city || '',
-            address: sale.party?.address || '',
-            billing_address: sale.billing_address || sale.party?.billing_address || '',
-            shipping_address: sale.shipping_address || sale.party?.shipping_address || '',
-            due_days: sale.party?.due_days || 0,
-            opening_balance: sale.party?.opening_balance || 0,
-            transaction_type: sale.party?.transaction_type || '',
-        };
+        const saleParty = sale.party || {};
+        const partyRecord = partyOverride
+            || (window.parties || []).find((party) => String(party.id) === String(existingPartyId))
+            || (existingPartyId ? {
+                id: existingPartyId,
+                name: sale.party_name || saleParty.name || '',
+                phone: sale.phone || saleParty.phone || '',
+                phone_number_2: saleParty.phone_number_2 || '',
+                ptcl_number: saleParty.ptcl_number || '',
+                email: saleParty.email || '',
+                city: saleParty.city || '',
+                address: saleParty.address || '',
+                billing_address: sale.billing_address || saleParty.billing_address || '',
+                shipping_address: sale.shipping_address || saleParty.shipping_address || '',
+                due_days: saleParty.due_days || 0,
+                opening_balance: saleParty.opening_balance || 0,
+                transaction_type: saleParty.transaction_type || '',
+            } : null);
+
+        if (!partyRecord || !partyRecord.name) {
+            return;
+        }
 
         renderPartyCard(partyRecord);
         setPartyFieldValues(partyRecord);
@@ -4775,7 +4798,10 @@ const renderPartyCard = (partyRecord = {}) => {
         partySelectorGroup?.setAttribute('data-cash-party-visible', 'true');
         showPartyWrap?.setAttribute('data-cash-link-armed', 'false');
         syncCashPartyLayout();
-    }
+    };
+
+    window.initializeSelectedPartyCard();
+    setTimeout(() => window.initializeSelectedPartyCard(), 50);
 
 
     dropdownMenu.addEventListener("click", function(e) {
@@ -5313,6 +5339,16 @@ document.addEventListener("DOMContentLoaded", function() {
     // Set today's date in DD/MM/YYYY format
     function setTodayDate() {
         if (invoiceDateInput) {
+            if (window.editSaleData?.due_date && dueDateInput) {
+                const savedDueDate = String(window.editSaleData.due_date || '');
+                const parsedSavedDueDate = savedDueDate.includes('/')
+                    ? null
+                    : new Date(savedDueDate);
+                dueDateInput.value = parsedSavedDueDate && !Number.isNaN(parsedSavedDueDate.getTime())
+                    ? `${String(parsedSavedDueDate.getDate()).padStart(2, '0')}/${String(parsedSavedDueDate.getMonth() + 1).padStart(2, '0')}/${parsedSavedDueDate.getFullYear()}`
+                    : savedDueDate;
+            }
+
             let dateValue = invoiceDateInput.value;
             let dateToSet;
 
@@ -5332,7 +5368,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (dateToSet) {
                 invoiceDateInput.value = formatDate(dateToSet);
-                calculateDueDate();
+                if (!window.editSaleData?.due_date) {
+                    calculateDueDate();
+                }
             }
         }
     }
