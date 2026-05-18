@@ -184,10 +184,15 @@ Route::post('cash-in-hand/adjust', [BankAccountController::class, 'adjustCash'])
     Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
     Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
      // ─── Cheques ───────────────────────────────────────────────
-    Route::get('/cheques',          [ChequeController::class, 'index'])  ->name('cheques.index');
-    Route::post('/cheques',         [ChequeController::class, 'store'])  ->name('cheques.store');
-    Route::post('/cheques/adjust',  [ChequeController::class, 'adjust']) ->name('cheques.adjust');
-Route::patch('/cheques/{cheque}', [ChequeController::class, 'update'])->name('cheques.update');
+   Route::get('/cheques',                    [ChequeController::class, 'index'])        ->name('cheques.index');
+Route::post('/cheques',                   [ChequeController::class, 'store'])        ->name('cheques.store');
+Route::get('/cheques/{cheque}',           [ChequeController::class, 'show'])         ->name('cheques.show');
+Route::put('/cheques/{cheque}',           [ChequeController::class, 'update'])       ->name('cheques.update');
+Route::patch('/cheques/{cheque}',         [ChequeController::class, 'update']);       // alias
+Route::delete('/cheques/{cheque}',        [ChequeController::class, 'destroy'])      ->name('cheques.destroy');
+Route::post('/cheques/{cheque}/deposit',  [ChequeController::class, 'deposit'])      ->name('cheques.deposit');
+Route::post('/cheques/{cheque}/status',   [ChequeController::class, 'updateStatus']) ->name('cheques.status');
+Route::get('/cheques/{cheque}/history',   [ChequeController::class, 'history'])      ->name('cheques.history');
  
 
     // Purchase & Expenses

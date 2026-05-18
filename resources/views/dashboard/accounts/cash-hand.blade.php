@@ -66,14 +66,17 @@
       padding: 8px 12px; font-size: 12px; font-weight: 500;
       text-transform: uppercase; color: #7a828e;
       background: #f4f5f7; border-bottom: 1px solid #ebebeb;
-      border-right: 1px solid #ebebeb; /* Proper grid vertical line */
+      border-right: 1px solid #ebebeb;
       text-align: left; white-space: nowrap;
       position: relative; overflow: visible; user-select: none;
+      /* overflow:visible so resize handle at right edge is always clickable */
     }
     .cash-tbl th:last-child { border-right: none; }
 
     .cash-tbl th .th-inner {
-      display: flex; align-items: center; justify-content: space-between; width: 100%; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      width: calc(100% - 6px); cursor: pointer; overflow: hidden;
+      /* slightly narrower than th so handle area is never covered */
     }
     .th-sort-arrow {
       display: inline-flex; align-items: center;
@@ -84,36 +87,87 @@
     .cash-tbl th.sort-desc .th-sort-arrow { opacity: 1; }
     .th-sort-arrow::after               { content: '↑'; }
     .cash-tbl th.sort-desc .th-sort-arrow::after { content: '↓'; }
-    
+
+    /* ── DATE column always shows ↕ arrow (like img 1) ── */
+    .cash-tbl th[data-col="date"] .th-sort-arrow {
+      opacity: 1;
+      color: #6b7280;
+    }
+    .cash-tbl th[data-col="date"]:not(.sort-asc):not(.sort-desc) .th-sort-arrow::after {
+      content: '↕';
+    }
+
     .cash-tbl th .th-filter-icon {
-      color: #a0aec0; flex-shrink: 0; cursor: pointer; transition: color .15s;
-      font-size: 11px; padding: 2px;
+      color: #a0aec0; flex-shrink: 0; cursor: pointer;
+      transition: color .15s, background .15s;
+      font-size: 11px; padding: 3px 4px; border-radius: 3px;
     }
-    .cash-tbl th .th-filter-icon:hover  { color: #718096; }
-    .cash-tbl th .th-filter-icon.active { color: #e53e3e !important; }
+    .cash-tbl th .th-filter-icon:hover { color: #718096; background: #e9ecef; }
 
-    /* ── COLUMN RESIZE HANDLE ── */
+    /* ── ACTIVE FILTER — white icon on red pill ── */
+    .cash-tbl th .th-filter-icon.active {
+      color: #fff !important;
+      background-color: #e53e3e !important;
+      border-radius: 3px;
+    }
+    /* red tint on entire th when that column has an active filter */
+    .cash-tbl th.filter-active {
+      background: #fff5f5 !important;
+    }
+    /* search bar red border when a value is typed */
+    .txn-search-input.has-value {
+      border-color: #e53e3e !important;
+      background-color: #fff5f5;
+    }
+
+    /* ══ COLUMN RESIZE HANDLE ══ */
     .col-resize-handle {
-      position: absolute; right: 0; top: 0; bottom: 0;
-      width: 5px; cursor: col-resize; z-index: 10;
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 6px;
+      cursor: col-resize;
+      z-index: 20;
+      background: transparent;
     }
-    .col-resize-handle:hover,
-    .col-resize-handle.resizing { background: #2563eb; opacity: .4; }
+    .col-resize-handle::after {
+      content: '';
+      position: absolute;
+      right: 1px; top: 20%; bottom: 20%;
+      width: 2px;
+      background: transparent;
+      border-radius: 2px;
+      transition: background 0.15s;
+    }
+    .col-resize-handle:hover::after,
+    .col-resize-handle.resizing::after { background: #2563eb; }
 
-    /* ── Table Cells (Updated to Show Clean Pro Grid Lines) ── */
+    /* ── Table Cells — white bg explicitly set, subtle dividers ── */
     .cash-tbl td {
       padding: 12px 10px; font-size: 13px; color: #000000; font-weight: 400;
-      border-bottom: 1px solid #ebebeb; /* Explicit row dividing lines */
-      border-right: 1px solid #ebebeb;  /* Explicit vertical dividing lines */
+      border-bottom: 1px solid #f0f0f0;
+      border-right: 1px solid #f0f0f0;
       vertical-align: middle;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      background-color: #ffffff; /* explicit white so header grey doesn't bleed */
     }
-    .cash-tbl td:last-child { border-right: none; } /* Clear out outer border on last column */
+    .cash-tbl td:last-child { border-right: none; }
 
+    /* ── Amount color GREEN ── */
     .cash-tbl td.td-price, .cash-tbl th.th-price-right { text-align: right; }
-    .cash-tbl td.td-price { color: #000000; font-weight: 500; }
-    .cash-tbl td.td-actions { padding: 2px 4px; width: 36px; text-align: center; }
-    .cash-tbl tbody tr:hover td { background: #f0f9ff; }
+    .cash-tbl td.td-price { color: #10b981; font-weight: 500; }
+
+    .cash-tbl td.td-actions { padding: 2px 4px; width: 40px; text-align: center; background-color: #ffffff; }
+
+    /* hover — only when not selected */
+    .cash-tbl tbody tr:not(.tr-highlight):hover td { background-color: #f5fbff; }
+
+    /* ── ROW HIGHLIGHT — JS-controlled class, moves on click ── */
+    .cash-tbl tbody tr.tr-highlight td {
+      background-color: #dceefa !important;  /* light blue like img 1 */
+    }
+    .cash-tbl tbody tr.tr-highlight:hover td {
+      background-color: #cce5f5 !important;
+    }
 
     /* Pure Simple Text Type Tag Style */
     .type-label {
@@ -145,17 +199,7 @@
     .il-row-menu-item.danger:hover { background: #fef2f2; }
     .il-row-menu-item i { font-size: 13px; width: 16px; }
 
-    /* Blue Excel icon button */
-    .il-export-btn {
-      background: none; border: none; cursor: pointer; padding: 2px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .il-export-btn .excel-icon {
-      width: 26px; height: 26px; background: #1d6fcc; border-radius: 4px;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-size: 13px; font-weight: 800; letter-spacing: -1px;
-      font-family: Arial, sans-serif;
-    }
+
 
     /* Search input */
     .txn-search-input {
@@ -168,10 +212,10 @@
 
     /* ══ COLUMN FILTER DROPDOWNS ══ */
     .col-filter-dd {
-      display: none; position: absolute;
+      display: none; position: fixed;
       background: #fff; border: 1px solid #cbd5e1;
       border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.15);
-      z-index: 9999; min-width: 240px; padding: 14px;
+      z-index: 9999; min-width: 220px; max-width: 260px; padding: 14px;
       text-transform: none; font-weight: normal;
     }
     .col-filter-dd.open { display: block; }
@@ -270,6 +314,78 @@
     }
     .empty-state i { font-size: 48px; margin-bottom: 12px; display: block; }
     .empty-state p { font-size: 14px; }
+
+
+    /* ══ ADJUST CASH MODAL ══ */
+    .adj-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 10100;
+      align-items: center; justify-content: center;
+    }
+    .adj-modal-overlay.open { display: flex; }
+    .adj-modal {
+      background: #fff; border-radius: 10px;
+      width: 92%; max-width: 480px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      display: flex; flex-direction: column;
+    }
+    .adj-modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .adj-modal-title { font-size: 16px; font-weight: 700; color: #1e293b; }
+    .adj-modal-close {
+      background: none; border: none; cursor: pointer;
+      font-size: 22px; color: #9ca3af; line-height: 1; padding: 0 4px;
+    }
+    .adj-modal-close:hover { color: #374151; }
+    .adj-modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+    .adj-modal-footer {
+      display: flex; justify-content: flex-end; gap: 10px;
+      padding: 14px 22px 18px; border-top: 1px solid #f0f0f0;
+    }
+
+    /* Radio buttons */
+    .adj-radio-row { display: flex; gap: 28px; }
+    .adj-radio-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; color: #374151; cursor: pointer; user-select: none;
+    }
+    .adj-radio-label input[type=radio] { accent-color: #2563eb; width: 16px; height: 16px; cursor: pointer; }
+    .adj-radio-dot { display: none; } /* not needed, using native radio */
+
+    /* Fields */
+    .adj-field { display: flex; flex-direction: column; gap: 5px; }
+    .adj-label { font-size: 13px; font-weight: 500; color: #374151; }
+    .adj-input {
+      border: 1.5px solid #e2e8f0; border-radius: 6px;
+      padding: 10px 12px; font-size: 14px; color: #1e293b;
+      outline: none; width: 100%; box-sizing: border-box;
+      transition: border-color .15s;
+    }
+    .adj-input:focus { border-color: #2563eb; }
+    .adj-preview-line { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .adj-preview-line strong { color: #1e293b; }
+
+    /* Buttons */
+    .adj-btn-cancel {
+      border: 1.5px solid #cbd5e1; background: #fff;
+      border-radius: 20px; padding: 9px 22px;
+      font-size: 13px; font-weight: 500; color: #64748b;
+      cursor: pointer; transition: background .15s;
+    }
+    .adj-btn-cancel:hover { background: #f8fafc; }
+    .adj-btn-save {
+      border: none; background: #e11d48;
+      border-radius: 20px; padding: 9px 26px;
+      font-size: 13px; font-weight: 600; color: #fff;
+      cursor: pointer; transition: background .15s;
+    }
+    .adj-btn-save:hover { background: #be123c; }
+
+    /* Resize active cursor on body */
+    body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none !important; }
   </style>
 </head>
 
@@ -283,51 +399,52 @@
         <span class="balance-amount">Rs {{ number_format($cashAccount->opening_balance ?? 500, 0) }}</span>
       </div>
 
-      <button type="button" class="btn btn-adjust-cash" data-bs-toggle="modal" data-bs-target="#adjustCashModal">
+      <button type="button" class="btn btn-adjust-cash" onclick="openAdjModal()">
         <i class="fas fa-sliders-h me-1"></i> Adjust Cash
       </button>
     </div>
 
-    <div class="modal fade" id="adjustCashModal" tabindex="-1" aria-labelledby="adjustCashModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="adjustCashModalLabel">Adjust Cash</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- ══ ADJUST CASH MODAL (custom, matches Vyapar style) ══ -->
+    <div class="adj-modal-overlay" id="adjModalOverlay" onclick="closeAdjModal()">
+      <div class="adj-modal" onclick="event.stopPropagation()">
+        <div class="adj-modal-header">
+          <span class="adj-modal-title">Adjust Cash</span>
+          <button class="adj-modal-close" onclick="closeAdjModal()">×</button>
+        </div>
+        <div class="adj-modal-body">
+          <!-- Radio row -->
+          <div class="adj-radio-row">
+            <label class="adj-radio-label">
+              <input type="radio" name="adj_type" id="cash_add" value="add" checked onchange="previewAdjustedCash()">
+              <span class="adj-radio-dot"></span>
+              Add Cash
+            </label>
+            <label class="adj-radio-label">
+              <input type="radio" name="adj_type" id="cash_reduce" value="reduce" onchange="previewAdjustedCash()">
+              <span class="adj-radio-dot"></span>
+              Reduce Cash
+            </label>
           </div>
-          <div class="modal-body">
-            <div class="col-12 mb-3">
-              <div class="d-flex gap-4">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="adjust" id="cash_add" value="add" checked onchange="previewAdjustedCash()">
-                  <label class="form-check-label" for="cash_add">Add Cash</label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="adjust" id="cash_reduce" value="reduce" onchange="previewAdjustedCash()">
-                  <label class="form-check-label" for="cash_reduce">Reduce Cash</label>
-                </div>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label for="adj_amount" class="form-label">Enter Amount <span class="text-danger">*</span></label>
-              <input type="number" class="form-control" id="adj_amount" min="0" step="1" oninput="previewAdjustedCash()" placeholder="0">
-              <div class="mt-2 small text-secondary">
-                Updated Cash: <strong id="adj_preview">Rs {{ number_format($cashAccount->opening_balance ?? 500, 0) }}</strong>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label for="adj_date" class="form-label">Adjustment Date</label>
-              <input type="date" class="form-control" id="adj_date" value="{{ date('Y-m-d') }}">
-            </div>
-            <div class="mb-3">
-              <label for="adj_desc" class="form-label">Description</label>
-              <input type="text" class="form-control" id="adj_desc" placeholder="Optional note">
-            </div>
+          <!-- Amount -->
+          <div class="adj-field">
+            <label class="adj-label">Enter Amount <span style="color:#e53e3e">*</span></label>
+            <input type="number" class="adj-input" id="adj_amount" min="0" step="1" placeholder="0" oninput="previewAdjustedCash()">
+            <div class="adj-preview-line">Updated Cash: <strong id="adj_preview">Rs {{ number_format($cashAccount->opening_balance ?? 500, 0) }}</strong></div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-danger rounded-pill" onclick="saveAdjustCash()">Save</button>
+          <!-- Date -->
+          <div class="adj-field">
+            <label class="adj-label">Adjustment Date</label>
+            <input type="date" class="adj-input" id="adj_date" value="{{ date('Y-m-d') }}">
           </div>
+          <!-- Description -->
+          <div class="adj-field">
+            <label class="adj-label">Description</label>
+            <input type="text" class="adj-input" id="adj_desc" placeholder="Optional note">
+          </div>
+        </div>
+        <div class="adj-modal-footer">
+          <button class="adj-btn-cancel" onclick="closeAdjModal()">Cancel</button>
+          <button class="adj-btn-save" onclick="saveAdjustCash()">Save</button>
         </div>
       </div>
     </div>
@@ -340,22 +457,20 @@
           class="txn-search-input"
           id="cashSearchInput"
           placeholder="Search transactions..."
-          oninput="applyAllCashFilters()"
+          oninput="applyAllCashFilters(); syncCashFilterIcons()"
         />
-        <button class="il-export-btn" title="Export to Excel" onclick="exportCashToExcel()">
-          <div class="excel-icon">X</div>
-        </button>
+
       </div>
     </div>
 
     <div class="cash-tbl-wrap">
       <table class="cash-tbl" id="cash-table">
         <colgroup>
-          <col style="width: 140px;">
-          <col style="width: 200px;">
-          <col style="width: 130px;">
-          <col style="width: 150px;">
-          <col style="width: 36px;">
+          <col style="width: 160px; min-width: 100px;">
+          <col style="width: auto; min-width: 160px;">
+          <col style="width: 150px; min-width: 100px;">
+          <col style="width: 160px; min-width: 100px;">
+          <col style="width: 40px; min-width: 40px;">
         </colgroup>
         <thead>
           <tr id="cash-thead-row">
@@ -535,6 +650,7 @@
               data-id="{{ $row['id'] }}"
               data-ref-id="{{ $row['ref_id'] ?? '' }}"
               data-ref-type="{{ $row['ref_type'] ?? '' }}"
+              onclick="setRowHighlight(this, event)"
             >
               <td>
                 <span class="type-label">
@@ -581,6 +697,7 @@
               data-id="demo-1"
               data-ref-id="1"
               data-ref-type="sale"
+              onclick="setRowHighlight(this, event)"
             >
               <td><span class="type-label">Sale</span></td>
               <td>Ateeq</td>
@@ -631,54 +748,78 @@
   <div id="print-area" style="display:none;"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="{{ asset('../js/components.js') }}"></script>
   <script src="{{ asset('../js/common.js') }}"></script>
 
   <script>
     /* ════════════════════════════════════════
-        COLUMN RESIZE ENGINE
+        COLUMN RESIZE ENGINE — improved
        ════════════════════════════════════════ */
     (function () {
-      let isResizing = false, startX = 0, startW = 0, th = null, handle = null;
+      var isResizing = false, startX = 0, startW = 0, thEl = null, handleEl = null;
+      var colIndex = -1, colEls = [];
+
+      /* lock ALL column widths so table doesn't reflow during drag */
+      function lockColWidths(table) {
+        var ths = table.querySelectorAll('thead th');
+        var cols = table.querySelectorAll('colgroup col');
+        ths.forEach(function (th, i) {
+          var w = th.getBoundingClientRect().width;
+          if (cols[i]) cols[i].style.width = w + 'px';
+          th.style.width     = w + 'px';
+          th.style.minWidth  = w + 'px';
+          th.style.maxWidth  = w + 'px';
+        });
+        table.style.tableLayout = 'fixed';
+        table.style.width = 'auto';
+        table.style.minWidth = '100%';
+      }
+
       document.addEventListener('mousedown', function (e) {
         if (!e.target.classList.contains('col-resize-handle')) return;
         e.preventDefault();
-        handle = e.target; th = handle.closest('th'); isResizing = true; startX = e.clientX;
-        startW = th.getBoundingClientRect().width;
-        var table = th.closest('table');
-        var cols = table.querySelectorAll('colgroup col');
-        var ths  = table.querySelectorAll('thead th');
-        cols.forEach(function (col, i) {
-          var w = ths[i] ? ths[i].getBoundingClientRect().width : 0;
-          col.style.width = w + 'px';
-        });
-        table.style.tableLayout = 'fixed'; table.style.width = 'auto'; table.style.minWidth = '100%';
-        handle.classList.add('resizing');
-        document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+        e.stopPropagation();
+
+        handleEl = e.target;
+        thEl = handleEl.closest('th');
+        var table = thEl.closest('table');
+
+        lockColWidths(table);
+
+        var ths = Array.from(table.querySelectorAll('thead th'));
+        colIndex = ths.indexOf(thEl);
+        colEls = Array.from(table.querySelectorAll('colgroup col'));
+
+        isResizing = true;
+        startX = e.clientX;
+        startW = thEl.getBoundingClientRect().width;
+
+        handleEl.classList.add('resizing');
+        document.body.classList.add('col-resizing');
       });
+
       document.addEventListener('mousemove', function (e) {
-        if (!isResizing || !th) return;
-        var newW = Math.max(60, startW + (e.clientX - startX));
-        var table2 = th.closest('table');
-        var ths2   = Array.from(table2.querySelectorAll('thead th'));
-        var idx    = ths2.indexOf(th);
-        var col    = table2.querySelectorAll('colgroup col')[idx];
-        if (col) col.style.width = newW + 'px';
-        th.style.width = newW + 'px'; th.style.minWidth = newW + 'px';
+        if (!isResizing || !thEl) return;
+        var newW = Math.max(50, startW + (e.clientX - startX));
+        thEl.style.width    = newW + 'px';
+        thEl.style.minWidth = newW + 'px';
+        thEl.style.maxWidth = newW + 'px';
+        if (colEls[colIndex]) colEls[colIndex].style.width = newW + 'px';
       });
+
       document.addEventListener('mouseup', function () {
-        if (!isResizing) return; isResizing = false;
-        if (handle) handle.classList.remove('resizing');
-        document.body.style.cursor = ''; document.body.style.userSelect = '';
-        handle = null; th = null;
+        if (!isResizing) return;
+        isResizing = false;
+        if (handleEl) handleEl.classList.remove('resizing');
+        document.body.classList.remove('col-resizing');
+        handleEl = null; thEl = null; colIndex = -1; colEls = [];
       });
     })();
 
     /* ════════════════════════════════════════
         SORT
        ════════════════════════════════════════ */
-    let cashSortCol = null, cashSortAsc = true;
+    var cashSortCol = null, cashSortAsc = true;
     function sortCashCol(col) {
       if (cashSortCol === col) { cashSortAsc = !cashSortAsc; } else { cashSortCol = col; cashSortAsc = true; }
       document.querySelectorAll('#cash-thead-row th').forEach(function (th) { th.classList.remove('sort-asc', 'sort-desc'); });
@@ -699,6 +840,7 @@
         return cashSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
       });
       rows.forEach(function (r) { tbody.appendChild(r); });
+      highlightFirstVisible();
     }
 
     /* ════════════════════════════════════════
@@ -787,6 +929,9 @@
       });
       document.getElementById('cash-empty-state').style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
       syncCashFilterIcons();
+      /* re-highlight first visible if current highlight is hidden */
+      var currentHL = document.querySelector('#cash-tbody tr.tr-highlight');
+      if (!currentHL || currentHL.style.display === 'none') { highlightFirstVisible(); }
     }
 
     /* ════════════════════════════════════════
@@ -794,14 +939,25 @@
        ════════════════════════════════════════ */
     function toggleCashColFilter(e, id) {
       e.stopPropagation();
-      var icon = e.currentTarget; var th = icon.closest('th'); var dd = document.getElementById(id);
+      var icon = e.currentTarget;
+      var th = icon.closest('th');
+      var dd = document.getElementById(id);
       var wasOpen = dd.classList.contains('open');
       closeAllCashColFilters();
       if (!wasOpen) {
-        th.appendChild(dd); dd.style.top = th.offsetHeight + 'px'; dd.style.right = '0px'; dd.style.left = 'auto'; dd.classList.add('open');
+        var rect = th.getBoundingClientRect();
+        document.body.appendChild(dd);
+        dd.style.top  = (rect.bottom + 2) + 'px';
+        dd.style.left = 'auto';
+        dd.style.right = 'auto';
+        dd.classList.add('open');
+        /* position after render so we know dd width */
         requestAnimationFrame(function () {
-          var r = dd.getBoundingClientRect();
-          if (r.left < 0) { dd.style.left = '0px'; dd.style.right = 'auto'; }
+          var ddW = dd.offsetWidth;
+          var left = rect.right - ddW;
+          if (left < 4) left = 4;
+          if (left + ddW > window.innerWidth - 4) left = window.innerWidth - ddW - 4;
+          dd.style.left = left + 'px';
         });
       }
     }
@@ -825,15 +981,36 @@
         'amount': function () { return !!(document.getElementById('ccf-amount-val') && document.getElementById('ccf-amount-val').value !== ''); },
       };
       Object.entries(checks).forEach(function (entry) {
+        var isActive = entry[1]();
         var icon = document.getElementById('fi-' + entry[0]);
-        if (icon) icon.classList.toggle('active', entry[1]());
+        if (icon) {
+          icon.classList.toggle('active', isActive);
+          /* also tint the whole <th> */
+          var th = document.querySelector('#cash-thead-row th[data-col="' + entry[0] + '"]');
+          if (th) th.classList.toggle('filter-active', isActive);
+        }
       });
+      /* red border on search input when it has a value */
+      var searchEl = document.getElementById('cashSearchInput');
+      if (searchEl) searchEl.classList.toggle('has-value', searchEl.value.trim() !== '');
     }
 
     function toggleDateRange() { var op = document.getElementById('ccf-date-op').value; document.getElementById('ccf-date-range-wrap').style.display = (op === 'range') ? 'block' : 'none'; }
     function toggleAmountRange() { var op = document.getElementById('ccf-amount-op').value; document.getElementById('ccf-amount-range-wrap').style.display = (op === 'between') ? 'block' : 'none'; }
     document.getElementById('ccf-date-op') && document.getElementById('ccf-date-op').addEventListener('change', toggleDateRange);
     document.getElementById('ccf-amount-op') && document.getElementById('ccf-amount-op').addEventListener('change', toggleAmountRange);
+
+
+    /* ════════════════════════════════════════
+        ADJUST CASH MODAL
+       ════════════════════════════════════════ */
+    function openAdjModal() {
+      document.getElementById('adjModalOverlay').classList.add('open');
+      previewAdjustedCash();
+    }
+    function closeAdjModal() {
+      document.getElementById('adjModalOverlay').classList.remove('open');
+    }
 
     /* ── Balance adjustment actions ── */
     var currentCash = {{ $cashAccount->opening_balance ?? 500 }};
@@ -854,7 +1031,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': window.App.csrfToken },
         body: JSON.stringify({ type: isAdd ? 'add' : 'reduce', amount: amt, date: date, description: desc })
       })
-      .then(function(r){ return r.json(); }).then(function(d){ if (d.success) { window.location.reload(); } else { alert(d.message || 'Error saving adjustment.'); } })
+      .then(function(r){ return r.json(); }).then(function(d){ if (d.success) { closeAdjModal(); window.location.reload(); } else { alert(d.message || 'Error saving adjustment.'); } })
       .catch(function(){ alert('Network error.'); });
     }
 
@@ -892,18 +1069,30 @@
     }
 
     function closeHistoryModal() { document.getElementById('historyModalOverlay').classList.remove('open'); }
-    function exportCashToExcel() {
-      if (typeof XLSX === 'undefined') return;
-      var data = Array.from(document.querySelectorAll('#cash-tbody tr')).filter(function(r){ return r.style.display !== 'none'; }).map(function(row) {
-        var tds = row.querySelectorAll('td'); return [tds[0].textContent.trim(), tds[1].textContent.trim(), tds[2].textContent.trim(), tds[3].textContent.trim()];
-      });
-      var wb = XLSX.utils.book_new(); var ws = XLSX.utils.aoa_to_sheet([['Type', 'Name', 'Date', 'Amount']].concat(data));
-      XLSX.utils.book_append_sheet(wb, ws, 'Cash Transactions'); XLSX.writeFile(wb, 'cash-in-hand.xlsx');
-    }
+
 
     function closeAllMenus() { closeAllCashColFilters(); document.querySelectorAll('.il-row-menu.open').forEach(function (m) { m.classList.remove('open'); }); }
     document.addEventListener('click', closeAllMenus);
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { closeAllMenus(); closeHistoryModal(); } });
+
+    /* ════════════════════════════════════════
+        ROW HIGHLIGHT — moves on click, defaults to first row
+       ════════════════════════════════════════ */
+    function setRowHighlight(row, event) {
+      /* don't move highlight if clicking the action menu button */
+      if (event && event.target && event.target.closest('.il-row-menu-wrap')) return;
+      document.querySelectorAll('#cash-tbody tr.tr-highlight').forEach(function(r){ r.classList.remove('tr-highlight'); });
+      row.classList.add('tr-highlight');
+    }
+
+    function highlightFirstVisible() {
+      document.querySelectorAll('#cash-tbody tr.tr-highlight').forEach(function(r){ r.classList.remove('tr-highlight'); });
+      var first = document.querySelector('#cash-tbody tr:not([style*="display: none"]):not([style*="display:none"])');
+      if (first) first.classList.add('tr-highlight');
+    }
+
+    /* auto-highlight first row on page load */
+    document.addEventListener('DOMContentLoaded', function(){ highlightFirstVisible(); });
   </script>
 </body>
 </html>

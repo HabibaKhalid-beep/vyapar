@@ -2,95 +2,158 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ChequeTransaction;
-use App\Models\CashTransaction;
+use App\Models\Cheque;
+use App\Models\BankAccount;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ChequeController extends Controller
 {
     public function index()
     {
-        $transactions = ChequeTransaction::latest('date')->paginate(20);
+        $cheques = Cheque::orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->get();
 
-        $totalIn      = ChequeTransaction::where('type', 'CHEQUE_IN')->sum('amount');
-        $totalOut     = ChequeTransaction::where('type', 'CHEQUE_OUT')->sum('amount');
-        $totalBalance = $totalIn - $totalOut;
-        $pendingCount = ChequeTransaction::where('status', 'pending')->count();
+       $bankAccounts = BankAccount::orderBy('id')->get();
 
-        return view('dashboard.accounts.cheques', compact(
-            'transactions',
-            'totalBalance',
-            'totalIn',
-            'totalOut',
-            'pendingCount'
-        ));
+        $summary = [
+            'total'     => $cheques->sum('amount'),
+            'open'      => $cheques->where('status', 'open')->sum('amount'),
+            'deposited' => $cheques->where('status', 'deposited')->sum('amount'),
+            'bounced'   => $cheques->where('status', 'bounced')->sum('amount'),
+        ];
+
+        return view('dashboard.accounts.cheques', compact('cheques', 'bankAccounts', 'summary'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type'             => 'required|in:CHEQUE_IN,CHEQUE_OUT',
+            'type'             => 'required|string|max:50',
             'name'             => 'required|string|max:255',
-            'cheque_number'    => 'nullable|string|max:50',
-            'amount'           => 'required|numeric|min:0',
-            'date'             => 'required|date',
-            'status'           => 'required|in:pending,cleared,bounced',
-            'notes'            => 'nullable|string',
-            'transfer_to_cash' => 'nullable|boolean',
+            'ref_no'           => 'nullable|string|max:100',
+            'transaction_date' => 'required|date',
+            'cheque_date'      => 'nullable|date',
+            'amount'           => 'required|numeric|min:0.01',
+            'status'           => 'nullable|in:open,deposited,bounced,cancelled',
+            'bank_account_id'  => 'nullable|exists:bank_accounts,id',
+            'notes'            => 'nullable|string|max:1000',
         ]);
 
-        ChequeTransaction::create([
-            'type'          => $validated['type'],
-            'name'          => $validated['name'],
-            'cheque_number' => $validated['cheque_number'] ?? null,
-            'amount'        => $validated['amount'],
-            'date'          => $validated['date'],
-            'status'        => $validated['status'],
-            'notes'         => $validated['notes'] ?? null,
+        $validated['status']     = $validated['status'] ?? 'open';
+        $validated['created_by'] = Auth::id();
+
+        $cheque = Cheque::create($validated);
+
+        return response()->json(['success' => true, 'cheque' => $this->formatCheque($cheque)]);
+    }
+
+    public function show(Cheque $cheque): JsonResponse
+    {
+        return response()->json(['success' => true, 'cheque' => $this->formatCheque($cheque)]);
+    }
+
+    public function update(Request $request, Cheque $cheque): JsonResponse
+    {
+        $validated = $request->validate([
+            'type'             => 'sometimes|string|max:50',
+            'name'             => 'sometimes|string|max:255',
+            'ref_no'           => 'nullable|string|max:100',
+            'transaction_date' => 'sometimes|date',
+            'cheque_date'      => 'nullable|date',
+            'amount'           => 'sometimes|numeric|min:0.01',
+            'status'           => 'nullable|in:open,deposited,bounced,cancelled',
+            'bank_account_id'  => 'nullable|exists:bank_accounts,id',
+            'notes'            => 'nullable|string|max:1000',
         ]);
 
-        if ($request->boolean('transfer_to_cash')) {
-            CashTransaction::create([
-                'type'   => $validated['type'] === 'CHEQUE_IN' ? 'CASH IN' : 'CASH OUT',
-                'name'   => 'Cheque transfer: ' . $validated['name'],
-                'amount' => $validated['amount'],
-                'date'   => $validated['date'],
-            ]);
+        $cheque->update($validated);
+
+        return response()->json(['success' => true, 'cheque' => $this->formatCheque($cheque->fresh())]);
+    }
+
+    public function destroy(Cheque $cheque): JsonResponse
+    {
+        $cheque->delete();
+        return response()->json(['success' => true, 'message' => 'Cheque deleted.']);
+    }
+
+    public function deposit(Request $request, Cheque $cheque): JsonResponse
+    {
+        if (!$cheque->isOpen()) {
+            return response()->json(['success' => false, 'message' => 'Only open cheques can be deposited.'], 422);
         }
 
-        return redirect()->route('cheques.index')
-            ->with('success', 'Cheque transaction saved successfully.');
+        $request->validate(['bank_account_id' => 'nullable|exists:bank_accounts,id']);
+
+        DB::transaction(function () use ($cheque, $request) {
+            $cheque->update([
+                'status'          => 'deposited',
+                'deposited_at'    => now(),
+                'bank_account_id' => $request->bank_account_id ?? $cheque->bank_account_id,
+            ]);
+
+            if ($cheque->bank_account_id && class_exists(\App\Models\BankTransaction::class)) {
+                try {
+                    \App\Models\BankTransaction::create([
+                        'to_bank_account_id' => $cheque->bank_account_id,
+                        'type'               => 'cheque_deposit',
+                        'amount'             => $cheque->amount,
+                        'transaction_date'   => now()->toDateString(),
+                        'description'        => 'Cheque deposit: ' . ($cheque->ref_no ?? $cheque->name),
+                        'reference_id'       => $cheque->id,
+                        'reference_type'     => 'cheque',
+                    ]);
+                } catch (\Exception $e) {
+                    // skip if columns differ
+                }
+            }
+        });
+
+        return response()->json(['success' => true, 'cheque' => $this->formatCheque($cheque->fresh())]);
     }
 
-    public function adjust(Request $request)
+    public function updateStatus(Request $request, Cheque $cheque): JsonResponse
     {
-        $validated = $request->validate([
-            'amount'      => 'required|numeric|min:0.01',
-            'adjust_type' => 'required|in:add,reduce',
-            'date'        => 'required|date',
-            'reason'      => 'nullable|string|max:255',
-        ]);
-
-        ChequeTransaction::create([
-            'type'   => $validated['adjust_type'] === 'add' ? 'CHEQUE_IN' : 'CHEQUE_OUT',
-            'name'   => $validated['reason'] ?? 'Balance adjustment',
-            'amount' => $validated['amount'],
-            'date'   => $validated['date'],
-            'status' => 'cleared',
-        ]);
-
-        return redirect()->route('cheques.index')
-            ->with('success', 'Cheque balance adjusted successfully.');
+        $request->validate(['status' => 'required|in:open,bounced,cancelled']);
+        $cheque->update(['status' => $request->status]);
+        return response()->json(['success' => true, 'cheque' => $this->formatCheque($cheque->fresh())]);
     }
-    public function update(Request $request, ChequeTransaction $cheque)
-{
-    $request->validate([
-        'status' => 'required|in:pending,cleared,bounced',
-    ]);
 
-    $cheque->update(['status' => $request->status]);
+    public function history(Cheque $cheque): JsonResponse
+    {
+        $history = [];
 
-    return redirect()->route('cheques.index')
-        ->with('success', 'Cheque status updated successfully.');
-}
+        $history[] = ['action' => 'Created', 'created_at' => $cheque->created_at->format('d/m/Y H:i'), 'amount' => $cheque->amount];
+
+        if ($cheque->deposited_at) {
+            $history[] = ['action' => 'Deposited', 'created_at' => \Carbon\Carbon::parse($cheque->deposited_at)->format('d/m/Y H:i'), 'amount' => $cheque->amount];
+        }
+
+        if ($cheque->updated_at && $cheque->updated_at->ne($cheque->created_at)) {
+            $history[] = ['action' => 'Updated', 'created_at' => $cheque->updated_at->format('d/m/Y H:i'), 'amount' => $cheque->amount];
+        }
+
+        return response()->json(['success' => true, 'history' => $history]);
+    }
+
+    private function formatCheque(Cheque $c): array
+    {
+        return [
+            'id'               => $c->id,
+            'type'             => $c->type,
+            'name'             => $c->name,
+            'ref_no'           => $c->ref_no,
+            'transaction_date' => $c->transaction_date?->format('d/m/Y'),
+            'cheque_date'      => $c->cheque_date?->format('d/m/Y'),
+            'amount'           => $c->amount,
+            'status'           => $c->status,
+            'status_badge'     => $c->statusBadge(),
+            'bank_account_id'  => $c->bank_account_id,
+            'notes'            => $c->notes,
+        ];
+    }
 }

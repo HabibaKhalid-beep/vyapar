@@ -725,15 +725,16 @@ private function posData(): array
                 $bankId = $payment['bank_account_id'] ?? null;
                 $storePaymentType = $isCash ? 'cash' : $rawPaymentType;
 
-                if ($paymentAmount <= 0) {
-                    continue;
-                }
+               if ($paymentAmount <= 0) {
+    continue;
+}
 
-                if (!$isCash && empty($bankId)) {
-                    continue;
-                }
+$isCheque = in_array(strtolower($rawPaymentType), ['cheque', 'cheques']);
+if (!$isCash && !$isCheque && empty($bankId)) {
+    continue;
+}
 
-                $direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
+$direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
 
                 $cashAccount = null;
                 if ($isCash) {
@@ -741,26 +742,29 @@ private function posData(): array
                     $bankId = $cashAccount->id;
                 }
 
-                $sale->payments()->create([
-                    'payment_type' => $storePaymentType,
-                    'direction' => $direction,
-                    'bank_account_id' => $bankId,
-                    'amount' => $paymentAmount,
-                    'reference' => $payment['reference'] ?? null,
-                ]);
+               $sale->payments()->create([
+    'payment_type' => $storePaymentType,
+    'direction' => $direction,
+    'bank_account_id' => $bankId,
+    'amount' => $paymentAmount,
+    'reference' => $payment['reference'] ?? null,
+]);
 
-                $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
-                // Save to cheque_transactions if payment type is cheque
 if (strtolower($rawPaymentType) === 'cheque') {
-    \App\Models\ChequeTransaction::create([
-        'type'          => 'CHEQUE_IN',
-        'name'          => 'Cheque received for invoice #' . ($sale->bill_number ?: $sale->id),
-        'cheque_number' => $payment['reference'] ?? null,
-        'amount'        => $paymentAmount,
-        'date'          => $sale->invoice_date ?? now()->toDateString(),
-        'status'        => 'pending',
+    \App\Models\Cheque::create([
+        'type'             => 'sale',
+        'name'             => $sale->party?->name ?? ('Invoice #' . ($sale->bill_number ?: $sale->id)),
+        'ref_no'           => $payment['reference'] ?? null,
+        'amount'           => $paymentAmount,
+        'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
+        'status'           => 'open',
+        'reference_type'   => 'sale',
+        'reference_id'     => $sale->id,
     ]);
 }
+
+$bank = $isCash ? $cashAccount : BankAccount::find($bankId);
+              
                 if ($bank) {
                     $bank->opening_balance = ($bank->opening_balance ?? 0)
                         + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);
@@ -1039,16 +1043,16 @@ if (strtolower($rawPaymentType) === 'cheque') {
                 $isCash = $normalizedPaymentType === 'cash';
                 $bankId = $payment['bank_account_id'] ?? null;
                 $storePaymentType = $isCash ? 'cash' : $rawPaymentType;
+if ($paymentAmount <= 0) {
+    continue;
+}
 
-                if ($paymentAmount <= 0) {
-                    continue;
-                }
+$isCheque = in_array(strtolower($rawPaymentType), ['cheque', 'cheques']);
+if (!$isCash && !$isCheque && empty($bankId)) {
+    continue;
+}
 
-                if (!$isCash && empty($bankId)) {
-                    continue;
-                }
-
-                $direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
+$direction = $this->normalizePaymentDirection($payment['direction'] ?? null);
 
                 $cashAccount = null;
                 if ($isCash) {
@@ -1063,8 +1067,22 @@ if (strtolower($rawPaymentType) === 'cheque') {
                     'amount' => $paymentAmount,
                     'reference' => $payment['reference'] ?? null,
                 ]);
+                if ($isCheque) {
+    \App\Models\Cheque::create([
+        'type'             => 'sale',
+        'name'             => $sale->party?->name ?? ('Invoice #' . ($sale->bill_number ?: $sale->id)),
+        'ref_no'           => $payment['reference'] ?? null,
+        'amount'           => $paymentAmount,
+        'transaction_date' => $sale->invoice_date ?? now()->toDateString(),
+        'status'           => 'open',
+        'reference_type'   => 'sale',
+        'reference_id'     => $sale->id,
+    ]);
+}
 
-                $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
+$bank = $isCash ? $cashAccount : BankAccount::find($bankId);
+
+                
                 if ($bank) {
                     $bank->opening_balance = ($bank->opening_balance ?? 0)
                         + ($direction === 'payment_out' ? -1 * $paymentAmount : $paymentAmount);
