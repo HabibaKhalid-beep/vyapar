@@ -8,150 +8,181 @@
   <meta name="description" content="Record supplier purchase bills with live preview in Vyapar.">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
-  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <!-- Font Awesome 6 -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <!-- Custom Styles -->
   <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
+  
   <style>
-    .sale-order-page {
-      padding: 1.25rem;
+    /* ── Resizable column handle ── */
+    .col-rh {
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 6px;
+      cursor: col-resize;
+      z-index: 10;
+      background: transparent;
+    }
+    .col-rh:hover, .col-rh:active {
+      background: rgba(29, 140, 248, 0.35);
+      border-radius: 3px;
     }
 
+    /* ── Custom table (modals) ── */
+    .custom-table thead th {
+      font-size: 13px; color: #6c757d; font-weight: 500;
+      border-bottom: 1px solid #eee;
+      position: sticky; top: 0; z-index: 5;
+      background-color: #fafafa;
+      white-space: nowrap;
+      position: relative;
+    }
+    .custom-table tbody td {
+      font-size: 14px; padding: 14px 10px;
+      border-bottom: 1px solid #f1f1f1; white-space: nowrap;
+    }
+    .custom-table tbody tr:hover { background-color: #fafafa; }
+    .custom-table th, .custom-table td { border-right: 1px solid #f1f1f1; }
+    .custom-table th:last-child, .custom-table td:last-child { border-right: none; }
+
+    .table-wrapper {
+      overflow-x: auto; overflow-y: auto;
+      max-height: 68vh; border: 1px solid #eef2f7; border-radius: 12px;
+    }
+
+    @media (max-width: 991px) {
+      .table-wrapper { max-height: none; border-radius: 8px; }
+      .custom-table thead th { font-size: 11px; padding: 8px 6px; }
+      .custom-table tbody td { font-size: 12px; padding: 10px 6px; }
+    }
+    @media (max-width: 575px) {
+      .custom-table thead th { font-size: 10px; padding: 6px 4px; }
+      .custom-table tbody td { font-size: 11px; padding: 8px 4px; }
+    }
+
+    /* ── Sale order page ── */
+    .sale-order-page { padding: 1.25rem; }
+
     .sale-order-card {
-      border: 0;
-      border-radius: 16px;
+      border: 0; border-radius: 16px;
       box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
     }
 
     .sale-order-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
-      flex-wrap: wrap;
+      display: flex; justify-content: space-between;
+      align-items: center; gap: 1rem;
+      margin-bottom: 1.25rem; flex-wrap: wrap;
     }
 
     .sale-order-search {
-      position: relative;
-      min-width: 280px;
-      max-width: 360px;
-      width: 100%;
+      position: relative; min-width: 280px;
+      max-width: 360px; width: 100%;
     }
-
     .sale-order-search i {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #64748b;
+      position: absolute; left: 16px; top: 50%;
+      transform: translateY(-50%); color: #64748b;
     }
-
     .sale-order-search input {
-      border-radius: 999px;
-      border: 1px solid #d7deea;
+      border-radius: 999px; border: 1px solid #d7deea;
       padding: 0.85rem 1rem 0.85rem 2.75rem;
-      width: 100%;
-      background: #fff;
+      width: 100%; background: #fff;
     }
 
     .sale-order-add-btn {
-      border-radius: 999px;
-      background: #1d8cf8;
-      border: 0;
-      color: #fff;
-      padding: 0.8rem 1.35rem;
-      font-weight: 600;
-      box-shadow: 0 10px 20px rgba(29, 140, 248, 0.18);
+      border-radius: 999px; background: #1d8cf8;
+      border: 0; color: #fff; padding: 0.8rem 1.35rem;
+      font-weight: 600; box-shadow: 0 10px 20px rgba(29, 140, 248, 0.18);
     }
 
+    /* ── Sale order table with fixed layout for resize ── */
     .sale-order-table {
-      min-width: 1180px;
+      table-layout: fixed;
+      min-width: 1300px;
+      border-collapse: collapse;
+      width: 100%;
     }
-
     .sale-order-table thead th {
-      background: #f8fbff;
-      color: #334155;
-      font-size: 0.92rem;
-      font-weight: 700;
-      border-bottom: 1px solid #dbe4f0;
-      padding: 1rem 0.85rem;
-      vertical-align: middle;
-      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+      background: #fafafa; color: #6c757d;
+      font-size: 13px; font-weight: 500;
+      border-bottom: 1px solid #eee;
+      padding: 12px 10px !important;
+      vertical-align: middle; white-space: nowrap;
     }
-
     .sale-order-table tbody td {
-      padding: 1rem 0.85rem;
-      border-bottom: 1px solid #edf2f7;
-      vertical-align: middle;
-      color: #0f172a;
+      padding: 14px 10px !important;
+      border-bottom: 1px solid #f1f1f1;
+      vertical-align: middle; color: #0f172a;
       white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
     }
+    .sale-order-table tbody tr:hover { background: #fafafa; }
+    .sale-order-table th, .sale-order-table td { border-right: 1px solid #e9ecef !important; }
+    .sale-order-table th:last-child, .sale-order-table td:last-child { border-right: none !important; }
 
-    .sale-order-table tbody tr:hover {
-      background: #f8fbff;
+    /* ── Column Header Dropdown Filters UI Styles ── */
+    .column-filter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      position: relative;
     }
-
-    .status-pill {
+    .filter-icon-btn {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      padding: 0;
+      width: 18px;
+      height: 18px;
       display: inline-flex;
       align-items: center;
-      border-radius: 999px;
-      padding: 0.38rem 0.8rem;
-      font-size: 0.83rem;
-      font-weight: 600;
+      justify-content: center;
     }
+    .filter-icon-btn:hover { color: #334155; }
+    .column-filter-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      width: 220px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      z-index: 20;
+    }
+    .column-filter-dropdown.show { display: block; }
+    .column-filter-dropdown .form-control { font-size: 12px; }
 
-    .status-pill.overdue {
-      background: #fff4e8;
-      color: #f97316;
-    }
-
-    .status-pill.completed {
-      background: #e9f9ef;
-      color: #16a34a;
-    }
-
-    .status-pill.pending {
-      background: #eef4ff;
-      color: #2563eb;
-    }
+    /* ── Status styles ── */
+    .status-text { font-weight: 500; }
+    .text-success { color: #22c55e !important; }
+    .text-warning { color: #f59e0b !important; }
+    .text-danger { color: #ef4444 !important; }
 
     .convert-btn {
-      border-radius: 8px;
-      border: 1px solid #d8dee9;
-      background: #fff;
-      color: #6366f1;
-      font-weight: 600;
-      padding: 0.55rem 0.95rem;
-      white-space: nowrap;
+      border-radius: 8px; border: 1px solid #d8dee9;
+      background: #fff; color: #6366f1; font-weight: 600;
+      padding: 0.55rem 0.95rem; white-space: nowrap;
       box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
     }
 
     .converted-link {
-      color: #6366f1;
-      font-weight: 500;
-      text-decoration: underline;
-      text-underline-offset: 2px;
+      color: #6366f1; font-weight: 500;
+      text-decoration: underline; text-underline-offset: 2px;
     }
 
     .action-menu-btn {
-      border: 0;
-      background: transparent;
-      color: #64748b;
-      padding: 0.35rem 0.5rem;
+      border: 0; background: transparent;
+      color: #64748b; padding: 0.35rem 0.5rem;
     }
-
-    .action-menu-btn::after {
-      display: none;
-    }
+    .action-menu-btn::after { display: none; }
   </style>
 
-   <script>
-    // Ensure window.App is always initialized, even if Auth is null
+  <script>
     const authUser = @json(Auth::user());
     window.App = window.App || {
       isAuthenticated: @json(Auth::check()),
@@ -166,26 +197,16 @@
     };
     console.log('App initialized:', window.App);
   </script>
-
-
 </head>
 
 <body data-page="sale-orders">
 
-  <!-- Navbar & Sidebar injected by components.js -->
-
-  <!-- ═══════════════════════════════════════
-     MAIN CONTENT — PURCHASE BILL
-     ═══════════════════════════════════════ -->
   <main class="main-content sale-order-page" id="mainContent">
-
 
     <div class="d-flex justify-content-between align-items-center bg-light p-3 border-bottom mb-2">
       <div class="text-center col-12">
         <h4 class="text-secondary">Sales Orders</h4>
-
       </div>
-
     </div>
 
     <div class="card sale-order-card">
@@ -193,6 +214,7 @@
         <div class="row g-2 mb-1">
           <p class="fw-bold">Transactions</p>
         </div>
+        
         <div class="sale-order-toolbar">
           <form method="GET" action="{{ route('sale-order') }}" class="sale-order-search">
             <i class="bi bi-search"></i>
@@ -208,22 +230,125 @@
           </div>
         </div>
 
-        <div class="table-responsive small-table">
-          <table class="table sale-order-table align-middle mb-0">
+        <div class="table-responsive small-table table-wrapper">
+          <table class="table sale-order-table align-middle mb-0 txn-table">
             <thead>
               <tr>
+                <th style="width: 40px; vertical-align: middle;"><input type="checkbox" id="selectAllOrders"></th>
+                
                 <th>
-                  <input type="checkbox" id="selectAllOrders">
+                  <div class="column-filter-header">
+                    <span>Party</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Party">
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="1">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="1">Apply</button>
+                    </div>
+                  </div>
                 </th>
-                <th>Party</th>
-                <th>No.</th>
-                <th>Date</th>
-                <th>Due Date</th>
-                <th class="text-end">Total Amount</th>
-                <th class="text-end">Balance</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Action</th>
+
+                <th>
+                  <div class="column-filter-header">
+                    <span>No.</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter No.">
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="2">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="2">Apply</button>
+                    </div>
+                  </div>
+                </th>
+
+                <th>
+                  <div class="column-filter-header">
+                    <span>Date</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Date">
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="3">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="3">Apply</button>
+                    </div>
+                  </div>
+                </th>
+
+                <th>
+                  <div class="column-filter-header">
+                    <span>Due Date</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Due Date">
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="4">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="4">Apply</button>
+                    </div>
+                  </div>
+                </th>
+
+                <th class="text-end">
+                  <div class="column-filter-header justify-content-end">
+                    <span class="me-2">Total Amount</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown text-start">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Total">
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="5">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="5">Apply</button>
+                    </div>
+                  </div>
+                </th>
+
+                <th class="text-end">
+                  <div class="column-filter-header justify-content-end">
+                    <span class="me-2">Balance</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown text-start">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Balance">
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="6">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="6">Apply</button>
+                    </div>
+                  </div>
+                </th>
+
+                <th>
+                  <div class="column-filter-header">
+                    <span>Type</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Type">
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="7">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="7">Apply</button>
+                    </div>
+                  </div>
+                </th>
+
+                <th>
+                  <div class="column-filter-header">
+                    <span>Status</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Status">
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="8">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="8">Apply</button>
+                    </div>
+                  </div>
+                </th>
+
+                <th style="width: 220px;">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -256,7 +381,7 @@
                   <td class="text-end">Rs {{ number_format($saleOrder->balance ?? 0, 2) }}</td>
                   <td>Sale Order</td>
                   <td>
-                    <span class="status-pill {{ $isCompleted ? 'completed' : ($isOverdue ? 'overdue' : 'pending') }}">
+                    <span class="status-text {{ $isCompleted ? 'text-success' : ($isOverdue ? 'text-danger' : 'text-warning') }}">
                       {{ $statusLabel }}
                     </span>
                   </td>
@@ -288,9 +413,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="10" class="text-center text-muted py-4">
-                    No sale orders found.
-                  </td>
+                  <td colspan="10" class="text-center text-muted py-4">No sale orders found.</td>
                 </tr>
               @endforelse
             </tbody>
@@ -302,7 +425,6 @@
 
   </main>
 
-  <!-- Bulk Convert Modal -->
   <div class="modal fade" id="bulkConvertModal" tabindex="-1" aria-labelledby="bulkConvertModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
@@ -314,8 +436,8 @@
           <div class="mb-3">
             <div class="text-muted small">Selected orders</div>
           </div>
-          <div class="table-responsive">
-            <table class="table table-sm align-middle">
+          <div class="table-wrapper">
+            <table class="table align-middle custom-table mb-0">
               <thead class="table-light">
                 <tr>
                   <th>#</th>
@@ -343,7 +465,6 @@
     </div>
   </div>
 
-  <!-- Bank History Modal -->
   <div class="modal fade" id="saleOrderHistoryModal" tabindex="-1" aria-labelledby="saleOrderHistoryLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
@@ -352,8 +473,8 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="table-responsive">
-            <table class="table table-sm">
+          <div class="table-wrapper">
+            <table class="table align-middle custom-table mb-0">
               <thead class="table-light">
                 <tr>
                   <th>#</th>
@@ -379,32 +500,19 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════
-     SCRIPTS
-     ═══════════════════════════════════════════ -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
+  
   <script>
     const bulkConvertUrl = "{{ route('sale-orders.bulk-convert') }}";
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    function previewSaleOrder(url) {
-      window.open(url, '_blank');
-    }
-
-    function printSaleOrder(url) {
-      window.open(url, '_blank');
-    }
-
-    function openSaleOrderPdf(url) {
-      window.open(url, '_blank');
-    }
-
-    function duplicateSaleOrder(url) {
-      window.open(url, '_blank');
-    }
+    function previewSaleOrder(url) { window.open(url, '_blank'); }
+    function printSaleOrder(url) { window.open(url, '_blank'); }
+    function openSaleOrderPdf(url) { window.open(url, '_blank'); }
+    function duplicateSaleOrder(url) { window.open(url, '_blank'); }
 
     function viewSaleOrderHistory(historyUrl) {
       if (!historyUrl) {
@@ -446,9 +554,7 @@
     }
 
     function deleteSaleOrder(url) {
-      if (!confirm('Are you sure you want to delete this sale order?')) {
-        return;
-      }
+      if (!confirm('Are you sure you want to delete this sale order?')) return;
 
       fetch(url, {
         method: 'DELETE',
@@ -459,11 +565,7 @@
       })
         .then(async (response) => {
           const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.message || 'Delete failed');
-          }
-
+          if (!response.ok) throw new Error(data.message || 'Delete failed');
           window.location.reload();
         })
         .catch((error) => {
@@ -472,8 +574,7 @@
     }
 
     function getSelectedOrderRows() {
-      return Array.from(document.querySelectorAll('.sale-order-select:checked'))
-        .filter(input => !input.disabled);
+      return Array.from(document.querySelectorAll('.sale-order-select:checked')).filter(input => !input.disabled);
     }
 
     function populateBulkConvertModal() {
@@ -548,8 +649,166 @@
         });
     });
   </script>
-  <script src="{{ asset('js/sale-orders.js') }}"></script>
 
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.querySelector('.sale-order-search input');
+      const columnFilters = {};
+
+      function normalizeText(text) {
+        return text.toString().toLowerCase().trim().replace(/\s+/g, ' ');
+      }
+
+      function applySalesTableFilters() {
+        const rows = document.querySelectorAll('.txn-table tbody tr');
+        const universalSearchQuery = searchInput ? normalizeText(searchInput.value) : '';
+
+        rows.forEach((row) => {
+          if (row.cells.length === 1) return;
+
+          let matchesUniversal = !universalSearchQuery;
+          let matchesColumnFilters = true;
+          const cells = row.querySelectorAll('td');
+          
+          cells.forEach((cell, index) => {
+            const cellText = normalizeText(cell.textContent || cell.innerText);
+
+            if (universalSearchQuery && cellText.includes(universalSearchQuery)) {
+              matchesUniversal = true;
+            }
+
+            if (columnFilters[index] !== undefined) {
+              if (!cellText.includes(columnFilters[index])) {
+                matchesColumnFilters = false;
+              }
+            }
+          });
+
+          row.style.display = (matchesUniversal && matchesColumnFilters) ? '' : 'none';
+        });
+      }
+
+      // Open Dropdown Action Toggles
+      document.querySelectorAll('.filter-icon-btn').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const dropdown = this.closest('.column-filter-header')?.nextElementSibling;
+          if (!dropdown) return;
+
+          document.querySelectorAll('.column-filter-dropdown.show').forEach((openDropdown) => {
+            if (openDropdown !== dropdown) openDropdown.classList.remove('show');
+          });
+
+          dropdown.classList.toggle('show');
+        });
+      });
+
+      // Filter Column Context Confirmation Handler
+      document.querySelectorAll('.column-filter-apply').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          const columnIndex = this.dataset.columnIndex;
+          const dropdown = this.closest('.column-filter-dropdown');
+          const input = dropdown?.querySelector('.column-filter-input');
+
+          columnFilters[columnIndex] = normalizeText(input?.value || '');
+          dropdown?.classList.remove('show');
+          applySalesTableFilters();
+        });
+      });
+
+      // Sync character keystrokes inside inline search boxes instantly
+      document.querySelectorAll('.column-filter-input').forEach((input) => {
+        input.addEventListener('input', function () {
+          const dropdown = this.closest('.column-filter-dropdown');
+          const applyButton = dropdown?.querySelector('.column-filter-apply');
+          const columnIndex = applyButton?.dataset.columnIndex;
+
+          if (columnIndex === undefined) return;
+          const normalizedValue = normalizeText(this.value || '');
+
+          if (normalizedValue) {
+            columnFilters[columnIndex] = normalizedValue;
+          } else {
+            delete columnFilters[columnIndex];
+          }
+          applySalesTableFilters();
+        });
+      });
+
+      // Clear Context Triggers
+      document.querySelectorAll('.column-filter-clear').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          const columnIndex = this.dataset.columnIndex;
+          const dropdown = this.closest('.column-filter-dropdown');
+          const input = dropdown?.querySelector('.column-filter-input');
+
+          if (input) input.value = '';
+          delete columnFilters[columnIndex];
+          dropdown?.classList.remove('show');
+          applySalesTableFilters();
+        });
+      });
+
+      searchInput?.addEventListener('input', applySalesTableFilters);
+
+      // Dismiss menu windows clicking outside of target components
+      document.addEventListener('click', function (event) {
+        if (!event.target.closest('.column-filter-dropdown') && !event.target.closest('.filter-icon-btn')) {
+          document.querySelectorAll('.column-filter-dropdown.show').forEach((dropdown) => {
+            dropdown.classList.remove('show');
+          });
+        }
+      });
+
+      /* ─── COLUMN DRAG & RESIZE WORKFLOW ─── */
+      let isResizing = false, startX = 0, startW = 0, thEl = null;
+
+      function initResizeHandles() {
+        document.querySelectorAll('.custom-table thead th, .sale-order-table thead th').forEach(function (th) {
+          if (th.querySelector('.col-rh')) return;
+          th.style.position = 'relative';
+          th.style.overflow = 'hidden';
+          th.style.width = th.getBoundingClientRect().width + 'px';
+
+          const handle = document.createElement('div');
+          handle.className = 'col-rh';
+          th.appendChild(handle);
+        });
+      }
+
+      document.addEventListener('mousedown', function (e) {
+        if (!e.target.classList.contains('col-rh')) return;
+        e.preventDefault();
+        thEl = e.target.closest('th');
+        isResizing = true;
+        startX = e.clientX;
+        startW = thEl.getBoundingClientRect().width;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+      });
+
+      document.addEventListener('mousemove', function (e) {
+        if (!isResizing || !thEl) return;
+        const widthCalc = Math.max(60, startW + (e.clientX - startX));
+        thEl.style.width = widthCalc + 'px';
+        thEl.style.minWidth = widthCalc + 'px';
+      });
+
+      document.addEventListener('mouseup', function () {
+        if (!isResizing) return;
+        isResizing = false; 
+        thEl = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      });
+
+      initResizeHandles();
+    });
+  </script>
 </body>
 
 </html>

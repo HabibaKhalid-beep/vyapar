@@ -919,7 +919,57 @@
       });
     });
   </script>
+<script>
+  /* ═══════════════════════════════════════
+      COLUMN RESIZE — Sales Table
+     ═══════════════════════════════════════ */
+  (function () {
+    var isResizing = false, startX = 0, startW = 0, thEl = null;
 
+    function initResizeHandles() {
+      var table = document.querySelector('.txn-table');
+      if (!table) return;
+
+      var ths = table.querySelectorAll('thead th');
+      ths.forEach(function (th) {
+        if (th.querySelector('.col-resize-handle-sales')) return;
+        th.style.position = 'relative';
+        var handle = document.createElement('div');
+        handle.className = 'col-resize-handle-sales';
+        handle.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;';
+        th.appendChild(handle);
+      });
+    }
+
+    document.addEventListener('mousedown', function (e) {
+      if (!e.target.classList.contains('col-resize-handle-sales')) return;
+      e.preventDefault();
+      thEl = e.target.closest('th');
+      isResizing = true;
+      startX = e.clientX;
+      startW = thEl.getBoundingClientRect().width;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', function (e) {
+      if (!isResizing || !thEl) return;
+      var newW = Math.max(60, startW + (e.clientX - startX));
+      thEl.style.minWidth = newW + 'px';
+      thEl.style.width = newW + 'px';
+    });
+
+    document.addEventListener('mouseup', function () {
+      if (!isResizing) return;
+      isResizing = false;
+      thEl = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    });
+
+    document.addEventListener('DOMContentLoaded', initResizeHandles);
+  })();
+</script>
 
 
 

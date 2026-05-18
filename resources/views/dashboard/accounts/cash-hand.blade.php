@@ -35,7 +35,7 @@
     /* ── Balance Header ── */
     .balance-header {
       background-color: #fff !important;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 4px solid #e2e8f0;
       padding: 1rem 1.5rem !important;
     }
     .balance-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; }

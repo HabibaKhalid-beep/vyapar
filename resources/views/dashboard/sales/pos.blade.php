@@ -8,6 +8,33 @@
 <title>POS – Sale</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
+  .custom-table thead th {
+    font-size: 13px; color: #6c757d; font-weight: 500;
+    border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 5;
+    background-color: #fafafa; white-space: nowrap; position: relative;
+  }
+  .custom-table tbody td {
+    font-size: 14px; padding: 14px 10px;
+    border-bottom: 1px solid #f1f1f1; white-space: nowrap;
+  }
+  .custom-table tbody tr:hover { background-color: #fafafa; }
+  .custom-table th, .custom-table td { border-right: 1px solid #f1f1f1; }
+  .custom-table th:last-child, .custom-table td:last-child { border-right: none; }
+  .table-wrapper {
+    overflow-x: auto; overflow-y: auto;
+    max-height: 68vh; border: 1px solid #eef2f7; border-radius: 12px;
+  }
+  @media (max-width: 991px) {
+    .table-wrapper { max-height: none; border-radius: 8px; }
+    .custom-table thead th { font-size: 11px; padding: 8px 6px; }
+    .custom-table tbody td { font-size: 12px; padding: 10px 6px; }
+  }
+  @media (max-width: 575px) {
+    .custom-table thead th { font-size: 10px; padding: 6px 4px; }
+    .custom-table tbody td { font-size: 11px; padding: 8px 4px; }
+  }
+</style>
+<style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --blue:#1976d2;--blue-light:#e3f2fd;--blue-dark:#1565c0;
@@ -333,8 +360,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
   <div class="split">
     <!-- LEFT -->
     <div class="left">
-      <div class="table-wrap">
-        <table class="bill-table">
+     <div class="table-wrapper">
+  <table class="table align-middle custom-table mb-0">
           <thead>
             <tr>
               <th style="width:36px">#</th>
@@ -1666,6 +1693,40 @@ document.addEventListener('keydown', e => {
     if (cm[k]) { e.preventDefault(); cm[k](); }
   }
 });
+</script>
+<script>
+  (function () {
+    var isResizing = false, startX = 0, startW = 0, thEl = null;
+    function init() {
+      document.querySelectorAll('.custom-table thead th').forEach(function (th) {
+        if (th.querySelector('.col-rh')) return;
+        th.style.position = 'relative';
+        var h = document.createElement('div');
+        h.className = 'col-rh';
+        h.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;';
+        th.appendChild(h);
+      });
+    }
+    document.addEventListener('mousedown', function (e) {
+      if (!e.target.classList.contains('col-rh')) return;
+      e.preventDefault();
+      thEl = e.target.closest('th'); isResizing = true;
+      startX = e.clientX; startW = thEl.getBoundingClientRect().width;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', function (e) {
+      if (!isResizing || !thEl) return;
+      var w = Math.max(60, startW + (e.clientX - startX));
+      thEl.style.minWidth = w + 'px'; thEl.style.width = w + 'px';
+    });
+    document.addEventListener('mouseup', function () {
+      if (!isResizing) return;
+      isResizing = false; thEl = null;
+      document.body.style.cursor = ''; document.body.style.userSelect = '';
+    });
+    document.addEventListener('DOMContentLoaded', init);
+  })();
 </script>
 </body>
 </html>

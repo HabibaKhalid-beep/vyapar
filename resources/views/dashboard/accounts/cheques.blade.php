@@ -34,7 +34,7 @@
     /* ── Header ── */
     .cheque-header {
       background-color: #fff !important;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 4px solid #e2e8f0;
       padding: 1rem 1.5rem !important;
     }
     .cheque-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
@@ -125,7 +125,7 @@
 
     /* ── Table Cells ── */
     .cheque-tbl td {
-      padding: 12px 10px; font-size: 13px; color: #000000; font-weight: 400;
+      padding: 18px 10px; font-size: 13px; color: #000000; font-weight: 400;
       border-bottom: 1px solid #f0f0f0; border-right: 1px solid #f0f0f0;
       vertical-align: middle;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
